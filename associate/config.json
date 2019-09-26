@@ -1,0 +1,39 @@
+{
+    "camids": [0,1,2,5,6,7,8,9,10,11], 
+    // "imgfolder": "/home/al17/animal/pig-data/sync/0819/sync_noon1/",
+    "imgfolder" : "/home/al17/animal/pig-data/sync/0819/sync_morning1", 
+    "imgExtension": "jpg", 
+    "camfolder": "/home/al17/animal/animal_calib/build/results/",
+    // "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_noon10000/",
+    "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_morning1/", 
+    // "startid" : 7076,
+    "startid" : 3732,
+    "epipolartype": "p2l", // "p2l" or "l2l" 
+    // "startid" : 6242,
+    "framenum": 100, 
+    "epipolar_threshold": 25,
+    "keypoints_show": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+    // "keypoints_show": [18], 
+    "keypoint_conf_thres" : [
+        0.4, //  0, nose 
+        0.4, //  1, left eye
+        0.6, //  2, left ear 
+        0.3, //  3, left shoulder
+        0.6, //  4, left elbow
+        0.6, //  5, left hand
+        0.3, //  6, left leg
+        0.6, //  7, left knee
+        0.6, //  8, left foot
+        0.4, //  9, tail root
+        0.4, //  10, right eye 
+        0.6, //  11, right ear
+        0.3, //  12, right shoulder
+        0.6, //  13, right elbow
+        0.6, //  14, right hand
+        0.3, //  15, right leg
+        0.6, //  16, right knee
+        0.6, //  17, right foot
+        0.15, //  18, center
+        0.2  //  19, ear middle (neck)
+    ]
+}

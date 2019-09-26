@@ -1,0 +1,16 @@
+*.pyc
+*__pycache__*
+*.obj 
+*.zip
+
+.vscode/
+build/
+data/
+python/data/
+python/markers/
+python/pyRender/
+python/results/
+python/results_bk
+
+*.png
+!associate/pig-topo.png 
