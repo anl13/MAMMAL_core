@@ -9,13 +9,23 @@
 #include "camviewer.h"
 #include "render_object.h"
 #include "shader.h"
+#include "eigen_util.h"
 
 // #define WINDOW_SIZE 800
 // #define SHADOW_WINDOW_SIZE 1024
 
 
-#define WINDOW_SIZE 512
-#define SHADOW_WINDOW_SIZE 512
+// #define WINDOW_SIZE 512
+// #define SHADOW_WINDOW_SIZE 512
+// #define WINDOW_HEIGHT 1080
+// #define WINDOW_WIDTH  1920
+// #define SHADOW_WINDOW_HEIGHT  1080
+// #define SHADOW_WINDOW_WIDTH   1920
+
+#define WINDOW_HEIGHT 512
+#define WINDOW_WIDTH  512
+#define SHADOW_WINDOW_HEIGHT  512
+#define SHADOW_WINDOW_WIDTH   512
 
 class Renderer
 {
@@ -54,6 +64,8 @@ public:
 	void InsertObject(const int id, T* renderObject){
 		renderObjects.insert(std::make_pair(id, renderObject)); 
 	}
+
+	std::vector<BallStickObject*> skels; 
 
 	void Draw(); 
 	

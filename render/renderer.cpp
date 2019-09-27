@@ -30,13 +30,12 @@ void Renderer::s_InitGLFW()
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 	// glfw window creation
-	s_windowPtr = glfwCreateWindow(WINDOW_SIZE, WINDOW_SIZE, "Renderer", NULL, NULL);
+	s_windowPtr = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Renderer", NULL, NULL);
 	if (s_windowPtr == NULL)
 	{
-		// throw "Failed to create GLFW window";
 		std::cout << "Failed to create GLFW window." << std::endl; 
-		exit(-1); 
 		glfwTerminate();
+		exit(-1); 
 	}
 
 	glfwMakeContextCurrent(s_windowPtr);
@@ -106,7 +105,7 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 {
 	Eigen::Vector2f nowPos = Eigen::Vector2f(float(xPos), float(yPos));
 
-	if (nowPos.x() < 0.0f || nowPos.x() > float(WINDOW_SIZE) || nowPos.y() < 0.0f || nowPos.y() > float(WINDOW_SIZE))
+	if (nowPos.x() < 0.0f || nowPos.x() > float(WINDOW_WIDTH) || nowPos.y() < 0.0f || nowPos.y() > float(WINDOW_HEIGHT))
 	{
 		return;
 	}
@@ -130,10 +129,12 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 	const Eigen::Vector3f camRight = s_camViewer.GetRight();
 	const Eigen::Vector3f camFront = s_camViewer.GetFront();
 
+	Eigen::Vector2f _nowPos = nowPos; _nowPos(0) /= float(WINDOW_WIDTH); _nowPos(1) /= float(WINDOW_HEIGHT); 
 	const Eigen::Vector3f nowArcCoord = GetArcballCoord(
-		nowPos / float(WINDOW_SIZE) * 2 - Eigen::Vector2f::Ones(), camFront, camUp, camRight);
+		_nowPos * 2 - Eigen::Vector2f::Ones(), camFront, camUp, camRight);
+	Eigen::Vector2f _before_pos = s_beforePos; _before_pos(0) /= float(WINDOW_WIDTH); _before_pos(1) /= float(WINDOW_HEIGHT); 
 	const Eigen::Vector3f beforeArcCoord = GetArcballCoord(
-		s_beforePos / float(WINDOW_SIZE) * 2 - Eigen::Vector2f::Ones(), camFront, camUp, camRight);
+		_before_pos * 2 - Eigen::Vector2f::Ones(), camFront, camUp, camRight);
 
 	switch (s_mouseAction)
 	{
@@ -265,7 +266,7 @@ void Renderer::InitShader()
 
 	for (int i = 0; i < 6; i++)
 	{
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WINDOW_SIZE, SHADOW_WINDOW_SIZE, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WINDOW_WIDTH, SHADOW_WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 	}
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -294,13 +295,13 @@ void Renderer::Draw()
 
 	// 1. render depth of scene to texture (from light's perspective)
 	// --------------------------------------------------------------
-	glViewport(0, 0, SHADOW_WINDOW_SIZE, SHADOW_WINDOW_SIZE);
+	glViewport(0, 0, SHADOW_WINDOW_WIDTH, SHADOW_WINDOW_HEIGHT);
 	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
 	glClear(GL_DEPTH_BUFFER_BIT);
 	depthShader.Use();
 
-	Eigen::Vector3f lightPos = s_camViewer.GetPos();
-
+	Eigen::Vector3f lightPos = -s_camViewer.GetPos();
+	
 	depthShader.SetVec3("light_pos", lightPos);
 	depthShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 	{
@@ -325,13 +326,16 @@ void Renderer::Draw()
 	{
 		iter->second->DrawDepth(depthShader);
 	}
-
+	for(int i = 0; i < skels.size(); i++)
+	{
+		skels[i]->Draw(depthShader); 
+	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 	// 2. render scene as normal using the generated depth/shadow map  
 	// --------------------------------------------------------------
-	glViewport(0, 0, WINDOW_SIZE, WINDOW_SIZE);
+	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -379,5 +383,18 @@ void Renderer::Draw()
 			std::cout << "[Renderer] unknown render object type " << std::endl; 
 			exit(-1); 
 		}
+	}
+
+	for(int i = 0; i < skels.size(); i++)
+	{
+		colorShader.Use(); 
+		s_camViewer.ConfigShader(colorShader); 
+		colorShader.SetVec3("light_pos", lightPos); 
+		colorShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
+		colorShader.SetInt("depth_cube", 1); 
+		glActiveTexture(GL_TEXTURE1); 
+		glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture); 
+		
+		skels[i]->Draw(colorShader); 
 	}
 }

@@ -437,12 +437,12 @@ void FrameData::epipolarClustering(int kpt_id, vector<Vec3> & p3ds)
 
 void FrameData::compute3d()
 {
-    points3d.resize(20);
+    m_points3d.resize(20);
     for(int kpt_id = 0; kpt_id < 20; kpt_id++)
     {
         vector<Vec3> p3ds; 
         epipolarClustering(kpt_id, p3ds);
-        points3d[kpt_id] = p3ds;  
+        m_points3d[kpt_id] = p3ds;  
     }
 }
 
@@ -454,7 +454,7 @@ void FrameData::reproject()
         dets_reproj[view].resize(20); 
         for(int kpt_id = 0; kpt_id < 20; kpt_id ++)
         {
-            project(m_camsUndist[view], points3d[kpt_id], dets_reproj[view][kpt_id]); 
+            project(m_camsUndist[view], m_points3d[kpt_id], dets_reproj[view][kpt_id]); 
         }
     }
 }
@@ -580,4 +580,333 @@ cv::Mat FrameData::visualizeClique(int kpt_id)
     }
 
     return output; 
+}
+
+
+void FrameData::associateNearest()
+{
+    std::vector<int> searchids = {12, 15, 3, 6,19, 9,  2,11,1,10,0,13,14,16,17,4,5,7,8};
+    m_skels.resize(4, PIG_SKEL::Zero()); // TODO: assume pig num is 4 
+    // TODO: assume center is always visible, and assign other kpts to center
+    for(int i = 0; i < 4; i++)
+    {
+        m_skels[i].col(18).segment<3>(0) = m_points3d[18][i]; 
+        m_skels[i](3,18) = 1; 
+    }
+
+    for(int index = 0; index < searchids.size(); index++)
+    {
+        int kpt_id = searchids[index]; 
+        int kpt_num = m_points3d[kpt_id].size(); 
+        Eigen::MatrixXf S; 
+        S.resize(4, kpt_num); 
+        S = Eigen::MatrixXf::Zero(4, kpt_num);
+        for(int i = 0; i < 4; i++)
+        {
+            for(int j = 0; j < kpt_num; j++)
+            {
+                int totalNum = 0; 
+                double sim = 0; 
+                Eigen::Vector3d p = m_points3d[kpt_id][j]; 
+                Eigen::Vector3d center = m_skels[i].col(18).segment<3>(0); 
+                sim += ( p - center).norm(); 
+                totalNum += 1; 
+                for(int k = 0; k < index; k++)
+                {
+                    int searched_id = searchids[k]; 
+                    Eigen::Vector3d q = m_skels[i].col(searched_id).segment<3>(0); 
+                    double vis = m_skels[i](3, searched_id); 
+                    if(vis < 1) continue;
+                    else 
+                    {
+                        sim += (p - q).norm(); 
+                        totalNum += 1; 
+                    }
+                }
+                S(i, j) = (float)(sim / totalNum); 
+            }
+        }
+        std::vector<int> assign = solveHungarian(S); 
+        for(int i = 0; i < 4; i++)
+        {
+            int assign_id = assign[i];
+            if (assign_id < 0) continue; 
+            else 
+            {
+                m_skels[i].col(kpt_id) = ToHomogeneous(m_points3d[kpt_id][assign_id]); 
+            }
+        }
+    }
+
+}
+
+void FrameData::reproject_skels()
+{
+    skels_reproj.resize(m_camNum); 
+    for(int c = 0; c < m_camNum; c++) skels_reproj[c].resize(4,PIG_SKEL_2D::Zero()); 
+    
+    for(int camid = 0; camid < m_camNum; camid++)
+    {
+        for(int id = 0; id < 4; id++)
+        {
+            for(int kpt_id = 0; kpt_id < 20; kpt_id++)
+            {
+                if(m_skels[id](3, kpt_id) < 1) continue; 
+                Eigen::Vector3d p = m_skels[id].col(kpt_id).segment<3>(0); 
+                skels_reproj[camid][id].col(kpt_id) = project(m_camsUndist[camid], p); 
+            }
+        }
+    }
+}
+
+cv::Mat FrameData::visualizeSkels2D()
+{
+    cv::Mat output; 
+    return output; 
+}
+
+cv::Mat FrameData::visualizeIdentity2D()
+{
+    std::vector<cv::Mat> imgdata;
+    cloneImgs(m_imgsUndist, imgdata); 
+    
+    for(int view = 0; view < m_camNum; view++)
+    {
+        for(int id = 0; id < 4; id++)
+        {
+            drawSkelSingleColor(imgdata[view], skels_reproj[view][id], m_CM[id]);
+        }
+    }
+    
+    cv::Mat packed; 
+    packImgBlock(imgdata, packed); 
+    return packed;
+}
+
+void FrameData::drawSkelSingleColor(cv::Mat& img, const PIG_SKEL_2D & data, const Eigen::Vector3i & color)
+{
+    // draw points first 
+    std::vector<Eigen::Vector3d> points; 
+    for(int i = 0; i < 20; i++)
+    {
+        Eigen::Vector3d vec = data.col(i); 
+        if( vec(2) > 0) points.push_back(vec); 
+    }
+    my_draw_points(img, points, color, 14); 
+
+    // draw bones 
+    int boneNum = BONES.size();
+    Eigen::Vector3i color_bone = Eigen::Vector3i::Ones() * 255 - color;  
+    for(int i = 0; i < boneNum; i++)
+    {
+        int sid = BONES[i](0); 
+        int eid = BONES[i](1); 
+        Eigen::Vector3d ps = data.col(sid); 
+        Eigen::Vector3d pe = data.col(eid); 
+        if(ps(2) == 0 || pe(2) == 0) continue; 
+        my_draw_segment(img, ps, pe, color_bone, 10, 0); 
+    }
+}
+
+void FrameData::track3DJoints(const vector<PIG_SKEL>& last_skels)
+{
+    m_skels.resize(4, PIG_SKEL::Zero()); // TODO: assume pig num is 4 
+
+    std::vector<int> searchids = {18, 12, 15, 3, 6,19, 9,  2,11,1,10,0,13,14,16,17,4,5,7,8};
+    
+    assert(last_skels.size() == 4); 
+    for(int index = 0; index < searchids.size(); index++)
+    {
+        int kpt_id = searchids[index]; 
+        int kpt_num = m_points3d[kpt_id].size(); 
+        Eigen::MatrixXf S; 
+        S.resize(4, kpt_num); 
+        S = Eigen::MatrixXf::Zero(4, kpt_num); 
+        for(int i = 0; i < 4; i++)
+        {
+            for(int j = 0; j < kpt_num; j++)
+            {
+                double sim = 0; 
+                Eigen::Vector4d last_p_homo = last_skels[i].col(kpt_id);
+                Eigen::Vector3d curr_p = m_points3d[kpt_id][j];
+                if(last_p_homo(3) > 0) // track 
+                {
+                    sim = (last_p_homo.segment<3>(0) - curr_p).norm(); 
+                    if(sim > 0.4) sim = 10; 
+                } 
+                else // search by nearest 
+                {
+                    int totalNum = 0; 
+                    for(int k = 0; k < 20; k++)
+                    {
+                        int searched_id = searchids[k]; 
+                        Eigen::Vector3d q = m_skels[i].col(searched_id).segment<3>(0); 
+                        double vis = m_skels[i](3, searched_id); 
+                        if(vis < 1) continue;
+                        else 
+                        {
+                            sim += (curr_p - q).norm(); 
+                            totalNum += 1; 
+                        }
+                    }
+                    sim /= totalNum; 
+                }
+                S(i,j) = (float)sim; 
+            }
+        }
+        // std::cout << "****" << kpt_id << std::endl; 
+        // std::cout << S << std::endl; 
+        std::vector<int> assign = solveHungarian(S); 
+        for(int i = 0; i < 4; i++)
+        {
+            if(assign[i] < 0) continue; 
+            m_skels[i].col(kpt_id) = ToHomogeneous(m_points3d[kpt_id][assign[i]]); 
+        }
+    }
+
+    // TODO: clean false associated joints(using len thres)
+    for(int i = 0; i < 4; i++)
+    {
+
+    }
+    // use last frame to complete invisible points of this frame 
+    for(int i = 0; i < 4; i++)
+    {
+
+    }
+
+}
+
+void FrameData::clean3DJointsByAFF()
+{
+    for(int index = 0; index < m_skels.size(); index++)
+    {
+        for(int kpt_id = 0; kpt_id < 20; kpt_id++)
+        {
+            std::vector<int> aff = AFF[kpt_id]; 
+            int toclean = 0; 
+            Eigen::Vector4d curr_p = m_skels[index].col(kpt_id);
+            if(curr_p(3) < 1) continue; 
+            for(int a = 0; a < aff.size(); a++)
+            {
+                int a_id = aff[a]; 
+                Eigen::Vector4d q = m_skels[index].col(a_id); 
+                if(q(3) < 1) continue; 
+                double dist = (q.segment<3>(0) - curr_p.segment<3>(0) ).norm(); 
+                if(dist > 0.6) toclean += 1;
+                if(index==3 && kpt_id == 8) std::cout << dist << " "; 
+            }
+            if(toclean >= 2) 
+            {
+                std::cout << "clean pig " << index << " kpt " << kpt_id << std::endl; 
+                m_skels[index].col(kpt_id) = Eigen::Vector4d::Zero(); 
+            }
+        }
+    }
+}
+
+void FrameData::computeBoneLen()
+{
+    std::cout << "BONES num: " << BONES.size() << std::endl; 
+    for(int i = 0; i < BONES.size(); i++)
+    {
+        int sid = BONES[i](0); 
+        int eid = BONES[i](1);
+        std::cout << "(" << std::setw(2) << sid << "," << std::setw(2) << eid << "): ";
+        double totaldist = 0; 
+        int totalnum = 0; 
+        for(int index= 0; index < 4; index++)
+        {
+            Eigen::Vector4d ps = m_skels[index].col(sid); 
+            Eigen::Vector4d pe = m_skels[index].col(eid); 
+            if(ps(3) > 0 && pe(3) > 0)
+            {
+                double dist = (ps.segment<3>(0) - pe.segment<3>(0) ).norm(); 
+                std::cout << dist << ";  " ; 
+                totaldist += dist; 
+                totalnum += 1; 
+            }
+            else 
+            {
+                std::cout << 0 << ";  "; 
+            }
+        }
+        if (totalnum > 0) 
+        {
+            std::cout << " avg: " << totaldist / totalnum << " m" << std::endl; 
+        }
+        else std::cout << " avg: " << 0 << " m" << std::endl; 
+    }
+}
+
+#include <json/writer.h> 
+void FrameData::writeSkeltoJson(std::string jsonfile)
+{
+    std::ofstream os;
+    os.open(jsonfile); 
+    if(!os.is_open())
+    {
+        std::cout << "file " << jsonfile << " cannot open" << std::endl; 
+        return; 
+    }
+
+    Json::Value root;
+    Json::Value pigs(Json::arrayValue);  
+    for(int index=0; index < 4; index++)
+    {
+        Json::Value pose(Json::arrayValue); 
+        for(int i = 0; i < 20; i++)
+        {
+            pose.append(Json::Value(m_skels[index].col(i)(0)) ); 
+            pose.append(Json::Value(m_skels[index].col(i)(1)) );
+            pose.append(Json::Value(m_skels[index].col(i)(2)) );
+            pose.append(Json::Value(m_skels[index].col(i)(3)) );   
+        }
+        pigs.append(pose); 
+    }
+    root["pigs"] = pigs;
+    
+    // Json::StyledWriter stylewriter; 
+    // os << stylewriter.write(root); 
+    Json::StreamWriterBuilder builder;
+    builder["commentStyle"] = "None";
+    builder["indentation"] = "    "; 
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter()); 
+    writer->write(root, &os); 
+    os.close(); 
+}
+
+void FrameData::readSkelfromJson(std::string jsonfile)
+{
+    Json::Value root;
+    Json::CharReaderBuilder rbuilder; 
+    std::string errs; 
+    std::ifstream instream(jsonfile); 
+    if(!instream.is_open())
+    {
+        std::cout << "can not open " << jsonfile << std::endl; 
+        exit(-1); 
+    }
+    bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs); 
+    if(!parsingSuccessful)
+    {
+        std::cout << "Fail to parse \n" << errs << std::endl; 
+        exit(-1); 
+    }
+
+    m_skels.clear(); 
+    for(auto const &pig: root["pig"])
+    {
+        PIG_SKEL skel; 
+        for(int index=0; index < 20; index++)
+        {
+            double x = pig[index * 4 + 0].asDouble(); 
+            double y = pig[index * 4 + 1].asDouble();
+            double z = pig[index * 4 + 2].asDouble(); 
+            double w = pig[index * 4 + 3].asDouble(); 
+            Eigen::Vector4d vec(x,y,z,w);
+            skel.col(index) = vec; 
+        }
+        m_skels.push_back(skel);
+    }
 }

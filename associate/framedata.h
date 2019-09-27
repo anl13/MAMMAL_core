@@ -12,8 +12,11 @@
 #include "image_utils.h"
 #include "geometry.h" 
 #include "clusterclique.h"
-
+#include "Hungarian.h"
 using std::vector; 
+
+typedef Eigen::Matrix<double, 4, 20, Eigen::ColMajor> PIG_SKEL; 
+typedef Eigen::Matrix<double, 3, 20, Eigen::ColMajor> PIG_SKEL_2D; 
 
 // data of a frame 
 class FrameData{
@@ -55,17 +58,25 @@ public:
     void epipolarClustering(int kpt_id, vector<Vec3> &p3ds);
     void compute3d(); 
     void reproject(); 
-    cv::Mat visualize(int type, int kpt_id=-1); 
+    void reproject_skels(); 
+    cv::Mat visualize(int type, int kpt_id=-1); // visualize discrete points(not identity associated)
     cv::Mat visualizeClique(int kpt_id); 
+    cv::Mat visualizeSkels2D(); 
+    cv::Mat visualizeIdentity2D();
+    void associateNearest(); 
+    void track3DJoints(const vector<PIG_SKEL>& last_skels); 
+    void writeSkeltoJson(std::string savepath); 
+    void readSkelfromJson(std::string jsonfile); 
+    void computeBoneLen(); 
+    void clean3DJointsByAFF(); 
 
     vector<vector<vector<Eigen::Vector3d> > > dets; 
     vector<vector<vector<Eigen::Vector3d> > > dets_undist; 
-    vector<vector<Eigen::Vector3d> > points3d; 
+    vector<vector<Eigen::Vector3d> >          m_points3d; // [kptnum, candnum]
     vector<vector<vector<Eigen::Vector3d> > > dets_reproj; 
-    vector<vector<vector<int> > > m_cliques; 
-    vector<vector<std::pair<int,int> > > m_tables;
-    vector<vector<vector<int > > > m_invTables;  
-    vector<Eigen::MatrixXd> m_G; 
+    vector<vector< PIG_SKEL_2D > >            skels_reproj; 
+
+    vector< PIG_SKEL >                        m_skels; 
 
     int startid;
     int framenum; 
@@ -80,6 +91,13 @@ private:
     void readKeypoint(std::string jsonfile);
     void undistKeypoints(const Camera& cam, const Camera& camnew, int imw, int imh); 
     void undistImgs(); 
+
+    void drawSkelSingleColor(cv::Mat& img, const PIG_SKEL_2D & data, const Eigen::Vector3i & color); 
+
+    vector<vector<vector<int> > >             m_cliques; 
+    vector<vector<std::pair<int,int> > >      m_tables;
+    vector<vector<vector<int > > >            m_invTables;  
+    vector<Eigen::MatrixXd>                   m_G; 
 
     int m_imh, m_imw; 
     int m_frameid; 

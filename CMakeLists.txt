@@ -66,14 +66,39 @@ add_executable(calib
 target_compile_features(calib PUBLIC cxx_std_11)
 target_link_libraries(calib)
 
-## exe: renderer 
+## exe: renderer :: test 
 include_directories(render/) 
-add_executable(render 
+add_executable(render_test
     render/test.cpp 
     render/renderer.cpp 
     render/render_object.cpp 
     render/shader.cpp 
     render/camviewer.cpp 
+)
+target_compile_definitions(render_test PUBLIC cxx_std_11) 
+target_link_libraries(render_test
+    ${OPENGL_gl_LIBRARY}
+    ${GLUT_LIBRARIES}
+    ${OPENGL_LIBRARY}
+    glfw
+    glad
+)
+
+## exe: renderer :: main func 
+include_directories(render/) 
+add_executable(render
+    render/main.cpp 
+    render/renderer.cpp 
+    render/render_object.cpp 
+    render/shader.cpp 
+    render/camviewer.cpp 
+    associate/camera.cpp 
+    associate/framedata.cpp
+    associate/math_utils.cpp 
+    associate/image_utils.cpp
+    associate/geometry.cpp
+    associate/clusterclique.cpp 
+    associate/Hungarian.cpp 
 )
 target_compile_definitions(render PUBLIC cxx_std_11) 
 target_link_libraries(render
@@ -82,6 +107,7 @@ target_link_libraries(render
     ${OPENGL_LIBRARY}
     glfw
     glad
+    mce
 )
 
 ## add lib: mce
@@ -101,6 +127,7 @@ add_executable(associate
     associate/image_utils.cpp
     associate/geometry.cpp
     associate/clusterclique.cpp 
+    associate/Hungarian.cpp 
 )
 target_link_libraries(associate
 mce
