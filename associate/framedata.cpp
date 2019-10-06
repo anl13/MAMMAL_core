@@ -895,7 +895,7 @@ void FrameData::readSkelfromJson(std::string jsonfile)
     }
 
     m_skels.clear(); 
-    for(auto const &pig: root["pig"])
+    for(auto const &pig: root["pigs"])
     {
         PIG_SKEL skel; 
         for(int index=0; index < 20; index++)
@@ -909,4 +909,6 @@ void FrameData::readSkelfromJson(std::string jsonfile)
         }
         m_skels.push_back(skel);
     }
+    instream.close(); 
+    std::cout << "read json done. " << std::endl; 
 }

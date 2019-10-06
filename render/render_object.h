@@ -46,7 +46,6 @@ public:
 	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> faces;
 	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> colors;
 
-
 private:
 };
 

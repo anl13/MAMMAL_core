@@ -390,7 +390,7 @@ BallStickObject::BallStickObject(
 		stickObject->SetFaces(stickObjCopy.faces);
 		stickObject->SetVertices(stickObjCopy.vertices);
 		stickObject->SetTransform(translation, rotation, 1.0f);
-		stickObject->SetColor(color);
+		stickObject->SetColor(Eigen::Vector3f::Ones() - color);
 
 		objectPtrs.push_back(stickObject);
 	}

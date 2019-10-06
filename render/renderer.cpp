@@ -292,45 +292,46 @@ void Renderer::Draw()
 	// set background
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	Eigen::Vector3f lightPos = -s_camViewer.GetPos();
 
 	// 1. render depth of scene to texture (from light's perspective)
 	// --------------------------------------------------------------
 	glViewport(0, 0, SHADOW_WINDOW_WIDTH, SHADOW_WINDOW_HEIGHT);
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-	glClear(GL_DEPTH_BUFFER_BIT);
-	depthShader.Use();
 
-	Eigen::Vector3f lightPos = -s_camViewer.GetPos();
+	// glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
+	// glClear(GL_DEPTH_BUFFER_BIT);
+	// depthShader.Use();
+
 	
-	depthShader.SetVec3("light_pos", lightPos);
-	depthShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-	{
-		Eigen::Matrix<float, 4, 4, Eigen::ColMajor> perspective = EigenUtil::Perspective(0.5f*EIGEN_PI, 1.0f, RENDER_NEAR_PLANE, RENDER_FAR_PLANE);
+	// depthShader.SetVec3("light_pos", lightPos);
+	// depthShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+	// {
+	// 	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> perspective = EigenUtil::Perspective(0.5f*EIGEN_PI, 1.0f, RENDER_NEAR_PLANE, RENDER_FAR_PLANE);
 
-		std::vector<Eigen::Vector3f> frontList = { 
-			{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
-			{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} };
+	// 	std::vector<Eigen::Vector3f> frontList = { 
+	// 		{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+	// 		{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} };
 
-		std::vector<Eigen::Vector3f> upList = {
-			{0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f },{0.0f, 0.0f, 1.0f},
-			{0.0f, 0.0f, -1.0f },{ 0.0f, -1.0f, 0.0f },{ 0.0f, -1.0f, 0.0f} };
+	// 	std::vector<Eigen::Vector3f> upList = {
+	// 		{0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f },{0.0f, 0.0f, 1.0f},
+	// 		{0.0f, 0.0f, -1.0f },{ 0.0f, -1.0f, 0.0f },{ 0.0f, -1.0f, 0.0f} };
 
-		for (int i = 0; i < 6; i++)
-		{
-			const Eigen::Matrix<float, 4, 4, Eigen::ColMajor> shadowTransform = perspective * EigenUtil::LookAt(lightPos, lightPos + frontList[i], upList[i]);
-			depthShader.SetMat4("shadow_matrices[" + std::to_string(i) + "]", shadowTransform);
-		}
-	}
+	// 	for (int i = 0; i < 6; i++)
+	// 	{
+	// 		const Eigen::Matrix<float, 4, 4, Eigen::ColMajor> shadowTransform = perspective * EigenUtil::LookAt(lightPos, lightPos + frontList[i], upList[i]);
+	// 		depthShader.SetMat4("shadow_matrices[" + std::to_string(i) + "]", shadowTransform);
+	// 	}
+	// }
 
-	for (auto iter = renderObjects.begin(); iter != renderObjects.end(); iter++)
-	{
-		iter->second->DrawDepth(depthShader);
-	}
-	for(int i = 0; i < skels.size(); i++)
-	{
-		skels[i]->Draw(depthShader); 
-	}
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	// for (auto iter = renderObjects.begin(); iter != renderObjects.end(); iter++)
+	// {
+	// 	iter->second->DrawDepth(depthShader);
+	// }
+	// for(int i = 0; i < skels.size(); i++)
+	// {
+	// 	skels[i]->Draw(depthShader); 
+	// }
+	// glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 	// 2. render scene as normal using the generated depth/shadow map  

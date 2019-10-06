@@ -70,6 +70,8 @@ public:
     void computeBoneLen(); 
     void clean3DJointsByAFF(); 
 
+    Camera getCamUndistById(int id){return m_camsUndist[id];}
+
     vector<vector<vector<Eigen::Vector3d> > > dets; 
     vector<vector<vector<Eigen::Vector3d> > > dets_undist; 
     vector<vector<Eigen::Vector3d> >          m_points3d; // [kptnum, candnum]
