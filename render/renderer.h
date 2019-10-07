@@ -72,7 +72,9 @@ public:
 private:
 	static MOUSE_ACTION s_mouseAction;
 	static Eigen::Vector2f s_beforePos; 
-
+	static float s_arcballRadius; 
+	static double s_leftClickTimeSeconds; 
+	
 	static void s_InitGLFW();
 	static void s_InitGLAD();
 	static void s_InitMouse();

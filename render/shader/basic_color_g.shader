@@ -13,8 +13,8 @@ out GS_OUT
     vec3 normal;
 } gs_out;
 
-uniform mat4 perspective;
-uniform mat4 proj;
+uniform mat4 projection;
+uniform mat4 view;
 
 void main()
 {
@@ -27,7 +27,7 @@ void main()
     {
         gs_out.pos = gs_in[i].pos;
         gs_out.normal = normal;
-        gl_Position = perspective*proj*vec4(gs_in[i].pos,1.0);
+        gl_Position = projection*view*vec4(gs_in[i].pos,1.0);
         EmitVertex();
     }
     EndPrimitive();

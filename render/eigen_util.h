@@ -33,17 +33,18 @@ namespace EigenUtil
 			return jacobiMat;
 	}
 
-	inline Eigen::Matrix4f LookAt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _center, const Eigen::Vector3f& _up)
+	inline Eigen::Matrix4f LookAt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _target, const Eigen::Vector3f& _up)
 	{
-		const Eigen::Vector3f front = (_pos - _center).normalized();
-		const Eigen::Vector3f right = (front.cross(_up)).normalized();
-		const Eigen::Vector3f up = (right.cross(front)).normalized();
+		const Eigen::Vector3f direct = (_pos - _target).normalized();
+		const Eigen::Vector3f right = (_up.cross(direct)).normalized();
+		const Eigen::Vector3f up = (direct.cross(right)).normalized();
 
 		Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
 		Eigen::Matrix3f R = mat.block<3, 3>(0, 0);
-		R.row(0) = -right.transpose();
+		R.row(0) = right.transpose();
 		R.row(1) = up.transpose();
-		R.row(2) = front.transpose();
+		R.row(2) = direct.transpose();
+		mat.block<3, 3>(0, 0) = R; 
 		mat.block<3, 1>(0, 3) = R*(-_pos);
 
 		return mat;

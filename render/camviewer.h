@@ -26,7 +26,7 @@ public:
 	void SetExtrinsic(const Eigen::Matrix3f& R, const Eigen::Vector3f& T);
 
 	void SetIntrinsic(const float fovy, const float aspect, const float zNear, const float zFar);
-	void SetIntrinsic(const Eigen::Matrix3f& K, const int photoSize);
+	void SetIntrinsic(const Eigen::Matrix3f& K, const int width, const int height);
 
 	void ConfigShader(Shader& shader) const;
 
@@ -39,6 +39,4 @@ private:
 
 	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> projMat;
 	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> perspectiveMat;
-
-	void Update();
 };

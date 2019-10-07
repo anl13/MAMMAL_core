@@ -10,7 +10,8 @@ CamViewer               Renderer::s_camViewer;
 GLFWwindow*             Renderer::s_windowPtr;
 Renderer::MOUSE_ACTION  Renderer::s_mouseAction;
 Eigen::Vector2f         Renderer::s_beforePos;
-
+float                   Renderer::s_arcballRadius; 
+double                  Renderer::s_leftClickTimeSeconds; 
 
 void Renderer::s_Init()
 {
@@ -72,6 +73,8 @@ void Renderer::s_InitMouse()
 {
 	s_mouseAction = MOUSE_NONE;
 	s_beforePos = Eigen::Vector2f::Zero();
+	s_arcballRadius = 1.0f;
+	s_leftClickTimeSeconds = 0.0;
 }
 
 void Renderer::s_MouseButtonCallBack(GLFWwindow* _windowPtr, int button, int action, int mods)
@@ -81,14 +84,31 @@ void Renderer::s_MouseButtonCallBack(GLFWwindow* _windowPtr, int button, int act
 		switch (button)
 		{
 		case GLFW_MOUSE_BUTTON_LEFT:
+		{
 			s_mouseAction = MOUSE_LEFT;
+			double seconds = glfwGetTime();   
+			if(seconds - s_leftClickTimeSeconds < 0.2)
+			{
+				const Eigen::Vector3f camCenter = s_camViewer.GetCenter();
+				const Eigen::Vector3f camPos = s_camViewer.GetPos();
+				const Eigen::Vector3f camUp = s_camViewer.GetUp();
+				Eigen::Vector3f newCamPos = camPos - camCenter; 
+				Eigen::Vector3f newCenter = Eigen::Vector3f::Zero(); 
+				s_camViewer.SetExtrinsic(newCamPos, camUp, newCenter);
+			}
+			s_leftClickTimeSeconds = seconds; 
 			break;
+		}
 		case GLFW_MOUSE_BUTTON_MIDDLE:
+		{
 			s_mouseAction = MOUSE_MIDDLE;
 			break;
+		}
 		case GLFW_MOUSE_BUTTON_RIGHT:
+		{
 			s_mouseAction = MOUSE_RIGHT;
 			break;
+		}
 		default:
 			break;
 		}
@@ -117,10 +137,22 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 		const Eigen::Vector3f& right
 		)->Eigen::Vector3f {
 		// Attention: planeCoord should between [-1, 1]
-		float x = planeCoord.x() / sqrtf(2.0f);
-		float y = planeCoord.y() / sqrtf(2.0f);
-		float z = sqrtf(1 - powf(x, 2) - powf(y, 2));
-		return (right * x + up * y - front * z);
+		float x = planeCoord.x() / s_arcballRadius;
+		float y = planeCoord.y() / s_arcballRadius;
+		float z = 0; 
+		float r = x * x + y * y; 
+		if(r > 1)
+		{
+			x = x / r; 
+			y = y / r; 
+			z = 0; 
+		}
+		else 
+		{
+			z = sqrtf(1 - powf(x, 2) - powf(y, 2));
+		}
+		
+		return (right * x + up * y + front * z);
 	};
 
 	const Eigen::Vector3f camCenter = s_camViewer.GetCenter();
@@ -129,9 +161,9 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 	const Eigen::Vector3f camRight = s_camViewer.GetRight();
 	const Eigen::Vector3f camFront = s_camViewer.GetFront();
 
-	Eigen::Vector2f _nowPos = nowPos; _nowPos(0) /= float(WINDOW_WIDTH); _nowPos(1) /= float(WINDOW_HEIGHT); 
+	Eigen::Vector2f _nowPos = nowPos; _nowPos(0) /= float(WINDOW_WIDTH); _nowPos(1) /= float(WINDOW_HEIGHT); // normalize to 0~1
 	const Eigen::Vector3f nowArcCoord = GetArcballCoord(
-		_nowPos * 2 - Eigen::Vector2f::Ones(), camFront, camUp, camRight);
+		_nowPos * 2 - Eigen::Vector2f::Ones(), camFront, camUp, camRight); 
 	Eigen::Vector2f _before_pos = s_beforePos; _before_pos(0) /= float(WINDOW_WIDTH); _before_pos(1) /= float(WINDOW_HEIGHT); 
 	const Eigen::Vector3f beforeArcCoord = GetArcballCoord(
 		_before_pos * 2 - Eigen::Vector2f::Ones(), camFront, camUp, camRight);
@@ -144,6 +176,8 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 		const float theta = acos(beforeArcCoord.dot(nowArcCoord));
 		const Eigen::Vector3f rotationAxis = theta < FLT_EPSILON ? Eigen::Vector3f(0.0f, 0.0f, 1.0f) : (beforeArcCoord.cross(nowArcCoord)).normalized();
 
+		std::cout << camCenter.transpose() << std::endl; 
+		std::cout << camPos.transpose() << std::endl; 
 		const Eigen::Vector3f nowCamPos = Eigen::AngleAxisf(sensitivity * theta, rotationAxis) * (camPos - camCenter) + camCenter;
 		s_camViewer.SetExtrinsic(nowCamPos, camUp, camCenter);
 		break;
@@ -172,12 +206,12 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 void Renderer::s_ScrollCallBack(GLFWwindow* _windowPtr, double xOffset, double yOffset)
 {
 	float sensitivity = 0.2f;
-	const Eigen::Vector3f pos = Renderer::s_camViewer.GetPos();
-	const Eigen::Vector3f front = Renderer::s_camViewer.GetFront();
-	const Eigen::Vector3f up = Renderer::s_camViewer.GetUp();
+	const Eigen::Vector3f pos    = Renderer::s_camViewer.GetPos();
+	const Eigen::Vector3f front  = Renderer::s_camViewer.GetFront();
+	const Eigen::Vector3f up     = Renderer::s_camViewer.GetUp();
 	const Eigen::Vector3f center = Renderer::s_camViewer.GetCenter();
 	
-	const Eigen::Vector3f newPos = pos + sensitivity * float(yOffset) * front;
+	const Eigen::Vector3f newPos = pos - sensitivity * float(yOffset) * front;
 	if ((newPos - center).dot(pos - center) > 0.0f)
 	{
 		s_camViewer.SetExtrinsic(newPos, up, center);

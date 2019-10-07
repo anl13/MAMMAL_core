@@ -101,26 +101,23 @@ int main()
 #endif 
 
     // init a camera 
-    Camera cam;
-    Eigen::Matrix3d K; 
-    K << 1499.44, 0, 1014.23, 0, 1499.13, 1003.77, 0,0,1 ; 
+    Eigen::Matrix3f K; 
+    K << 0.5, 0, 0.5, 0, 0.5, 0.5, 0, 0, 1;
     std::cout << K << std::endl; 
-    cam.SetK(K); 
-    Vec3 rvec; rvec << 0, -1.57,0; 
-    Eigen::Matrix3d R1 = GetRodrigues(rvec);
-    Vec3 rvec2; rvec2 << 1.57, 0, 0; 
-    Eigen::Matrix3d R2 = GetRodrigues(rvec2);   
-    Eigen::Vector3d T = Eigen::Vector3d::Zero(); 
-    T(2) = 2; 
-    Eigen::Matrix3d I = Eigen::Matrix3d::Identity(); 
-    cam.SetRT(I,T); 
-    // cam.SetRT(frameCam.R, frameCam.T); 
+
+    Eigen::Vector3f front = Eigen::Vector3f::Zero(); 
+    front(2) = 1; 
+    Eigen::Vector3f up = Eigen::Vector3f::Zero(); 
+    up(1) = 1; 
+    Eigen::Vector3f pos = Eigen::Vector3f::Zero(); 
+    pos(2) = 3; 
+    Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
 
     // init renderer 
     Renderer::s_Init(); 
     Renderer m_renderer(conf_projectFolder + "/shader/"); 
-    m_renderer.s_camViewer.SetIntrinsic(cam.K.cast<float>(), 2048); 
-    m_renderer.s_camViewer.SetExtrinsic(cam.R.cast<float>(), cam.T.cast<float>()); 
+    m_renderer.s_camViewer.SetIntrinsic(K, 1, 1); 
+    m_renderer.s_camViewer.SetExtrinsic(pos, up, center); 
 
     // init element obj
     const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");

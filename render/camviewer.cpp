@@ -26,6 +26,10 @@ void CamViewer::SetExtrinsic(const Eigen::Vector3f& _pos, const Eigen::Vector3f&
 	up = (right.cross(front)).normalized();
 
 	projMat = EigenUtil::LookAt(pos, center, up);
+	// std::cout << "projMat: " << std::endl << projMat << std::endl; 
+	// std::cout << "right:   " << right.transpose() << std::endl; 
+	// std::cout << "front:   " << front.transpose() << std::endl; 
+	// std::cout << "up   :   " << up.transpose() << std::endl; 
 }
 
 
@@ -35,7 +39,7 @@ void CamViewer::SetIntrinsic(const float fovy, const float aspect, const float z
 }
 
 
-void CamViewer::SetIntrinsic(const Eigen::Matrix3f& K, const int photoSize)
+void CamViewer::SetIntrinsic(const Eigen::Matrix3f& K, const int width, const int height)
 {
 	const float fx = K(0, 0);
 	const float fy = K(1, 1);
@@ -43,20 +47,21 @@ void CamViewer::SetIntrinsic(const Eigen::Matrix3f& K, const int photoSize)
 	const float cy = K(1, 2);
 
 	perspectiveMat <<
-		2.0f * fx / float(photoSize), 0.0f, 2.0f*cx / float(photoSize) - 1.0f, 0.0f,
-		0.0f, 2.0f * fy / float(photoSize), 2.0f*cy / float(photoSize) - 1.0f, 0.0f,
+		2.0f * fx / float(width), 0.0f, 2.0f*cx / float(width) - 1.0f, 0.0f,
+		0.0f, 2.0f * fy / float(height), 2.0f*cy / float(height) - 1.0f, 0.0f,
 		0.0f, 0.0f, (RENDER_NEAR_PLANE + RENDER_FAR_PLANE) / (RENDER_NEAR_PLANE - RENDER_FAR_PLANE), 2.0f*RENDER_FAR_PLANE*RENDER_NEAR_PLANE / (RENDER_NEAR_PLANE - RENDER_FAR_PLANE),
 		0.0f, 0.0f, -1.0f, 0.0f;
 }
 
-
+// ATTENTION: transform coordinate system to opencv image system
 void CamViewer::SetExtrinsic(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
 {
 	front = -R.row(2).transpose();
 	up = -R.row(1).transpose();
-
 	pos = -R.transpose() * T;
+
 	center = pos - 1.0f*front;
+	// center = Eigen::Vector3f::Zero(); 
 
 	SetExtrinsic(pos, up, center);
 }
@@ -64,8 +69,8 @@ void CamViewer::SetExtrinsic(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
 
 void CamViewer::ConfigShader(Shader& shader) const
 {
-	shader.SetMat4("proj", projMat);
-	shader.SetMat4("perspective", perspectiveMat);
+	shader.SetMat4("view", projMat);
+	shader.SetMat4("projection", perspectiveMat);
 	shader.SetVec3("view_pos", pos);
 }
 
