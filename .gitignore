@@ -14,3 +14,6 @@ python/results_bk
 
 *.png
 !associate/pig-topo.png 
+
+render/deps/*
+render/test.cpp 
