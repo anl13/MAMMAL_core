@@ -25,8 +25,8 @@ void CamViewer::SetExtrinsic(const Eigen::Vector3f& _pos, const Eigen::Vector3f&
 	right = (front.cross(up)).normalized();
 	up = (right.cross(front)).normalized();
 
-	projMat = EigenUtil::LookAt(pos, center, up);
-	// std::cout << "projMat: " << std::endl << projMat << std::endl; 
+	viewMat = EigenUtil::LookAt(pos, center, up);
+	// std::cout << "viewMat: " << std::endl << viewMat << std::endl; 
 	// std::cout << "right:   " << right.transpose() << std::endl; 
 	// std::cout << "front:   " << front.transpose() << std::endl; 
 	// std::cout << "up   :   " << up.transpose() << std::endl; 
@@ -35,7 +35,7 @@ void CamViewer::SetExtrinsic(const Eigen::Vector3f& _pos, const Eigen::Vector3f&
 
 void CamViewer::SetIntrinsic(const float fovy, const float aspect, const float zNear, const float zFar)
 {
-	perspectiveMat = EigenUtil::Perspective(fovy, aspect, zNear, zFar);
+	projectionMat = EigenUtil::Perspective(fovy, aspect, zNear, zFar);
 }
 
 
@@ -46,7 +46,7 @@ void CamViewer::SetIntrinsic(const Eigen::Matrix3f& K, const int width, const in
 	const float cx = K(0, 2);
 	const float cy = K(1, 2);
 
-	perspectiveMat <<
+	projectionMat <<
 		2.0f * fx / float(width), 0.0f, 2.0f*cx / float(width) - 1.0f, 0.0f,
 		0.0f, 2.0f * fy / float(height), 2.0f*cy / float(height) - 1.0f, 0.0f,
 		0.0f, 0.0f, (RENDER_NEAR_PLANE + RENDER_FAR_PLANE) / (RENDER_NEAR_PLANE - RENDER_FAR_PLANE), 2.0f*RENDER_FAR_PLANE*RENDER_NEAR_PLANE / (RENDER_NEAR_PLANE - RENDER_FAR_PLANE),
@@ -69,8 +69,8 @@ void CamViewer::SetExtrinsic(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
 
 void CamViewer::ConfigShader(Shader& shader) const
 {
-	shader.SetMat4("view", projMat);
-	shader.SetMat4("projection", perspectiveMat);
+	shader.SetMat4("view", viewMat);
+	shader.SetMat4("projection", projectionMat);
 	shader.SetVec3("view_pos", pos);
 }
 

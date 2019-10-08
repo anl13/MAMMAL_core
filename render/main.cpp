@@ -125,13 +125,13 @@ int main()
 	const ObjData cubeObj(conf_projectFolder + "/data/obj_model/cube.obj");
 
     // init scene background 
-    RenderObjectTexture* room = new RenderObjectTexture();
-	room->SetTexture(conf_projectFolder + "/data/chessboard.png");
-	room->SetFaces(cubeObj.faces, true);
-	room->SetVertices(cubeObj.vertices);
-	room->SetTexcoords(cubeObj.texcoords);
-	room->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.InsertObject<RenderObjectTexture>(1, room);
+    // RenderObjectTexture* room = new RenderObjectTexture();
+	// room->SetTexture(conf_projectFolder + "/data/chessboard.png");
+	// room->SetFaces(cubeObj.faces, true);
+	// room->SetVertices(cubeObj.vertices);
+	// room->SetTexcoords(cubeObj.texcoords);
+	// room->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	// m_renderer.InsertObject<RenderObjectTexture>(1, room);
 
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
 

@@ -130,7 +130,7 @@ void ObjData::LoadObj(const std::string& objFile)
 RenderObject::RenderObject()
 {
 	model.setIdentity();
-	materialParam = MaterialParam(1.0f, 1.0f, 1.0f, 1.0f);
+	materialParam = MaterialParam(0.5f, 0.6f, 0.01f, 1.0f);
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO_vertex);

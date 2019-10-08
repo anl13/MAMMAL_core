@@ -97,6 +97,7 @@ void Renderer::s_MouseButtonCallBack(GLFWwindow* _windowPtr, int button, int act
 				s_camViewer.SetExtrinsic(newCamPos, camUp, newCenter);
 			}
 			s_leftClickTimeSeconds = seconds; 
+
 			break;
 		}
 		case GLFW_MOUSE_BUTTON_MIDDLE:
@@ -176,8 +177,8 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 		const float theta = acos(beforeArcCoord.dot(nowArcCoord));
 		const Eigen::Vector3f rotationAxis = theta < FLT_EPSILON ? Eigen::Vector3f(0.0f, 0.0f, 1.0f) : (beforeArcCoord.cross(nowArcCoord)).normalized();
 
-		std::cout << camCenter.transpose() << std::endl; 
-		std::cout << camPos.transpose() << std::endl; 
+		// std::cout << camCenter.transpose() << std::endl; 
+		// std::cout << camPos.transpose() << std::endl; 
 		const Eigen::Vector3f nowCamPos = Eigen::AngleAxisf(sensitivity * theta, rotationAxis) * (camPos - camCenter) + camCenter;
 		s_camViewer.SetExtrinsic(nowCamPos, camUp, camCenter);
 		break;
@@ -326,7 +327,8 @@ void Renderer::Draw()
 	// set background
 	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	Eigen::Vector3f lightPos = -s_camViewer.GetPos();
+	Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
+	
 
 	// 1. render depth of scene to texture (from light's perspective)
 	// --------------------------------------------------------------
@@ -396,7 +398,6 @@ void Renderer::Draw()
 			s_camViewer.ConfigShader(textureShader);
 			textureShader.SetVec3("light_pos", lightPos);
 			textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-
 			textureShader.SetInt("depth_cube", 1);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
@@ -424,7 +425,9 @@ void Renderer::Draw()
 	{
 		colorShader.Use(); 
 		s_camViewer.ConfigShader(colorShader); 
+
 		colorShader.SetVec3("light_pos", lightPos); 
+		// std::cout << "lightPos: " << lightPos.transpose() << std::endl; 
 		colorShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
 		colorShader.SetInt("depth_cube", 1); 
 		glActiveTexture(GL_TEXTURE1); 

@@ -6,6 +6,7 @@ set(CMAKE_CXX_FLAGS
 
 include_directories("/usr/include/eigen3/") 
 
+find_package(Threads REQUIRED)
 
 include_directories(/usr/local/include)
 FILE(GLOB MY_OpenCV_LIBS /usr/local/lib/libopencv_*.so.3.4)
@@ -42,18 +43,18 @@ FILE(GLOB MY_Boost_LIBS /usr/local/lib/libboost*.so.1.64.0)
 ## link libraries
 link_directories(/usr/lib/x86_64-linux-gnu)
 link_libraries(
-    ${MY_OpenCV_LIBS}
-    ${CERES_LIBRARIES}
-    /usr/lib/x86_64-linux-gnu/libpthread.so
-    libgomp.so.1
-    ${My_GFLAGS_LIBS}
-    ${My_GLOG_LIBS}
-    ${MY_Boost_LIBS}
+
+)
+
+## add lib: mce
+FILE(GLOB MCE_FILES          associate/mce/*.h associate/mce/*.cpp) 
+# add_definitions(-DRETURN_CLIQUES_ONE_BY_ONE)
+add_library(mce
+${MCE_FILES}
 )
 
 ## exe: bundle adjustment 
 include_directories(bundle/)
-
 add_executable(calib
     bundle/main.cpp 
     bundle/BASolver.cpp 
@@ -64,28 +65,36 @@ add_executable(calib
     associate/image_utils.cpp 
 )
 target_compile_features(calib PUBLIC cxx_std_11)
-target_link_libraries(calib)
+target_link_libraries(calib
+${CMAKE_THREAD_LIBS_INIT}
+${MY_OpenCV_LIBS}
+${CERES_LIBRARIES}
+# /usr/lib/x86_64-linux-gnu/libpthread.so
+libgomp.so.1
+${My_GFLAGS_LIBS}
+${My_GLOG_LIBS}
+${MY_Boost_LIBS})
 
 ## exe: renderer :: test 
 include_directories(render/) 
-add_executable(render_test
+include_directories(render/deps/)
+add_executable(test_render
     render/test.cpp 
-    render/renderer.cpp 
-    render/render_object.cpp 
-    render/shader.cpp 
-    render/camviewer.cpp 
+    render/deps/tinycthread.cpp 
+    render/deps/getopt.c 
+    render/deps/glad_gl.c 
 )
-target_compile_definitions(render_test PUBLIC cxx_std_11) 
-target_link_libraries(render_test
+target_link_libraries(test_render
     ${OPENGL_gl_LIBRARY}
     ${GLUT_LIBRARIES}
     ${OPENGL_LIBRARY}
     glfw
     glad
+    ${CMAKE_THREAD_LIBS_INIT}
+
 )
 
 ## exe: renderer :: main func 
-include_directories(render/) 
 add_executable(render
     render/main.cpp 
     render/renderer.cpp 
@@ -102,6 +111,14 @@ add_executable(render
 )
 target_compile_definitions(render PUBLIC cxx_std_11) 
 target_link_libraries(render
+    ${CMAKE_THREAD_LIBS_INIT}
+    ${MY_OpenCV_LIBS}
+    ${CERES_LIBRARIES}
+    # /usr/lib/x86_64-linux-gnu/libpthread.so
+    libgomp.so.1
+    ${My_GFLAGS_LIBS}
+    ${My_GLOG_LIBS}
+    ${MY_Boost_LIBS}
     ${OPENGL_gl_LIBRARY}
     ${GLUT_LIBRARIES}
     ${OPENGL_LIBRARY}
@@ -110,12 +127,7 @@ target_link_libraries(render
     mce
 )
 
-## add lib: mce
-FILE(GLOB MCE_FILES          associate/mce/*.h associate/mce/*.cpp) 
-# add_definitions(-DRETURN_CLIQUES_ONE_BY_ONE)
-add_library(mce
-${MCE_FILES}
-)
+
 
 ## exe: association
 include_directories(associate)
@@ -131,6 +143,14 @@ add_executable(associate
 )
 target_link_libraries(associate
 mce
+${CMAKE_THREAD_LIBS_INIT}
+${MY_OpenCV_LIBS}
+${CERES_LIBRARIES}
+# /usr/lib/x86_64-linux-gnu/libpthread.so
+libgomp.so.1
+${My_GFLAGS_LIBS}
+${My_GLOG_LIBS}
+${MY_Boost_LIBS}
 )
 
 
@@ -140,4 +160,13 @@ add_executable(sync
 sync/main.cpp 
 sync/extract_utils.cpp 
 )
-target_link_libraries(sync) 
+target_link_libraries(sync
+${CMAKE_THREAD_LIBS_INIT}
+${MY_OpenCV_LIBS}
+${CERES_LIBRARIES}
+# /usr/lib/x86_64-linux-gnu/libpthread.so
+libgomp.so.1
+${My_GFLAGS_LIBS}
+${My_GLOG_LIBS}
+${MY_Boost_LIBS}
+) 

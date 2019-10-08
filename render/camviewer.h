@@ -37,6 +37,6 @@ private:
 	Eigen::Vector3f right;
 	Eigen::Vector3f center;
 
-	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> projMat;
-	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> perspectiveMat;
+	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> viewMat;
+	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> projectionMat;
 };

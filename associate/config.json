@@ -12,8 +12,8 @@
     // "startid" : 6242,
     "framenum": 100, 
     "epipolar_threshold": 25,
-    "keypoints_show": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
-    // "keypoints_show": [18], 
+    // "keypoints_show": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+    "keypoints_show": [18], 
     "keypoint_conf_thres" : [
         0.4, //  0, nose 
         0.4, //  1, left eye
