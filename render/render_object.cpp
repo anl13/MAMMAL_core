@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <boost/algorithm/string.hpp>
 
 #include "render_object.h"
 
@@ -41,23 +42,25 @@ void ObjData::LoadObj(const std::string& objFile)
 		std::string dataType;
 		reader >> dataType;
 
+		if(reader.eof()) break;
+
 		if (dataType == "v")
 		{
 			Eigen::Vector3f temp;
 			reader >> temp.x() >> temp.y() >> temp.z();
-			vertexVec.emplace_back(temp);
+			vertexVec.push_back(temp);
 		}
 		else if (dataType == "vn")
 		{
 			Eigen::Vector3f temp;
 			reader >> temp.x() >> temp.y() >> temp.z();
-			normalVec.emplace_back(temp);
+			normalVec.push_back(temp);
 		}
 		else if (dataType == "vt")
 		{
 			Eigen::Vector2f temp;
 			reader >> temp.x() >> temp.y();
-			textureVec.emplace_back(temp);
+			textureVec.push_back(temp);
 		}
 		else if (dataType == "f")
 		{
@@ -72,13 +75,18 @@ void ObjData::LoadObj(const std::string& objFile)
 				{
 					std::string temp;
 					std::getline(ss, temp, '/');
-					tempFace[i](j) = std::stoi(temp);
+					if(temp != "")
+					{
+						tempFace[i](j) = std::stoi(temp);
+					}
+					else tempFace[i](j) = 0; 
 				}
 			}
-			faceVec.emplace_back(tempFace);
+			faceVec.push_back(tempFace);
 		}
 		else
 		{
+			std::cout << "datatype : " << dataType << std::endl; 
 			std::cout << "[ObjData] unknown type" << std::endl; 
 			exit(-1); 
 		}
@@ -122,6 +130,7 @@ void ObjData::LoadObj(const std::string& objFile)
 			faces(i, faceId) = textureId;
 		}
 	}
+	std::cout << "read done. " << std::endl; 
 }
 
 

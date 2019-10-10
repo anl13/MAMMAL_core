@@ -59,12 +59,10 @@ public:
 	GLuint shadowFBO;
 	GLuint shadowTexture;
 
-	std::map<int, RenderObject*> renderObjects; 
-	template<class T> 
-	void InsertObject(const int id, T* renderObject){
-		renderObjects.insert(std::make_pair(id, renderObject)); 
-	}
-
+	
+	std::vector<RenderObjectColor*> colorObjs; 
+	std::vector<RenderObjectMesh*> meshObjs; 
+	std::vector<RenderObjectTexture*> texObjs; 
 	std::vector<BallStickObject*> skels; 
 
 	void Draw(); 

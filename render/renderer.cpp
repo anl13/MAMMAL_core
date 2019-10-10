@@ -292,7 +292,6 @@ void Renderer::InitShader()
 {
 	colorShader = Shader(m_shaderFolder + "/basic_color_v.shader", m_shaderFolder + "/basic_color_f.shader", m_shaderFolder + "/basic_color_g.shader");
 	textureShader = Shader(m_shaderFolder + "/basic_texture_v.shader", m_shaderFolder + "/basic_texture_f.shader", m_shaderFolder + "/basic_texture_g.shader");
-	meshShader = Shader(m_shaderFolder + "/mesh_v.shader", m_shaderFolder + "/mesh_f.shader", m_shaderFolder + "/mesh_g.shader");
 	depthShader = Shader(m_shaderFolder + "/depth_v.shader", m_shaderFolder + "/depth_f.shader", m_shaderFolder + "/depth_g.shader");
 
 	glGenFramebuffers(1, &shadowFBO);	
@@ -325,7 +324,7 @@ void Renderer::InitShader()
 void Renderer::Draw()
 {
 	// set background
-	glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
 	
@@ -375,50 +374,41 @@ void Renderer::Draw()
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
-	for (auto iter = renderObjects.begin(); iter != renderObjects.end(); iter++)
+	for(int i = 0; i < colorObjs.size(); i++)
 	{
-		const RenderObject* const objectPtr = iter->second;
-		if (objectPtr->GetType() == RENDER_OBJECT_COLOR)
-		{
-			colorShader.Use();
-			s_camViewer.ConfigShader(colorShader);
-			colorShader.SetVec3("light_pos", lightPos);
-			colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+		colorShader.Use();
+		s_camViewer.ConfigShader(colorShader);
+		colorShader.SetVec3("light_pos", lightPos);
+		colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 
-			colorShader.SetInt("depth_cube", 1);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
+		colorShader.SetInt("depth_cube", 1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
 
-			objectPtr->DrawWhole(colorShader);
-		}
-		else if (objectPtr->GetType() == RENDER_OBJECT_TEXTURE)
-		{
-			textureShader.Use();
-			s_camViewer.ConfigShader(textureShader);
-			textureShader.SetVec3("light_pos", lightPos);
-			textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-			textureShader.SetInt("depth_cube", 1);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
+		colorObjs[i]->DrawWhole(colorShader);
+	}
+	
+	for(int i = 0; i < texObjs.size(); i++)
+	{
+		textureShader.Use();
+		s_camViewer.ConfigShader(textureShader);
+		textureShader.SetVec3("light_pos", lightPos);
+		textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+		textureShader.SetInt("depth_cube", 1);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
 
-			textureShader.SetInt("object_texture", 2);
-			glActiveTexture(GL_TEXTURE2);
+		textureShader.SetInt("object_texture", 2);
+		glActiveTexture(GL_TEXTURE2);
 
-			objectPtr->DrawWhole(textureShader);
-		}
-		else if (objectPtr->GetType() == RENDER_OBJECT_MESH)
-		{
-			meshShader.Use();
-			s_camViewer.ConfigShader(meshShader);
-			objectPtr->DrawWhole(meshShader);
-		}
-		else
-		{
-			// throw std::string("unknow render object type");
-			std::cout << "[Renderer] unknown render object type " << std::endl; 
-			exit(-1); 
-		}
+		texObjs[i]->DrawWhole(textureShader);
+	}
+
+	for(int i = 0; i < meshObjs.size(); i++)
+	{
+		colorShader.Use(); 
+		s_camViewer.ConfigShader(colorShader); 
+		meshObjs[i]->DrawWhole(colorShader); 
 	}
 
 	for(int i = 0; i < skels.size(); i++)
@@ -427,7 +417,6 @@ void Renderer::Draw()
 		s_camViewer.ConfigShader(colorShader); 
 
 		colorShader.SetVec3("light_pos", lightPos); 
-		// std::cout << "lightPos: " << lightPos.transpose() << std::endl; 
 		colorShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
 		colorShader.SetInt("depth_cube", 1); 
 		glActiveTexture(GL_TEXTURE1); 

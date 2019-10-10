@@ -35,6 +35,9 @@ Mat3 GetSkewMatrix(const Vec3& w);
 // return 3x3 rotation matrix 
 Mat3 GetRodrigues(const Vec3& w);
 
+Eigen::Matrix<float, 3, 9, Eigen::ColMajor> RodriguesJacobiF(const Eigen::Vector3f& vec);
+Eigen::Matrix<double, 3, 9, Eigen::ColMajor> RodriguesJacobiD(const Eigen::Vector3d& vec); 
+
 /*****************average rotations*******************/
 Vec3 AvgAxisAngles(const std::vector<Vec3> &rots); 
 

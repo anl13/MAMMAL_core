@@ -91,7 +91,6 @@ target_link_libraries(test_render
     glfw
     glad
     ${CMAKE_THREAD_LIBS_INIT}
-
 )
 
 ## exe: renderer :: main func 
@@ -101,6 +100,7 @@ add_executable(render
     render/render_object.cpp 
     render/shader.cpp 
     render/camviewer.cpp 
+    render/render_utils.cpp 
     associate/camera.cpp 
     associate/framedata.cpp
     associate/math_utils.cpp 
@@ -108,6 +108,7 @@ add_executable(render
     associate/geometry.cpp
     associate/clusterclique.cpp 
     associate/Hungarian.cpp 
+    smal/smal.cpp 
 )
 target_compile_definitions(render PUBLIC cxx_std_11) 
 target_link_libraries(render

@@ -7,10 +7,10 @@
     // "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_noon10000/",
     "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_morning1/", 
     // "startid" : 7076,
-    "startid" : 3732,
+    "startid" : 22,
     "epipolartype": "p2l", // "p2l" or "l2l" 
     // "startid" : 6242,
-    "framenum": 100, 
+    "framenum": 200, 
     "epipolar_threshold": 25,
     // "keypoints_show": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
     "keypoints_show": [18], 

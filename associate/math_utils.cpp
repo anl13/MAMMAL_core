@@ -187,3 +187,42 @@ double L2LDist(const Vec3& a, const Vec3& b, const Vec3& c)
     double d = c.dot(a.cross(b)) / (a.cross(b)).norm();
     return fabs(d); 
 }
+
+
+Eigen::Matrix<float, 3, 9, Eigen::ColMajor> RodriguesJacobiF(const Eigen::Vector3f& vec)
+    {
+        cv::Mat cvVec;
+        cv::Mat cvRodriguesMat;
+        cv::Mat cvJacobiMat;
+        Eigen::Matrix<float, 3, 9, Eigen::RowMajor> eigenJacobiMat;
+
+        cv::eigen2cv(vec, cvVec);
+        cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
+        cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
+
+        Eigen::Matrix<float, 3, 9, Eigen::ColMajor> jacobiMat;
+        for (int i = 0; i < 3; i++)
+        {
+            jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
+        }
+        return jacobiMat;
+}
+
+Eigen::Matrix<double, 3, 9, Eigen::ColMajor> RodriguesJacobiD(const Eigen::Vector3d& vec)
+    {
+        cv::Mat cvVec;
+        cv::Mat cvRodriguesMat;
+        cv::Mat cvJacobiMat;
+        Eigen::Matrix<double, 3, 9, Eigen::RowMajor> eigenJacobiMat;
+
+        cv::eigen2cv(vec, cvVec);
+        cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
+        cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
+
+        Eigen::Matrix<double, 3, 9, Eigen::ColMajor> jacobiMat;
+        for (int i = 0; i < 3; i++)
+        {
+            jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
+        }
+        return jacobiMat;
+}

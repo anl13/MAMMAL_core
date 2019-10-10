@@ -46,6 +46,8 @@ int test2d_write_video()
     return 0; 
 }
 
+#define TRACK
+
 int test3d()
 {
     FrameData frame; 
@@ -77,55 +79,41 @@ int test3d()
         frame.computeBoneLen();
 
         
-        for(int i = 0; i < 4; i++) std::cout << frame.m_skels[i] << std::endl;
+        // for(int i = 0; i < 4; i++) std::cout << frame.m_skels[i] << std::endl;
        
-        cv::Mat img_show_id = frame.visualizeIdentity2D(); 
-        cv::namedWindow("identity", cv::WINDOW_NORMAL); 
-        cv::imshow("identity", img_show_id); 
-        std::stringstream ss; 
-        ss << "results/with_id/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-        cv::imwrite(ss.str(), img_show_id); 
+        // cv::Mat img_show_id = frame.visualizeIdentity2D(); 
+        // cv::namedWindow("identity", cv::WINDOW_NORMAL); 
+        // cv::imshow("identity", img_show_id); 
+        // std::stringstream ss; 
+        // ss << "results/tracking_debug/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+        // cv::imwrite(ss.str(), img_show_id); 
 
-        std::stringstream ss1; 
-        ss1 << "results/json/" << std::setw(6) << std::setfill('0') << frameid << ".json";
-        frame.writeSkeltoJson(ss1.str()); 
+        // std::stringstream ss1; 
+        // ss1 << "results/json/" << std::setw(6) << std::setfill('0') << frameid << ".json";
+        // frame.writeSkeltoJson(ss1.str()); 
 
-        int key = cv::waitKey(1); 
-        if (key == 27) break; 
-        // for(int i = 0; i < frame.m_kpts_to_show.size(); i++)
-        // {
-        //     int kpt_id = frame.m_kpts_to_show[i]; 
-        // // for(int kpt_id = 0; kpt_id < 20; kpt_id++)
-        // // {
-        //     cv::Mat raw_det = frame.visualize(1, kpt_id); 
-        //     cv::Mat reproj = frame.visualize(2, kpt_id); 
-        //     cv::Mat assoc = frame.visualizeClique(kpt_id); 
+        // int key = cv::waitKey(1); 
+        // if (key == 27) break; 
 
-        //     // cv::namedWindow("raw", cv::WINDOW_NORMAL); 
-        //     cv::namedWindow("proj", cv::WINDOW_NORMAL); 
-        //     cv::namedWindow("assoc", cv::WINDOW_NORMAL); 
-        //     // cv::imshow("raw", raw_det); 
-        //     cv::imshow("proj", reproj); 
-        //     cv::imshow("assoc", assoc); 
-        //     // std::stringstream ss1; ss1 << "results/association_debug2/reproj_" << kpt_id << "_" << frameid << ".png";cv::imwrite(ss1.str(), reproj); 
-        //     // std::stringstream ss2; ss2 << "results/association_debug2/assoc_" << kpt_id << "_" << frameid << ".png"; cv::imwrite(ss2.str(), assoc); 
-        //     int key = cv::waitKey(); 
-        //     if(key == 27) exit(-1); 
-        // }
+        for(int i = 0; i < frame.m_kpts_to_show.size(); i++)
+        {
+            int kpt_id = frame.m_kpts_to_show[i]; 
 
+            cv::Mat raw_det = frame.visualize(1, kpt_id); 
+            cv::Mat reproj = frame.visualize(2, kpt_id); 
+            cv::Mat assoc = frame.visualizeClique(kpt_id); 
 
-        // cv::Mat raw_det = frame.visualize(1, -1); 
-        // cv::Mat reproj = frame.visualize(2, -1); 
-        // cv::namedWindow("raw_detection", cv::WINDOW_NORMAL); 
-        // cv::namedWindow("reprojection", cv::WINDOW_NORMAL); 
-        // cv::imshow("raw_detection", raw_det); 
-        // cv::imshow("reprojection", reproj); 
-        // int key = cv::waitKey(); 
-        // if(key == 27) break; 
-        // else if(char(key) == 'p')
-        // {
-        //     cv::waitKey(); 
-        // }
+            // cv::namedWindow("raw", cv::WINDOW_NORMAL); 
+            cv::namedWindow("proj", cv::WINDOW_NORMAL); 
+            cv::namedWindow("assoc", cv::WINDOW_NORMAL); 
+            // cv::imshow("raw", raw_det); 
+            cv::imshow("proj", reproj); 
+            cv::imshow("assoc", assoc); 
+            // std::stringstream ss1; ss1 << "results/association_debug2/reproj_" << kpt_id << "_" << frameid << ".png";cv::imwrite(ss1.str(), reproj); 
+            // std::stringstream ss2; ss2 << "results/association_debug2/assoc_" << kpt_id << "_" << frameid << ".png"; cv::imwrite(ss2.str(), assoc); 
+            int key = cv::waitKey(); 
+            if(key == 27) exit(-1); 
+        }
 
     }
     cv::destroyAllWindows(); 
