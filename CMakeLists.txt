@@ -53,16 +53,18 @@ add_library(mce
 ${MCE_FILES}
 )
 
+FILE(GLOB ASSOC_FILES        associate/*.h associate/*.cpp) 
+FILE(GLOB RENDER_FILES       render/*.h render/*.cpp) 
+FILE(GLOB RENDER_DEPS        render/deps/*.cpp render/deps/*.c) 
+FILE(GLOB BUNDLE_FILES       bundle/*.cpp) 
+FILE(GLOB SMAL_FILES         smal/*.cpp) 
+
 ## exe: bundle adjustment 
 include_directories(bundle/)
 add_executable(calib
-    bundle/main.cpp 
-    bundle/BASolver.cpp 
-    bundle/calibration.cpp 
-    associate/camera.cpp 
-    associate/geometry.cpp 
-    associate/math_utils.cpp 
-    associate/image_utils.cpp 
+    exec/calib_bundle.cpp 
+    ${ASSOC_FILES}
+    ${BUNDLE_FILES}
 )
 target_compile_features(calib PUBLIC cxx_std_11)
 target_link_libraries(calib
@@ -73,16 +75,16 @@ ${CERES_LIBRARIES}
 libgomp.so.1
 ${My_GFLAGS_LIBS}
 ${My_GLOG_LIBS}
-${MY_Boost_LIBS})
+${MY_Boost_LIBS}
+mce
+)
 
 ## exe: renderer :: test 
 include_directories(render/) 
 include_directories(render/deps/)
 add_executable(test_render
-    render/test.cpp 
-    render/deps/tinycthread.cpp 
-    render/deps/getopt.c 
-    render/deps/glad_gl.c 
+    exec/test_render.cpp 
+    ${RENDER_DEPS}
 )
 target_link_libraries(test_render
     ${OPENGL_gl_LIBRARY}
@@ -95,20 +97,10 @@ target_link_libraries(test_render
 
 ## exe: renderer :: main func 
 add_executable(render
-    render/main.cpp 
-    render/renderer.cpp 
-    render/render_object.cpp 
-    render/shader.cpp 
-    render/camviewer.cpp 
-    render/render_utils.cpp 
-    associate/camera.cpp 
-    associate/framedata.cpp
-    associate/math_utils.cpp 
-    associate/image_utils.cpp
-    associate/geometry.cpp
-    associate/clusterclique.cpp 
-    associate/Hungarian.cpp 
-    smal/smal.cpp 
+    exec/render.cpp 
+    ${RENDER_FILES}
+    ${ASSOC_FILES}
+    ${SMAL_FILES}
 )
 target_compile_definitions(render PUBLIC cxx_std_11) 
 target_link_libraries(render
@@ -133,14 +125,8 @@ target_link_libraries(render
 ## exe: association
 include_directories(associate)
 add_executable(associate
-    associate/main.cpp 
-    associate/camera.cpp 
-    associate/framedata.cpp
-    associate/math_utils.cpp 
-    associate/image_utils.cpp
-    associate/geometry.cpp
-    associate/clusterclique.cpp 
-    associate/Hungarian.cpp 
+    exec/associate.cpp 
+    ${ASSOC_FILES}
 )
 target_link_libraries(associate
 mce
@@ -153,21 +139,3 @@ ${My_GFLAGS_LIBS}
 ${My_GLOG_LIBS}
 ${MY_Boost_LIBS}
 )
-
-
-## exe: sync 
-include_directories(sync)
-add_executable(sync 
-sync/main.cpp 
-sync/extract_utils.cpp 
-)
-target_link_libraries(sync
-${CMAKE_THREAD_LIBS_INIT}
-${MY_OpenCV_LIBS}
-${CERES_LIBRARIES}
-# /usr/lib/x86_64-linux-gnu/libpthread.so
-libgomp.so.1
-${My_GFLAGS_LIBS}
-${My_GLOG_LIBS}
-${MY_Boost_LIBS}
-) 

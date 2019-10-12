@@ -31,9 +31,3 @@ void cloneImgs(const std::vector<cv::Mat> & input, std::vector<cv::Mat> &output)
 void getLegend(cv::Mat& out);
 
 
-extern std::vector<std::string> LABEL_NAMES;
-extern std::vector<Eigen::Vector2i> BONES; 
-extern std::vector<std::vector<int> > AFF; 
-extern std::vector<int> PA; 
-extern std::vector<float> AFF_SIZE; 
-extern std::vector<float> BONES_LEN; 

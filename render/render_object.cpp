@@ -405,6 +405,30 @@ BallStickObject::BallStickObject(
 	}
 }
 
+BallStickObject::BallStickObject(
+	const ObjData& ballObj, 
+	const std::vector<Eigen::Vector3f>& balls, 
+	const std::vector<float> sizes, 
+	const std::vector<Eigen::Vector3f>& colors
+)
+{
+	for (int i = 0; i < balls.size(); i++)
+	{
+		// std::cout << balls[i].transpose() << std::endl; 
+		float ballSize = sizes[i]; 
+		Eigen::Vector3f color = colors[i]; 
+		ObjData ballObjCopy(ballObj);
+		ballObjCopy.Deform(Eigen::Vector3f(ballSize, ballSize, ballSize));
+
+		RenderObjectColor* ballObject = new RenderObjectColor();
+		ballObject->SetFaces(ballObjCopy.faces);
+		ballObject->SetVertices(ballObjCopy.vertices);
+		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), 1.0f);
+		ballObject->SetColor(color);
+		objectPtrs.push_back(ballObject);
+	}
+}
+
 
 BallStickObject::~BallStickObject()
 {

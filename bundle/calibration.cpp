@@ -16,7 +16,7 @@ Calibrator::Calibrator()
         m_camsUndist.push_back(undist_cam); 
     }
     readImgs(); 
-    getColorMap("anliang", m_CM); 
+    getColorMap("anliang_rgb", m_CM); 
 }
  
 vector<Eigen::Vector2d> Calibrator::readMarkers(std::string filename)

@@ -1,4 +1,6 @@
 #include "geometry.h" 
+#include <ceres/loss_function.h> 
+#include "colorterminal.h" 
 
 Eigen::Vector3d NViewDLT(
     const std::vector<Camera>          &cams, 
@@ -36,13 +38,14 @@ using ceres::Solver;
 using ceres::Solve; 
 using ceres::LossFunction;
 using ceres::LossFunctionWrapper; 
+using ceres::HuberLoss; 
 
 // Energy term: reprojection. By AN Liang, 20181001
 struct E_reproj_euc
 {
-    E_reproj_euc(const Eigen::Matrix4d& _P, 
-                 const Eigen::Vector2d& _u, 
-                 const double& _conf)
+    E_reproj_euc(const Eigen::Matrix4d _P, 
+                 const Eigen::Vector2d _u, 
+                 const double _conf)
     {
         P    = _P; 
         u    = _u; 
@@ -90,32 +93,37 @@ void Joint3DSolver::SetParam(
     const std::vector<double>          &_confidences
 )
 {
+    cams.clear(); 
+    u.clear(); 
+    conf.clear(); 
     cams = _cams; 
     u    = _points; 
     conf = _confidences; 
 }
 
-void Joint3DSolver::SetInit(const Eigen::Vector3d& _X_init)
+void Joint3DSolver::SetInit( Eigen::Vector3d _X_init)
 {
     X = _X_init; 
+    status_init_set = true; 
 }
 
 void Joint3DSolver::Solve3D()
 {
     Problem problem;
+    // ceres::HuberLoss* huber_loss = new ceres::HuberLoss(1.0); 
+    // ceres::CauchyLoss* loss_function = new ceres::CauchyLoss(0.0001); 
+    if(!status_init_set) X = Eigen::Vector3d::Zero(); // default zero init 
     for(int i = 0; i < u.size(); i++)
     {
-        E_reproj_euc *term_reproj = new E_reproj_euc(cams[i].P_g.cast<double>(), u[i], conf[i]); 
+        E_reproj_euc *term_reproj = new E_reproj_euc(cams[i].P_g, u[i], conf[i]); 
         CostFunction *cost_func = 
             new AutoDiffCostFunction<E_reproj_euc, 2, 3>(term_reproj); 
-        // ceres::LossFunctionWrapper* loss_function;
-        // loss_function->Reset(new ceres::HuberLoss(1.0), ceres::Ownership::TAKE_OWNERSHIP);
         problem.AddResidualBlock(cost_func, NULL, X.data()); 
     }
     Solver::Options options;
     options.minimizer_progress_to_stdout = verbose;
     options.minimizer_type = ceres::TRUST_REGION;
-    options.max_num_iterations = 2000; 
+    options.max_num_iterations = 200; 
     Solver::Summary summary;
     Solve(options, &problem, &summary);
 }
@@ -184,4 +192,14 @@ Eigen::Vector3d project(const Camera& cam, Eigen::Vector3d p3d)
     Vec3 p2d = cam.K * (cam.R * p3d + cam.T);
     p2d = p2d / p2d(2); 
     return p2d; 
+}
+
+Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d)
+{
+    Joint3DSolver solver; 
+    solver.SetParam(cams, joints2d); 
+    solver.SetVerbose(false); 
+    solver.Solve3D(); 
+    Eigen::Vector3d X = solver.GetX(); 
+    return X; 
 }

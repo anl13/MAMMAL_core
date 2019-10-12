@@ -7,7 +7,7 @@
     // "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_noon10000/",
     "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_morning1/", 
     // "startid" : 7076,
-    "startid" : 22,
+    "startid" : 22, // 22
     "epipolartype": "p2l", // "p2l" or "l2l" 
     // "startid" : 6242,
     "framenum": 200, 

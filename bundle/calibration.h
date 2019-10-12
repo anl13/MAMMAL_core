@@ -50,7 +50,7 @@ private:
     vector<vector<Vec3> >            m_projs_markers; 
     vector<vector<Vec3> >            m_projs_added; 
     vector<vector<Vec3> >            m_added; 
-    vector<vector<Vec3> >            m_dets;  
+    vector<vector<Vec3> >            m_m_dets;  
     vector<vector<Eigen::Vector2d> > m_markers; // [camNum; pointNum]
     Eigen::Matrix3d                  m_K; 
     vector<vector<Eigen::Vector2d> > m_i_markers; // markers on image plane

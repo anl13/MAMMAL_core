@@ -162,6 +162,13 @@ public:
 		const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 		float ballSize, float StickSize, const Eigen::Vector3f& color);
 
+	BallStickObject(
+		const ObjData& ballObj, 
+		const std::vector<Eigen::Vector3f>& balls, 
+		const std::vector<float> sizes, 
+		const std::vector<Eigen::Vector3f>& colors
+	);
+
 	BallStickObject() = delete;
 	BallStickObject(const BallStickObject& _) = delete;
 	BallStickObject& operator=(const BallStickObject& _) = delete;

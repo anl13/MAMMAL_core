@@ -86,7 +86,7 @@ void FrameData::readKeypoint(std::string jsonfile)
         exit(-1); 
     } 
 
-    dets.clear(); 
+    m_dets.clear(); 
 
     // for(auto const &c : root["keypoints"])
     for(int idx = 0; idx < m_camNum; idx++)
@@ -114,28 +114,28 @@ void FrameData::readKeypoint(std::string jsonfile)
             }
             aframe.push_back(kpts);
         }
-        dets.push_back(aframe); 
+        m_dets.push_back(aframe); 
     }
     is.close(); 
 }
 
 void FrameData::undistKeypoints(const Camera& cam, const Camera& camnew, int imw, int imh)
 {
-    int camNum = dets.size(); 
-    dets_undist = dets; 
+    int camNum = m_dets.size(); 
+    m_dets_undist = m_dets; 
     for(int camid = 0; camid < camNum; camid++)
     {
-        int kpt_num = dets[camid].size(); 
+        int kpt_num = m_dets[camid].size(); 
         for(int kpt_id = 0; kpt_id < kpt_num; kpt_id++)
         {
-            int pnum = dets[camid][kpt_id].size(); 
+            int pnum = m_dets[camid][kpt_id].size(); 
             if(pnum == 0) continue; 
             for(int pid = 0; pid < pnum; pid++)
             {
-                dets[camid][kpt_id][pid](0) *= imw; 
-                dets[camid][kpt_id][pid](1) *= imh;
+                m_dets[camid][kpt_id][pid](0) *= imw; 
+                m_dets[camid][kpt_id][pid](1) *= imh;
             }
-            my_undistort_points(dets[camid][kpt_id], dets_undist[camid][kpt_id], cam, camnew); 
+            my_undistort_points(m_dets[camid][kpt_id], m_dets_undist[camid][kpt_id], cam, camnew); 
         }
     }
 }
@@ -214,7 +214,7 @@ cv::Mat FrameData::test()
     for(int i = 0; i < m_camNum; i++)
     {
         for(int kpt_id = 0; kpt_id < 20; kpt_id ++)
-            my_draw_points(m_imgsUndist[i], dets_undist[i][kpt_id], m_CM[kpt_color_id[kpt_id]]); 
+            my_draw_points(m_imgsUndist[i], m_dets_undist[i][kpt_id], m_CM[kpt_color_id[kpt_id]]); 
     }
     cv::Mat output; 
     packImgBlock(m_imgsUndist, output); 
@@ -231,9 +231,9 @@ void FrameData::checkEpipolar(int kpt_id)
     std::vector<int> cand_ids;
     for(int i = 0; i < m_camNum; i++)
     {
-        points.push_back(dets_undist[i][kpt_id]);
-        totalPointNum += dets_undist[i][kpt_id].size(); 
-        for(int j = 0; j < dets_undist[i][kpt_id].size(); j++) 
+        points.push_back(m_dets_undist[i][kpt_id]);
+        totalPointNum += m_dets_undist[i][kpt_id].size(); 
+        for(int j = 0; j < m_dets_undist[i][kpt_id].size(); j++) 
         {
             view_ids.push_back(i); 
             cand_ids.push_back(j); 
@@ -311,74 +311,88 @@ void FrameData::checkEpipolar(int kpt_id)
     cv::destroyAllWindows(); 
 }
 
-
-void FrameData::epipolarClustering(int kpt_id, vector<Vec3> & p3ds)
+void FrameData::epipolarSimilarity()
 {
-    // repack keypoints 
-    std::vector<std::vector<Vec3> > points; // points of same kpt type
-    int totalPointNum = 0; 
-    std::vector<int> view_ids;
-    std::vector<int> cand_ids;
-    std::vector<std::pair<int,int>> table; 
-    std::vector<std::vector<int> > invTable; 
-    int index = 0; 
-    for(int i = 0; i < m_camNum; i++)
+    m_points.resize(m_kptNum); 
+    for(int kpt_id = 0; kpt_id < m_kptNum; kpt_id++)
     {
-        points.push_back(dets_undist[i][kpt_id]);
-        std::vector<int> subinvtable;
-        subinvtable.resize(dets_undist[i][kpt_id].size()); 
-        totalPointNum += dets_undist[i][kpt_id].size(); 
-        for(int j = 0; j < dets_undist[i][kpt_id].size(); j++) 
+        // repack keypoints 
+        std::vector<std::vector<Vec3> > points; // points of same kpt type
+        int totalPointNum = 0; 
+        std::vector<int> view_ids;
+        std::vector<int> cand_ids;
+        std::vector<std::pair<int,int>> table; 
+        std::vector<std::vector<int> > invTable; 
+        int index = 0; 
+        for(int i = 0; i < m_camNum; i++)
         {
-            view_ids.push_back(i); 
-            cand_ids.push_back(j); 
-            std::pair<int, int> T; 
-            T.first = i; T.second = j; 
-            table.push_back(T); 
-            subinvtable[j] = index; 
-            index ++; 
+            points.push_back(m_dets_undist[i][kpt_id]);
+            std::vector<int> subinvtable;
+            subinvtable.resize(m_dets_undist[i][kpt_id].size()); 
+            totalPointNum += m_dets_undist[i][kpt_id].size(); 
+            for(int j = 0; j < m_dets_undist[i][kpt_id].size(); j++) 
+            {
+                view_ids.push_back(i); 
+                cand_ids.push_back(j); 
+                std::pair<int, int> T; 
+                T.first = i; T.second = j; 
+                table.push_back(T); 
+                subinvtable[j] = index; 
+                index ++; 
+            }
+            invTable.push_back(subinvtable);   
         }
-        invTable.push_back(subinvtable);   
-    }
+        m_points[kpt_id] = points; 
 
-    // construct graph 
-    Eigen::MatrixXd G;
-    G.resize(totalPointNum, totalPointNum);
-    G.setZero(); 
-    double (*distfunc)(const Camera&, const Camera&, const Eigen::Vector3d&, const Eigen::Vector3d&); 
-    // distfunc = &getEpipolarDist; 
-    if(m_epi_type == "p2l")
-        distfunc = &getEpipolarDist; 
-    else distfunc = &getEpipolarDistL2L;
-    for(int index_i=0; index_i<totalPointNum; index_i++)
-    {
-        for(int index_j=0; index_j<totalPointNum; index_j++)
+        // construct graph 
+        Eigen::MatrixXd G;
+        G.resize(totalPointNum, totalPointNum);
+        G.setZero(); 
+        double (*distfunc)(const Camera&, const Camera&, const Eigen::Vector3d&, const Eigen::Vector3d&); 
+        // distfunc = &getEpipolarDist; 
+        if(m_epi_type == "p2l")
+            distfunc = &getEpipolarDist; 
+        else distfunc = &getEpipolarDistL2L;
+        for(int index_i=0; index_i<totalPointNum; index_i++)
         {
-            if(index_j == index_i)
+            for(int index_j=0; index_j<totalPointNum; index_j++)
             {
-                G(index_i, index_j) = -1; 
-                continue; 
-            }
-            int viewa = view_ids[index_i];
-            int pida  = cand_ids[index_i];
-            Vec3 pa = points[viewa][pida];
+                if(index_j == index_i)
+                {
+                    G(index_i, index_j) = -1; 
+                    continue; 
+                }
+                int viewa = view_ids[index_i];
+                int pida  = cand_ids[index_i];
+                Vec3 pa = points[viewa][pida];
 
-            int viewb = view_ids[index_j];
-            int pidb  = cand_ids[index_j];
-            Vec3 pb = points[viewb][pidb]; 
-            if(viewa == viewb) 
-            {
-                G(index_i, index_j) = -1;
-                continue; 
+                int viewb = view_ids[index_j];
+                int pidb  = cand_ids[index_j];
+                Vec3 pb = points[viewb][pidb]; 
+                if(viewa == viewb) 
+                {
+                    G(index_i, index_j) = -1;
+                    continue; 
+                }
+                // double dist = getEpipolarDist(m_camsUndist[viewa], m_camsUndist[viewb], pa,pb);
+                double dist = distfunc(m_camsUndist[viewa], m_camsUndist[viewb], pa,pb);
+                G(index_i, index_j) = dist;
             }
-            // double dist = getEpipolarDist(m_camsUndist[viewa], m_camsUndist[viewb], pa,pb);
-            double dist = distfunc(m_camsUndist[viewa], m_camsUndist[viewb], pa,pb);
-            G(index_i, index_j) = dist;
         }
+        m_tables[kpt_id] = table; 
+        m_invTables[kpt_id] = invTable; 
+        m_G[kpt_id] = G; 
+        // std::cout << G << std::endl; 
+        // std::cout << "vertexnum: " << totalPointNum << std::endl;
     }
-    // std::cout << G << std::endl; 
-    // std::cout << "vertexnum: " << totalPointNum << std::endl; 
+}
 
+void FrameData::epipolarClustering(int kpt_id)
+{
+    auto table    = m_tables[kpt_id]; 
+    auto invTable = m_invTables[kpt_id]; 
+    auto G        = m_G[kpt_id]; 
+    int totalPointNum = G.cols(); 
     // associate 
     ClusterClique CC; 
     CC.G = G; 
@@ -402,9 +416,12 @@ void FrameData::epipolarClustering(int kpt_id, vector<Vec3> & p3ds)
     auto cliques = CC.cliques; 
 
     m_cliques[kpt_id] = cliques;
-    m_tables[kpt_id] = table; 
-    m_invTables[kpt_id] = invTable; 
-    m_G[kpt_id] = G; 
+}
+
+void FrameData::compute3dByClustering(int kpt_id, vector<Vec3>& p3ds)
+{
+    auto cliques = m_cliques[kpt_id]; 
+    auto table = m_tables[kpt_id]; 
 
     std::vector<Eigen::Vector3d> joints3d; 
     for(int cliqueIdx = 0; cliqueIdx < cliques.size(); cliqueIdx++)
@@ -419,12 +436,15 @@ void FrameData::epipolarClustering(int kpt_id, vector<Vec3> & p3ds)
             int vertex_idx = clique[i];
             int view = table[vertex_idx].first; 
             int cand = table[vertex_idx].second; 
-            Vec3 p = dets_undist[view][kpt_id][cand];
+            Vec3 p = m_dets_undist[view][kpt_id][cand];
             // p(2) = 1;
             joints2d.push_back(p); 
+            Camera cam = m_camsUndist[view]; 
             cams_visible.push_back(m_camsUndist[view]);
         }
         Joint3DSolver solver; 
+        Eigen::Vector3d init = Eigen::Vector3d::Zero(); 
+        solver.SetInit(init); 
         solver.SetParam(cams_visible, joints2d); 
         solver.SetVerbose(false); 
         solver.Solve3D(); 
@@ -437,24 +457,25 @@ void FrameData::epipolarClustering(int kpt_id, vector<Vec3> & p3ds)
 
 void FrameData::compute3d()
 {
-    m_points3d.resize(20);
-    for(int kpt_id = 0; kpt_id < 20; kpt_id++)
+    m_points3d.resize(m_kptNum);
+    for(int kpt_id = 0; kpt_id < m_kptNum; kpt_id++)
     {
         vector<Vec3> p3ds; 
-        epipolarClustering(kpt_id, p3ds);
+        epipolarClustering(kpt_id);
+        compute3dByClustering(kpt_id, p3ds); 
         m_points3d[kpt_id] = p3ds;  
     }
 }
 
 void FrameData::reproject()
 {
-    dets_reproj.resize(m_camNum); 
+    m_dets_reproj.resize(m_camNum); 
     for(int view = 0; view < m_camNum; view++)
     {
-        dets_reproj[view].resize(20); 
+        m_dets_reproj[view].resize(20); 
         for(int kpt_id = 0; kpt_id < 20; kpt_id ++)
         {
-            project(m_camsUndist[view], m_points3d[kpt_id], dets_reproj[view][kpt_id]); 
+            project(m_camsUndist[view], m_points3d[kpt_id], m_dets_reproj[view][kpt_id]); 
         }
     }
 }
@@ -462,9 +483,9 @@ void FrameData::reproject()
 cv::Mat FrameData::visualize(int type, int Kid)
 {
     vector<vector<vector<Vec3> > > data; 
-    if(type==0) data = dets; 
-    else if (type==1) data = dets_undist;
-    else if (type==2) data = dets_reproj;
+    if(type==0) data = m_dets; 
+    else if (type==1) data = m_dets_undist;
+    else if (type==2) data = m_dets_reproj;
     else 
     {
         std::cout << "no such type "  << std::endl;
@@ -533,7 +554,7 @@ cv::Mat FrameData::visualizeClique(int kpt_id)
             int canda = table[node_i].second;
             int block_r_a = viewa / cols; 
             int block_c_a = viewa % cols; 
-            Vec3 pa = dets_undist[viewa][kpt_id][canda];
+            Vec3 pa = m_dets_undist[viewa][kpt_id][canda];
             pa(0) += block_c_a * m_imw; 
             pa(1) += block_r_a * m_imh; 
             Eigen::Vector3i color = m_CM[cliqueIdx];
@@ -559,8 +580,8 @@ cv::Mat FrameData::visualizeClique(int kpt_id)
                 int viewb = table[index_j].first;
                 int canda = table[index_i].second;
                 int candb = table[index_j].second;
-                Vec3 pa = dets_undist[viewa][kpt_id][canda];
-                Vec3 pb = dets_undist[viewb][kpt_id][candb];
+                Vec3 pa = m_dets_undist[viewa][kpt_id][canda];
+                Vec3 pb = m_dets_undist[viewb][kpt_id][candb];
                 int block_r_a = viewa / cols; 
                 int block_c_a = viewa % cols; 
                 int block_r_b = viewb / cols; 
@@ -642,8 +663,8 @@ void FrameData::associateNearest()
 
 void FrameData::reproject_skels()
 {
-    skels_reproj.resize(m_camNum); 
-    for(int c = 0; c < m_camNum; c++) skels_reproj[c].resize(4,PIG_SKEL_2D::Zero()); 
+    m_skels_reproj.resize(m_camNum); 
+    for(int c = 0; c < m_camNum; c++) m_skels_reproj[c].resize(4,PIG_SKEL_2D::Zero()); 
     
     for(int camid = 0; camid < m_camNum; camid++)
     {
@@ -653,7 +674,7 @@ void FrameData::reproject_skels()
             {
                 if(m_skels[id](3, kpt_id) < 1) continue; 
                 Eigen::Vector3d p = m_skels[id].col(kpt_id).segment<3>(0); 
-                skels_reproj[camid][id].col(kpt_id) = project(m_camsUndist[camid], p); 
+                m_skels_reproj[camid][id].col(kpt_id) = project(m_camsUndist[camid], p); 
             }
         }
     }
@@ -674,7 +695,7 @@ cv::Mat FrameData::visualizeIdentity2D()
     {
         for(int id = 0; id < 4; id++)
         {
-            drawSkelSingleColor(imgdata[view], skels_reproj[view][id], m_CM[id]);
+            drawSkelSingleColor(imgdata[view], m_skels_reproj[view][id], m_CM[id]);
         }
     }
     

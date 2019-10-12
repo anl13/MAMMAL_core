@@ -226,3 +226,16 @@ Eigen::Matrix<double, 3, 9, Eigen::ColMajor> RodriguesJacobiD(const Eigen::Vecto
         }
         return jacobiMat;
 }
+
+double p2ldist( Vec3 x,  Vec3 line){
+    x.normalize(); 
+    line.normalize(); 
+    return (x.cross(line)).norm(); 
+}
+
+double p2ldist( Vec3 x,  Vec3 a,  Vec3 b)
+{
+    Vec3 line = a-b; 
+    Vec3 x_line = x-b;
+    return p2ldist(x_line, line); 
+}

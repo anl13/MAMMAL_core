@@ -53,4 +53,8 @@ Eigen::Matrix3f GetRodriguesF(const Eigen::Vector3f &w);
 double L2LDist(const Vec3& x1, const Vec3& x2, const Vec3& x3, const Vec3& x4); 
 double L2LDist(const Vec3& a, const Vec3& b, const Vec3& c); 
 
+double p2ldist(Vec3 x,  Vec3 line); 
+double p2ldist(Vec3 x,  Vec3 a,  Vec3 b); // a,b form a line 
+
+
 #endif 

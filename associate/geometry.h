@@ -34,11 +34,14 @@ Eigen::Vector3d project(const Camera& cam, Eigen::Vector3d p3d);
 class Joint3DSolver 
 {
 public: 
-    Joint3DSolver(){verbose = false; }
+    Joint3DSolver(){
+        verbose = false; 
+        status_init_set = false; 
+        }
     ~Joint3DSolver(){}
     void SetParam(const std::vector<Camera>& cams, const std::vector<Eigen::Vector3d>& points);
     void SetParam(const std::vector<Camera>& cams, const std::vector<Eigen::Vector2d>& points, const std::vector<double>& confidences);
-    void SetInit(const Eigen::Vector3d& _x_init); 
+    void SetInit( Eigen::Vector3d _x_init); 
     void SetVerbose(bool _v){verbose = _v;}
     // solver function 
     void Solve3D(); // regression with autodiff 
@@ -52,5 +55,8 @@ private:
     Eigen::Vector3d X; 
     // verbose flag
     bool verbose; 
+    bool status_init_set; 
 }; 
+
+Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d); 
 
