@@ -2,6 +2,7 @@
 #include <json/json.h> 
 #include <math.h> 
 #include <algorithm>
+#include "colorterminal.h"
 
 #define DEBUG_A 
 
@@ -56,6 +57,13 @@ void FrameData::configByJson(std::string jsonfile)
     {
         double conf = c.asDouble(); 
         m_keypoint_conf_thres.push_back(conf); 
+    }
+
+    m_keypoint_proposal_thres.clear(); 
+    for(auto const &c : root["keypoint_proposal_thres"])
+    {
+        double conf = c.asDouble(); 
+        m_keypoint_proposal_thres.push_back(conf); 
     }
     instream.close(); 
 }
@@ -214,7 +222,7 @@ cv::Mat FrameData::test()
     for(int i = 0; i < m_camNum; i++)
     {
         for(int kpt_id = 0; kpt_id < 20; kpt_id ++)
-            my_draw_points(m_imgsUndist[i], m_dets_undist[i][kpt_id], m_CM[kpt_color_id[kpt_id]]); 
+            my_draw_points(m_imgsUndist[i], m_dets_undist[i][kpt_id], m_CM[m_kpt_color_id[kpt_id]]); 
     }
     cv::Mat output; 
     packImgBlock(m_imgsUndist, output); 
@@ -423,6 +431,8 @@ void FrameData::compute3dByClustering(int kpt_id, vector<Vec3>& p3ds)
     auto cliques = m_cliques[kpt_id]; 
     auto table = m_tables[kpt_id]; 
 
+    std::cout << RED_TEXT("kpt_id: ") << kpt_id << std::endl; 
+
     std::vector<Eigen::Vector3d> joints3d; 
     for(int cliqueIdx = 0; cliqueIdx < cliques.size(); cliqueIdx++)
     {
@@ -450,6 +460,28 @@ void FrameData::compute3dByClustering(int kpt_id, vector<Vec3>& p3ds)
         solver.Solve3D(); 
         Eigen::Vector3d X = solver.GetX(); 
         joints3d.push_back(X); 
+
+        // compare error 
+        std::vector<Eigen::Vector3d> projs;
+        for(int i = 0; i < cams_visible.size(); i++)
+        {
+            Eigen::Vector3d proj = project(cams_visible[i], X); 
+            projs.push_back(proj); 
+        }
+        double max_err = 0; 
+        double mean_err = 0; 
+        for(int i = 0; i < projs.size(); i++)
+        {
+            Eigen::Vector2d err_vec = projs[i].segment<2>(0) - joints2d[i].segment<2>(0);
+            double err = err_vec.norm(); 
+            if(err > max_err) max_err = err; 
+            mean_err += err; 
+        }
+        mean_err /= projs.size(); 
+
+        std::cout << "cliqueid : " << cliqueIdx << std::endl; 
+        std::cout << YELLOW_TEXT("max  err: ") << max_err << std::endl; 
+        std::cout << GREEN_TEXT("mean err: ") << mean_err << std::endl; 
     }
 
     p3ds = joints3d; 
@@ -478,6 +510,8 @@ void FrameData::reproject()
             project(m_camsUndist[view], m_points3d[kpt_id], m_dets_reproj[view][kpt_id]); 
         }
     }
+    // compare error 
+
 }
 
 cv::Mat FrameData::visualize(int type, int Kid)
@@ -507,7 +541,7 @@ cv::Mat FrameData::visualize(int type, int Kid)
             for(int i = 0; i < m_kpts_to_show.size(); i++)
             {
                 int kpt_id = m_kpts_to_show[i];
-                int color_id = kpt_color_id[kpt_id]; 
+                int color_id = m_kpt_color_id[kpt_id]; 
                 my_draw_points(imgdata[view], data[view][kpt_id], m_CM[color_id]);
             }
         }
@@ -516,7 +550,7 @@ cv::Mat FrameData::visualize(int type, int Kid)
     {
         for(int view = 0; view < m_camNum; view++)
         {
-            int colorid = kpt_color_id[Kid];
+            int colorid = m_kpt_color_id[Kid];
             
             for(int i = 0; i < data[view][Kid].size(); i++)
             {

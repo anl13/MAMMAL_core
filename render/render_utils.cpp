@@ -96,10 +96,8 @@ std::vector<Eigen::Vector3f> getColorMapEigen(std::string cm_type, bool reorder)
 }
 
 void GetBalls(
-    const vector<vector<Vec3> > &proposals, 
-    const vector<vector<double> > & metric, 
-    const vector<vector<int> > & concensus_num, 
-    const vector<int>& kpt_color_id, 
+    const vector<vector<ConcensusData> > & data, 
+    const vector<int>& m_kpt_color_id, 
     std::vector<Eigen::Vector3f>& balls, 
     std::vector<float> & sizes, 
     std::vector<int>& color_ids
@@ -109,16 +107,17 @@ void GetBalls(
     color_ids.clear(); 
     sizes.clear(); 
     double basic_size = 0.005f; 
-    for(int kpt_id = 0; kpt_id < proposals.size(); kpt_id++)
+    for(int kpt_id = 0; kpt_id < data.size(); kpt_id++)
     {
-        for(int p = 0; p < proposals[kpt_id].size(); p++)
+        for(int p = 0; p < data[kpt_id].size(); p++)
         {
-            Vec3 point = proposals[kpt_id][p];
+            ConcensusData d = data[kpt_id][p];
+            Vec3 point = d.X; 
             balls.push_back(point.cast<float>()); 
-            color_ids.push_back(kpt_color_id[kpt_id]); 
+            color_ids.push_back(m_kpt_color_id[kpt_id]); 
             // std::cout << "metric proposal " << p << " : " << metric[kpt_id][p] << std::endl; 
-            float s = (float)(std::min( 0.02/metric[kpt_id][p], basic_size) ); 
-            float ratio = concensus_num[kpt_id][p] / 5.0f;
+            float s = (float)(std::min( 0.02/d.metric, basic_size) ); 
+            float ratio = d.num / 5.0f;
             sizes.push_back(s * ratio); 
         }
     }

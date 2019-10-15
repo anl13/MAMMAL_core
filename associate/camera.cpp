@@ -84,11 +84,11 @@ Vec3 Camera::GetRelT(const Camera& cam2) const
 Camera getDefaultCameraRaw()
 {
     Mat3 K;
-    K << 1623.3,      0, 950.4, 
-                   0, 1623.3, 532.7, 
+    K << 1625.30923,      0, 963.88710, 
+                   0, 1625.34802, 523.45901, 
                    0,      0,     1; 
-    Vec3 k = {-0.36439, 0.18555, 0};
-    Vec2 p = {-0.00121, 0.00036}; 
+    Vec3 k = {-0.35582, 0.14595, 0};
+    Vec2 p = { -0.00031, -0.00004}; 
     Camera camera;
     camera.SetK(K); 
     camera.SetDistortion(k, p); 
@@ -103,8 +103,8 @@ Camera getDefaultCameraRaw()
 Camera getDefaultCameraUndist()
 {
     Mat3 K;
-    K << 1362.977,        0, 949.88, 
-                     0, 1364.693, 530.18, 
+    K << 1340.0378,        0, 964.7579, 
+                     0, 1342.6888, 521.4926, 
                      0,        0,      1; 
     Vec3 k = {0, 0, 0};
     Vec2 p = {0, 0}; 

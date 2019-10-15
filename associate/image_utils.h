@@ -17,6 +17,7 @@ void my_undistort_points(const std::vector<Eigen::Vector3d>& points,
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points);
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, const Eigen::Vector3i &color);
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, const Eigen::Vector3i &color, int radius);
+void my_draw_point(cv::Mat& img, const Eigen::Vector3d &point, const Eigen::Vector3i& color, int radius); 
 
 bool in_image(float w, float h, float x, float y); 
 void draw_line(cv::Mat &img, Eigen::Vector3d ep); 

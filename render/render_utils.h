@@ -5,6 +5,7 @@
 #include "../associate/skel.h" 
 #include "../associate/image_utils.h" 
 #include "../associate/math_utils.h" 
+#include "../associate/framedata.h"
 
 using std::vector; 
 
@@ -27,10 +28,8 @@ void GetBallsAndSticks(
 
 // get balls with proposals 
 void GetBalls(
-    const vector<vector<Vec3> > &proposals, 
-    const vector<vector<double> >& metric, 
-    const vector<vector<int> >& concensus_num, 
-    const vector<int>& kpt_color_id, 
+    const vector<vector<ConcensusData> > & data, 
+    const vector<int>& m_kpt_color_id, 
     std::vector<Eigen::Vector3f>& balls, 
     std::vector<float> & sizes, 
     std::vector<int>& color_ids

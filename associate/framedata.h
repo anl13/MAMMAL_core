@@ -17,6 +17,30 @@
 
 using std::vector; 
 
+class ConcensusData{
+public: 
+    ConcensusData() {
+        cams.clear(); 
+        ids.clear(); 
+        joints2d.clear(); 
+        num = 0; 
+        errs.clear(); 
+        metric = 0; 
+        X = Eigen::Vector3d::Zero(); 
+    }
+    std::vector<Camera> cams; 
+    std::vector<int> ids; 
+    std::vector<Eigen::Vector3d> joints2d; 
+    Eigen::Vector3d X; 
+    int num; 
+    std::vector<double> errs; 
+    double metric; 
+}; 
+
+bool equal_concensus(const ConcensusData& data1, const ConcensusData& data2); 
+bool equal_concensus_list(std::vector<ConcensusData> data1, std::vector<ConcensusData> data2); 
+bool compare_concensus(ConcensusData data1, ConcensusData data2);
+
 // data of a frame 
 class FrameData{
 public: 
@@ -27,7 +51,7 @@ public:
         m_imw = 1920; 
         m_imh = 1080; 
         getColorMap("anliang_rgb", m_CM); 
-        kpt_color_id = {
+        m_kpt_color_id = {
                 0,0,0, // left face 
                 1,1,1, // left front leg
                 3,3,3, // left back leg
@@ -46,6 +70,7 @@ public:
         m_epi_type = "p2l";
         m_keypoint_conf_thres.resize(20, 0); 
         m_kptNum = 20; 
+        m_keypoint_proposal_thres.resize(20, 0); 
     }
     ~FrameData(){} 
 
@@ -65,9 +90,7 @@ public:
     void reproject_skels(); 
 
     // ransac based proposals 
-    vector<vector<Vec3> > m_proposals; 
-    vector<vector<double> > m_proposal_errs; 
-    vector<vector<int> > m_proposal_concensus_num; 
+    vector<vector<ConcensusData> > m_concensus; 
     void ransacProposals(); 
     void projectProposals(); 
 
@@ -91,7 +114,7 @@ public:
     vector<vector<Eigen::Vector3d> >          m_points3d; // [kptnum, candnum]
     vector<vector<vector<Eigen::Vector3d> > > m_dets_reproj; 
     vector<vector< PIG_SKEL_2D > >            m_skels_reproj; 
-    std::vector<int> kpt_color_id;
+    std::vector<int> m_kpt_color_id;
 
     vector< PIG_SKEL >                        m_skels; 
 
@@ -137,5 +160,6 @@ private:
     double m_epi_thres; 
     std::string m_epi_type; 
     std::vector<double> m_keypoint_conf_thres; 
+    std::vector<double> m_keypoint_proposal_thres;
 };
 

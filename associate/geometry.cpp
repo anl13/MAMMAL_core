@@ -22,7 +22,7 @@ Eigen::Vector3d NViewDLT(
     ATA = A.adjoint() * A;
 
     Eigen::SelfAdjointEigenSolver<Eigen::Matrix4d> eigenSolver(ATA); 
-    std::cout << "Eigen values: " << eigenSolver.eigenvalues() << std::endl; 
+    // std::cout << "Eigen values: " << eigenSolver.eigenvalues() << std::endl; 
     // std::cout << "Eigen vectors: " << std::endl << eigenSolver.eigenvectors() << std::endl;
     Eigen::Matrix4d eigenvec = eigenSolver.eigenvectors(); 
     Eigen::Vector4d v = eigenvec.col(0); 

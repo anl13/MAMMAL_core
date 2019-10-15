@@ -35,5 +35,27 @@
         0.6, //  17, right foot
         0.15, //  18, center
         0.2  //  19, ear middle (neck)
+    ],
+    "keypoint_proposal_thres" : [
+        25, //  0, nose 
+        25, //  1, left eye
+        25, //  2, left ear 
+        25, //  3, left shoulder
+        25, //  4, left elbow
+        25, //  5, left hand
+        25, //  6, left leg
+        25, //  7, left knee
+        25, //  8, left foot
+        25, //  9, tail root
+        25, //  10, right eye 
+        25, //  11, right ear
+        25, //  12, right shoulder
+        25, //  13, right elbow
+        25, //  14, right hand
+        25, //  15, right leg
+        25, //  16, right knee
+        25, //  17, right foot
+        30, //  18, center  // 35 is best for frame 22, morning seq
+        25  //  19, ear middle (neck)
     ]
 }

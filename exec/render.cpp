@@ -243,15 +243,14 @@ int render_proposals()
         frame.epipolarSimilarity(); 
         frame.ransacProposals(); 
         
-        vector<vector<Eigen::Vector3d> >  all_proposals = frame.m_proposals; 
-        std::vector<int> color_kpt_id = frame.kpt_color_id; 
-        vector<vector<double > > metric = frame.m_proposal_errs; 
-        vector<vector<int> > concensus_num = frame.m_proposal_concensus_num;
+        
+        std::vector<int> color_kpt_id = frame.m_kpt_color_id; 
+        std::vector<std::vector<ConcensusData> > data = frame.m_concensus;
 
         std::vector<Eigen::Vector3f> balls; 
         std::vector<float> sizes; 
         std::vector<int> color_ids; 
-        GetBalls(all_proposals, metric, concensus_num, color_kpt_id, balls, sizes, color_ids); 
+        GetBalls(data, color_kpt_id, balls, sizes, color_ids); 
         std::vector<Eigen::Vector3f> colors; 
         // for(int i = 0; i < color_ids.size(); i++) colors.push_back(CM[ color_ids[i]]); 
         for(int i = 0; i < color_ids.size(); i++) colors.push_back(CM2[ delta ]); 
@@ -275,8 +274,56 @@ int render_proposals()
     return 0; 
 }
 
+void renderScene()
+{
+    std::cout << "In render scene now!" << std::endl; 
+
+    std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
+    auto CM = getColorMapEigen("anliang_rgb"); 
+
+    // init a camera 
+    Eigen::Matrix3f K; 
+    K << 0.5, 0, 0.5, 0, 0.5, 0.5, 0, 0, 1;
+    std::cout << K << std::endl; 
+
+    Eigen::Vector3f up; up << 0,0, -1; 
+    Eigen::Vector3f pos; pos << -1, 1.5, -0.8; 
+    Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
+
+    // init renderer 
+    Renderer::s_Init(); 
+    Renderer m_renderer(conf_projectFolder + "/shader/"); 
+    m_renderer.s_camViewer.SetIntrinsic(K, 1, 1); 
+    m_renderer.s_camViewer.SetExtrinsic(pos, up, center); 
+
+    // init element obj
+    const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");
+	const ObjData stickObj(conf_projectFolder + "/data/obj_model/cylinder.obj");
+    const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj"); 
+    const ObjData cameraObj(conf_projectFolder + "/data/obj_model/camera.obj"); 
+
+    RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	chess_floor->SetTexture(conf_projectFolder + "/data/chessboard.png");
+	chess_floor->SetFaces(squareObj.faces, true);
+	chess_floor->SetVertices(squareObj.vertices);
+	chess_floor->SetTexcoords(squareObj.texcoords);
+	chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	m_renderer.texObjs.push_back(chess_floor); 
+
+    GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
+
+    while(!glfwWindowShouldClose(windowPtr))
+    {
+        m_renderer.Draw(); 
+        glfwSwapBuffers(windowPtr); 
+        glfwPollEvents(); 
+    };
+}
+
 int main(int argc, char** argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-    render_proposals(); 
+    // render_smal_test(); 
+    // render_proposals(); 
+    renderScene(); 
 }

@@ -100,6 +100,15 @@ void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, co
     }
 }
 
+void my_draw_point(cv::Mat& img, const Eigen::Vector3d &point, const Eigen::Vector3i& c, int radius)
+{
+    int x = int(point(0)); 
+    int y = int(point(1)); 
+    float conf = float(point(2));
+    cv::circle(img, cv::Point(x,y), radius, cv::Scalar(c(0),c(1),c(2)), -1); 
+}
+
+
 bool in_image(float w, float h, float x, float y)
 {
     return (x>=0 && x<w && y>=0 && y<h); 

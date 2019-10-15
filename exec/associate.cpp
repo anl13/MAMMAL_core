@@ -119,8 +119,8 @@ int test3d()
                 // cv::imshow("raw", raw_det); 
                 cv::imshow("proj", reproj); 
                 cv::imshow("assoc", assoc); 
-                // std::stringstream ss1; ss1 << "results/association_debug2/reproj_" << kpt_id << "_" << frameid << ".png";cv::imwrite(ss1.str(), reproj); 
-                // std::stringstream ss2; ss2 << "results/association_debug2/assoc_" << kpt_id << "_" << frameid << ".png"; cv::imwrite(ss2.str(), assoc); 
+                // std::stringstream ss1; ss1 << "results/assoc_debug_22/reproj_" << kpt_id << "_" << frameid << ".png";cv::imwrite(ss1.str(), reproj); 
+                // std::stringstream ss2; ss2 << "results/assoc_debug_22/assoc_" << kpt_id << "_" << frameid << ".png"; cv::imwrite(ss2.str(), assoc); 
                 int key = cv::waitKey(); 
                 if(key == 27) exit(-1); 
             }

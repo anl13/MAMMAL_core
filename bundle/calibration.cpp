@@ -145,6 +145,10 @@ void Calibrator::save_results(std::string result_folder)
     {
         os << out_points[i].transpose() << "\n"; 
     }
+    for(int i = 0; i < out_points_new.size(); i++)
+    {
+        os << out_points_new[i].transpose() << "\n"; 
+    }
     os.close(); 
 
     // save ratio 
@@ -207,7 +211,7 @@ void Calibrator::evaluate()
         {
             Vec2 gt = m_markers[v][i];
             Vec3 projection = projs[v][i];
-            std::cout << gt.transpose() << " ......  " << projection.transpose() << std::endl; 
+            // std::cout << gt.transpose() << " ......  " << projection.transpose() << std::endl; 
             Vec2 err = gt - projection.segment<2>(0);
             total_errs += err.norm(); 
             num+=1; 
@@ -399,15 +403,18 @@ void Calibrator::reload_added()
     for(int i = 0; i < m_added.size(); i++)
     {
         std::vector<Camera> visible_cams;
-        std::vector<Vec2> points2d; 
+        // std::vector<Vec2> points2d; 
+        std::vector<Vec3> points2d; 
         for(int camid = 0; camid < m_camNum; camid++)
         {
             if(m_added[i][camid](0) < 0) continue; 
             visible_cams.push_back(m_camsUndist[camid]);
-            Vec2 px = m_added[i][camid].segment<2>(0); 
-            points2d.push_back(px); 
+            // Vec2 px = m_added[i][camid].segment<2>(0); 
+            // points2d.push_back(px); 
+            points2d.push_back(m_added[i][camid]); 
         }
-        Vec3 p3d = NViewDLT(visible_cams, points2d);
+        // Vec3 p3d = NViewDLT(visible_cams, points2d);
+        Vec3 p3d = triangulate_ceres(visible_cams, points2d);
         out_points_new[i] = p3d; 
     }
 
@@ -455,26 +462,34 @@ void Calibrator::interactive_mark()
         {
             m_added.push_back(marks); 
             std::vector<Camera> visible_cams;
-            std::vector<Vec2> points2d; 
+            // std::vector<Vec2> points2d; 
+            std::vector<Vec3> points2d; 
             for(int camid = 0; camid < m_camNum; camid++)
             {
                 std::cout << marks[camid].transpose() << std::endl;
                 if(marks[camid](0) < 0) continue; 
                 visible_cams.push_back(m_camsUndist[camid]);
-                Vec2 px = marks[camid].segment<2>(0); 
-                points2d.push_back(px); 
+                // Vec2 px = marks[camid].segment<2>(0); 
+                // points2d.push_back(px); 
+                points2d.push_back(marks[camid]); 
             }
-            Vec3 p3d = NViewDLT(visible_cams, points2d);
+            // Vec3 p3d = NViewDLT(visible_cams, points2d);
+            Vec3 p3d = triangulate_ceres(visible_cams, points2d); 
             for(int camid = 0; camid < m_camNum; camid++)
             {
                 if(marks[camid](0) < 0) continue; 
                 marks[camid] = m_camsUndist[camid].inv_K * marks[camid]; 
             }
-            out_points_new.push_back(p3d); 
+            
             ba.addMarker(marks, p3d); 
             ba.solve_again(); 
+            out_points_new = ba.getAddedPoints(); 
             evaluate();
             draw_points(); 
+        }
+        else if(char(key) == 'd')
+        {
+            
         }
     };
 }
@@ -500,6 +515,11 @@ int Calibrator::calib_pipeline()
 	out_rvecs = ba.getRvecs(); 
 	out_tvecs = ba.getTvecs(); 
     out_ratio = ba.getRatio(); 
+
+    double z = 0; 
+    for(int i = 0; i < out_points.size(); i++) z += out_points[i](2); 
+    z /= out_points.size(); 
+    std::cout << "average floor height: " <<  z << std::endl; 
 
     // reset camera 
     for(int camid = 0; camid < m_camNum; camid++) 

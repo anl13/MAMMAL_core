@@ -104,7 +104,6 @@ void ObjData::LoadObj(const std::string& objFile)
 			int vertexId = faceParam.x() - 1;
 			int textureId = faceParam.y() - 1;
 			int normalId = faceParam.z() - 1;
-
 			vertexMap[textureId] = vertexId;
 			normalMap[textureId] = normalId;
 		}

@@ -1,5 +1,5 @@
 #include "math_utils.h"
-
+#include <algorithm>
 
 Mat3 GetSkewMatrix(const Vec3& w)
 {
@@ -238,4 +238,45 @@ double p2ldist( Vec3 x,  Vec3 a,  Vec3 b)
     Vec3 line = a-b; 
     Vec3 x_line = x-b;
     return p2ldist(x_line, line); 
+}
+
+bool my_equal(std::vector<int> a, std::vector<int> b)
+{
+    if(a.size() != b.size()) return false;
+    // bool indicator = true;  
+    // std::sort(a.begin(), a.end()); 
+    // std::sort(b.begin(), b.end()); 
+    for(int i = 0; i < a.size(); i++)
+    {
+        if(a[i] != b[i]) {return false;} 
+    }
+    return true; 
+}
+
+bool my_contain(std::vector<int> full, std::vector<int> sub)
+{
+    if(full.size() < sub.size()) return false; 
+    std::sort(full.begin(), full.end()); 
+    std::sort(sub.begin(), sub.end()); 
+    for(int i = 0; i < sub.size(); i++)
+    {
+        int s = sub[i]; 
+        bool is_found = false;
+        for(int j = 0; j < full.size(); j++)
+        {
+            if(s == full[j]) {is_found=true; break;}
+        }
+        if(!is_found) return false; 
+    }
+    return true; 
+}
+
+
+bool in_list(const int& query, const std::vector<int>& list)
+{
+    for(int i = 0; i < list.size(); i++) 
+    {
+        if(list[i] == query) return true;
+    }
+    return false; 
 }

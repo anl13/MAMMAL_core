@@ -3,19 +3,59 @@
 
 /*
 pre-operation: epopolarSimilarity; 
-
 */
+
+bool equal_concensus(const ConcensusData& data1, const ConcensusData& data2)
+{
+    if(data1.num != data2.num) return false;
+    return my_equal(data1.ids, data2.ids); 
+}
+
+bool compare_concensus(ConcensusData data1, ConcensusData data2)
+{
+    if(data1.num < data2.num) return true; 
+    if(data1.num > data2.num) return false; 
+    // if(data1.metric < data2.metric) return true; 
+    // if(data1.metric > data2.metric) return false; 
+    for(int i = 0; i < data2.ids.size(); i++)
+    {
+        if(data1.ids[i] < data2.ids[i]) return true; 
+        if(data1.ids[i] > data2.ids[i]) return false; 
+    }
+    return false; 
+}
+
+bool equal_concensus_list( std::vector<ConcensusData> data1,  std::vector<ConcensusData> data2)
+{
+    if(data1.size() != data2.size()) return false; 
+    std::sort(data1.begin(), data1.end(), compare_concensus); 
+    std::sort(data2.begin(), data2.end(), compare_concensus); 
+    for(int i = 0; i < data1.size(); i++)
+    {
+        if(!equal_concensus(data1[i], data2[i])) return false; 
+    }
+    return true; 
+}
+
 void FrameData::ransacProposals()
 {
-    m_proposals.clear(); // store final 3d proposals 
-    m_proposal_errs.clear(); 
-    m_proposal_concensus_num.clear(); 
-    double sigma = 10; // 10 pixel ransac error metric(reprojection error) 
+#define DEBUG_RANSAC
+    m_concensus.clear(); 
+    double sigma = 10 ; // 10 pixel ransac error metric(reprojection error) 
+    
     double gamma = m_epi_thres; // epipolar distance threshold, default 25 pixels. 
+    double delta = 0.01; //non-maxima suppression threshold
     std::cout << "m_epi_thre " << m_epi_thres << std::endl;  
     
     for(int kpt_id = 0; kpt_id < m_kptNum; kpt_id++)
     {
+        if(kpt_id != 18) 
+        {
+            std::vector<ConcensusData> data; 
+            m_concensus.push_back(data); 
+            continue; 
+        }
+        double sigma2 = m_keypoint_proposal_thres[kpt_id]; 
         // std::cout << RED_TEXT("kpt_id: ") << kpt_id << std::endl; 
         auto  table = m_tables[kpt_id];
         auto  invTable    = m_invTables[kpt_id]; 
@@ -47,10 +87,10 @@ void FrameData::ransacProposals()
 
         // std::cout << "kpt " << kpt_id << " init " << init.size() << std::endl; 
         // compute init 3d joints (model kernels)
-        std::vector<Eigen::Vector3d> kernels; // ransac kernels 
-        std::vector<double> kernel_metrics;  // ransac error (max 2d projection err)
+        std::vector<ConcensusData> init_concensus; 
         for(int i = 0; i < init.size(); i++)
         {
+            ConcensusData data; 
             vector<Camera> cams_visible; 
             vector<Eigen::Vector3d> joints2d; 
             for(int j = 0; j < init[i].size(); j++)
@@ -72,6 +112,7 @@ void FrameData::ransacProposals()
             
             vector<Eigen::Vector3d> reprojs;
             double max_err = 0;  
+            std::vector<double> errs; 
             for(int j = 0; j < init[i].size(); j++)
             {
                 Eigen::Vector3d x_local  = project(cams_visible[j], X); 
@@ -80,94 +121,214 @@ void FrameData::ransacProposals()
                 double err = err_vec.norm(); 
                 // std::cout << YELLOW_TEXT("err: ") << err.norm() << std::endl;
                 if(err > max_err) max_err = err;  
+                errs.push_back(err); 
             }
             if(max_err > sigma) continue; 
-            kernel_metrics.push_back(max_err); 
-            kernels.push_back(X); 
+            data.X = X; 
+            data.cams = cams_visible;
+            data.joints2d = joints2d; 
+            data.errs = errs; 
+            data.metric = max_err; 
+            data.ids = init[i]; 
+            data.num = joints2d.size(); 
+            init_concensus.push_back(data); 
         }
 
+#ifdef DEBUG_RANSAC
+        std::cout << YELLOW_TEXT("init concensus num: ") << init_concensus.size() << std::endl; 
+#endif 
         // concensus 
-        std::vector<std::vector<int> > concensus_all; 
-        std::vector<std::vector<Camera> > concensus_cameras_all; 
-        std::vector<std::vector<Eigen::Vector3d> > concensus_2ds_all; 
-        std::vector<Eigen::Vector3d>  concensus_kernels; 
-        std::vector<double>  concensus_metric; 
-        std::vector<int>     concensus_num; 
-        int kernel_num = kernels.size(); 
-        for(int kid = 0; kid < kernel_num; kid++)
+        int iter_num = 0; 
+        std::vector<ConcensusData> concensus_0 = init_concensus; 
+        std::vector<ConcensusData> concensus_1; 
+        for(;;)
         {
-            std::vector<int> concensus_ids; 
-            Eigen::Vector3d X = kernels[kid];
-            std::vector<Camera> concensus_cameras; 
-            std::vector<Eigen::Vector3d> concensus_2ds; 
-            for(int cid = 0; cid < m_camNum; cid++)
+#ifdef DEBUG_RANSAC
+            std::cout << RED_TEXT("current iter: ") << iter_num << std::endl; 
+#endif 
+
+            int kernel_num = concensus_0.size(); 
+#ifdef DEBUG_RANSAC
+            std::cout << "kernel num : " << kernel_num << std::endl; 
+#endif 
+            for(int kid = 0; kid < kernel_num; kid++)
             {
-                Camera cam = m_camsUndist[cid]; 
-                Eigen::Vector3d proj = project(cam, X); 
-                std::vector<double> dists; 
-                int cand_num = points[cid].size(); 
-                if(cand_num == 0) continue; // this view has no valid detection 
-                dists.resize(cand_num); 
-                for(int j = 0; j < cand_num; j++)
+                ConcensusData initdata = concensus_0[kid];
+                ConcensusData data; 
+                Eigen::Vector3d X = initdata.X; 
+
+                std::vector<int> concensus_ids; 
+                std::vector<Camera> concensus_cameras; 
+                std::vector<Eigen::Vector3d> concensus_2ds; 
+                for(int cid = 0; cid < m_camNum; cid++)
                 {
-                    Eigen::Vector2d err_vec = proj.segment<2>(0) - points[cid][j].segment<2>(0); 
-                    dists[j] = err_vec.norm(); 
-                }
-                int min_id = 0; 
-                double min_dist = dists[0]; 
-                for(int j = 0; j < cand_num; j++)
-                {
-                    if(dists[j] < min_dist)
+                    Camera cam = m_camsUndist[cid]; 
+                    Eigen::Vector3d proj = project(cam, X); 
+                    std::vector<double> dists; 
+                    int cand_num = points[cid].size(); 
+                    if(cand_num == 0) continue; // this view has no valid detection 
+                    dists.resize(cand_num); 
+                    for(int j = 0; j < cand_num; j++)
                     {
-                        min_dist = dists[j]; 
-                        min_id = j; 
+                        Eigen::Vector2d err_vec = proj.segment<2>(0) - points[cid][j].segment<2>(0); 
+                        dists[j] = err_vec.norm(); 
                     }
+                    int min_id = 0; 
+                    double min_dist = dists[0]; 
+                    for(int j = 0; j < cand_num; j++)
+                    {
+                        if(dists[j] < min_dist)
+                        {
+                            min_dist = dists[j]; 
+                            min_id = j; 
+                        }
+                    }
+                    if(min_dist > sigma2 )continue; // this view has no nearby detection
+                    concensus_cameras.push_back(cam); 
+                    concensus_2ds.push_back(points[cid][min_id]); 
+                    int node_id = invTable[cid][min_id]; 
+                    concensus_ids.push_back(node_id); 
                 }
-                if(min_dist > sigma )continue; // this view has no nearby detection
-                concensus_cameras.push_back(cam); 
-                concensus_2ds.push_back(points[cid][min_id]); 
-                int node_id = invTable[cid][min_id]; 
-                concensus_ids.push_back(node_id); 
-            }
-            concensus_2ds_all.push_back(concensus_2ds); 
-            concensus_cameras_all.push_back(concensus_cameras); 
-            concensus_all.push_back(concensus_ids); 
-            Eigen::Vector3d con_3d = triangulate_ceres(concensus_cameras, concensus_2ds); 
-            concensus_kernels.push_back(con_3d); 
 
-            double max_err = 0; 
-            for(int c = 0; c < concensus_2ds.size(); c++)
+                Joint3DSolver solver; 
+                solver.SetInit(X); 
+                solver.SetParam(concensus_cameras, concensus_2ds); 
+                solver.SetVerbose(false); 
+                solver.Solve3D(); 
+                Eigen::Vector3d con_3d = solver.GetX(); 
+                std::vector<double> errs; 
+
+                double max_err = 0; 
+                for(int c = 0; c < concensus_2ds.size(); c++)
+                {
+                    Eigen::Vector3d proj = project(concensus_cameras[c], con_3d); 
+                    Eigen::Vector2d err_vec = proj.segment<2>(0) - concensus_2ds[c].segment<2>(0); 
+                    double err = err_vec.norm(); 
+                    if(max_err < err) max_err = err; 
+                    errs.push_back(err); 
+                }
+                if(max_err > sigma2) 
+                {
+                    std::cout << "max err: " << max_err << std::endl; 
+                    continue; 
+                }
+
+                data.X = con_3d; 
+                data.joints2d = concensus_2ds;
+                data.ids = concensus_ids; 
+                data.errs = errs; 
+                data.num = concensus_2ds.size(); 
+                data.metric = max_err; 
+                data.cams = concensus_cameras; 
+
+                concensus_1.push_back(data); 
+            }
+
+#ifdef DEBUG_RANSAC
+            //             
+            std::cout << YELLOW_TEXT("before clean ") << concensus_1.size() << std::endl; 
+            for(int i = 0; i < concensus_1.size(); i++)
             {
-                Eigen::Vector3d proj = project(concensus_cameras[c], con_3d); 
-                Eigen::Vector2d err_vec = proj.segment<2>(0) - concensus_2ds[c].segment<2>(0); 
-                double err = err_vec.norm(); 
-                if(max_err < err) max_err = err; 
+                ConcensusData data = concensus_1[i];
+                std::cout << "concensus " << i << " : "; 
+                for(int j = 0; j < data.num; j++)
+                {
+                    std::cout << data.ids[j] << " ";
+                }
+                std::cout << "metric: " << data.metric << std::endl; 
             }
-            concensus_metric.push_back(max_err); 
-            concensus_num.push_back(concensus_2ds.size()); 
-        }
+#endif 
+            // clean repeated ones 
+            
+            std::sort(concensus_1.begin(), concensus_1.end(), compare_concensus); 
+            std::vector<ConcensusData> concensus_tmp;
+            for(int i = 0; i < concensus_1.size(); i++)
+            {
+                if(i==0) concensus_tmp.push_back(concensus_1[i]); 
+                else
+                {
+                    bool is_repeat = equal_concensus(concensus_1[i], concensus_1[i-1]);
+                    std::cout << is_repeat << " ";
+                    if(is_repeat) continue; 
+                    else concensus_tmp.push_back(concensus_1[i]); 
+                }
+            }
+            std::cout << std::endl; 
+            concensus_1 =  concensus_tmp; 
 
-        std::vector<Eigen::Vector3d> empty_vec; 
-        std::vector<double> empty_double; 
-        std::vector<int> empty_int; 
-        if(kpt_id == 18)
-        {
-            m_proposals.push_back(concensus_kernels); 
-            m_proposal_errs.push_back(concensus_metric); 
-            m_proposal_concensus_num.push_back(concensus_num); 
+#ifdef DEBUG_RANSAC
+            std::cout << YELLOW_TEXT("after clean ") << concensus_1.size() << std::endl;  
+            // visualize concensus_1 
+            for(int i = 0; i < concensus_1.size(); i++)
+            {
+                ConcensusData data = concensus_1[i];
+                std::cout << "concensus " << i << " : "; 
+                for(int j = 0; j < data.num; j++)
+                {
+                    std::cout << data.ids[j] << " ";
+                }
+                std::cout << "metric: " << data.metric << std::endl; 
+            }
+#endif 
+
+            // check if converge? 
+            bool is_converge = equal_concensus_list(concensus_0, concensus_1); 
+            if(is_converge) break; 
+            else {
+                concensus_0 = concensus_1;
+                concensus_1.clear(); 
+                iter_num ++; 
+            }
         }
-        else 
+#ifdef DEBUG_RANSAC
+        std::cout << "converge in " << iter_num << " iterations" << std::endl; 
+#endif 
+        // non-maxima suppression 
+        int c_num = concensus_1.size(); 
+        Eigen::MatrixXd E = Eigen::MatrixXd::Zero(c_num, c_num); 
+        for(int i = 0; i < c_num; i++)
         {
-            m_proposals.push_back(empty_vec); 
-            m_proposal_errs.push_back(empty_double); 
-            m_proposal_concensus_num.push_back(empty_int); 
+            for(int j = 0; j < c_num; j++)
+            {
+                if(i == j) E(i,j) = -1; 
+                else
+                {
+                    double e = (concensus_1[i].X - concensus_1[j].X).norm(); 
+                    E(i,j) = e; 
+                }
+            }
         }
+        std::cout << "Euclidean Dist: " << std::endl << E << std::endl; 
+        m_concensus.push_back(concensus_1); 
+
     }
-
 }
 
 
 void FrameData::projectProposals()
 {
+    std::vector<Eigen::Vector3i> CM2; 
+    getColorMap("jet", CM2); 
+    std::vector<cv::Mat> imgs;
+    cloneImgs(m_imgsUndist, imgs); 
+    for(int kpt_id = 18; kpt_id < 19; kpt_id++)
+    {
+        auto concensus = m_concensus[kpt_id]; 
+        for(int i = 0; i < concensus.size(); i++)
+        {
+            for(int cid = 0; cid < concensus[i].ids.size(); cid++)
+            {
+                int pid = concensus[i].ids[cid];
+                int camid = m_tables[kpt_id][pid].first;
+                Eigen::Vector3d p2d = project(concensus[i].cams[cid], concensus[i].X); 
+                my_draw_point(imgs[camid], p2d, m_CM[i], 10); 
+            }
+        }
+    }
 
+    cv::Mat output; 
+    packImgBlock(imgs, output); 
+    cv::namedWindow("concensus", cv::WINDOW_NORMAL); 
+    cv::imshow("concensus", output); 
+    int key = cv::waitKey(); 
 }
