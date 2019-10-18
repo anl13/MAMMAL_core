@@ -39,23 +39,24 @@ bool equal_concensus_list( std::vector<ConcensusData> data1,  std::vector<Concen
 
 void FrameData::ransacProposals()
 {
-#define DEBUG_RANSAC
+// #define DEBUG_RANSAC
     m_concensus.clear(); 
-    double sigma = 10 ; // 10 pixel ransac error metric(reprojection error) 
+    double sigma = m_sigma ; // 10 pixel ransac error metric(reprojection error) 
     
     double gamma = m_epi_thres; // epipolar distance threshold, default 25 pixels. 
-    double delta = 0.01; //non-maxima suppression threshold
+    double nms_thres = m_ransac_nms_thres; //non-maxima suppression threshold
     std::cout << "m_epi_thre " << m_epi_thres << std::endl;  
     
     for(int kpt_id = 0; kpt_id < m_kptNum; kpt_id++)
     {
-        if(kpt_id != 18) 
+        bool to_show = in_list(kpt_id, m_kpts_to_show); 
+        if(!to_show) 
         {
             std::vector<ConcensusData> data; 
             m_concensus.push_back(data); 
             continue; 
         }
-        double sigma2 = m_keypoint_proposal_thres[kpt_id]; 
+        double sigma2 = m_keypoint_proposal_thres[kpt_id]; // reprojection err thres for further concensus iteration
         // std::cout << RED_TEXT("kpt_id: ") << kpt_id << std::endl; 
         auto  table = m_tables[kpt_id];
         auto  invTable    = m_invTables[kpt_id]; 
@@ -66,6 +67,7 @@ void FrameData::ransacProposals()
 
         // generate all init proposals: 3 points from different views 
         vector<vector<int> > init;  // store node id in graph 
+        std::vector<bool> used(nodeNum, false); 
         for(int i = 0; i < nodeNum; i++)
         {
             for(int j = i+1; j < nodeNum; j++)
@@ -80,10 +82,42 @@ void FrameData::ransacProposals()
                     a_init_prop.push_back(i); 
                     a_init_prop.push_back(j); 
                     a_init_prop.push_back(k); 
-                    init.push_back(a_init_prop); 
+                    init.push_back(a_init_prop);
+                    used[i] = true; 
+                    used[j] = true; 
+                    used[k] = true;  
                 }
             }
         }
+        // TODO: 
+        // could we use 2 points as init for points not in above init proposals? 
+        // theoretically, not!. if there are 3 single detection (not related to any other), 
+        // 2 point proposals may yield false results, which could not be judged. 
+        // however, if we believe epipolar contraints, this may be possible. 
+
+        //: generate 2 point proposal
+        std::vector<int> reused(nodeNum, 0); 
+        for(int i = 0; i < nodeNum; i++)
+        {
+            for(int j = i+1; j < nodeNum; j++)
+            {
+                if(used[i] || used[j]) continue; 
+                if(G(i,j) < 0) continue; 
+                if(G(i,j) > gamma) continue;  
+                vector<int> a_init_prop; 
+                a_init_prop.push_back(i); 
+                a_init_prop.push_back(j); 
+                init.push_back(a_init_prop);
+                reused[i] ++; 
+                reused[j] ++;
+                if(reused[i] == 2 || reused[j] ==2) 
+                {
+                    std::cout << RED_TEXT("fatal error: ") << i << "," << j << std::endl; 
+                    // exit(-1); 
+                }
+            }
+        }
+
 
         // std::cout << "kpt " << kpt_id << " init " << init.size() << std::endl; 
         // compute init 3d joints (model kernels)
@@ -123,7 +157,12 @@ void FrameData::ransacProposals()
                 if(err > max_err) max_err = err;  
                 errs.push_back(err); 
             }
-            if(max_err > sigma) continue; 
+            if(max_err > sigma) {
+                std::cout << RED_TEXT("eliminate: ");
+                for(int t = 0; t < init[i].size(); t++) std::cout << init[i][t] << " ";
+                std::cout << "metric " << max_err << std::endl; 
+                continue; 
+            }
             data.X = X; 
             data.cams = cams_visible;
             data.joints2d = joints2d; 
@@ -133,6 +172,21 @@ void FrameData::ransacProposals()
             data.num = joints2d.size(); 
             init_concensus.push_back(data); 
         }
+
+#ifdef DEBUG_RANSAC
+        std::cout << GREEN_TEXT("init concensus ") << init_concensus.size() << std::endl;  
+        // visualize concensus_1 
+        for(int i = 0; i < init_concensus.size(); i++)
+        {
+            ConcensusData data = init_concensus[i];
+            std::cout << "concensus " << i << " : "; 
+            for(int j = 0; j < data.num; j++)
+            {
+                std::cout << data.ids[j] << " ";
+            }
+            std::cout << "metric: " << data.metric << std::endl; 
+        }
+#endif 
 
 #ifdef DEBUG_RANSAC
         std::cout << YELLOW_TEXT("init concensus num: ") << init_concensus.size() << std::endl; 
@@ -298,8 +352,30 @@ void FrameData::ransacProposals()
                 }
             }
         }
+        std::vector<ConcensusData> concensus_final; 
+        std::vector<bool> keep(c_num, true); 
+        for(int i = 0; i < c_num; i++)
+        {
+            for(int j = 0; j < i; j++)
+            {
+                if(!keep[j] || !keep[i]) continue;
+                if(E(i,j) < nms_thres)
+                {
+                    if(concensus_1[i].num > concensus_1[j].num) keep[j] = false; 
+                    else if (concensus_1[i].num < concensus_1[i].num) keep[i] = false; 
+                } 
+            }
+        }
+        for(int i = 0; i < c_num; i++) 
+        {
+            if(keep[i]) concensus_final.push_back(concensus_1[i]); 
+        }
+#ifdef DEBUG_RANSAC
         std::cout << "Euclidean Dist: " << std::endl << E << std::endl; 
-        m_concensus.push_back(concensus_1); 
+        std::cout << YELLOW_TEXT("after nms: " ) << concensus_final.size() << std::endl; 
+#endif 
+        
+        m_concensus.push_back(concensus_final); 
 
     }
 }
@@ -311,18 +387,37 @@ void FrameData::projectProposals()
     getColorMap("jet", CM2); 
     std::vector<cv::Mat> imgs;
     cloneImgs(m_imgsUndist, imgs); 
-    for(int kpt_id = 18; kpt_id < 19; kpt_id++)
+    int waittime = 10; 
+    for(int kpt_id = 0; kpt_id < m_kptNum; kpt_id++)
     {
+        bool to_show = in_list(kpt_id, m_kpts_to_show); 
+        if(!to_show) continue; 
         auto concensus = m_concensus[kpt_id]; 
         for(int i = 0; i < concensus.size(); i++)
         {
+            if(concensus[i].num > 2) continue; // only check num==2
             for(int cid = 0; cid < concensus[i].ids.size(); cid++)
             {
                 int pid = concensus[i].ids[cid];
                 int camid = m_tables[kpt_id][pid].first;
-                Eigen::Vector3d p2d = project(concensus[i].cams[cid], concensus[i].X); 
-                my_draw_point(imgs[camid], p2d, m_CM[i], 10); 
+            // for(int camid = 0; camid < m_camNum; camid++){
+                Eigen::Vector3d p2d = project(m_camsUndist[camid], concensus[i].X); 
+                auto c = m_CM[i]; 
+                // my_draw_point(imgs[camid], p2d, m_CM[i], 10);
+                int x = int(p2d(0)+0.5); 
+                int y = int(p2d(1)+0.5); 
+                cv::circle(imgs[camid], cv::Point(x,y), 20, cv::Scalar(c(0),c(1),c(2)), 5); 
             }
+        }
+    }
+
+    for(int view = 0; view < m_camNum; view++)
+    {
+        for(int i = 0; i < m_kpts_to_show.size(); i++)
+        {
+            int kpt_id = m_kpts_to_show[i];
+            int color_id = m_kpt_color_id[kpt_id]; 
+            my_draw_points(imgs[view], m_dets_undist[view][kpt_id], m_CM[color_id], 10);
         }
     }
 
@@ -330,5 +425,9 @@ void FrameData::projectProposals()
     packImgBlock(imgs, output); 
     cv::namedWindow("concensus", cv::WINDOW_NORMAL); 
     cv::imshow("concensus", output); 
-    int key = cv::waitKey(); 
+    int key = cv::waitKey(0); 
+    if(key == 27){
+        cv::destroyAllWindows(); 
+        exit(-1); 
+    }
 }

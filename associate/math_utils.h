@@ -59,5 +59,6 @@ double p2ldist(Vec3 x,  Vec3 a,  Vec3 b); // a,b form a line
 bool my_equal(std::vector<int> a, std::vector<int> b); 
 bool my_contain(std::vector<int> full, std::vector<int> sub); 
 bool in_list(const int& query, const std::vector<int>& list); 
+bool my_exclude(std::vector<int> a, std::vector<int> b); 
 
 #endif 

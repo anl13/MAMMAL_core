@@ -260,3 +260,27 @@ void getLegend(cv::Mat & out)
     }
     out = img;  
 }
+
+
+std::vector<Eigen::Vector3d> read_points(std::string filename)
+{
+    std::ifstream infile(filename); 
+    if(!infile.is_open())
+    {
+        std::cout << RED_TEXT("can not open file ") << filename << std::endl; 
+        exit(-1); 
+    }
+    std::vector<Eigen::Vector3d> points; 
+    while(!infile.eof())
+    {
+        double x, y, z; 
+        infile >> x >> y; 
+        if(infile.eof()) break;
+        infile >> z; 
+        Eigen::Vector3d p;
+        p << x, y, z;
+        points.push_back(p); 
+    };
+    infile.close(); 
+    return points;
+}

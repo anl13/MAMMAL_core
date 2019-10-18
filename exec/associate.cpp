@@ -150,7 +150,6 @@ int test_proposals()
 
         frame.projectProposals(); 
                 
-        break; 
     }
     
     return 0; 

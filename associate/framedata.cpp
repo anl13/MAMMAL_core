@@ -37,6 +37,8 @@ void FrameData::configByJson(std::string jsonfile)
     framenum       = root["framenum"].asInt(); 
     m_epi_thres    = root["epipolar_threshold"].asDouble(); 
     m_epi_type     = root["epipolartype"].asString(); 
+    m_ransac_nms_thres = root["ransac_nms_thres"].asDouble(); 
+    m_sigma        = root["sigma"].asDouble(); 
     std::vector<int> camids; 
     for(auto const &c : root["camids"])
     {

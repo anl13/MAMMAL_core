@@ -9,6 +9,7 @@
 #include <opencv2/opencv.hpp> 
 
 #include "camera.h" 
+#include "colorterminal.h"
 
 void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, const Camera &newcam);
 void my_undistort_points(const std::vector<Eigen::Vector3d>& points, 
@@ -31,4 +32,4 @@ void cloneImgs(const std::vector<cv::Mat> & input, std::vector<cv::Mat> &output)
 
 void getLegend(cv::Mat& out);
 
-
+std::vector<Eigen::Vector3d> read_points(std::string filename); 

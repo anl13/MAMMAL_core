@@ -93,6 +93,8 @@ public:
     vector<vector<ConcensusData> > m_concensus; 
     void ransacProposals(); 
     void projectProposals(); 
+    double m_ransac_nms_thres; 
+    double m_sigma; // init reprojection threshold
 
 
     // naive tracking functions 

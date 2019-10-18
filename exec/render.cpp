@@ -310,6 +310,20 @@ void renderScene()
 	chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor); 
 
+    std::string point_file = conf_projectFolder + "/../build/results/points3d.txt";
+    std::vector<Eigen::Vector3d> points = read_points(point_file);
+    std::vector<float> sizes(points.size(), 0.05f); 
+    std::vector<Eigen::Vector3f> balls, colors; 
+    balls.resize(points.size()); 
+    colors.resize(points.size());
+    for(int i = 0; i < points.size(); i++)
+    {
+        balls[i] = points[i].cast<float>(); 
+        colors[i] = CM[0]; 
+    }
+    BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors); 
+    m_renderer.skels.push_back(skelObject); 
+
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
 
     while(!glfwWindowShouldClose(windowPtr))

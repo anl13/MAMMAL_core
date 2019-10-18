@@ -280,3 +280,21 @@ bool in_list(const int& query, const std::vector<int>& list)
     }
     return false; 
 }
+
+// check if a and b has same element. 
+// if yes, return false 
+// else return true 
+bool my_exclude(std::vector<int> a, std::vector<int> b)
+{
+    bool exclude = true; 
+    if(a.size() == 0 || b.size() == 0) return true; 
+    for(int i = 0; i < a.size(); i++)
+    {
+        if(in_list(a[i], b))
+        {
+            exclude = false; 
+            break;
+        }
+    }
+    return exclude; 
+}
