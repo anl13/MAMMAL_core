@@ -11,6 +11,8 @@ using ceres::Solve;
 using ceres::LossFunction;
 using ceres::LossFunctionWrapper;
 
+const float c_dxi = 0; 
+const float c_dyi = 0; 
 struct ReprojectionError {
 	ReprojectionError(double observed_x, double observed_y)
 		: observed_x(observed_x), observed_y(observed_y) {}
@@ -57,8 +59,8 @@ struct ReprojectionErrorRatio {
 	{
 		int c = index / 6; 
 		int r = index % 6; 
-		x = c * 1.0; 
-		y = r * 1.0; 
+		x = (c - c_dxi) * 1.0; 
+		y = (r - c_dyi) * 1.0; 
 		z = 0; 
 	}
 
@@ -150,13 +152,13 @@ void BASolver::initMarkers(vector<int> camids, int pointNum)
 	{
 		int c = index / 6;
 		int r = index % 6; 
-		m_points[index][0] = c * 0.0848; 
-		m_points[index][1] = r * 0.0848 * m_ratio; 
+		m_points[index][0] = (c - c_dxi) * 0.0848; 
+		m_points[index][1] = (r - c_dyi) * 0.0848 * m_ratio; 
 		m_points[index][2] = 0; 
 	}
 }
 
-void BASolver::solve_ratio()
+void BASolver::solve_init_calib(bool optim_points)
 {
 	Problem problem;  
 	for (int camid = 0; camid < m_camNum; camid++)
@@ -165,12 +167,24 @@ void BASolver::solve_ratio()
 		{
 			double obs_x = m_obs[camid][pid][0];
 			double obs_y = m_obs[camid][pid][1]; 
-			CostFunction *cost = ReprojectionErrorRatio::Create(obs_x, obs_y, pid); 
-			problem.AddResidualBlock(cost, NULL,
-				m_rvecs[camid].data(), 
-				m_tvecs[camid].data(), 
-				&m_ratio
-			); 
+			if(optim_points)
+			{
+				CostFunction *cost = ReprojectionError::Create(obs_x, obs_y); 
+				problem.AddResidualBlock(cost, NULL,
+					m_rvecs[camid].data(), 
+					m_tvecs[camid].data(), 
+					m_points[pid].data()
+				); 
+			}
+			else 
+			{
+				CostFunction *cost = ReprojectionErrorRatio::Create(obs_x, obs_y, pid); 
+				problem.AddResidualBlock(cost, NULL,
+					m_rvecs[camid].data(), 
+					m_tvecs[camid].data(), 
+					&m_ratio
+				); 
+			}
 		}
 	}
 
@@ -182,44 +196,19 @@ void BASolver::solve_ratio()
 	Solver::Summary summary; 
 	Solve(options, &problem, &summary); 
 
-	for(int index = 0; index < m_points.size(); index++)
+	if(!optim_points)
 	{
-		int c = index / 6;
-		int r = index % 6; 
-		m_points[index][0] = c * 1.0; 
-		m_points[index][1] = r * 1.0 * m_ratio; 
-		m_points[index][2] = 0; 
-	}
-}
-
-void BASolver::solve_points()
-{
-	Problem problem;  
-	
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		std::cout << "m_obs[camid].size(): " << m_obs[camid].size() << std::endl; 
-		for (int pid = 0; pid < m_pointNum; pid++)
+		for(int index = 0; index < m_points.size(); index++)
 		{
-			double obs_x = m_obs[camid][pid][0];
-			double obs_y = m_obs[camid][pid][1]; 
-			CostFunction *cost = ReprojectionError::Create(obs_x, obs_y); 
-			problem.AddResidualBlock(cost, NULL,
-				m_rvecs[camid].data(), 
-				m_tvecs[camid].data(), 
-				m_points[pid].data()
-			); 
+			int c = index / 6;
+			int r = index % 6; 
+			c = c - 4; 
+			r = r - 3; 
+			m_points[index][0] = (c - c_dxi) * 1.0; 
+			m_points[index][1] = (r - c_dyi) * 1.0 * m_ratio; 
+			m_points[index][2] = 0; 
 		}
 	}
-
-	Solver::Options options; 
-	options.minimizer_progress_to_stdout = true; 
-	options.minimizer_type = ceres::TRUST_REGION; 
-	options.max_num_iterations = 200; 
-	options.eta = 0.001; 
-	Solver::Summary summary; 
-	Solve(options, &problem, &summary); 
-
 }
 
 void BASolver::addMarker(const vector<Vec3>& marks, const Vec3& mark3d)
@@ -240,12 +229,24 @@ void BASolver::solve_again()
 		{
 			double obs_x = m_obs[camid][pid][0];
 			double obs_y = m_obs[camid][pid][1]; 
-			CostFunction *cost = ReprojectionError::Create(obs_x, obs_y); 
-			problem.AddResidualBlock(cost, NULL,
-				m_rvecs[camid].data(), 
-				m_tvecs[camid].data(), 
-				m_points[pid].data()
-			); 
+			// if(pid < 42)
+			// {
+			// 	CostFunction *cost = ReprojectionErrorRatio::Create(obs_x, obs_y, pid); 
+			// 	problem.AddResidualBlock(cost, NULL,
+			// 		m_rvecs[camid].data(), 
+			// 		m_tvecs[camid].data(), 
+			// 		&m_ratio
+			// 	); 
+			// }
+			// else 
+			// {
+				CostFunction *cost = ReprojectionError::Create(obs_x, obs_y); 
+				problem.AddResidualBlock(cost, NULL,
+					m_rvecs[camid].data(), 
+					m_tvecs[camid].data(), 
+					m_points[pid].data()
+				); 
+			// }
 		}
 	}
 

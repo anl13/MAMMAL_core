@@ -19,6 +19,9 @@ DEFINE_string(type, "smal", "hint which func to use");
 
 // #define DEBUG_RENDER
 
+const float c_floor_dx = 0.28; 
+const float c_floor_dy = 0.2; 
+
 int render_animal_skels() 
 {
     std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
@@ -60,7 +63,7 @@ int render_animal_skels()
 	chess_floor->SetFaces(squareObj.faces, true);
 	chess_floor->SetVertices(squareObj.vertices);
 	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	chess_floor->SetTransform({ c_floor_dx, c_floor_dy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor); 
 
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
@@ -307,7 +310,7 @@ void renderScene()
 	chess_floor->SetFaces(squareObj.faces, true);
 	chess_floor->SetVertices(squareObj.vertices);
 	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	chess_floor->SetTransform({ c_floor_dx, c_floor_dy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor); 
 
     std::string point_file = conf_projectFolder + "/../build/results/points3d.txt";
@@ -338,6 +341,6 @@ int main(int argc, char** argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
     // render_smal_test(); 
-    // render_proposals(); 
-    renderScene(); 
+    render_proposals(); 
+    // renderScene(); 
 }

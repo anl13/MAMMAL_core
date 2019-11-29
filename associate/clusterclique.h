@@ -14,35 +14,39 @@ Reference:  https://github.com/darrenstrash/quick-cliques
 #include "mce/Algorithm.h" 
 #include "mce/AdjacencyListAlgorithm.h" 
 
+/*
+Cluster on K-partite graph. 
+*/ 
 class ClusterClique
 {
 public: 
     ClusterClique(); 
-    void constructGraph(); 
+    void constructAdjacentGraph(); 
     Eigen::MatrixXd G; // distance graph 
     std::vector<std::pair<int,int>> table;  // vertex table; [partite, candidate]
     std::vector<std::vector<int>> invTable; // inverse table. 
     int vertexNum; 
     double threshold; 
-
-    std::vector<bool> used;                 // record vertex in current cliques 
-    int edgeNum; 
-    Algorithm* pAlgorithm; 
-    std::vector< std::vector<int> > adjacencyArray; 
-    std::vector< std::vector<int> > adjacencyArrayCopy; 
-
-    std::vector< std::vector<int> > allMC; 
     std::vector< std::vector<int> > cliques;  
-   
+
     void enumerateMaximalCliques(); 
     void enumerateBestCliques(); 
-    void eliminateClique(const std::vector<int> &clique); 
-    std::vector<int> findBestClique(); 
-    double getCliqueEnergyAvg(const std::vector<int> &clique); 
-    double getCliqueEnergyTotal(const std::vector<int> &clique); 
 
     void printGraph(); 
     void printAllMC(); 
     void printCliques(); 
     void convertListToVec(const std::list< std::list<int> >& cliqueList, std::vector< std::vector<int> > &cliqueVec); 
+
+private: 
+    void eliminateClique(const std::vector<int> &clique); 
+    std::vector<int> findBestClique();      // find clique with minimum weights 
+    double getCliqueEnergyAvg(const std::vector<int> &clique); 
+    double getCliqueEnergyTotal(const std::vector<int> &clique); 
+    std::vector<bool> used;                 // record vertex in current cliques 
+    int edgeNum; 
+    Algorithm* pAlgorithm; 
+    std::vector< std::vector<int> > adjacencyArray; 
+    std::vector< std::vector<int> > adjacencyArrayCopy; 
+    std::vector< std::vector<int> > allMC; 
+
 }; 

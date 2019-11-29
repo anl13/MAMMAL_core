@@ -3,6 +3,7 @@
 #include <math.h> 
 #include <algorithm>
 #include "colorterminal.h"
+#include "image_utils.h"
 
 #define DEBUG_A 
 
@@ -29,9 +30,11 @@ void FrameData::configByJson(std::string jsonfile)
         std::cout << "Fail to parse \n" << errs << std::endl; 
         exit(-1); 
     }
-    m_keypointsDir = root["keypointsfolder"].asString(); 
+    m_sequence     = root["sequence"].asString(); 
+    m_keypointsDir = m_sequence + "/keypoints/"; 
+    m_imgDir       = m_sequence + "/images/";  
+    m_boxDir       = m_sequence + "/boxes/"; 
     m_camDir       = root["camfolder"].asString(); 
-    m_imgDir       = root["imgfolder"].asString(); 
     m_imgExtension = root["imgExtension"].asString(); 
     startid        = root["startid"].asInt(); 
     framenum       = root["framenum"].asInt(); 
@@ -39,6 +42,9 @@ void FrameData::configByJson(std::string jsonfile)
     m_epi_type     = root["epipolartype"].asString(); 
     m_ransac_nms_thres = root["ransac_nms_thres"].asDouble(); 
     m_sigma        = root["sigma"].asDouble(); 
+    m_boxExpandRatio = root["box_expand_ratio"].asDouble(); 
+    m_pruneThreshold = root["prune_threshold"].asDouble(); 
+    m_cliqueSizeThreshold = root["clique_size_threshold"].asInt(); 
     std::vector<int> camids; 
     for(auto const &c : root["camids"])
     {
@@ -75,11 +81,8 @@ void FrameData::readKeypoints()
     std::string jsonDir = m_keypointsDir;
     std::stringstream ss; 
     ss << jsonDir << "keypoints_" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
-    readKeypoint(ss.str()); 
-}
+    std::string jsonfile = ss.str(); 
 
-void FrameData::readKeypoint(std::string jsonfile)
-{
     Json::Value root; 
     Json::CharReaderBuilder rbuilder; 
     std::string errs; 
@@ -129,6 +132,70 @@ void FrameData::readKeypoint(std::string jsonfile)
     is.close(); 
 }
 
+void FrameData::readBoxes()
+{
+    std::string jsonDir = m_boxDir;
+    std::stringstream ss; 
+    ss << jsonDir << "/boxes_" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+    std::string jsonfile = ss.str(); 
+    // parse
+    Json::Value root; 
+    Json::CharReaderBuilder rbuilder; 
+    std::string errs; 
+    std::ifstream is(jsonfile); 
+    if (!is.is_open())
+    {
+        std::cout << "can not open " << jsonfile << std::endl; 
+        exit(-1); 
+    }
+    bool parsingSuccessful = Json::parseFromStream(rbuilder, is, &root, &errs);
+    if(!parsingSuccessful)
+    {
+        std::cout << "Fail to parse doc \n" << errs << std::endl;
+        exit(-1); 
+    } 
+    // load data
+    m_boxes_raw.clear(); 
+    m_boxes_raw.resize(m_camNum); 
+    for(int i = 0; i < m_camNum; i++)
+    {
+        int camid = m_camids[i]; 
+        Json::Value c = root[std::to_string(camid)]; 
+        int boxnum = c.size(); 
+        std::vector<Eigen::Vector4d> bb; 
+        for(int bid = 0; bid < boxnum; bid++)
+        {
+            Json::Value box_jv = c[bid]; 
+            Eigen::Vector4d B; 
+            for(int k = 0; k < 4; k++)
+            {
+                double x = box_jv[k].asDouble(); 
+                B(k) = x; 
+            }
+            bb.push_back(B); 
+        }
+        m_boxes_raw[i] = bb; 
+    }
+}
+
+void FrameData::processBoxes()
+{
+    m_boxes_processed.clear(); 
+    m_boxes_processed.resize(m_camNum); 
+    for(int cid = 0; cid < m_camNum; cid++)
+    {
+        int boxnum = m_boxes_raw[cid].size(); 
+        m_boxes_processed[cid].resize(boxnum); 
+        for(int bid = 0; bid < boxnum; bid++)
+        {
+            Eigen::Vector4d box = my_undistort_box(
+                m_boxes_raw[cid][bid], m_cams[cid], m_camsUndist[cid]
+            ); 
+            m_boxes_processed[cid][bid] = expand_box(box, m_boxExpandRatio); 
+        }
+    }
+}
+
 void FrameData::undistKeypoints(const Camera& cam, const Camera& camnew, int imw, int imh)
 {
     int camNum = m_dets.size(); 
@@ -172,6 +239,8 @@ void FrameData::readImages()
 
 void FrameData::readCameras()
 {
+    m_cams.clear(); 
+    m_camsUndist.clear(); 
     for(int camid = 0; camid < m_camNum; camid++)
     {
         std::stringstream ss; 
@@ -217,19 +286,8 @@ void FrameData::fetchData()
     undistKeypoints(m_cams[0], m_camsUndist[0],m_imw, m_imh); 
     readImages(); 
     undistImgs(); 
-}
-
-cv::Mat FrameData::test()
-{
-    for(int i = 0; i < m_camNum; i++)
-    {
-        for(int kpt_id = 0; kpt_id < 20; kpt_id ++)
-            my_draw_points(m_imgsUndist[i], m_dets_undist[i][kpt_id], m_CM[m_kpt_color_id[kpt_id]]); 
-    }
-    cv::Mat output; 
-    packImgBlock(m_imgsUndist, output); 
-
-    return output; 
+    readBoxes();
+    processBoxes(); 
 }
 
 void FrameData::checkEpipolar(int kpt_id)
@@ -417,7 +475,7 @@ void FrameData::epipolarClustering(int kpt_id)
     {
         CC.threshold = m_epi_thres;
     }
-    CC.constructGraph(); 
+    CC.constructAdjacentGraph(); 
     // CC.enumerateMaximalCliques();
     CC.enumerateBestCliques(); 
     // CC.printGraph();  
@@ -968,4 +1026,19 @@ void FrameData::readSkelfromJson(std::string jsonfile)
     }
     instream.close(); 
     std::cout << "read json done. " << std::endl; 
+}
+
+cv::Mat FrameData::test()
+{
+    for(int i = 0; i < m_camNum; i++)
+    {
+        for(int kpt_id = 0; kpt_id < 20; kpt_id ++)
+            my_draw_points(m_imgsUndist[i], m_dets_undist[i][kpt_id], m_CM[m_kpt_color_id[kpt_id]]); 
+        
+        my_draw_boxes(m_imgsUndist[i], m_boxes_processed[i]); 
+    }
+    cv::Mat output; 
+    packImgBlock(m_imgsUndist, output); 
+
+    return output; 
 }

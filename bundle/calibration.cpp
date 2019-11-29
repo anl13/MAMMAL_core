@@ -507,8 +507,7 @@ int Calibrator::calib_pipeline()
 	ba.initMarkers(m_camids, 42); 
 	ba.readInit(); 
 	ba.setObs(m_i_markers); 
-	ba.solve_points(); 
-    // ba.solve_ratio(); 
+	ba.solve_init_calib(true); 
 	std::cout << "initial calibration done. " << std::endl; 
 
 	out_points = ba.getPoints(); 

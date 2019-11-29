@@ -1,19 +1,16 @@
 {
     "camids": [0,1,2,5,6,7,8,9,10,11], 
-    // "imgfolder": "/home/al17/animal/pig-data/sync/0819/sync_noon1/",
-    "imgfolder" : "/home/al17/animal/pig-data/sync/0819/sync_morning1", 
+    "sequence" : "/home/al17/animal/pig-data/sequences/20190704_morning", 
     "imgExtension": "jpg", 
     "camfolder": "/home/al17/animal/animal_calib/build/results/",
-    // "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_noon10000/",
-    "keypointsfolder": "/home/al17/animal/animal_calib/data/keypoints_morning1/", 
     // "startid" : 7076,
     "startid" : 133, // 22
     "epipolartype": "p2l", // "p2l" or "l2l" 
     // "startid" : 6242,
-    "framenum": 10000, 
+    "framenum": 20, 
     "epipolar_threshold": 25,
-    // "keypoints_show": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
-    "keypoints_show": [0], 
+    "keypoints_show": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+    // "keypoints_show": [0], 
     "keypoint_conf_thres" : [
         0.4, //  0, nose 
         0.4, //  1, left eye
@@ -59,5 +56,8 @@
         25  //  19, ear middle (neck)
     ],
     "ransac_nms_thres": 0.02,
-    "sigma" : 10
+    "sigma" : 10,
+    "box_expand_ratio": 0.1,
+    "prune_threshold": 9,
+    "clique_size_threshold": 2
 }

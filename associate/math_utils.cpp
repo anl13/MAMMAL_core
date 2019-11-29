@@ -142,24 +142,6 @@ Vec4 AvgQuats(const std::vector<Vec4> &quats)
 // 	}
 // }
 
-Eigen::Vector3d RodriguesToVec(const Eigen::Matrix3d & mat)
-{
-	Eigen::Matrix3d temp = (mat - mat.transpose()) / 2;
-	Eigen::Vector3d vec(temp(2, 1), temp(0, 2), temp(1, 0));
-	double norm = vec.norm();
-	double theta = asin(norm);
-	if (theta < 1e-6)
-	{
-		return Eigen::Vector3d::Zero();
-	}
-	else
-	{
-		vec /= norm;
-		vec *= theta;
-		return vec;
-	}
-}
-
 Eigen::Matrix3f GetRodriguesF(const Eigen::Vector3f &w)
 {
     cv::Mat cv_w(3,1,CV_32F); 
@@ -190,41 +172,41 @@ double L2LDist(const Vec3& a, const Vec3& b, const Vec3& c)
 
 
 Eigen::Matrix<float, 3, 9, Eigen::ColMajor> RodriguesJacobiF(const Eigen::Vector3f& vec)
+{
+    cv::Mat cvVec;
+    cv::Mat cvRodriguesMat;
+    cv::Mat cvJacobiMat;
+    Eigen::Matrix<float, 3, 9, Eigen::RowMajor> eigenJacobiMat;
+
+    cv::eigen2cv(vec, cvVec);
+    cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
+    cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
+
+    Eigen::Matrix<float, 3, 9, Eigen::ColMajor> jacobiMat;
+    for (int i = 0; i < 3; i++)
     {
-        cv::Mat cvVec;
-        cv::Mat cvRodriguesMat;
-        cv::Mat cvJacobiMat;
-        Eigen::Matrix<float, 3, 9, Eigen::RowMajor> eigenJacobiMat;
-
-        cv::eigen2cv(vec, cvVec);
-        cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
-        cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
-
-        Eigen::Matrix<float, 3, 9, Eigen::ColMajor> jacobiMat;
-        for (int i = 0; i < 3; i++)
-        {
-            jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
-        }
-        return jacobiMat;
+        jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
+    }
+    return jacobiMat;
 }
 
 Eigen::Matrix<double, 3, 9, Eigen::ColMajor> RodriguesJacobiD(const Eigen::Vector3d& vec)
+{
+    cv::Mat cvVec;
+    cv::Mat cvRodriguesMat;
+    cv::Mat cvJacobiMat;
+    Eigen::Matrix<double, 3, 9, Eigen::RowMajor> eigenJacobiMat;
+
+    cv::eigen2cv(vec, cvVec);
+    cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
+    cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
+
+    Eigen::Matrix<double, 3, 9, Eigen::ColMajor> jacobiMat;
+    for (int i = 0; i < 3; i++)
     {
-        cv::Mat cvVec;
-        cv::Mat cvRodriguesMat;
-        cv::Mat cvJacobiMat;
-        Eigen::Matrix<double, 3, 9, Eigen::RowMajor> eigenJacobiMat;
-
-        cv::eigen2cv(vec, cvVec);
-        cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
-        cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
-
-        Eigen::Matrix<double, 3, 9, Eigen::ColMajor> jacobiMat;
-        for (int i = 0; i < 3; i++)
-        {
-            jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
-        }
-        return jacobiMat;
+        jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
+    }
+    return jacobiMat;
 }
 
 double p2ldist( Vec3 x,  Vec3 line){
@@ -297,4 +279,13 @@ bool my_exclude(std::vector<int> a, std::vector<int> b)
         }
     }
     return exclude; 
+}
+
+bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box)
+{
+    if(
+        x(0) >= box(0) && x(0) <= box(2) && x(1) >= box(1) && x(1) <= box(3)
+    )
+    return true; 
+    else return false; 
 }

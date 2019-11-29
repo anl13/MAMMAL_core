@@ -5,41 +5,10 @@
 pre-operation: epopolarSimilarity; 
 */
 
-bool equal_concensus(const ConcensusData& data1, const ConcensusData& data2)
-{
-    if(data1.num != data2.num) return false;
-    return my_equal(data1.ids, data2.ids); 
-}
-
-bool compare_concensus(ConcensusData data1, ConcensusData data2)
-{
-    if(data1.num < data2.num) return true; 
-    if(data1.num > data2.num) return false; 
-    // if(data1.metric < data2.metric) return true; 
-    // if(data1.metric > data2.metric) return false; 
-    for(int i = 0; i < data2.ids.size(); i++)
-    {
-        if(data1.ids[i] < data2.ids[i]) return true; 
-        if(data1.ids[i] > data2.ids[i]) return false; 
-    }
-    return false; 
-}
-
-bool equal_concensus_list( std::vector<ConcensusData> data1,  std::vector<ConcensusData> data2)
-{
-    if(data1.size() != data2.size()) return false; 
-    std::sort(data1.begin(), data1.end(), compare_concensus); 
-    std::sort(data2.begin(), data2.end(), compare_concensus); 
-    for(int i = 0; i < data1.size(); i++)
-    {
-        if(!equal_concensus(data1[i], data2[i])) return false; 
-    }
-    return true; 
-}
+// #define DEBUG_RANSAC
 
 void FrameData::ransacProposals()
 {
-// #define DEBUG_RANSAC
     m_concensus.clear(); 
     double sigma = m_sigma ; // 10 pixel ransac error metric(reprojection error) 
     
@@ -96,28 +65,27 @@ void FrameData::ransacProposals()
         // however, if we believe epipolar contraints, this may be possible. 
 
         //: generate 2 point proposal
-        std::vector<int> reused(nodeNum, 0); 
-        for(int i = 0; i < nodeNum; i++)
-        {
-            for(int j = i+1; j < nodeNum; j++)
-            {
-                if(used[i] || used[j]) continue; 
-                if(G(i,j) < 0) continue; 
-                if(G(i,j) > gamma) continue;  
-                vector<int> a_init_prop; 
-                a_init_prop.push_back(i); 
-                a_init_prop.push_back(j); 
-                init.push_back(a_init_prop);
-                reused[i] ++; 
-                reused[j] ++;
-                if(reused[i] == 2 || reused[j] ==2) 
-                {
-                    std::cout << RED_TEXT("fatal error: ") << i << "," << j << std::endl; 
-                    // exit(-1); 
-                }
-            }
-        }
-
+        // std::vector<int> reused(nodeNum, 0); 
+        // for(int i = 0; i < nodeNum; i++)
+        // {
+        //     for(int j = i+1; j < nodeNum; j++)
+        //     {
+        //         if(used[i] || used[j]) continue; 
+        //         if(G(i,j) < 0) continue; 
+        //         if(G(i,j) > gamma) continue;  
+        //         vector<int> a_init_prop; 
+        //         a_init_prop.push_back(i); 
+        //         a_init_prop.push_back(j); 
+        //         init.push_back(a_init_prop);
+        //         reused[i] ++; 
+        //         reused[j] ++;
+        //         if(reused[i] == 2 || reused[j] ==2) 
+        //         {
+        //             std::cout << RED_TEXT("fatal error: ") << i << "," << j << std::endl; 
+        //             // exit(-1); 
+        //         }
+        //     }
+        // }
 
         // std::cout << "kpt " << kpt_id << " init " << init.size() << std::endl; 
         // compute init 3d joints (model kernels)
@@ -158,9 +126,11 @@ void FrameData::ransacProposals()
                 errs.push_back(err); 
             }
             if(max_err > sigma) {
+#ifdef DEBUG_RANSAC
                 std::cout << RED_TEXT("eliminate: ");
                 for(int t = 0; t < init[i].size(); t++) std::cout << init[i][t] << " ";
                 std::cout << "metric " << max_err << std::endl; 
+#endif 
                 continue; 
             }
             data.X = X; 
@@ -263,7 +233,9 @@ void FrameData::ransacProposals()
                 }
                 if(max_err > sigma2) 
                 {
+#ifdef DEBUG_RANSAC
                     std::cout << "max err: " << max_err << std::endl; 
+#endif 
                     continue; 
                 }
 
@@ -302,12 +274,13 @@ void FrameData::ransacProposals()
                 else
                 {
                     bool is_repeat = equal_concensus(concensus_1[i], concensus_1[i-1]);
+#ifdef DEBUG_RANSAC
                     std::cout << is_repeat << " ";
+#endif 
                     if(is_repeat) continue; 
                     else concensus_tmp.push_back(concensus_1[i]); 
                 }
             }
-            std::cout << std::endl; 
             concensus_1 =  concensus_tmp; 
 
 #ifdef DEBUG_RANSAC
@@ -393,6 +366,7 @@ void FrameData::projectProposals()
         bool to_show = in_list(kpt_id, m_kpts_to_show); 
         if(!to_show) continue; 
         auto concensus = m_concensus[kpt_id]; 
+        std::cout << "concensus: " << concensus.size() << std::endl; 
         for(int i = 0; i < concensus.size(); i++)
         {
             if(concensus[i].num > 2) continue; // only check num==2

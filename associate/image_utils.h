@@ -33,3 +33,7 @@ void cloneImgs(const std::vector<cv::Mat> & input, std::vector<cv::Mat> &output)
 void getLegend(cv::Mat& out);
 
 std::vector<Eigen::Vector3d> read_points(std::string filename); 
+
+Eigen::Vector4d my_undistort_box(Eigen::Vector4d box,const Camera &cam, const Camera &newcam); 
+Eigen::Vector4d expand_box(Eigen::Vector4d box, double ratio = 0.15); 
+void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes); 

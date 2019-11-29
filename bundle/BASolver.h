@@ -26,8 +26,7 @@ public:
 
 	void initMarkers(vector<int> camids, int pointNum); 
 	void readInit();
-	void solve_ratio(); // solve ratio 
-	void solve_points(); 
+	void solve_init_calib(bool optim_points = true); 
 	std::vector<Eigen::Vector3d> getPoints() { return m_points;  }
 	std::vector<Eigen::Vector3d> getAddedPoints(){return m_added_points;}
 	std::vector<Eigen::Vector3d> getRvecs() { return m_rvecs;  }

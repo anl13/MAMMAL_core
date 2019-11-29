@@ -55,11 +55,9 @@ void my_undistort_points(const std::vector<Eigen::Vector3d>& points,
 
     for(int i = 0; i < point_num; i++)
     {
-        
         out[i](0) = points_cv_out.at<cv::Vec2f>(0,i)[0]; 
         out[i](1) = points_cv_out.at<cv::Vec2f>(0,i)[1];
     }
-
 }
 
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points)
@@ -283,4 +281,71 @@ std::vector<Eigen::Vector3d> read_points(std::string filename)
     };
     infile.close(); 
     return points;
+}
+
+Eigen::Vector4d my_undistort_box(Eigen::Vector4d x, const Camera &cam, const Camera &newcam)
+{
+/*
+  p1-------p4
+  |  a box  |
+  p3-------p2
+*/
+    std::vector<Eigen::Vector3d> points; 
+    Eigen::Vector3d p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
+    Eigen::Vector3d p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
+    Eigen::Vector3d p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
+    Eigen::Vector3d p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
+    points.push_back(p1); 
+    points.push_back(p2); 
+    points.push_back(p3); 
+    points.push_back(p4); 
+    std::vector<Eigen::Vector3d> points_out; 
+    my_undistort_points(points, points_out, cam, newcam); 
+    Eigen::Vector4d new_box; 
+    double x_min = my_max(my_min(points_out[0](0), points_out[2](0)), 0);
+    double y_min = my_max(my_min(points_out[0](1), points_out[3](1)), 0);
+    double x_max = my_min(my_max(points_out[3](0), points_out[1](0)), 1919); 
+    double y_max = my_min(my_max(points_out[2](1), points_out[1](1)), 1079); 
+    new_box(0) = x_min;
+    new_box(1) = y_min; 
+    new_box(2) = x_max; 
+    new_box(3) = y_max; 
+    return new_box; 
+}
+
+Eigen::Vector4d expand_box(Eigen::Vector4d x, double ratio)
+{
+    Eigen::Vector4d out; 
+    double w = x(2) - x(0); 
+    double h = x(3) - x(1); 
+    double dx = w * ratio;
+    double dy = h * ratio; 
+    out(0) = my_max(x(0) - dx, 0); 
+    out(1) = my_max(x(1) - dy, 0); 
+    out(2) = my_min(x(2) + dx, 1919); 
+    out(3) = my_min(x(3) + dy, 1079); 
+    return out; 
+}
+
+/*
+  p1-------p4
+  |  a box  |
+  p3-------p2
+*/
+void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes)
+{
+    for(int bid = 0; bid < boxes.size(); bid++)
+    {
+        Eigen::Vector4d x = boxes[bid]; 
+        Eigen::Vector3d p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
+        Eigen::Vector3d p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
+        Eigen::Vector3d p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
+        Eigen::Vector3d p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
+        Eigen::Vector3i color = Eigen::Vector3i::Zero(); 
+        color(1) = 255; 
+        my_draw_segment(img, p1, p3, color, 3, 6); 
+        my_draw_segment(img, p1, p4, color, 3, 6); 
+        my_draw_segment(img, p3, p2, color, 3, 6); 
+        my_draw_segment(img, p4, p2, color, 3, 6); 
+    }
 }

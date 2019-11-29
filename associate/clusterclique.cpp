@@ -10,7 +10,7 @@ ClusterClique::ClusterClique()
     threshold = 0; 
 }
 
-void ClusterClique::constructGraph()
+void ClusterClique::constructAdjacentGraph()
 {
     adjacencyArray.resize(vertexNum); 
     used.resize(vertexNum, false); 

@@ -148,11 +148,36 @@ int test_proposals()
         frame.epipolarSimilarity(); 
         frame.ransacProposals(); 
 
-        frame.projectProposals(); 
-                
+        // frame.projectProposals(); 
+        frame.parsing(); 
+        frame.reproject_skels(); 
+        cv::Mat img_show_id = frame.visualizeIdentity2D(); 
+        cv::namedWindow("parsing", cv::WINDOW_NORMAL); 
+        cv::imshow("parsing", img_show_id); 
+        int key = cv::waitKey(); 
+        if(key == 27) break; 
     }
     
     return 0; 
+}
+
+int test_box()
+{
+    FrameData frame; 
+    std::string configFile = "/home/al17/animal/animal_calib/associate/config.json"; 
+    frame.configByJson(configFile); 
+    for(int frameid = frame.startid; frameid < frame.startid+frame.framenum; frameid++)
+    {
+        frame.setFrameId(frameid); 
+        std::cout << "set frame id" << frameid << std::endl; 
+        frame.fetchData(); 
+        std::cout << "fetch data" << std::endl; 
+        cv::Mat img = frame.test();
+        cv::namedWindow("box", cv::WINDOW_NORMAL); 
+        cv::imshow("box", img); 
+        int key = cv::waitKey(); 
+        if(key == 27) break;  
+    }
 }
 
 int main(int argc, char** argv)
@@ -161,6 +186,7 @@ int main(int argc, char** argv)
     // test2d_write_video(); 
     // test3d(); 
     test_proposals(); 
+    // test_box(); 
 
     return 0; 
 }

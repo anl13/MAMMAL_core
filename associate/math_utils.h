@@ -46,7 +46,6 @@ Vec4 AvgQuats(const std::vector<Vec4> &quats);
 /*******************double functions for ceres******************************/
 // Eigen::Matrix3d CalcRodrigues(const Eigen::Vector3d &v); 
 
-Eigen::Vector3d RodriguesToVec(const Eigen::Matrix3d &R); 
 Eigen::Matrix3f GetRodriguesF(const Eigen::Vector3f &w); 
 
 //refering to: http://mathworld.wolfram.com/Line-LineDistance.html
@@ -60,5 +59,9 @@ bool my_equal(std::vector<int> a, std::vector<int> b);
 bool my_contain(std::vector<int> full, std::vector<int> sub); 
 bool in_list(const int& query, const std::vector<int>& list); 
 bool my_exclude(std::vector<int> a, std::vector<int> b); 
+inline double my_min(double a, double b){ return a>b?b:a; }
+inline double my_max(double a, double b){ return a>b?a:b; }
+
+bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box); 
 
 #endif 

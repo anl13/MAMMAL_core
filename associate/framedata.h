@@ -14,34 +14,12 @@
 #include "clusterclique.h"
 #include "Hungarian.h"
 #include "skel.h" 
+#include "matching.h"
+#include "parsing.h" 
 
 using std::vector; 
 
-class ConcensusData{
-public: 
-    ConcensusData() {
-        cams.clear(); 
-        ids.clear(); 
-        joints2d.clear(); 
-        num = 0; 
-        errs.clear(); 
-        metric = 0; 
-        X = Eigen::Vector3d::Zero(); 
-    }
-    std::vector<Camera> cams; 
-    std::vector<int> ids; 
-    std::vector<Eigen::Vector3d> joints2d; 
-    Eigen::Vector3d X; 
-    int num; 
-    std::vector<double> errs; 
-    double metric; 
-}; 
-
-bool equal_concensus(const ConcensusData& data1, const ConcensusData& data2); 
-bool equal_concensus_list(std::vector<ConcensusData> data1, std::vector<ConcensusData> data2); 
-bool compare_concensus(ConcensusData data1, ConcensusData data2);
-
-// data of a frame 
+// data of a frame, together with matching process
 class FrameData{
 public: 
     FrameData(){
@@ -73,10 +51,12 @@ public:
         m_keypoint_proposal_thres.resize(20, 0); 
     }
     ~FrameData(){} 
+    int startid;
+    int framenum; 
+    std::vector<int> m_kpts_to_show;
 
     void setFrameId(int _frameid){m_frameid=_frameid;}
     void configByJson(std::string jsonfile); 
-
     void fetchData(); 
     cv::Mat test(); 
 
@@ -89,19 +69,27 @@ public:
     void reproject(); 
     void reproject_skels(); 
 
-    // ransac based proposals 
-    vector<vector<ConcensusData> > m_concensus; 
+    // ransac based proposals (joint proposals)
+    vector<vector<ConcensusData> > m_concensus; // [kptnum, candnum]
     void ransacProposals(); 
     void projectProposals(); 
     double m_ransac_nms_thres; 
     double m_sigma; // init reprojection threshold
 
+    // parsing
+    void parsing(); 
+    vector< PIG_SKEL >                        m_skels; 
 
-    // naive tracking functions 
+    // [!!! deprecated now. 20191018] naive tracking functions 
     void associateNearest(); 
     void track3DJoints(const vector<PIG_SKEL>& last_skels); 
     void computeBoneLen(); 
     void clean3DJointsByAFF(); 
+    vector<vector<Eigen::Vector3d> >          m_points3d; // [kptnum, candnum]
+    vector<vector<vector<Eigen::Vector3d> > > m_dets_reproj; 
+    vector<vector< PIG_SKEL_2D > >            m_skels_reproj; 
+    std::vector<int> m_kpt_color_id;
+
 
     // visual function  
     cv::Mat visualize(int type, int kpt_id=-1); // visualize discrete points(not identity associated)
@@ -111,28 +99,16 @@ public:
     void writeSkeltoJson(std::string savepath); 
     void readSkelfromJson(std::string jsonfile); 
 
-    vector<vector<vector<Eigen::Vector3d> > > m_dets; 
-    vector<vector<vector<Eigen::Vector3d> > > m_dets_undist; 
-    vector<vector<Eigen::Vector3d> >          m_points3d; // [kptnum, candnum]
-    vector<vector<vector<Eigen::Vector3d> > > m_dets_reproj; 
-    vector<vector< PIG_SKEL_2D > >            m_skels_reproj; 
-    std::vector<int> m_kpt_color_id;
-
-    vector< PIG_SKEL >                        m_skels; 
-
-    int startid;
-    int framenum; 
-    std::vector<int> m_kpts_to_show;
-
-private:
+protected:
     void setCamIds(std::vector<int> _camids); 
 
     void readImages(); 
     void readCameras(); 
     void readKeypoints(); 
-    void readKeypoint(std::string jsonfile);
+    void readBoxes(); 
     void undistKeypoints(const Camera& cam, const Camera& camnew, int imw, int imh); 
     void undistImgs(); 
+    void processBoxes(); 
 
     void drawSkelSingleColor(cv::Mat& img, const PIG_SKEL_2D & data, const Eigen::Vector3i & color); 
 
@@ -152,10 +128,16 @@ private:
     std::vector<cv::Mat> m_imgsUndist; 
     std::vector<int> m_camids;
     std::vector<Eigen::Vector3i> m_CM;
+    vector<vector<vector<Eigen::Vector3d> > > m_dets; 
+    vector<vector<vector<Eigen::Vector3d> > > m_dets_undist; 
+    vector<vector<Eigen::Vector4d> > m_boxes_raw;
+    vector<vector<Eigen::Vector4d> > m_boxes_processed; 
 
     // config data
     int m_kptNum; 
+    std::string m_sequence; 
     std::string m_keypointsDir; 
+    std::string m_boxDir; 
     std::string m_camDir; 
     std::string m_imgDir; 
     std::string m_imgExtension; 
@@ -163,5 +145,8 @@ private:
     std::string m_epi_type; 
     std::vector<double> m_keypoint_conf_thres; 
     std::vector<double> m_keypoint_proposal_thres;
+    double m_boxExpandRatio; 
+    double m_pruneThreshold; 
+    int m_cliqueSizeThreshold; 
 };
 
