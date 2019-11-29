@@ -349,3 +349,17 @@ void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes)
         my_draw_segment(img, p4, p2, color, 3, 6); 
     }
 }
+
+void my_draw_box(cv::Mat& img, const Eigen::Vector4d& box, Eigen::Vector3i c)
+{
+    Eigen::Vector4d x = box; 
+    Eigen::Vector3d p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
+    Eigen::Vector3d p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
+    Eigen::Vector3d p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
+    Eigen::Vector3d p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
+    Eigen::Vector3i color = c;
+    my_draw_segment(img, p1, p3, color, 3, 6); 
+    my_draw_segment(img, p1, p4, color, 3, 6); 
+    my_draw_segment(img, p3, p2, color, 3, 6); 
+    my_draw_segment(img, p4, p2, color, 3, 6); 
+}

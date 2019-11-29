@@ -10,7 +10,10 @@
 class Camera 
 {
 public: 
-    Camera() {}
+    Camera() {
+        W = 1920; 
+        H = 1080; 
+    }
     Camera(const Mat3& _K, 
            const Mat3& _R, 
            const Vec3& _T);

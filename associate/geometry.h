@@ -59,4 +59,3 @@ private:
 }; 
 
 Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d); 
-

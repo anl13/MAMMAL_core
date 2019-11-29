@@ -289,3 +289,8 @@ bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box)
     return true; 
     else return false; 
 }
+
+double welsch(double x, double c)
+{
+    double y = 1 - exp(-0.5 * x * x / c /c); 
+}

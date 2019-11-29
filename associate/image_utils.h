@@ -37,3 +37,4 @@ std::vector<Eigen::Vector3d> read_points(std::string filename);
 Eigen::Vector4d my_undistort_box(Eigen::Vector4d box,const Camera &cam, const Camera &newcam); 
 Eigen::Vector4d expand_box(Eigen::Vector4d box, double ratio = 0.15); 
 void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes); 
+void my_draw_box(cv::Mat& img, const Eigen::Vector4d& box, Eigen::Vector3i c);

@@ -197,6 +197,8 @@ Eigen::Vector3d project(const Camera& cam, Eigen::Vector3d p3d)
 Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d)
 {
     Joint3DSolver solver; 
+    Eigen::Vector3d init = Eigen::Vector3d::Zero(); 
+    solver.SetInit(init); 
     solver.SetParam(cams, joints2d); 
     solver.SetVerbose(false); 
     solver.Solve3D(); 

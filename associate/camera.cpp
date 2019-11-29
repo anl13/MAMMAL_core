@@ -9,8 +9,9 @@ Camera::Camera(const Mat3& _K,
 {
     K = _K; 
     inv_K = K.inverse(); 
-
     SetRT(_R, _T); 
+    W = 1920; 
+    H = 1080; 
 }
 
 void Camera::SetRT(const Mat3 &_R, const Vec3 &_T)
@@ -80,6 +81,7 @@ Vec3 Camera::GetRelT(const Camera& cam2) const
     Vec3 T_rel = - R * R2.transpose() * T2 + T;
     return T_rel; 
 }
+
 /// default cameras for pig data
 Camera getDefaultCameraRaw()
 {

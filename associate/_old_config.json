@@ -1,0 +1,63 @@
+{
+    "camids": [0,1,2,5,6,7,8,9,10,11], 
+    "sequence" : "/home/al17/animal/pig-data/sequences/20190704_morning", 
+    "imgExtension": "jpg", 
+    "camfolder": "/home/al17/animal/animal_calib/build/results/",
+    // "startid" : 7076,
+    "startid" : 133, // 22
+    "epipolartype": "p2l", // "p2l" or "l2l" 
+    // "startid" : 6242,
+    "framenum": 20, 
+    "epipolar_threshold": 25,
+    "keypoints_show": [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19],
+    // "keypoints_show": [0], 
+    "keypoint_conf_thres" : [
+        0.4, //  0, nose 
+        0.4, //  1, left eye
+        0.6, //  2, left ear 
+        0.3, //  3, left shoulder
+        0.6, //  4, left elbow
+        0.6, //  5, left hand
+        0.3, //  6, left leg
+        0.6, //  7, left knee
+        0.6, //  8, left foot
+        0.4, //  9, tail root
+        0.4, //  10, right eye 
+        0.6, //  11, right ear
+        0.3, //  12, right shoulder
+        0.6, //  13, right elbow
+        0.6, //  14, right hand
+        0.3, //  15, right leg
+        0.6, //  16, right knee
+        0.6, //  17, right foot
+        0.15, //  18, center
+        0.2  //  19, ear middle (neck)
+    ],
+    "keypoint_proposal_thres" : [
+        25, //  0, nose 
+        25, //  1, left eye
+        25, //  2, left ear 
+        25, //  3, left shoulder
+        25, //  4, left elbow
+        25, //  5, left hand
+        25, //  6, left leg
+        25, //  7, left knee
+        25, //  8, left foot
+        25, //  9, tail root
+        25, //  10, right eye 
+        25, //  11, right ear
+        25, //  12, right shoulder
+        25, //  13, right elbow
+        25, //  14, right hand
+        25, //  15, right leg
+        25, //  16, right knee
+        25, //  17, right foot
+        30, //  18, center  // 35 is best for frame 22, morning seq
+        25  //  19, ear middle (neck)
+    ],
+    "ransac_nms_thres": 0.02,
+    "sigma" : 10,
+    "box_expand_ratio": 0.1,
+    "prune_threshold": 9,
+    "clique_size_threshold": 2
+}

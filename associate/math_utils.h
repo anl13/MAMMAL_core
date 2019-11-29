@@ -63,5 +63,5 @@ inline double my_min(double a, double b){ return a>b?b:a; }
 inline double my_max(double a, double b){ return a>b?a:b; }
 
 bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box); 
-
+double welsch(double x, double c); 
 #endif 
