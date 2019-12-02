@@ -130,13 +130,9 @@ void EpipolarMatching::epipolarSimilarity()
             int matched_num;  
             epipolarWholeBody(m_cams[camid1], m_cams[camid2], m_dets[camid1][candid1], m_dets[camid2][candid2],
                 avg_loss, matched_num); 
-            m_G(index_i, index_j) = avg_loss / pow(matched_num, 1); 
+            m_G(index_i, index_j) = avg_loss / pow(matched_num, 1.0); 
         }
     }
-
-#ifdef DEBUG_MATCH
-    std::cout << m_G << std::endl; 
-#endif // DEBUG_MATCH
 }
 
 void EpipolarMatching::epipolarClustering()
@@ -200,6 +196,9 @@ void EpipolarMatching::match()
     epipolarClustering(); 
     // compute3dDirectly(); 
     compute3dRANSAC(); 
+#ifdef DEBUG_MATCH
+    std::cout << "cliques: " << m_cliques.size() << std::endl;
+#endif 
 }
 
 void EpipolarMatching::compute3dRANSAC()
@@ -223,12 +222,13 @@ void EpipolarMatching::compute3dRANSAC()
                 cams_visible.push_back(m_cams[camid]);
             }
             if(cams_visible.size() < 2) continue; 
-            double sigma2 = 30; 
+            double sigma1 = 10; 
+            double sigma2 = 20; 
             if(m_topo.label_names[kptid] == "center") {
-                sigma2 = 200; 
-                std::cout << "sigma 2 " << sigma2 << std::endl; 
+                sigma1 = 15; 
+                sigma2 = 20; 
             }
-            joints3d[kptid] = triangulate_ransac(cams_visible, joints2d, 10, sigma2); 
+            joints3d[kptid] = triangulate_ransac(cams_visible, joints2d, sigma1, sigma2); 
         }
         m_skels3d.push_back(joints3d); 
     }
@@ -390,4 +390,21 @@ Eigen::Vector3d triangulate_ransac(
     // std::cout << "final concensus num: " << concensus_1.size() << std::endl; 
     if(concensus_1.size() == 0) return Eigen::Vector3d::Zero(); 
     return concensus_1[0].X; 
+}
+
+void EpipolarMatching::truncate(int _clusternum)
+{
+    assert(_clusternum>=0); 
+    vector<vector<int> > trunc_cliques; 
+    vector<vector<int> > trunc_clusters; 
+    vector<vector<Eigen::Vector3d> > trunc_skels; 
+    for(int i = 0; i < _clusternum && i < m_skels3d.size(); i++)
+    {
+        trunc_cliques.push_back(m_cliques[i]);
+        trunc_clusters.push_back(m_clusters[i]); 
+        trunc_skels.push_back(m_skels3d[i]); 
+    }
+    m_clusters = trunc_clusters;
+    m_cliques = trunc_cliques;
+    m_skels3d = trunc_skels; 
 }

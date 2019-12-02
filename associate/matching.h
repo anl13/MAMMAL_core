@@ -41,6 +41,9 @@ bool equal_concensus(const ConcensusData& data1, const ConcensusData& data2);
 bool equal_concensus_list(std::vector<ConcensusData> data1, std::vector<ConcensusData> data2); 
 bool compare_concensus(ConcensusData data1, ConcensusData data2);
 
+// two kinds of nms needed: 
+// 1. remove repeated detection 
+// 2. remove repeated 3D skeletons
 class EpipolarMatching
 {
 public: 
@@ -49,9 +52,13 @@ public:
     void set_cams(const vector<Camera>& _cams){m_cams = _cams;}
     void set_epi_type(std::string _epi_type){m_epi_type = _epi_type;}
     void set_epi_thres(double _epi_thres){m_epi_thres = _epi_thres;}
-    void match(); 
     void get_clusters(vector<vector<int> > &_clusters){_clusters=m_clusters;}
-    void get_skels3d(vector<vector<Eigen::Vector3d> >&_skels3d){_skels3d=m_skels3d;}
+    void get_skels3d(vector<vector<Eigen::Vector3d> >&_skels3d){
+        _skels3d.clear(); _skels3d=m_skels3d;}
+    
+    void match(); 
+    void truncate(int _clusternum); 
+
 private: 
     void epipolarSimilarity(); 
     void epipolarClustering();

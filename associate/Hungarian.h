@@ -55,5 +55,7 @@ public:
 
 // AN Liang 2019-09-26: assign col to row 
 std::vector<int> solveHungarian(const Eigen::MatrixXf &similarity); 
+// AN Liang 2019-11-30: support double matrix
+std::vector<int> solveHungarian(const Eigen::MatrixXd &similarity); 
 
 #endif 

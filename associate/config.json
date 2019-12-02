@@ -5,12 +5,8 @@
     "camfolder": "/home/al17/animal/animal_calib/build/results/",
     "startid" : 0, 
     "epipolartype": "p2l", // "p2l" or "l2l" 
-    "framenum": 20, 
+    "framenum": 3000, 
     "epipolar_threshold": 25,
-    "ransac_nms_thres": 0.02,
-    "sigma" : 10,
-    "box_expand_ratio": 0.1,
-    "prune_threshold": 9,
-    "clique_size_threshold": 2, 
+    "box_expand_ratio": 0.05,
     "skel_type" : "PIG15"
 }

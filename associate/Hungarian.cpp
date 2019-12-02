@@ -737,3 +737,9 @@ std::vector<int> solveHungarian(const Eigen::MatrixXf &similarity)
     APS.Solve(cost_mat, N, M, assignment);  
 	return assignment; 
 }
+
+std::vector<int> solveHungarian(const Eigen::MatrixXd &_similarity)
+{
+	Eigen::MatrixXf similarity = _similarity.cast<float>(); 
+	return solveHungarian(similarity); 
+}

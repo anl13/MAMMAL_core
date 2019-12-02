@@ -1,7 +1,7 @@
 #include "render_utils.h" 
 
 void GetBallsAndSticks(
-    const PIG_SKEL& joints, 
+    const vector<Eigen::Vector3d>& joints, 
     const std::vector<Eigen::Vector2i>& bones, 
     std::vector<Eigen::Vector3f>& balls, 
     std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks 
@@ -9,12 +9,12 @@ void GetBallsAndSticks(
 {
     balls.clear(); 
     sticks.clear(); 
-    for(int i = 0; i < joints.cols(); i++)
+    for(int i = 0; i < joints.size(); i++)
     {
-        Eigen::Vector4d p = joints.col(i); 
-        if(p(3) > 0) // joint is valid 
+        Eigen::Vector3d p = joints[i]; 
+        if(p.norm() > 0) // joint is valid 
         {
-            Eigen::Vector3f pf = p.segment<3>(0).cast<float>();
+            Eigen::Vector3f pf = p.cast<float>();
             pf(0) = pf(0); 
             pf(1) = pf(1); 
             pf(2) = pf(2);
@@ -26,15 +26,15 @@ void GetBallsAndSticks(
     {
         int sid = bones[i](0);
         int eid = bones[i](1); 
-        Eigen::Vector4d ps = joints.col(sid); 
-        Eigen::Vector4d pe = joints.col(eid); 
+        Eigen::Vector3d ps = joints[sid]; 
+        Eigen::Vector3d pe = joints[eid]; 
 
-        if(ps(3) > 0 && pe(3) > 0)
+        if(ps.norm() > 0 && pe.norm() > 0)
         {
             std::pair<Eigen::Vector3f, Eigen::Vector3f> stick = 
             {
-                ps.segment<3>(0).cast<float>(), 
-                pe.segment<3>(0).cast<float>()
+                ps.cast<float>(), 
+                pe.cast<float>()
             }; 
             sticks.push_back(stick); 
         }
@@ -95,30 +95,30 @@ std::vector<Eigen::Vector3f> getColorMapEigen(std::string cm_type, bool reorder)
     return cm_float; 
 }
 
-void GetBalls(
-    const vector<vector<ConcensusData> > & data, 
-    const vector<int>& m_kpt_color_id, 
-    std::vector<Eigen::Vector3f>& balls, 
-    std::vector<float> & sizes, 
-    std::vector<int>& color_ids
-)
-{
-    balls.clear(); 
-    color_ids.clear(); 
-    sizes.clear(); 
-    double basic_size = 0.005f; 
-    for(int kpt_id = 0; kpt_id < data.size(); kpt_id++)
-    {
-        for(int p = 0; p < data[kpt_id].size(); p++)
-        {
-            ConcensusData d = data[kpt_id][p];
-            Vec3 point = d.X; 
-            balls.push_back(point.cast<float>()); 
-            color_ids.push_back(m_kpt_color_id[kpt_id]); 
-            // std::cout << "metric proposal " << p << " : " << metric[kpt_id][p] << std::endl; 
-            float s = (float)(std::min( 0.02/d.metric, basic_size) ); 
-            float ratio = d.num / 5.0f;
-            sizes.push_back(s * ratio); 
-        }
-    }
-}
+// void GetBalls(
+//     const vector<vector<ConcensusData> > & data, 
+//     const vector<int>& m_kpt_color_id, 
+//     std::vector<Eigen::Vector3f>& balls, 
+//     std::vector<float> & sizes, 
+//     std::vector<int>& color_ids
+// )
+// {
+//     balls.clear(); 
+//     color_ids.clear(); 
+//     sizes.clear(); 
+//     double basic_size = 0.005f; 
+//     for(int kpt_id = 0; kpt_id < data.size(); kpt_id++)
+//     {
+//         for(int p = 0; p < data[kpt_id].size(); p++)
+//         {
+//             ConcensusData d = data[kpt_id][p];
+//             Vec3 point = d.X; 
+//             balls.push_back(point.cast<float>()); 
+//             color_ids.push_back(m_kpt_color_id[kpt_id]); 
+//             // std::cout << "metric proposal " << p << " : " << metric[kpt_id][p] << std::endl; 
+//             float s = (float)(std::min( 0.02/d.metric, basic_size) ); 
+//             float ratio = d.num / 5.0f;
+//             sizes.push_back(s * ratio); 
+//         }
+//     }
+// }

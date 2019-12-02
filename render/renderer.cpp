@@ -13,6 +13,8 @@ Eigen::Vector2f         Renderer::s_beforePos;
 float                   Renderer::s_arcballRadius; 
 double                  Renderer::s_leftClickTimeSeconds; 
 
+// #define SHOW_CAM_POSE
+
 void Renderer::s_Init()
 {
 	s_InitGLFW();
@@ -181,6 +183,11 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 		// std::cout << camPos.transpose() << std::endl; 
 		const Eigen::Vector3f nowCamPos = Eigen::AngleAxisf(sensitivity * theta, rotationAxis) * (camPos - camCenter) + camCenter;
 		s_camViewer.SetExtrinsic(nowCamPos, camUp, camCenter);
+#ifdef SHOW_CAM_POSE
+		std::cout << "nowCamPos:" << nowCamPos.transpose() << std::endl; 
+		std::cout << "nowcamUp: " << camUp.transpose() << std::endl; 
+		std::cout << "camCen   :" << camCenter.transpose() << std::endl; 
+#endif 
 		break;
 	}
 
@@ -192,6 +199,11 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 		const float distance = (camPos - camCenter).norm();
 		Eigen::Vector3f nowCamcenter = camCenter + distance * (nowArcCoord - beforeArcCoord);
 		s_camViewer.SetExtrinsic(camPos, camUp, nowCamcenter);
+#ifdef SHOW_CAM_POSE
+		std::cout << "camPOs:   " << camPos.transpose() << std::endl; 
+		std::cout << "nowcamUp: " << camUp.transpose() << std::endl; 
+		std::cout << "camCen   :" << nowCamcenter.transpose() << std::endl; 
+#endif 
 		break;
 	}
 
@@ -424,4 +436,12 @@ void Renderer::Draw()
 		
 		skels[i]->Draw(colorShader); 
 	}
+}
+
+cv::Mat Renderer::GetImage()
+{
+	cv::Mat image(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_8UC3);
+	glReadPixels(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_BGR, GL_UNSIGNED_BYTE, image.data);
+	cv::flip(image, image, 0);
+	return image;
 }

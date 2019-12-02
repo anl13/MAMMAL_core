@@ -14,56 +14,49 @@
 #include "clusterclique.h"
 #include "Hungarian.h"
 #include "skel.h" 
-#include "matching.h"
-#include "parsing.h" 
 
 using std::vector; 
 
-
+typedef vector<vector<Eigen::Vector3d> > PIGS3D;
 // data of a frame, together with matching process
 class FrameData{
 public: 
     FrameData(){
         m_camids = {0,1,2,5,6,7,8,9,10,11};
         m_camNum = 10; 
-        m_frameid = -1; 
         m_imw = 1920; 
         m_imh = 1080; 
         getColorMap("anliang_rgb", m_CM); 
-        startid = -1; 
-        framenum = 0; 
         m_epi_thres = -1; 
         m_epi_type = "p2l";
     }
     ~FrameData(){} 
-    int startid;
-    int framenum; 
 
-    void setFrameId(int _frameid){m_frameid=_frameid;}
+    // attributes 
+    void set_frame_id(int _frameid){m_frameid = _frameid;}
+    void set_start_id(int _startid){m_startid = _startid;}
+    void set_frame_num(int _framenum){m_framenum = _framenum;}
+    int get_frame_id() {return m_frameid;}
+    int get_start_id(){return m_startid;}
+    int get_frame_num(){return m_framenum;}
+    SkelTopology get_topo(){return m_topo;}
+    PIGS3D get_skels3d(){return m_skels3d;}
+
     void configByJson(std::string jsonfile); 
     void fetchData(); 
     cv::Mat test(); 
 
     // top-down matching
-    EpipolarMatching m_matcher; 
     void matching(); 
-    vector<vector<int> > m_clusters; 
-    vector<vector<Eigen::Vector3d> > m_skels3d; 
+    void tracking(); 
     void reproject_skels(); 
-
-    // ransac based proposals (joint proposals)
-    vector<vector<ConcensusData> > m_concensus; // [kptnum, candnum]
-    // void ransacProposals(); 
-    // void projectProposals(); 
-    double m_ransac_nms_thres; 
-    double m_sigma; // init reprojection threshold
 
     // visual function  
     cv::Mat visualizeSkels2D(); 
     cv::Mat visualizeIdentity2D();
     cv::Mat visualizeProj(); 
-    // void writeSkeltoJson(std::string savepath); 
-    // void readSkelfromJson(std::string jsonfile); 
+    void writeSkel3DtoJson(std::string savepath); 
+    void readSkel3DfromJson(std::string jsonfile); 
 
 protected:
     // io functions 
@@ -75,6 +68,9 @@ protected:
     void undistKeypoints(); 
     void undistImgs(); 
     void processBoxes(); 
+    void detNMS(); 
+    int _compareSkel(const vector<Vec3>& skel1, const vector<Vec3>& skel2); 
+    int _countValid(const vector<Vec3>& skel); 
 
     void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, int colorid);
     int m_imh; 
@@ -93,6 +89,10 @@ protected:
     vector<vector<Eigen::Vector4d> >          m_boxes_processed; 
     vector<vector<vector<Eigen::Vector3d> > > m_projs; // [viewid, candid, kptid]
 
+    // matching & 3d data 
+    vector<vector<int> > m_clusters; 
+    vector<vector<Eigen::Vector3d> > m_skels3d; 
+    vector<vector<Eigen::Vector3d> > m_skels3d_last;
 
     // config data, set by confByJson() 
     std::string m_sequence; 
@@ -104,9 +104,9 @@ protected:
     double      m_epi_thres; 
     std::string m_epi_type;
     double      m_boxExpandRatio; 
-    double      m_pruneThreshold; 
-    int         m_cliqueSizeThreshold; 
     std::string m_skelType; 
     SkelTopology m_topo; 
+    int m_startid;
+    int m_framenum; 
 };
 

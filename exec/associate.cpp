@@ -5,6 +5,7 @@
 #include <sstream>
 #include <string> 
 #include <vector> 
+#include <iomanip> 
 
 #include "../associate/math_utils.h" 
 #include "../associate/camera.h" 
@@ -33,7 +34,7 @@ int test2d_write_video()
 
     for(int frameid = 0; frameid < 1000; frameid++)
     {
-        frame.setFrameId(frameid); 
+        frame.set_frame_id(frameid); 
         std::cout << "set frame id" << frameid << std::endl; 
         frame.fetchData(); 
         std::cout << "fetch data" << std::endl; 
@@ -51,36 +52,63 @@ int test2d_write_video()
     return 0; 
 }
 
-int test_topdown()
+int test_topdown(bool is_vis=false)
 {
     FrameData frame; 
     std::string configFile = "/home/al17/animal/animal_calib/associate/config.json"; 
     frame.configByJson(configFile); 
-    for(int frameid = frame.startid; frameid < frame.startid+frame.framenum; frameid++)
+
+    std::string videoname = "/home/al17/animal/animal_calib/result_data/reproj_topdown.avi"; 
+    cv::VideoWriter writer(videoname, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1920*4, 1080*3)); 
+    if(!writer.isOpened())
     {
-        frame.setFrameId(frameid); 
-        std::cout << "set frame id" << frameid << std::endl; 
+        std::cout << "can not open video file " << videoname << std::endl; 
+        return -1; 
+    }
+
+    std::string videoname_det = "/home/al17/animal/animal_calib/result_data/det_topdown.avi"; 
+    cv::VideoWriter writer_det(videoname_det, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1920*4, 1080*3)); 
+    if(!writer_det.isOpened())
+    {
+        std::cout << "can not open video file " << videoname << std::endl; 
+        return -1; 
+    }
+
+    int start_id = frame.get_start_id(); 
+    int frame_num = frame.get_frame_num(); 
+    for(int frameid = start_id; frameid < start_id + frame_num; frameid++)
+    {
+        std::cout << "Run frame " << frameid << std::endl; 
+        frame.set_frame_id(frameid); 
         frame.fetchData(); 
-        std::cout << "fetch data" << std::endl; 
         frame.matching(); 
-        std::cout << "match ok" << std::endl; 
+        frame.tracking(); 
         frame.reproject_skels();
-        std::cout << "reproj ok" << std::endl; 
         cv::Mat img1 = frame.visualizeIdentity2D(); 
         cv::Mat img = frame.visualizeProj(); 
-        cv::namedWindow("detection", cv::WINDOW_NORMAL); 
-        cv::imshow("detection", img1); 
-        cv::namedWindow("projection", cv::WINDOW_NORMAL); 
-        cv::imshow("projection", img); 
-        int key = cv::waitKey(); 
-        if(key == 27) break;  
+        writer_det.write(img1); 
+        writer.write(img); 
+        std::stringstream ss; 
+        ss << "/home/al17/animal/animal_calib/result_data/skels3d/skel_" 
+           << std::setw(6) << std::setfill('0') << frameid << ".json";
+        frame.writeSkel3DtoJson(ss.str()); 
+        if(is_vis)
+        {
+            cv::namedWindow("detection", cv::WINDOW_NORMAL); 
+            cv::imshow("detection", img1); 
+            cv::namedWindow("projection", cv::WINDOW_NORMAL); 
+            cv::imshow("projection", img); 
+            int key = cv::waitKey(); 
+            if(key == 27) break;  
+        }
+        
     }
 }
 
 int main(int argc, char** argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true); 
-    test_topdown(); 
+    test_topdown(false); 
 
     return 0; 
 }

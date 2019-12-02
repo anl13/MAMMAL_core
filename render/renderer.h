@@ -22,10 +22,10 @@
 // #define SHADOW_WINDOW_HEIGHT  1080
 // #define SHADOW_WINDOW_WIDTH   1920
 
-#define WINDOW_HEIGHT 512
-#define WINDOW_WIDTH  512
-#define SHADOW_WINDOW_HEIGHT  512
-#define SHADOW_WINDOW_WIDTH   512
+#define WINDOW_HEIGHT 1024
+#define WINDOW_WIDTH  1024
+#define SHADOW_WINDOW_HEIGHT  1024
+#define SHADOW_WINDOW_WIDTH   1024
 
 class Renderer
 {
@@ -66,6 +66,7 @@ public:
 	std::vector<BallStickObject*> skels; 
 
 	void Draw(); 
+	cv::Mat GetImage(); 
 	
 private:
 	static MOUSE_ACTION s_mouseAction;

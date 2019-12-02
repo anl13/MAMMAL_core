@@ -4,6 +4,8 @@
 #include <algorithm>
 #include "colorterminal.h"
 #include "image_utils.h"
+#include <json/writer.h> 
+
 
 void FrameData::setCamIds(std::vector<int> _camids)
 {
@@ -34,15 +36,11 @@ void FrameData::configByJson(std::string jsonfile)
     m_boxDir       = m_sequence + "/boxes/"; 
     m_camDir       = root["camfolder"].asString(); 
     m_imgExtension = root["imgExtension"].asString(); 
-    startid        = root["startid"].asInt(); 
-    framenum       = root["framenum"].asInt(); 
+    m_startid      = root["startid"].asInt(); 
+    m_framenum     = root["framenum"].asInt(); 
     m_epi_thres    = root["epipolar_threshold"].asDouble(); 
     m_epi_type     = root["epipolartype"].asString(); 
-    m_ransac_nms_thres = root["ransac_nms_thres"].asDouble(); 
-    m_sigma        = root["sigma"].asDouble(); 
     m_boxExpandRatio = root["box_expand_ratio"].asDouble(); 
-    m_pruneThreshold = root["prune_threshold"].asDouble(); 
-    m_cliqueSizeThreshold = root["clique_size_threshold"].asInt(); 
     m_skelType     = root["skel_type"].asString(); 
     m_topo         = getSkelTopoByType(m_skelType); 
 
@@ -63,7 +61,6 @@ void FrameData::readKeypoints() // load hrnet keypoints
     std::stringstream ss; 
     ss << jsonDir << std::setw(6) << std::setfill('0') << m_frameid << ".json";
     std::string jsonfile = ss.str(); 
-    std::cout << jsonfile << std::endl; 
 
     Json::Value root; 
     Json::CharReaderBuilder rbuilder; 
@@ -255,30 +252,16 @@ void FrameData::fetchData()
         exit(-1); 
     }
     readCameras(); 
+
     readKeypoints(); 
+    detNMS();
     undistKeypoints(); 
+
     readImages(); 
     undistImgs(); 
     readBoxes();
     processBoxes(); 
 }
-
-
-
-// void FrameData::reproject()
-// {
-//     m_dets_reproj.resize(m_camNum); 
-//     for(int view = 0; view < m_camNum; view++)
-//     {
-//         m_dets_reproj[view].resize(20); 
-//         for(int kpt_id = 0; kpt_id < 20; kpt_id ++)
-//         {
-//             project(m_camsUndist[view], m_points3d[kpt_id], m_dets_reproj[view][kpt_id]); 
-//         }
-//     }
-//     // compare error 
-
-// }
 
 void FrameData::reproject_skels()
 {
@@ -359,79 +342,78 @@ cv::Mat FrameData::visualizeProj()
     return packed;
 }
 
-// #include <json/writer.h> 
-// void FrameData::writeSkeltoJson(std::string jsonfile)
-// {
-//     std::ofstream os;
-//     os.open(jsonfile); 
-//     if(!os.is_open())
-//     {
-//         std::cout << "file " << jsonfile << " cannot open" << std::endl; 
-//         return; 
-//     }
+void FrameData::writeSkel3DtoJson(std::string jsonfile)
+{
+    std::ofstream os;
+    os.open(jsonfile); 
+    if(!os.is_open())
+    {
+        std::cout << "file " << jsonfile << " cannot open" << std::endl; 
+        return; 
+    }
 
-//     Json::Value root;
-//     Json::Value pigs(Json::arrayValue);  
-//     for(int index=0; index < 4; index++)
-//     {
-//         Json::Value pose(Json::arrayValue); 
-//         for(int i = 0; i < 20; i++)
-//         {
-//             pose.append(Json::Value(m_skels[index].col(i)(0)) ); 
-//             pose.append(Json::Value(m_skels[index].col(i)(1)) );
-//             pose.append(Json::Value(m_skels[index].col(i)(2)) );
-//             pose.append(Json::Value(m_skels[index].col(i)(3)) );   
-//         }
-//         pigs.append(pose); 
-//     }
-//     root["pigs"] = pigs;
+    Json::Value root;
+    Json::Value pigs(Json::arrayValue);  
+    for(int index=0; index < m_skels3d.size(); index++)
+    {
+        Json::Value pose(Json::arrayValue); 
+        for(int i = 0; i < m_topo.joint_num; i++)
+        {
+            // if a joint is empty, it is (0,0,0)^T
+            pose.append(Json::Value(m_skels3d[index][i](0)) ); 
+            pose.append(Json::Value(m_skels3d[index][i](1)) );
+            pose.append(Json::Value(m_skels3d[index][i](2)) );
+        }
+        pigs.append(pose); 
+    }
+    root["pigs"] = pigs;
     
-//     // Json::StyledWriter stylewriter; 
-//     // os << stylewriter.write(root); 
-//     Json::StreamWriterBuilder builder;
-//     builder["commentStyle"] = "None";
-//     builder["indentation"] = "    "; 
-//     std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter()); 
-//     writer->write(root, &os); 
-//     os.close(); 
-// }
+    // Json::StyledWriter stylewriter; 
+    // os << stylewriter.write(root); 
+    Json::StreamWriterBuilder builder;
+    builder["commentStyle"] = "None";
+    builder["indentation"] = "    "; 
+    std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter()); 
+    writer->write(root, &os); 
+    os.close(); 
+}
 
-// void FrameData::readSkelfromJson(std::string jsonfile)
-// {
-//     Json::Value root;
-//     Json::CharReaderBuilder rbuilder; 
-//     std::string errs; 
-//     std::ifstream instream(jsonfile); 
-//     if(!instream.is_open())
-//     {
-//         std::cout << "can not open " << jsonfile << std::endl; 
-//         exit(-1); 
-//     }
-//     bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs); 
-//     if(!parsingSuccessful)
-//     {
-//         std::cout << "Fail to parse \n" << errs << std::endl; 
-//         exit(-1); 
-//     }
+void FrameData::readSkel3DfromJson(std::string jsonfile)
+{
+    Json::Value root;
+    Json::CharReaderBuilder rbuilder; 
+    std::string errs; 
+    std::ifstream instream(jsonfile); 
+    if(!instream.is_open())
+    {
+        std::cout << "can not open " << jsonfile << std::endl; 
+        exit(-1); 
+    }
+    bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs); 
+    if(!parsingSuccessful)
+    {
+        std::cout << "Fail to parse \n" << errs << std::endl; 
+        exit(-1); 
+    }
 
-//     m_skels.clear(); 
-//     for(auto const &pig: root["pigs"])
-//     {
-//         PIG_SKEL skel; 
-//         for(int index=0; index < 20; index++)
-//         {
-//             double x = pig[index * 4 + 0].asDouble(); 
-//             double y = pig[index * 4 + 1].asDouble();
-//             double z = pig[index * 4 + 2].asDouble(); 
-//             double w = pig[index * 4 + 3].asDouble(); 
-//             Eigen::Vector4d vec(x,y,z,w);
-//             skel.col(index) = vec; 
-//         }
-//         m_skels.push_back(skel);
-//     }
-//     instream.close(); 
-//     std::cout << "read json done. " << std::endl; 
-// }
+    m_skels3d.clear(); 
+    for(auto const &pig: root["pigs"])
+    {
+        vector<Vec3> a_pig; 
+        a_pig.resize(m_topo.joint_num); 
+        for(int index=0; index < m_topo.joint_num; index++)
+        {
+            double x = pig[index * 3 + 0].asDouble(); 
+            double y = pig[index * 3 + 1].asDouble();
+            double z = pig[index * 3 + 2].asDouble(); 
+            Eigen::Vector3d vec(x,y,z);
+            a_pig[index] = vec; 
+        }
+        m_skels3d.push_back(a_pig);
+    }
+    instream.close(); 
+    std::cout << "read " << jsonfile << " done. " << std::endl; 
+}
 
 cv::Mat FrameData::test()
 {
@@ -460,5 +442,63 @@ void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, i
         cv::Point2d p1_cv(p1(0), p1(1)); 
         cv::Point2d p2_cv(p2(0), p2(1)); 
         cv::line(img, p1_cv, p2_cv, cv_color, 4); 
+    }
+}
+
+int FrameData::_compareSkel(const vector<Vec3>& skel1, const vector<Vec3>& skel2)
+{
+    int overlay = 0; 
+    for(int i = 0; i < m_topo.joint_num; i++)
+    {
+        Vec3 p1 = skel1[i];
+        Vec3 p2 = skel2[i];
+        if(p1(2) < m_topo.kpt_conf_thresh[i] || p2(2) < m_topo.kpt_conf_thresh[i])continue; 
+        Vec2 diff = p1.segment<2>(0) - p2.segment<2>(0); 
+        double dist = diff.norm(); 
+        if(dist < 10) overlay ++; 
+    }
+    return overlay; 
+} 
+int FrameData::_countValid(const vector<Vec3>& skel)
+{
+    int valid = 0; 
+    for(int i = 0; i < skel.size(); i++) 
+    {
+        if(skel[i](2) >= m_topo.kpt_conf_thresh[i]) valid++; 
+    }
+    return valid; 
+}
+void FrameData::detNMS()
+{
+    // cornor case
+    if(m_dets.size()==0) return; 
+    
+    for(int camid = 0; camid < m_cams.size(); camid++)
+    {
+        // do nms on each view 
+        int cand_num = m_dets[camid].size(); 
+        vector<int> is_discard(cand_num, 0); 
+        for(int i = 0; i < cand_num; i++)
+        {
+            for(int j = i+1; j < cand_num; j++)
+            {
+                if(is_discard[i] > 0 || is_discard[j] > 0) continue; 
+                int overlay = _compareSkel(m_dets[camid][i], m_dets[camid][j]); 
+                int validi = _countValid(m_dets[camid][i]); 
+                int validj = _countValid(m_dets[camid][j]); 
+                if(overlay > 2)
+                {
+                    if(validi > validj) is_discard[j] = 1; 
+                    else is_discard[i] = 1; 
+                }
+            }
+        }
+        vector<vector<Vec3> > clean_skels; 
+        for(int i = 0; i < cand_num; i++)
+        {
+            if(is_discard[i] > 0) continue; 
+            clean_skels.push_back(m_dets[camid][i]); 
+        }
+        m_dets[camid] = clean_skels; 
     }
 }
