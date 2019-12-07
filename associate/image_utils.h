@@ -20,8 +20,7 @@ void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, co
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, const Eigen::Vector3i &color, int radius);
 void my_draw_point(cv::Mat& img, const Eigen::Vector3d &point, const Eigen::Vector3i& color, int radius); 
 
-bool in_image(float w, float h, float x, float y); 
-void draw_line(cv::Mat &img, Eigen::Vector3d ep); 
+void draw_line(cv::Mat &img, Eigen::Vector3d ep, Eigen::Vector3i color_bgr); 
 void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output); 
 
 void getColorMap(std::string cm_type, std::vector<Eigen::Vector3i> &colormap); 

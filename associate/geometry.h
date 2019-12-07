@@ -12,6 +12,7 @@
 #include <ceres/ceres.h> 
 
 #include "math_utils.h" 
+#include "image_utils.h"
 #include "camera.h" 
 
 using std::vector; 
@@ -59,3 +60,25 @@ private:
 }; 
 
 Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d); 
+
+void test_epipolar(
+    const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs, 
+    const std::vector< std::vector<Eigen::Vector2d> > &joints2d, 
+    int camid0, 
+    int camid1,
+    int jid); 
+
+void test_epipolar_all(const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs, 
+    const std::vector< std::vector<Eigen::Vector2d> > &joints2d); 
+
+void test_epipole(
+    const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs, 
+    int camid0, 
+    int camid1); 
+
+void test_epipole_all(
+    const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs); 

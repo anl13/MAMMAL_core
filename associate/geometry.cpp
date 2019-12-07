@@ -205,3 +205,111 @@ Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vec
     Eigen::Vector3d X = solver.GetX(); 
     return X; 
 }
+
+
+void test_epipole(
+    const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs, 
+    int camid0, 
+    int camid1)
+{
+    auto cam0 = cameras[camid0]; 
+    auto cam1 = cameras[camid1]; 
+
+    Eigen::Vector3d E0 = -cam0.R * cam1.inv_R * cam1.T + cam0.T; 
+    Eigen::Vector3d e0_homo = cam0.K * E0; 
+    Eigen::Vector2d e0 = e0_homo.block<2,1>(0,0) / e0_homo(2); 
+
+    // draw epipole 
+    if(in_image(imgs[camid0].cols, imgs[camid0].rows, e0(0), e0(1)))
+    {
+        std::stringstream ss; 
+        ss << camid1; 
+        cv::circle(imgs[camid0], cv::Point(e0(0), e0(1)), 13, cv::Scalar(255,0,255), CV_FILLED); 
+        cv::putText(imgs[camid0], ss.str(), cv::Point(e0(0) + 5, e0(1) - 5), cv::FONT_HERSHEY_PLAIN, 
+            4, cv::Scalar(0,255,255), 2); 
+    }
+}
+
+void test_epipolar(
+    const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs, 
+    const std::vector< std::vector<Eigen::Vector2d> > &joints2d, 
+    int camid0, 
+    int camid1,
+    int jid)
+{
+    std::vector<Eigen::Vector3i> colormap; 
+    getColorMap("gist_ncar", colormap);
+    auto cam0 = cameras[camid0]; 
+    auto cam1 = cameras[camid1]; 
+
+    Eigen::Vector3d E0 = -cam0.R * cam1.inv_R * cam1.T + cam0.T; 
+    Eigen::Vector3d e0_homo = cam0.K * E0; 
+    Eigen::Vector2d e0 = e0_homo.block<2,1>(0,0) / e0_homo(2); 
+
+    Eigen::Vector2d point1 = joints2d[camid1][jid]; 
+    Eigen::Vector2d point0 = joints2d[camid0][jid]; 
+
+    int color_jid = (jid * 5) % colormap.size();  
+    Eigen::Vector3i c = colormap[color_jid]; 
+    cv::circle(imgs[camid0], cv::Point(point0(0), point0(1) ), 6, cv::Scalar(c(2),c(1),c(0)), CV_FILLED); 
+
+    Eigen::Matrix3d F1 = cam1.GetFundamental(cam0); 
+
+    Eigen::Vector3d point0_homo; 
+    point0_homo =  ToHomogeneous(point0); 
+
+    Eigen::Vector3d point1_homo; 
+    point1_homo = ToHomogeneous(point1); 
+
+    Eigen::Vector3d ep0 = point1_homo.transpose() * F1; 
+    double uFu = ep0.transpose() * point0_homo; 
+
+    draw_line(imgs[camid0], ep0, c); 
+
+    /// visualize 
+    cv::Mat small; 
+    cv::resize(imgs[0], small, cv::Size(960,540));
+    cv::imshow("epipolar", small); 
+    int key = cv::waitKey(); 
+    if(key == 27) exit(-1); 
+}
+
+void test_epipole_all(
+    const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs)
+{
+    for(int cam1 = 0; cam1 < cameras.size(); cam1 ++)
+    {
+        for(int cam2 = 0; cam2 < cameras.size(); cam2 ++)
+        {
+            if(cam2 == cam1) continue;
+            auto local_imgs = imgs; 
+            std::cout << "left: " << cam1 << "  right: " << cam2 << std::endl; 
+            test_epipole(cameras, local_imgs, cam1, cam2); 
+        }
+    }
+}
+
+void test_epipolar_all(const std::vector<Camera> &cameras, 
+    std::vector<cv::Mat> &imgs, 
+    const std::vector< std::vector<Eigen::Vector2d> > &joints2d)
+{
+    int jointNum = joints2d[0].size(); 
+    for(int cam1 = 0; cam1 < cameras.size(); cam1 ++)
+    {
+        for(int cam2 = 0; cam2 < cameras.size(); cam2 ++)
+        {
+            if(cam2 == cam1) continue;
+            auto local_imgs = imgs; 
+
+            for(int jid = 0; jid < jointNum; jid++)
+            {
+                test_epipolar(cameras, local_imgs, joints2d, cam1, cam2, jid); 
+            }
+        }
+    }
+    
+}
+

@@ -17,14 +17,10 @@
 
 using std::vector; 
 
-// cross view matching by RANSAC
+// cross view matching by RANSAC (Point Level for robust triangulation)
 struct ConcensusData{
     ConcensusData() {
-        cams.clear(); 
-        ids.clear(); 
-        joints2d.clear(); 
         num = 0; 
-        errs.clear(); 
         metric = 0; 
         X = Eigen::Vector3d::Zero(); 
     }
@@ -49,6 +45,7 @@ class EpipolarMatching
 public: 
     void set_topo(const SkelTopology& _topo){m_topo = _topo;}
     void set_dets(const vector<vector<vector<Eigen::Vector3d> > >& _dets){m_dets = _dets;}
+    void set_boxes(const vector<vector<Eigen::Vector4d> >& _boxes){m_boxes = _boxes;}
     void set_cams(const vector<Camera>& _cams){m_cams = _cams;}
     void set_epi_type(std::string _epi_type){m_epi_type = _epi_type;}
     void set_epi_thres(double _epi_thres){m_epi_thres = _epi_thres;}
@@ -70,6 +67,7 @@ private:
     // input data 
     SkelTopology                              m_topo;
     vector<vector<vector<Eigen::Vector3d> > > m_dets;
+    vector<vector<Eigen::Vector4d> >          m_boxes; 
     vector<Camera>                            m_cams; 
     std::string                               m_epi_type; 
     double                                    m_epi_thres; 
@@ -86,3 +84,16 @@ private:
 
 Eigen::Vector3d triangulate_ransac(const vector<Camera>& cams, const vector<Eigen::Vector3d>& xs,
     double sigma=10, double sigma2=25); 
+
+
+struct ConcensusInstance{
+    vector<Camera> cams; // visible cams (for box)
+    vector<int> ids;  // index in all detection candidates
+    vector<vector<Eigen::Vector3d> > dets; 
+    vector<Eigen::Vector3d> Xs; 
+    vector<Eigen::Vector4d> boxes; 
+    int num; 
+    vector<vector<double> > proj_errs; 
+    vector<double> proj_max_errs; 
+}; 
+

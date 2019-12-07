@@ -79,22 +79,6 @@ ${MY_Boost_LIBS}
 mce
 )
 
-## exe: renderer :: test 
-include_directories(render/) 
-include_directories(render/deps/)
-add_executable(test_render
-    exec/test_render.cpp 
-    ${RENDER_DEPS}
-)
-target_link_libraries(test_render
-    ${OPENGL_gl_LIBRARY}
-    ${GLUT_LIBRARIES}
-    ${OPENGL_LIBRARY}
-    glfw
-    glad
-    ${CMAKE_THREAD_LIBS_INIT}
-)
-
 ## exe: renderer :: main func 
 add_executable(render
     exec/render.cpp 
@@ -119,8 +103,6 @@ target_link_libraries(render
     glad
     mce
 )
-
-
 
 ## exe: association
 include_directories(associate)

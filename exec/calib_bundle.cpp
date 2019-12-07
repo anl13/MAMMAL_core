@@ -10,13 +10,17 @@ void test_calib()
 {
 	Calibrator calibrator; 
 	calibrator.calib_pipeline(); 
-	// calibrator.evaluate(); 
-	// calibrator.interactive_mark(); 
+}
+
+void test_epipolar()
+{
+	Calibrator calib; 
+	calib.test_epipolar(); 
 }
 
 int main()
 {
-	test_calib(); 
+	test_epipolar(); 
 
 	return 0;
 }

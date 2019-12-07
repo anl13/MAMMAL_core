@@ -49,6 +49,7 @@ public:
     // top-down matching
     void matching(); 
     void tracking(); 
+    void re_matching_sac(); // re-matching by sample-concensus 
     void reproject_skels(); 
 
     // visual function  
@@ -85,7 +86,7 @@ protected:
     std::vector<Eigen::Vector3i>              m_CM;
     vector<vector<vector<Eigen::Vector3d> > > m_dets; // [viewid, candid, kptid]
     vector<vector<vector<Eigen::Vector3d> > > m_dets_undist; 
-    vector<vector<Eigen::Vector4d> >          m_boxes_raw;
+    vector<vector<Eigen::Vector4d> >          m_boxes_raw; // xyxy
     vector<vector<Eigen::Vector4d> >          m_boxes_processed; 
     vector<vector<vector<Eigen::Vector3d> > > m_projs; // [viewid, candid, kptid]
 

@@ -64,4 +64,9 @@ inline double my_max(double a, double b){ return a>b?a:b; }
 
 bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box); 
 double welsch(double x, double c); 
+
+double IoU_xyxy(Eigen::Vector4d b1, Eigen::Vector4d b2); 
+
+bool in_image(float w, float h, float x, float y); 
+
 #endif 

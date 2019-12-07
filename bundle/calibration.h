@@ -28,13 +28,16 @@ public:
     // calibration for pig data1
     int calib_pipeline(); 
     void save_results(std::string result_folder); 
+    void read_results_rt(std::string result_folder); 
     void evaluate(); 
     void draw_points(); 
     void interactive_mark(); 
+    void test_epipolar(); 
 
     void save_added();
     void reload_added(); 
 
+private: 
     vector<Eigen::Vector3d> out_points; 
     vector<Eigen::Vector3d> out_points_new; 
     vector<Eigen::Vector3d> out_rvecs; 
@@ -46,7 +49,7 @@ public:
 
     BASolver ba;
 
-private: 
+
     vector<vector<Vec3> >            m_projs_markers; 
     vector<vector<Vec3> >            m_projs_added; 
     vector<vector<Vec3> >            m_added; 

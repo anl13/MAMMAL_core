@@ -106,13 +106,7 @@ void my_draw_point(cv::Mat& img, const Eigen::Vector3d &point, const Eigen::Vect
     cv::circle(img, cv::Point(x,y), radius, cv::Scalar(c(0),c(1),c(2)), -1); 
 }
 
-
-bool in_image(float w, float h, float x, float y)
-{
-    return (x>=0 && x<w && y>=0 && y<h); 
-}
-
-void draw_line(cv::Mat &img, Eigen::Vector3d ep)
+void draw_line(cv::Mat &img, Eigen::Vector3d ep, Eigen::Vector3i c)
 {
     int w = img.cols;
     int h = img.rows; 
@@ -135,14 +129,13 @@ void draw_line(cv::Mat &img, Eigen::Vector3d ep)
     if(in_image(w,h,D.x, D.y)) list.push_back(D);
     if(list.size() == 2)
     {
-        cv::line(img, list[0], list[1], cv::Scalar(0,255,255), 10); 
+        cv::line(img, list[0], list[1], cv::Scalar(c(2),c(1),c(0)), 2); 
     }
     else 
     {
         std::cout << "intersection points: " << list.size() << std::endl; 
     }
 }
-
 
 void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output)
 {

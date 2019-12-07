@@ -556,16 +556,52 @@ int Calibrator::calib_pipeline()
     }
     evaluate();
     draw_points(); 
-
     save_results("results"); 
 
     // interactive calib 
     interactive_mark(); 
-
     save_added();
-
     save_results("results"); 
 
-
 	return 0; 
+}
+
+void Calibrator::read_results_rt(std::string result_folder)
+{
+    // save r and t
+    for(int i = 0; i < m_camids.size(); i++)
+    {
+        std::stringstream ss; 
+        ss << result_folder << "/" << std::setw(2) << std::setfill('0') << m_camids[i]<< ".txt"; 
+        std::ifstream is;
+        is.open(ss.str()); 
+        if(!is.is_open())
+        {
+            std::cout << "error openning " << ss.str() << std::endl; 
+            exit(-1); 
+        }
+        Eigen::Vector3d r_vec; 
+        Eigen::Vector3d t_vec;
+        for(int j = 0; j < 3; j++)
+        {
+            is >> r_vec(j); 
+        }
+        for(int j = 0; j < 3; j++)
+        {
+            is >> t_vec(j);
+        }
+        m_camsUndist[i].SetRT(r_vec, t_vec); 
+        is.close(); 
+    }
+}
+
+void Calibrator::test_epipolar()
+{
+    std::string marker_folder = "/home/al17/animal/animal_calib/python/markers";
+	std::string K_file = "/home/al17/animal/animal_calib/python/data/newK.txt"; 
+	readK(K_file); 
+	readAllMarkers(marker_folder); 
+    read_results_rt("results"); 
+
+    test_epipolar_all(m_camsUndist, m_imgsUndist, m_markers);
 }
