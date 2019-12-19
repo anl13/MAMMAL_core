@@ -18,3 +18,4 @@ python/results_bk
 render/deps/*
 render/test.cpp 
 result_data/
+results/

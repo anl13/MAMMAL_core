@@ -22,7 +22,7 @@ void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, c
     cv::initUndistortRectifyMap(
         K, distCoef, R, K2, input.size(), CV_32FC1, map1, map2
     ); 
-    cv::remap(input, output, map1, map2, CV_INTER_LINEAR); 
+    cv::remap(input, output, map1, map2, cv::INTER_LINEAR); 
 }
 
 void my_undistort_points(const std::vector<Eigen::Vector3d>& points, 

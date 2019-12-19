@@ -225,7 +225,7 @@ void test_epipole(
     {
         std::stringstream ss; 
         ss << camid1; 
-        cv::circle(imgs[camid0], cv::Point(e0(0), e0(1)), 13, cv::Scalar(255,0,255), CV_FILLED); 
+        cv::circle(imgs[camid0], cv::Point(e0(0), e0(1)), 13, cv::Scalar(255,0,255), -1); 
         cv::putText(imgs[camid0], ss.str(), cv::Point(e0(0) + 5, e0(1) - 5), cv::FONT_HERSHEY_PLAIN, 
             4, cv::Scalar(0,255,255), 2); 
     }
@@ -253,7 +253,7 @@ void test_epipolar(
 
     int color_jid = (jid * 5) % colormap.size();  
     Eigen::Vector3i c = colormap[color_jid]; 
-    cv::circle(imgs[camid0], cv::Point(point0(0), point0(1) ), 6, cv::Scalar(c(2),c(1),c(0)), CV_FILLED); 
+    cv::circle(imgs[camid0], cv::Point(point0(0), point0(1) ), 6, cv::Scalar(c(2),c(1),c(0)), -1); 
 
     Eigen::Matrix3d F1 = cam1.GetFundamental(cam0); 
 

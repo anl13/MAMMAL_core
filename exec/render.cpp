@@ -257,5 +257,6 @@ void renderScene()
 int main(int argc, char** argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-    render_animal_skels(); 
+    // render_animal_skels(); 
+    render_smal_test(); 
 }
