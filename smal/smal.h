@@ -75,7 +75,7 @@ protected:
 	void UpdateVerticesFinal();
 
 	void UpdateJointsShaped();
-	void UpdateJointsFinal() { UpdateJointsFinal(jointNum); }
+	inline void UpdateJointsFinal() { UpdateJointsFinal(jointNum); }
 	void UpdateJointsFinal(const int jointCount);
 
 	void CalcPoseJacobi(); // Attention! calculate jacobi will update global affine and jointsfinal

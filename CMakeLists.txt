@@ -116,8 +116,3 @@ ${GFLAGS_LIBS}
 ${GLOG_LIBRARY}
 ${MY_Boost_LIBS}
 )
-
-
-add_executable(test_json
-exec/test.cpp
-)

@@ -8,5 +8,5 @@
     "framenum": 3000, 
     "epipolar_threshold": 25,
     "box_expand_ratio": 0.05,
-    "skel_type" : "PIG15"
+    "skel_type" : "UNIV"
 }

@@ -308,6 +308,20 @@ double IoU_xyxy(Eigen::Vector4d b1, Eigen::Vector4d b2)
     return iou; 
 }
 
+void IoU_xyxy_ratio(Eigen::Vector4d b1, Eigen::Vector4d b2, double& iou, double &iou2b1, double &iou2b2)
+{
+    double xA = my_max(b1(0), b2(0));
+    double yA = my_max(b1(1), b2(1)); 
+    double xB = my_min(b1(2), b2(2)); 
+    double yB = my_min(b1(3), b2(3)); 
+    double inter = my_max(0, xB - xA +1) * my_max(0, yB - yA + 1); 
+    double areaA = (b1(2) - b1(0) + 1) * (b1(3) - b1(1) + 1); 
+    double areaB = (b2(2) - b2(0) + 1) * (b2(3) - b2(1) + 1); 
+    iou = inter / (areaA + areaB - inter);
+    iou2b1 = inter / areaA; 
+    iou2b2 = inter / areaB;
+}
+
 bool in_image(float w, float h, float x, float y)
 {
     return (x>=0 && x<w && y>=0 && y<h); 

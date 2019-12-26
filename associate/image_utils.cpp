@@ -356,3 +356,34 @@ void my_draw_box(cv::Mat& img, const Eigen::Vector4d& box, Eigen::Vector3i c)
     my_draw_segment(img, p3, p2, color, 3, 6); 
     my_draw_segment(img, p4, p2, color, 3, 6); 
 }
+
+void my_draw_mask(cv::Mat& img, 
+    vector<vector<Eigen::Vector2d> > contour_list, 
+    Eigen::Vector3i c, 
+    float alpha)
+{
+    cv::Mat raw = img.clone(); 
+    vector<vector<cv::Point2i> > contours; 
+    for(int i = 0; i < contour_list.size(); i++)
+    {
+        vector<cv::Point2i> contour_part; 
+        for(int j = 0; j < contour_list[i].size(); j++)
+        {
+            cv::Point2i p;
+            p.x = int(contour_list[i][j](0)); 
+            p.y = int(contour_list[i][j](1)); 
+            contour_part.push_back(p); 
+        }
+        contours.push_back(contour_part); 
+    }
+    cv::Scalar color(c(0), c(1), c(2)); 
+    cv::fillPoly(img, contours, color, 1, 0); 
+
+    img = blend_images(raw, img, alpha); 
+}
+
+cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)
+{
+    cv::Mat out = img1 * alpha + img2 * (1-alpha); 
+    return out; 
+}

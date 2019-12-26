@@ -11,6 +11,8 @@
 #include "camera.h" 
 #include "colorterminal.h"
 
+using std::vector; 
+
 void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, const Camera &newcam);
 void my_undistort_points(const std::vector<Eigen::Vector3d>& points, 
     std::vector<Eigen::Vector3d>& out, const Camera &cam, const Camera &newcam); 
@@ -37,3 +39,7 @@ Eigen::Vector4d my_undistort_box(Eigen::Vector4d box,const Camera &cam, const Ca
 Eigen::Vector4d expand_box(Eigen::Vector4d box, double ratio = 0.15); 
 void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes); 
 void my_draw_box(cv::Mat& img, const Eigen::Vector4d& box, Eigen::Vector3i c);
+void my_draw_mask(cv::Mat& img, vector<vector<Eigen::Vector2d> > contour_list, Eigen::Vector3i c, float alpha=0);
+
+// outimg = img1 * alpha + img2 * (1-alpha)
+cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha);

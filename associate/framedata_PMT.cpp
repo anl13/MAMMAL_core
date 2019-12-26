@@ -4,9 +4,20 @@
 
 void FrameData::matching()
 {
+    vector<vector<vector<Eigen::Vector3d> > > keypoints; 
+    keypoints.resize(m_camNum); 
+    for(int camid = 0; camid < m_camNum; camid++)
+    {
+        int candnum = m_detUndist[camid].size(); 
+        keypoints[camid].resize(candnum); 
+        for(int candid = 0; candid < candnum; candid++)
+        {
+            keypoints[camid][candid] = m_detUndist[camid][candid].keypoints; 
+        }
+    }
     EpipolarMatching m_matcher; 
     m_matcher.set_cams(m_camsUndist); 
-    m_matcher.set_dets(m_dets_undist); 
+    m_matcher.set_dets(m_detUndist); 
     m_matcher.set_epi_thres(m_epi_thres); 
     m_matcher.set_epi_type(m_epi_type); 
     m_matcher.set_topo(m_topo); 

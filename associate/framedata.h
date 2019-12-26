@@ -18,6 +18,7 @@
 using std::vector; 
 
 typedef vector<vector<Eigen::Vector3d> > PIGS3D;
+
 // data of a frame, together with matching process
 class FrameData{
 public: 
@@ -62,13 +63,7 @@ public:
 protected:
     // io functions 
     void setCamIds(std::vector<int> _camids); 
-    void readImages(); 
-    void readCameras(); 
-    void readKeypoints(); 
-    void readBoxes(); 
-    void undistKeypoints(); 
-    void undistImgs(); 
-    void processBoxes(); 
+    void assembleDets(); 
     void detNMS(); 
     int _compareSkel(const vector<Vec3>& skel1, const vector<Vec3>& skel2); 
     int _countValid(const vector<Vec3>& skel); 
@@ -78,17 +73,16 @@ protected:
     int m_imw; 
     int m_frameid; 
     int m_camNum; 
-    std::vector<Camera>                       m_cams; 
-    std::vector<Camera>                       m_camsUndist; 
-    std::vector<cv::Mat>                      m_imgs; 
-    std::vector<cv::Mat>                      m_imgsUndist; 
     std::vector<int>                          m_camids;
     std::vector<Eigen::Vector3i>              m_CM;
-    vector<vector<vector<Eigen::Vector3d> > > m_dets; // [viewid, candid, kptid]
-    vector<vector<vector<Eigen::Vector3d> > > m_dets_undist; 
-    vector<vector<Eigen::Vector4d> >          m_boxes_raw; // xyxy
-    vector<vector<Eigen::Vector4d> >          m_boxes_processed; 
     vector<vector<vector<Eigen::Vector3d> > > m_projs; // [viewid, candid, kptid]
+
+    std::vector<Camera>                       m_cams; 
+    std::vector<cv::Mat>                      m_imgs; 
+    std::vector<Camera>                       m_camsUndist; 
+    std::vector<cv::Mat>                      m_imgsUndist; 
+
+    vector<vector<DetInstance> >              m_detUndist; 
 
     // matching & 3d data 
     vector<vector<int> > m_clusters; 
@@ -97,11 +91,6 @@ protected:
 
     // config data, set by confByJson() 
     std::string m_sequence; 
-    std::string m_keypointsDir; 
-    std::string m_boxDir; 
-    std::string m_camDir; 
-    std::string m_imgDir; 
-    std::string m_imgExtension; 
     double      m_epi_thres; 
     std::string m_epi_type;
     double      m_boxExpandRatio; 
@@ -109,5 +98,29 @@ protected:
     SkelTopology m_topo; 
     int m_startid;
     int m_framenum; 
+
+ // io function and tmp data
+    vector<vector<vector<Eigen::Vector3d> > > m_keypoints; // [viewid, candid, kptid]
+    vector<vector<Eigen::Vector4d> >          m_boxes_raw; // xyxy
+    vector<vector<vector<vector<Eigen::Vector2d> > > > m_masks; // mask in contours 
+    vector<vector<vector<Eigen::Vector3d> > > m_keypoints_undist; 
+    vector<vector<Eigen::Vector4d> >          m_boxes_processed; 
+    vector<vector<vector<vector<Eigen::Vector2d> > > > m_masksUndist; 
+    std::string m_boxDir; 
+    std::string m_maskDir;  
+    std::string m_keypointsDir; 
+    std::string m_imgExtension; 
+    std::string m_camDir; 
+    std::string m_imgDir; 
+    void readImages(); 
+    void readCameras(); 
+    void readKeypoints(); 
+    void readBoxes(); 
+    void readMask(); 
+    void processBoxes(); 
+    void undistKeypoints(); 
+    void undistImgs(); 
+    void undistMask(); 
+    
 };
 

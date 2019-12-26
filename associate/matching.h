@@ -44,8 +44,7 @@ class EpipolarMatching
 {
 public: 
     void set_topo(const SkelTopology& _topo){m_topo = _topo;}
-    void set_dets(const vector<vector<vector<Eigen::Vector3d> > >& _dets){m_dets = _dets;}
-    void set_boxes(const vector<vector<Eigen::Vector4d> >& _boxes){m_boxes = _boxes;}
+    void set_dets(const vector<vector<DetInstance > >& _dets){m_dets = _dets;}
     void set_cams(const vector<Camera>& _cams){m_cams = _cams;}
     void set_epi_type(std::string _epi_type){m_epi_type = _epi_type;}
     void set_epi_thres(double _epi_thres){m_epi_thres = _epi_thres;}
@@ -55,19 +54,18 @@ public:
     
     void match(); 
     void truncate(int _clusternum); 
+    void match_by_tracking(); 
 
 private: 
     void epipolarSimilarity(); 
     void epipolarClustering();
-    void compute3dDirectly(); 
     void compute3dRANSAC(); 
     void epipolarWholeBody(const Camera& cam1, const Camera& cam2, 
         const vector<Eigen::Vector3d>& pig1, const vector<Eigen::Vector3d>& pig2,
         double &avg_loss, int &matched_num);
     // input data 
     SkelTopology                              m_topo;
-    vector<vector<vector<Eigen::Vector3d> > > m_dets;
-    vector<vector<Eigen::Vector4d> >          m_boxes; 
+    vector<vector<DetInstance> >              m_dets; 
     vector<Camera>                            m_cams; 
     std::string                               m_epi_type; 
     double                                    m_epi_thres; 
@@ -80,10 +78,18 @@ private:
     std::vector< std::vector<int> >   m_cliques; // [cliqueid, vertexid] 
     vector<vector<int> >              m_clusters; // [clusterid, camid]
     vector<vector<Eigen::Vector3d> >  m_skels3d;  // [clusterid, jointnum]
+
+    // t-1 
+    vector<vector<Eigen::Vector3d> >  m_skels_last; 
+    void trackingSimilarity(); 
+    void trackingClustering(); 
+    void projectLoss(const vector<Eigen::Vector3d>& skel3d, const Camera& cam, 
+        const DetInstance& det,double& mean_err, double& matched_num); 
 }; 
 
-Eigen::Vector3d triangulate_ransac(const vector<Camera>& cams, const vector<Eigen::Vector3d>& xs,
-    double sigma=10, double sigma2=25); 
+Eigen::Vector3d triangulate_ransac(
+    const vector<Camera>& cams, const vector<Eigen::Vector3d>& xs,
+    double sigma1=20, double sigma2=50); 
 
 
 struct ConcensusInstance{

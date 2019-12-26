@@ -110,7 +110,7 @@ int render_smal_test()
     std::cout << "In smal render now!" << std::endl; 
 
     std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
-    auto CM = getColorMapEigen("anliang_rgb"); 
+    auto CM = getColorMapEigen("jet"); 
 
     // init a camera 
     Eigen::Matrix3f K; 
@@ -132,29 +132,16 @@ int render_smal_test()
 	const ObjData stickObj(conf_projectFolder + "/data/obj_model/cylinder.obj");
     const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj"); 
 
-    // RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	// chess_floor->SetTexture(conf_projectFolder + "/data/chessboard.png");
-	// chess_floor->SetFaces(squareObj.faces, true);
-	// chess_floor->SetVertices(squareObj.vertices);
-	// chess_floor->SetTexcoords(squareObj.texcoords);
-	// chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	// m_renderer.texObjs.push_back(chess_floor); 
-
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
-
-    // for(int i = 0; i < 4; i++)
-    // {
-    //     std::vector<Eigen::Vector3f> balls; 
-    //     std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
-    //     GetBallsAndSticks(frame.m_skels[i], BONES, balls, sticks); 
-    //     Eigen::Vector3f color = CM[i]; 
-    //     BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks, 0.02f, 0.01f, color); 
-    //     m_renderer.skels.push_back(skelObject); 
-    // }
 
     /// read smal model 
     std::string smal_folder = "/home/al17/animal/smal/smal_online_V1.0/smalr_txt";
+    Eigen::VectorXd pose = Eigen::VectorXd::Random(99) * 0.1; 
+    Eigen::VectorXd shape = Eigen::VectorXd::Random(41) * 0.1; 
     SMAL smal(smal_folder); 
+    smal.SetPose(pose); 
+    smal.SetShape(shape); 
+    smal.UpdateVertices();
 
     if(FLAGS_type == "smal")
     {
@@ -171,6 +158,10 @@ int render_smal_test()
     }
     else if (FLAGS_type=="skel")
     {
+        std::vector<Eigen::Vector3f> colors; 
+        for(int i = 0; i < 33; i++) colors.push_back(CM[7 * i]); 
+        colors[0] = Eigen::Vector3f(1.0,0.0,0.0); 
+        std::vector<float> sizes(33, 0.03); 
         std::vector<Eigen::Vector3f> balls; 
         std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
         Eigen::VectorXi parents = smal.GetParents(); 
@@ -178,8 +169,9 @@ int render_smal_test()
         std::cout << "parents: " << parents.transpose() << std::endl;
         std::cout << "joints: " << std::endl << joints << std::endl; 
         GetBallsAndSticks(joints, parents, balls, sticks); 
-        Eigen::Vector3f color = CM[0]; 
-        BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks, 0.02f, 0.01f, color); 
+        
+        // BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks, 0.02f, 0.01f, color); 
+        BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors); 
         m_renderer.skels.push_back(skelObject); 
     }
 

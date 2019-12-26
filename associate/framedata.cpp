@@ -34,6 +34,7 @@ void FrameData::configByJson(std::string jsonfile)
     m_keypointsDir = m_sequence + "/keypoints_hrnet/"; 
     m_imgDir       = m_sequence + "/images/";  
     m_boxDir       = m_sequence + "/boxes/"; 
+    m_maskDir      = m_sequence + "/masks/";
     m_camDir       = root["camfolder"].asString(); 
     m_imgExtension = root["imgExtension"].asString(); 
     m_startid      = root["startid"].asInt(); 
@@ -53,6 +54,29 @@ void FrameData::configByJson(std::string jsonfile)
     setCamIds(camids); 
 
     instream.close(); 
+}
+void FrameData::fetchData()
+{
+    if(m_frameid < 0)
+    {
+        std::cout << "Error: wrong frame id " << std::endl;
+        exit(-1); 
+    }
+    readCameras(); 
+
+    readImages(); 
+    undistImgs(); 
+
+    readKeypoints(); 
+    undistKeypoints(); 
+
+    readBoxes();
+    processBoxes(); 
+
+    readMask(); 
+    undistMask(); 
+    assembleDets(); 
+    detNMS(); 
 }
 
 void FrameData::readKeypoints() // load hrnet keypoints
@@ -78,7 +102,7 @@ void FrameData::readKeypoints() // load hrnet keypoints
         exit(-1); 
     } 
 
-    m_dets.clear(); 
+    m_keypoints.clear(); 
 
     for(int camid = 0; camid < m_camNum; camid++)
     {
@@ -101,7 +125,7 @@ void FrameData::readKeypoints() // load hrnet keypoints
             }
             aframe.push_back(pig);
         }
-        m_dets.push_back(aframe); 
+        m_keypoints.push_back(aframe); 
     }
     is.close(); 
 }
@@ -173,16 +197,16 @@ void FrameData::processBoxes()
 
 void FrameData::undistKeypoints()
 {
-    int camNum = m_dets.size(); 
-    m_dets_undist = m_dets; 
+    int camNum = m_keypoints.size(); 
+    m_keypoints_undist = m_keypoints; 
     for(int camid = 0; camid < camNum; camid++)
     {
         Camera cam = m_cams[camid]; 
         Camera camnew = m_camsUndist[camid]; 
-        int candnum = m_dets[camid].size(); 
+        int candnum = m_keypoints[camid].size(); 
         for(int candid = 0; candid < candnum; candid++)
         {
-            my_undistort_points(m_dets[camid][candid], m_dets_undist[camid][candid], cam, camnew); 
+            my_undistort_points(m_keypoints[camid][candid], m_keypoints_undist[camid][candid], cam, camnew); 
         }
     }
 }
@@ -244,25 +268,6 @@ void FrameData::readCameras()
     }
 }
 
-void FrameData::fetchData()
-{
-    if(m_frameid < 0)
-    {
-        std::cout << "Error: wrong frame id " << std::endl;
-        exit(-1); 
-    }
-    readCameras(); 
-
-    readKeypoints(); 
-    detNMS();
-    undistKeypoints(); 
-
-    readImages(); 
-    undistImgs(); 
-    readBoxes();
-    processBoxes(); 
-}
-
 void FrameData::reproject_skels()
 {
     m_projs.clear(); 
@@ -292,11 +297,13 @@ cv::Mat FrameData::visualizeSkels2D()
     cloneImgs(m_imgsUndist, imgdata); 
     for(int i = 0; i < m_camNum; i++)
     {
-        for(int k = 0; k < m_dets_undist[i].size(); k++)
+        for(int k = 0; k < m_detUndist[i].size(); k++)
         {
-            drawSkel(imgdata[i], m_dets_undist[i][k], k); 
+            drawSkel(imgdata[i], m_detUndist[i][k].keypoints, k); 
+            Eigen::Vector3i color = m_CM[k]; 
+            my_draw_box(imgdata[i], m_detUndist[i][k].box, color); 
+            my_draw_mask(imgdata[i], m_detUndist[i][k].mask, color, 0.5); 
         }
-        my_draw_boxes(imgdata[i], m_boxes_processed[i]); 
     }
     cv::Mat output; 
     packImgBlock(imgdata, output); 
@@ -315,8 +322,9 @@ cv::Mat FrameData::visualizeIdentity2D()
         {
             int candid = m_clusters[id][camid];
             if(candid < 0) continue; 
-            drawSkel(imgdata[camid], m_dets_undist[camid][candid], id);
-            my_draw_box(imgdata[camid], m_boxes_processed[camid][candid], m_CM[id]); 
+            drawSkel(imgdata[camid], m_detUndist[camid][candid].keypoints, id);
+            my_draw_box(imgdata[camid], m_detUndist[camid][candid].box, m_CM[id]); 
+            my_draw_mask(imgdata[camid], m_detUndist[camid][candid].mask, m_CM[id], 0.5); 
         }
     }
     cv::Mat packed; 
@@ -471,34 +479,133 @@ int FrameData::_countValid(const vector<Vec3>& skel)
 void FrameData::detNMS()
 {
     // cornor case
-    if(m_dets.size()==0) return; 
+    if(m_detUndist.size()==0) return; 
     
-    for(int camid = 0; camid < m_cams.size(); camid++)
+    for(int camid = 0; camid < m_camNum; camid++)
     {
         // do nms on each view 
-        int cand_num = m_dets[camid].size(); 
+        int cand_num = m_detUndist[camid].size(); 
         vector<int> is_discard(cand_num, 0); 
         for(int i = 0; i < cand_num; i++)
         {
             for(int j = i+1; j < cand_num; j++)
             {
                 if(is_discard[i] > 0 || is_discard[j] > 0) continue; 
-                int overlay = _compareSkel(m_dets[camid][i], m_dets[camid][j]); 
-                int validi = _countValid(m_dets[camid][i]); 
-                int validj = _countValid(m_dets[camid][j]); 
-                if(overlay > 2)
+                int overlay = _compareSkel(m_detUndist[camid][i].keypoints, 
+                    m_detUndist[camid][i].keypoints); 
+                int validi = _countValid(m_detUndist[camid][i].keypoints); 
+                int validj = _countValid(m_detUndist[camid][j].keypoints); 
+                double iou, iou1, iou2;
+                IoU_xyxy_ratio(m_detUndist[camid][i].box,m_detUndist[camid][j].box,
+                    iou, iou1, iou2); 
+                if(overlay >= 3 && (iou1 > 0.6 || iou2>0.6) )
                 {
-                    if(validi > validj) is_discard[j] = 1; 
-                    else is_discard[i] = 1; 
+                    if(validi > validj && iou2 > 0.6) is_discard[j] = 1; 
+                    else if (validi<validj && iou1 > 0.6) is_discard[i] = 1; 
                 }
             }
         }
-        vector<vector<Vec3> > clean_skels; 
+        vector<DetInstance> clean_dets; 
         for(int i = 0; i < cand_num; i++)
         {
             if(is_discard[i] > 0) continue; 
-            clean_skels.push_back(m_dets[camid][i]); 
+            clean_dets.push_back(m_detUndist[camid][i]); 
         }
-        m_dets[camid] = clean_skels; 
+        m_detUndist[camid] = clean_dets; 
+    }
+}
+
+void FrameData::readMask()
+{
+    std::string jsonDir = m_maskDir;
+    std::stringstream ss; 
+    ss << jsonDir << "/masks_" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+    std::string jsonfile = ss.str(); 
+    // parse
+    Json::Value root; 
+    Json::CharReaderBuilder rbuilder; 
+    std::string errs; 
+    std::ifstream is(jsonfile); 
+    if (!is.is_open())
+    {
+        std::cout << "can not open " << jsonfile << std::endl; 
+        exit(-1); 
+    }
+    bool parsingSuccessful = Json::parseFromStream(rbuilder, is, &root, &errs);
+    if(!parsingSuccessful)
+    {
+        std::cout << "Fail to parse doc \n" << errs << std::endl;
+        exit(-1); 
+    } 
+    // load data
+    m_masks.clear(); 
+    m_masks.resize(m_camNum); 
+    for(int i = 0; i < m_camNum; i++)
+    {
+        int camid = m_camids[i]; 
+        Json::Value c = root[std::to_string(camid)]; 
+        int id_num = c.size(); 
+        vector<vector<vector<Eigen::Vector2d> > > masks; 
+        for(int bid = 0; bid < id_num; bid++)
+        {
+            //if(bid >= 4) break; // remain only 4 top boxes 
+            Json::Value mask_parts = c[bid]; 
+            vector<vector<Eigen::Vector2d> > M_a_pig;  
+            for(int k = 0; k < mask_parts.size(); k++)
+            {
+                vector<Eigen::Vector2d> M_a_part;
+                Json::Value mask_a_part = mask_parts[k];  
+                for(int p = 0; p < mask_a_part.size(); p++)
+                {
+                    double x = mask_a_part[p][0][0].asDouble(); 
+                    double y = mask_a_part[p][0][1].asDouble(); 
+                    M_a_part.push_back(Eigen::Vector2d(x,y)); 
+                }
+                M_a_pig.push_back(M_a_part); 
+            }
+            masks.push_back(M_a_pig); 
+        }
+        m_masks[i] = masks; 
+    }
+}
+
+void FrameData::undistMask()
+{
+    m_masksUndist = m_masks; 
+    for(int camid = 0; camid < m_camNum; camid++)
+    {
+        for(int cid = 0; cid < m_masks[camid].size(); cid++)
+        {
+            for(int partid = 0; partid < m_masks[camid][cid].size(); partid++)
+            {
+                vector<Eigen::Vector3d> points_homo; 
+                for(int pid = 0; pid < m_masks[camid][cid][partid].size(); pid++)
+                {
+                    points_homo.push_back(ToHomogeneous(m_masks[camid][cid][partid][pid]));
+                }
+                vector<Eigen::Vector3d> points_undist; 
+                my_undistort_points(points_homo, points_undist, m_cams[camid], m_camsUndist[camid]);
+                for(int pid = 0; pid < m_masksUndist[camid][cid][partid].size(); pid++)
+                {
+                    m_masksUndist[camid][cid][partid][pid] = points_undist[pid].segment<2>(0); 
+                }
+            }
+        }
+    }
+}
+
+void FrameData::assembleDets()
+{
+    m_detUndist.resize(m_camNum); 
+    for(int camid = 0; camid < m_camNum; camid++)
+    {
+        int candnum = m_boxes_raw[camid].size(); 
+        m_detUndist[camid].resize(candnum); 
+        for(int candid = 0; candid < candnum; candid++)
+        {
+            m_detUndist[camid][candid].keypoints = m_keypoints_undist[camid][candid];
+            m_detUndist[camid][candid].box = m_boxes_processed[camid][candid]; 
+            m_detUndist[camid][candid].mask = m_masksUndist[camid][candid]; 
+        }
     }
 }

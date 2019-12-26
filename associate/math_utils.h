@@ -66,6 +66,7 @@ bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box);
 double welsch(double x, double c); 
 
 double IoU_xyxy(Eigen::Vector4d b1, Eigen::Vector4d b2); 
+void IoU_xyxy_ratio(Eigen::Vector4d b1, Eigen::Vector4d b2, double& iou, double &iou2b1, double &iou2b2); 
 
 bool in_image(float w, float h, float x, float y); 
 

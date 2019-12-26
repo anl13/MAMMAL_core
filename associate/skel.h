@@ -16,3 +16,12 @@ public:
 SkelTopology getSkelTopoByType(std::string type); 
 typedef Eigen::MatrixXd PIG_SKEL; 
 typedef Eigen::MatrixXd PIG_SKEL_2D; 
+
+
+struct DetInstance // class storing data of an instance 
+{
+    Eigen::Vector4d box; 
+    std::vector<Eigen::Vector3d> keypoints; 
+    std::vector<std::vector<Eigen::Vector2d> > mask; // as contours
+};
+

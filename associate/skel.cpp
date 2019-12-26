@@ -120,6 +120,55 @@ SkelTopology getSkelTopoByType(std::string type)
             0.1  //  14, center 
         }; 
     }
+    else if (type=="UNIV") // universal animal model 
+    {
+        A.joint_num = 23; 
+        A.bone_num = 23; 
+        A.label_names = {
+         "nose", "eye_left", "eye_right", "ear_root_left", "ear_root_right", 
+        "shoulder_left", "shoulder_right", "elbow_left", "elbow_right", "paw_left", "paw_right", 
+        "hip_left", "hip_right", "knee_left", "knee_right", "foot_left", "foot_right", 
+        "neck", "tail_root", "withers", "center", 
+        "tail_middle", "tail_end"
+        };
+        A.bones = {
+        {0,1}, {0,2}, {1,2}, {1,3}, {2,4},
+        {0,17}, {17,5},{17,6}, {5,7}, {7,9}, {6,8}, {8,10},
+        {17,19}, {19,20}, {20,18}, {18,21}, {21,22},
+        {18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16}
+        };
+        A.kpt_color_ids = {
+            0,0,0,0,0, // face 
+            2,1,2,1,2,1, // front legs 
+            4,3,4,3,4,3, // back legs 
+            2,2,2,2,2,2 // ceneter and tail 
+        }; 
+        A.kpt_conf_thresh = {
+            0.3, // nose
+            0.3, // eye left  
+            0.3, // eye right  
+            0.3, // ear root left 
+            0.3, // ear root right
+            0.5, // left shoulder
+            0.5, // right shoulder
+            0.5, // left elbow
+            0.5, // right elbow
+            0.5, // left paw
+            0.5, // right paw
+            0.5, // hip left
+            0.5, // hip right 
+            0.5, // knee left  
+            0.5, // knee right 
+            0.5, // foot left 
+            0.5, // foot right 
+            0.5, // neck 
+            0.2, // tail root
+            0.5, // withers   
+            0.1, // center
+            0.9, // tail middle 
+            0.9  // tail end 
+        }; 
+    }
     else 
     {
         std::cout << "skel type " << type << " not implemented yet" << std::endl;
