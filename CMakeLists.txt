@@ -57,13 +57,14 @@ FILE(GLOB RENDER_FILES       render/*.h render/*.cpp render/*.c)
 FILE(GLOB RENDER_DEPS        render/deps/*.cpp render/deps/*.c) 
 FILE(GLOB BUNDLE_FILES       bundle/*.cpp) 
 FILE(GLOB SMAL_FILES         smal/*.cpp) 
+FILE(GLOB UTIL_FILES         utils/*.cpp) 
 
 ## exe: bundle adjustment 
 include_directories(bundle/)
 add_executable(calib
     exec/calib_bundle.cpp 
-    ${ASSOC_FILES}
     ${BUNDLE_FILES}
+    ${UTIL_FILES}
 )
 target_compile_features(calib PUBLIC cxx_std_11)
 target_link_libraries(calib
@@ -83,6 +84,7 @@ add_executable(render
     ${RENDER_FILES}
     ${ASSOC_FILES}
     ${SMAL_FILES}
+    ${UTIL_FILES}
 )
 target_compile_definitions(render PUBLIC cxx_std_11) 
 target_link_libraries(render
@@ -105,6 +107,7 @@ include_directories(associate)
 add_executable(associate
     exec/associate.cpp 
     ${ASSOC_FILES}
+    ${UTIL_FILES}
 )
 target_link_libraries(associate
 mce
@@ -115,4 +118,23 @@ libgomp.so.1
 ${GFLAGS_LIBS}
 ${GLOG_LIBRARY}
 ${MY_Boost_LIBS}
+)
+
+## exe: smal fitting test 
+add_executable(smal
+exec/smal_fitting.cpp
+${UTIL_FILES}
+${SMAL_FILES}
+${RENDER_FILES}
+)
+target_link_libraries(smal 
+${CERES_LIBRARIES}
+${MY_Boost_LIBS}
+${GFLAGS_LIBS}
+${GLOG_LIBRARY}
+${OpenCV_LIBS}
+${OPENGL_gl_LIBRARY}
+${GLUT_LIBRARIES}
+${OPENGL_LIBRARY}
+glfw
 )

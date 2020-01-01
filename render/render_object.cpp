@@ -129,7 +129,7 @@ void ObjData::LoadObj(const std::string& objFile)
 			faces(i, faceId) = textureId;
 		}
 	}
-	std::cout << "read done. " << std::endl; 
+	// std::cout << "read done. " << std::endl; 
 }
 
 

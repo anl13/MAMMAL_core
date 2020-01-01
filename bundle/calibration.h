@@ -8,10 +8,10 @@
 #include <sstream>
 #include <boost/filesystem.hpp>
 
-#include "../associate/camera.h"
-#include "../associate/geometry.h"
-#include "../associate/math_utils.h"
-#include "../associate/image_utils.h"
+#include "../utils/camera.h"
+#include "../utils/geometry.h"
+#include "../utils/math_utils.h"
+#include "../utils/image_utils.h"
 #include "BASolver.h"
 
 using std::vector; 

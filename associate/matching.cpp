@@ -77,7 +77,9 @@ void EpipolarMatching::epipolarWholeBody(const Camera& cam1, const Camera& cam2,
         if(epi_dist < dist_thres) 
         {matched_num +=1;}
         else {
+#ifdef DEBUG_MATCH
             std::cout << "epipolar dist: " << epi_dist << std::endl; 
+#endif 
         } 
     }
     if(valid == 0) 
@@ -148,7 +150,9 @@ void EpipolarMatching::epipolarSimilarity()
             epipolarWholeBody(m_cams[camid1], m_cams[camid2], 
                 m_dets[camid1][candid1].keypoints, m_dets[camid2][candid2].keypoints,
                 avg_loss, matched_num); 
+#ifdef DEBUG_MATCH
             std::cout << "matched num: " << matched_num << std::endl; 
+#endif 
             double penalty_base = 0; 
             if(matched_num == 0) 
             {
@@ -249,7 +253,9 @@ void EpipolarMatching::compute3dRANSAC()
                 mean_err += err; 
             }
             mean_err /= joints2d.size(); 
+#ifdef DEBUG_MATCH
             std::cout << "id: " << i << ", kpt " << kptid << " : " << max_err << "; " << mean_err << std::endl; 
+#endif 
         }
         m_skels3d.push_back(joints3d); 
     }

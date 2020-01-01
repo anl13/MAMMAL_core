@@ -4,14 +4,14 @@
 #include <fstream> 
 #include <sstream> 
 #include <unistd.h> 
-#include "../associate/camera.h"
-#include "../associate/image_utils.h"
+#include "../utils/camera.h"
+#include "../utils/image_utils.h"
 #include "../associate/framedata.h" 
-#include "../associate/math_utils.h"
+#include "../utils/math_utils.h"
 #include "../render/eigen_util.h"
 #include "../render/render_utils.h" 
 #include "../smal/smal.h" 
-#include "../associate/colorterminal.h" 
+#include "../utils/colorterminal.h" 
 
 #include <gflags/gflags.h> 
 
@@ -31,7 +31,13 @@ int render_animal_skels()
     FrameData frame; 
     frame.configByJson("/home/al17/animal/animal_calib/associate/config.json"); 
 #endif 
-
+    std::string videoname_render = "/home/al17/animal/animal_calib/result_data/render.avi"; 
+    cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('H', '2', '6', '4'), 25.0, cv::Size(1024, 1024)); 
+    if(!writer_render.isOpened())
+    {
+        std::cout << "can not open video file " << videoname_render << std::endl; 
+        return -1; 
+    }
     // init a camera 
     Eigen::Matrix3f K; 
     K << 0.5, 0, 0.5, 0, 0.5, 0.5, 0, 0, 1;
@@ -94,9 +100,10 @@ int render_animal_skels()
         // {
             m_renderer.Draw(); 
             cv::Mat capture = m_renderer.GetImage(); 
-            std::stringstream ss_img;
-            ss_img << "/home/al17/animal/animal_calib/result_data/render/render_" << std::setw(6) << std::setfill('0') << frameid << ".png";
-            cv::imwrite(ss_img.str(), capture);  
+            // std::stringstream ss_img;
+            writer_render.write(capture); 
+            // ss_img << "/home/al17/animal/animal_calib/result_data/render/render_" << std::setw(6) << std::setfill('0') << frameid << ".png";
+            // cv::imwrite(ss_img.str(), capture);  
             glfwSwapBuffers(windowPtr); 
             glfwPollEvents(); 
         // };
@@ -249,6 +256,6 @@ void renderScene()
 int main(int argc, char** argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
-    // render_animal_skels(); 
-    render_smal_test(); 
+    render_animal_skels(); 
+    // render_smal_test(); 
 }

@@ -5,7 +5,8 @@
 #include <Eigen/Eigen>
 
 #include "smal.h"
-#include "../associate/math_utils.h"
+#include "../utils/math_utils.h"
+#include "../utils/colorterminal.h"
 
 SMAL::SMAL(const std::string &folder)
 {
@@ -27,13 +28,13 @@ SMAL::SMAL(const std::string &folder)
 
 	// load joints
 	{
-		jointsOrigin.resize(3, jointNum);
-		jointsShaped.resize(3, jointNum);
-		jointsFinal.resize(3, jointNum);
+		m_jointsOrigin.resize(3, m_jointNum);
+		m_jointsShaped.resize(3, m_jointNum);
+		m_jointsFinal.resize(3, m_jointNum);
 
-		for (int i = 0; i < jointNum; i++)
+		for (int i = 0; i < m_jointNum; i++)
 		{
-			jointsFile >> jointsOrigin(0, i) >> jointsOrigin(1, i) >> jointsOrigin(2, i);
+			jointsFile >> m_jointsOrigin(0, i) >> m_jointsOrigin(1, i) >> m_jointsOrigin(2, i);
 		}
 		jointsFile.close();
         std::cout << "...jointsLoaded." << std::endl; 
@@ -41,13 +42,13 @@ SMAL::SMAL(const std::string &folder)
 
 	// load vertices
 	{
-		verticesOrigin.resize(3, vertexNum);
-		verticesShaped.resize(3, vertexNum);
-		verticesFinal.resize(3, vertexNum);
+		m_verticesOrigin.resize(3, m_vertexNum);
+		m_verticesShaped.resize(3, m_vertexNum);
+		m_verticesFinal.resize(3, m_vertexNum);
 
-		for (int i = 0; i < vertexNum; i++)
+		for (int i = 0; i < m_vertexNum; i++)
 		{
-			verticesFile >> verticesOrigin(0, i) >> verticesOrigin(1, i) >> verticesOrigin(2, i);
+			verticesFile >> m_verticesOrigin(0, i) >> m_verticesOrigin(1, i) >> m_verticesOrigin(2, i);
 		}
 		verticesFile.close();
         std::cout << "...verticesLoaded." << std::endl;
@@ -55,40 +56,40 @@ SMAL::SMAL(const std::string &folder)
 
 	// load faces
 	{
-		faces.resize(3, faceNum);
-		for (int i = 0; i < faceNum; i++)
+		m_faces.resize(3, m_faceNum);
+		for (int i = 0; i < m_faceNum; i++)
 		{
             double f1, f2, f3;
 			facesFile >> f1 >> f2 >> f3; 
-            faces(0, i) = (int)f1; 
-            faces(1, i) = (int)f2; 
-            faces(2, i) = (int)f3;
+            m_faces(0, i) = (int)f1; 
+            m_faces(1, i) = (int)f2; 
+            m_faces(2, i) = (int)f3;
 		}
 		facesFile.close();
         std::cout << "...facesLoaded." << std::endl; 
 	}
 
-	// load parent map
+	// load m_parent map
 	{
-		parent.resize(jointNum);
-		for (int i = 0; i < jointNum; i++)
+		m_parent.resize(m_jointNum);
+		for (int i = 0; i < m_jointNum; i++)
 		{
             double p;
             parentFile >> p;
             if(p < 0 || p > 33) p = -1; 
-			parent(i) = int(p);
+			m_parent(i) = int(p);
 		}
         std::cout << "...kintree_tableLoaded." << std::endl;
 	}
 
 	// load weights
 	{
-		weights.resize(vertexNum, jointNum);
-		for (int i = 0; i < vertexNum; i++)
+		m_lbsweights.resize(m_jointNum, m_vertexNum);
+		for (int i = 0; i < m_vertexNum; i++)
 		{
-			for (int j = 0; j < jointNum; j++)
+			for (int j = 0; j < m_jointNum; j++)
 			{
-				weightsFile >> weights(i, j);
+				weightsFile >> m_lbsweights(j, i);
 			}
 		}
         std::cout << "...weightsLoaded." << std::endl; 
@@ -96,17 +97,18 @@ SMAL::SMAL(const std::string &folder)
 
 	// load jregressor
 	{
-		jregressor.resize(vertexNum, jointNum);
-		jregressor.setZero();
+		m_jregressor.resize(m_vertexNum, m_jointNum);
+		m_jregressor.setZero();
 		
-		int jregressorRow, jregressorCol;
+		double jregressorRow, jregressorCol;
 		double jregressorValue;
 
-		for(int i = 0; i < 440; i++)
+		while(true)
 		{
 			jregressorFile >> jregressorCol; 
+			if(jregressorFile.eof()) break; 
             jregressorFile >> jregressorRow >> jregressorValue;
-			jregressor(jregressorRow, jregressorCol) = jregressorValue;
+			m_jregressor(int(jregressorRow), int(jregressorCol)) = jregressorValue;
 		}
 		jregressorFile.close();
         std::cout << "...jointRegressorLoaded." << std::endl; 
@@ -114,31 +116,31 @@ SMAL::SMAL(const std::string &folder)
 
 	// load shape blending param
 	{
-		shapeBlend.resize(3 * vertexNum, shapeNum);
-		for (int i = 0; i < 3 * vertexNum; i++)
+		m_shapeBlendV.resize(3 * m_vertexNum, m_shapeNum);
+		for (int i = 0; i < 3 * m_vertexNum; i++)
 		{
-			for (int j = 0; j < shapeNum; j++)
+			for (int j = 0; j < m_shapeNum; j++)
 			{
-				shapeblendFile >> shapeBlend(i, j);
+				shapeblendFile >> m_shapeBlendV(i, j);
 			}
 		}
         std::cout << "...shapedirsLoaded." << std::endl; 
 	}
 
 	// calculate shape2joint regressor
-	shape2Joint.resize(3 * jointNum, shapeNum);
-	for (int i = 0; i < shapeNum; i++)
+	m_shapeBlendJ.resize(3 * m_jointNum, m_shapeNum);
+	for (int i = 0; i < m_shapeNum; i++)
 	{
-		const Eigen::Map<const Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shapeBlendCol(shapeBlend.col(i).data(), 3, vertexNum);
-		Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shape2JointCol(shape2Joint.col(i).data(), 3, jointNum);
-		shape2JointCol = shapeBlendCol * jregressor;
+		const Eigen::Map<const Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shapeBlendCol(m_shapeBlendV.col(i).data(), 3, m_vertexNum);
+		Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shape2JointCol(m_shapeBlendJ.col(i).data(), 3, m_jointNum);
+		shape2JointCol = shapeBlendCol * m_jregressor;
 	}
 
-	poseParam.resize(3 * jointNum);
-	shapeParam.resize(shapeNum);
+	m_poseParam.resize(3 * m_jointNum);
+	m_shapeParam.resize(m_shapeNum);
 
-	singleAffine.resize(4, 4 * jointNum);
-	globalAffine.resize(4, 4 * jointNum);
+	m_singleAffine.resize(4, 4 * m_jointNum);
+	m_globalAffine.resize(4, 4 * m_jointNum);
 
 	ResetPose();
 	ResetShape();
@@ -157,39 +159,41 @@ SMAL::~SMAL()
 
 void SMAL::UpdateSingleAffine(const int jointCount)
 {
+	m_singleAffine.setZero(); 
 	for (int jointId = 0; jointId < jointCount; jointId++)
 	{
-		const Eigen::Vector3d& pose = poseParam.block<3, 1>(jointId * 3, 0);
+		const Eigen::Vector3d& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
 		Eigen::Matrix4d matrix;
 		matrix.setIdentity();
 
 		matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
 		if (jointId == 0)
-			matrix.block<3, 1>(0, 3) = jointsShaped.col(jointId) + translation;
+			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) + m_translation;
 		else
-			matrix.block<3, 1>(0, 3) = jointsShaped.col(jointId) - jointsShaped.col(parent(jointId));
+			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) - m_jointsShaped.col(m_parent(jointId));
 
-		singleAffine.block<4,4>(0, 4 * jointId) = matrix; 
+		m_singleAffine.block<4,4>(0, 4 * jointId) = matrix; 
 	}
 }
 
 
 void SMAL::UpdateGlobalAffine(const int jointCount)
 {
+	m_globalAffine.setZero(); 
 	for (int jointId = 0; jointId < jointCount; jointId++)
 	{
 		if (jointId == 0)
-			globalAffine.block<4, 4>(0, 4 * jointId) = singleAffine.block<4, 4>(0, 4 * jointId);
+			m_globalAffine.block<4, 4>(0, 4 * jointId) = m_singleAffine.block<4, 4>(0, 4 * jointId);
 		else
-			globalAffine.block<4, 4>(0, 4 * jointId) = globalAffine.block<4, 4>(0, 4 * parent(jointId))*singleAffine.block<4, 4>(0, 4 * jointId);
+			m_globalAffine.block<4, 4>(0, 4 * jointId) = m_globalAffine.block<4, 4>(0, 4 * m_parent(jointId))*m_singleAffine.block<4, 4>(0, 4 * jointId);
 	}
 }
 
 
 void SMAL::UpdateJointsShaped()
 {
-	Eigen::VectorXd jointsOffset = shape2Joint * shapeParam;
-	jointsShaped = jointsOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(jointsOffset.data(), 3, jointNum);
+	Eigen::VectorXd jointsOffset = m_shapeBlendJ * m_shapeParam;
+	m_jointsShaped = m_jointsOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(jointsOffset.data(), 3, m_jointNum);
 }
 
 
@@ -197,7 +201,7 @@ void SMAL::UpdateJointsFinal(const int jointCount)
 {
 	for (int jointId = 0; jointId < jointCount; jointId++)
 	{
-		jointsFinal.col(jointId) = globalAffine.block<3, 1>(0, 4 * jointId + 3);
+		m_jointsFinal.col(jointId) = m_globalAffine.block<3, 1>(0, 4 * jointId + 3);
 	}
 }
 
@@ -213,25 +217,25 @@ void SMAL::UpdateJoints()
 
 void SMAL::UpdateVerticesShaped()
 {
-	Eigen::VectorXd verticesOffset = shapeBlend * shapeParam;
-	verticesShaped = verticesOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(verticesOffset.data(), 3, vertexNum);
+	Eigen::VectorXd verticesOffset = m_shapeBlendV * m_shapeParam;
+	m_verticesShaped = m_verticesOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(verticesOffset.data(), 3, m_vertexNum);
 }
 
 
 void SMAL::UpdateVerticesFinal()
 {
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> globalAffineNormalized = globalAffine;
-	for (int jointId = 0; jointId < jointNum; jointId++)
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> globalAffineNormalized = m_globalAffine;
+	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
-		globalAffineNormalized.block<3, 1>(0, jointId * 4 + 3) -= (globalAffine.block<3, 3>(0, jointId * 4)*jointsShaped.col(jointId));
+		globalAffineNormalized.block<3, 1>(0, jointId * 4 + 3) -= (m_globalAffine.block<3, 3>(0, jointId * 4)*m_jointsShaped.col(jointId));
 	}
 
-	for (int vertexId = 0; vertexId < vertexNum; vertexId++)
+	for (int vertexId = 0; vertexId < m_vertexNum; vertexId++)
 	{
 		Eigen::Matrix<double, 4, 4, Eigen::ColMajor> globalAffineAverage;
 		Eigen::Map<Eigen::VectorXd>(globalAffineAverage.data(), 16)
-			= Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(globalAffineNormalized.data(), 16, jointNum) * (weights.row(vertexId).transpose());
-		verticesFinal.col(vertexId) = globalAffineAverage.block<3, 4>(0, 0)*(verticesShaped.col(vertexId).homogeneous());
+			= Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(globalAffineNormalized.data(), 16, m_jointNum) * (m_lbsweights.col(vertexId) );
+		m_verticesFinal.col(vertexId) = globalAffineAverage.block<3, 4>(0, 0)*(m_verticesShaped.col(vertexId).homogeneous());
 	}
 }
 
@@ -247,60 +251,43 @@ void SMAL::UpdateVertices()
 void SMAL::SaveObj(const std::string& filename) const
 {
 	std::ofstream f(filename);
-	for (int i = 0; i < vertexNum; i++)
+	for (int i = 0; i < m_vertexNum; i++)
 	{
-		f << "v " << verticesFinal(0, i) << " " << verticesFinal(1, i) << " " << verticesFinal(2, i) << std::endl;
+		f << "v " << m_verticesFinal(0, i) << " " << m_verticesFinal(1, i) << " " << m_verticesFinal(2, i) << std::endl;
 	}
 
-	for (int i = 0; i < faceNum; i++)
+	for (int i = 0; i < m_faceNum; i++)
 	{
-		f << "f " << faces(0, i) + 1 << " " << faces(1, i) + 1 << " " << faces(2, i) + 1 << std::endl;
+		f << "f " << m_faces(0, i) + 1 << " " << m_faces(1, i) + 1 << " " << m_faces(2, i) + 1 << std::endl;
 	}
 	f.close();
 }
 
 
-void SMAL::CalcPoseJacobi()
+void SMAL::saveState(std::string state_file)
 {
-	// calculate affine and jointsFinal
-	UpdateSingleAffine();
-	UpdateGlobalAffine();
-	UpdateJointsFinal();
+    std::ofstream os(state_file); 
+    if(!os.is_open())
+    {
+        std::cout << "cant not open " << state_file << std::endl; 
+        return; 
+    }
+    for(int i = 0; i < 3; i++) os << m_translation(i) << std::endl; 
+    for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) os << m_poseParam(3*i+k) << std::endl; 
+    for(int i = 0; i < m_shapeNum; i++) os << m_shapeParam(i) << std::endl; 
+    os.close(); 
+}
 
-	// calculate delta rodrigues
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * jointNum);
-	for (int jointId = 0; jointId < jointNum; jointId++)
-	{
-		const Eigen::Vector3d& pose = poseParam.block<3, 1>(jointId * 3, 0);
-		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiD(pose);
-	}
-
-	// set jacobi
-	poseJacobi = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * jointNum, 3 + 3 * jointNum);
-	for (int jointDerivativeId = 0; jointDerivativeId < jointNum; jointDerivativeId++)
-	{
-		// update translation term
-		poseJacobi.block<3, 3>(jointDerivativeId * 3, 0).setIdentity();
-
-		// update poseParam term
-		for (int axisDerivativeId = 0; axisDerivativeId < 3; axisDerivativeId++)
-		{
-			std::vector<std::pair<bool, Eigen::Matrix4d>> globalAffineDerivative(jointNum, std::make_pair(false, Eigen::Matrix4d::Zero()));
-			globalAffineDerivative[jointDerivativeId].first = true;
-			auto& affine = globalAffineDerivative[jointDerivativeId].second;
-			affine.block<3, 3>(0, 0) = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jointDerivativeId + axisDerivativeId));
-			affine = jointDerivativeId == 0 ? affine : (globalAffine.block<4, 4>(0, 4 * parent(jointDerivativeId)) * affine);
-
-			for (int jointId = jointDerivativeId + 1; jointId < jointNum; jointId++)
-			{
-				if (globalAffineDerivative[parent(jointId)].first)
-				{
-					globalAffineDerivative[jointId].first = true;
-					globalAffineDerivative[jointId].second = globalAffineDerivative[parent(jointId)].second * singleAffine.block<4, 4>(0, 4 * jointId);
-					// update jacobi for pose
-					poseJacobi.block<3, 1>(jointId * 3, 3 + jointDerivativeId * 3 + axisDerivativeId) = globalAffineDerivative[jointId].second.block<3, 1>(0, 3);
-				}
-			}
-		}
-	}
+void SMAL::readState(std::string state_file)
+{
+    std::ifstream is(state_file); 
+    if(!is.is_open())
+    {
+        std::cout << "cant not open " << state_file << std::endl; 
+        return; 
+    }
+    for(int i = 0; i < 3; i++) is >> m_translation(i);
+    for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) is >> m_poseParam(3*i+k); 
+    for(int i = 0; i < m_shapeNum; i++) is >> m_shapeParam(i); 
+    is.close(); 
 }

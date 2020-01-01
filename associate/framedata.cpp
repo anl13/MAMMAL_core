@@ -2,10 +2,8 @@
 #include <json/json.h> 
 #include <math.h> 
 #include <algorithm>
-#include "colorterminal.h"
-#include "image_utils.h"
 #include <json/writer.h> 
-
+#include "../utils/colorterminal.h"
 
 void FrameData::setCamIds(std::vector<int> _camids)
 {

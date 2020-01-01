@@ -7,12 +7,12 @@
 #include <json/json.h> 
 #include <vector> 
 #include <opencv2/opencv.hpp> 
-#include "math_utils.h"
-#include "camera.h"
-#include "image_utils.h"
-#include "geometry.h" 
+#include "../utils/math_utils.h"
+#include "../utils/camera.h"
+#include "../utils/image_utils.h"
+#include "../utils/geometry.h" 
+#include "../utils/Hungarian.h"
 #include "clusterclique.h"
-#include "Hungarian.h"
 #include "skel.h" 
 
 using std::vector; 

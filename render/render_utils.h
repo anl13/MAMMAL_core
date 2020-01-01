@@ -2,10 +2,8 @@
 
 #include <vector>
 #include <Eigen/Eigen>
-#include "../associate/skel.h" 
-#include "../associate/image_utils.h" 
-#include "../associate/math_utils.h" 
-#include "../associate/framedata.h"
+#include "../utils/image_utils.h" 
+#include "../utils/math_utils.h" 
 
 using std::vector; 
 
