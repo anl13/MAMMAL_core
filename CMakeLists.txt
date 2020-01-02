@@ -108,6 +108,7 @@ add_executable(associate
     exec/associate.cpp 
     ${ASSOC_FILES}
     ${UTIL_FILES}
+    ${SMAL_FILES}
 )
 target_link_libraries(associate
 mce
@@ -126,6 +127,7 @@ exec/smal_fitting.cpp
 ${UTIL_FILES}
 ${SMAL_FILES}
 ${RENDER_FILES}
+${ASSOC_FILES}
 )
 target_link_libraries(smal 
 ${CERES_LIBRARIES}
@@ -137,4 +139,5 @@ ${OPENGL_gl_LIBRARY}
 ${GLUT_LIBRARIES}
 ${OPENGL_LIBRARY}
 glfw
+mce
 )

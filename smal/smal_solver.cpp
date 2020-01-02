@@ -5,6 +5,8 @@
 #include "../utils/math_utils.h"
 #include <Eigen/Eigen>
 
+#define DEBUG_SOLVER
+
 SMAL_SOLVER::SMAL_SOLVER(std::string folder) : SMAL(folder)
 {
     
@@ -41,8 +43,10 @@ void SMAL_SOLVER::globalAlignByVertices() // procrustes analysis, rigid align (R
     UpdateVertices(); 
     Eigen::Vector3d barycenter_target = Y.rowwise().mean(); 
     Eigen::Vector3d barycenter_source = m_verticesFinal.rowwise().mean(); 
+#ifdef DEBUG_SOLVER
     std::cout << "barycenter Y : " << barycenter_target.transpose() << std::endl; 
     std::cout << "barycenter   : " << barycenter_source.transpose() << std::endl; 
+#endif 
     m_translation = barycenter_target - barycenter_source; 
     Eigen::MatrixXd V_target = Y.colwise() - barycenter_target; 
     Eigen::MatrixXd V_source = m_verticesFinal.colwise() - barycenter_source; 
@@ -55,8 +59,9 @@ void SMAL_SOLVER::globalAlignByVertices() // procrustes analysis, rigid align (R
     Eigen::AngleAxisd ax(R); 
     m_poseParam.segment<3>(0) = ax.axis() * ax.angle(); 
     // Y = (R.transpose() * V_target).colwise() + J_source.col(0); 
-
+#ifdef DEBUG_SOLVER
     std::cout << BLUE_TEXT("m_translation: ") << m_translation.transpose() << std::endl; 
+#endif 
 }
 
 // toy function: optimize shape without pose. 
@@ -75,7 +80,7 @@ void SMAL_SOLVER::OptimizeShape(const int maxIterTime, const double terminal)
         Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(m_shapeNum, m_shapeNum);  // Leveberg Marquart
         Eigen::MatrixXd H_reg = DTD;
         Eigen::VectorXd b_reg = -m_shapeParam; 
-        double lambda = 0.0;  
+        double lambda = 0.001;  
         double w1 = 10000; 
         double w_reg = 0.0; 
         Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda; 
@@ -83,11 +88,15 @@ void SMAL_SOLVER::OptimizeShape(const int maxIterTime, const double terminal)
         
         Eigen::VectorXd delta = H.ldlt().solve(b); 
         m_shapeParam = m_shapeParam + delta; 
+#ifdef DEBUG_SOLVER
         std::cout << "residual     : " << r.norm() << std::endl; 
         std::cout << "delta.norm() : " << delta.norm() << std::endl; 
+#endif 
         if(delta.norm() < terminal) break;
     }
-    std::cout << "iter times: " << iter << std::endl; 
+#ifdef DEBUG_SOLVER
+    std::cout << "iter times: " << iter << std::endl;
+#endif  
 }
 
 
@@ -98,7 +107,9 @@ void SMAL_SOLVER::OptimizePose(const int maxIterTime, const double updateToleran
     Eigen::MatrixXd J; 
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
+#ifdef DEBUG_SOLVER
         std::cout << "iter time: " << iterTime << std::endl; 
+#endif 
         UpdateVertices(); 
         if(is_numeric) 
         {
@@ -132,9 +143,10 @@ void SMAL_SOLVER::OptimizePose(const int maxIterTime, const double updateToleran
         Eigen::VectorXd delta = H.ldlt().solve(b); 
         m_translation += delta.segment<3>(0); 
         m_poseParam += delta.segment<99>(3); 
-
+#ifdef DEBUG_SOLVER
         std::cout << "residual     : " << r.norm() << std::endl; 
         std::cout << "delta.norm() : " << delta.norm() << std::endl; 
+#endif 
         if(delta.norm() < updateTolerance) break; 
 
 	}
@@ -258,7 +270,7 @@ void SMAL_SOLVER::CalcPoseJacobiNumeric()
     m_jointJacobiPoseNumeric = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
     m_vertJacobiPoseNumeric = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_vertexNum, 3 + 3 * m_jointNum); 
 
-    UpdateVertices(); 
+    UpdateVertices();   
     Eigen::MatrixXd previousJ = m_jointsFinal; 
     Eigen::MatrixXd previousV = m_verticesFinal; 
     Eigen::VectorXd delta_x = Eigen::VectorXd::Zero(3*m_jointNum); 
