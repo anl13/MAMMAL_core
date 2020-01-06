@@ -65,7 +65,7 @@ protected:
 
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_singleAffine;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_globalAffine;
-
+	double m_scale; 
 
 
 	void UpdateSingleAffine() {UpdateSingleAffine(m_jointNum); }

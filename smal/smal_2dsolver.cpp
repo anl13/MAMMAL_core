@@ -1,4 +1,4 @@
-#include "smal_jsolver.h" 
+#include "smal_2dsolver.h" 
 #include <Eigen/SVD> 
 #include "../utils/colorterminal.h"
 #include <fstream>
@@ -8,7 +8,7 @@
 
 #define DEBUG_SOLVER
 
-SMAL_JSOLVER::SMAL_JSOLVER(std::string folder) : SMAL(folder)
+SMAL_2DSOLVER::SMAL_2DSOLVER(std::string folder) : SMAL(folder)
 {
     m_topo = getSkelTopoByType("UNIV"); 
     m_poseToOptimize = {
@@ -16,7 +16,7 @@ SMAL_JSOLVER::SMAL_JSOLVER(std::string folder) : SMAL(folder)
     }; 
 }
 
-void SMAL_JSOLVER::globalAlign() // procrustes analysis, rigid align (R,t), and transform Y
+void SMAL_2DSOLVER::globalAlign() // procrustes analysis, rigid align (R,t), and transform Y
 {
     m_weights.resize(Y.cols()); 
     m_weightsEigen = Eigen::VectorXd::Zero(3*Y.cols()); 
@@ -114,49 +114,11 @@ void SMAL_JSOLVER::globalAlign() // procrustes analysis, rigid align (R,t), and 
     UpdateVertices(); 
 }
 
-// // toy function: optimize shape without pose. 
-// void SMAL_JSOLVER::OptimizeShape(const int maxIterTime, const double terminal)
-// {
-//     std::cout << GREEN_TEXT("solving shape ... ") << std::endl; 
-//     Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(Y.data(), 3 * m_vertexNum);
-//     int iter = 0; 
-//     for(; iter < maxIterTime; iter++)
-//     {
-//         UpdateVertices(); 
-//         CalcShapeJacobi(); 
-//         Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3*m_vertexNum) - V_target; 
-//         Eigen::MatrixXd H1 = m_vertJacobiShape.transpose() * m_vertJacobiShape; 
-//         Eigen::VectorXd b1 = - m_vertJacobiShape.transpose() * r; 
-//         Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(m_shapeNum, m_shapeNum);  // Leveberg Marquart
-//         Eigen::MatrixXd H_reg = DTD;
-//         Eigen::VectorXd b_reg = -m_shapeParam; 
-//         double lambda = 0.001;  
-//         double w1 = 10000; 
-//         double w_reg = 0.0; 
-//         Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda; 
-//         Eigen::VectorXd b = b1 * w1 + b_reg * w_reg; 
-        
-//         Eigen::VectorXd delta = H.ldlt().solve(b); 
-//         m_shapeParam = m_shapeParam + delta; 
-// #ifdef DEBUG_SOLVER
-//         std::cout << "residual     : " << r.norm() << std::endl; 
-//         std::cout << "delta.norm() : " << delta.norm() << std::endl; 
-// #endif 
-//         if(delta.norm() < terminal) break;
-//     }
-// #ifdef DEBUG_SOLVER
-//     std::cout << "iter times: " << iter << std::endl;
-// #endif  
-// }
-
-
-void SMAL_JSOLVER::optimizePose(const int maxIterTime, const double updateTolerance)
+void SMAL_2DSOLVER::optimizePose(const int maxIterTime, const double updateTolerance)
 {
 #ifdef DEBUG_SOLVER
     std::cout << GREEN_TEXT("solving pose ... ") << std::endl; 
 #endif 
-    Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(Y.data(), 3*Y.cols()); 
-    Eigen::MatrixXd J; 
     int M = m_poseToOptimize.size(); 
     int N = Y.cols(); 
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
@@ -166,8 +128,6 @@ void SMAL_JSOLVER::optimizePose(const int maxIterTime, const double updateTolera
 #endif 
         UpdateVertices(); 
         CalcPoseJacobi();
-        J = m_JacobiPose; 
-        
         Eigen::VectorXd theta(3+3*M); 
         theta.segment<3>(0) = m_translation; 
         for(int i = 0; i < M; i++)
@@ -175,24 +135,32 @@ void SMAL_JSOLVER::optimizePose(const int maxIterTime, const double updateTolera
             int jIdx = m_poseToOptimize[i];
             theta.segment<3>(3+3*i) = m_poseParam.segment<3>(3*jIdx); 
         }
-        Eigen::MatrixXd skel = getRegressedSkel(); 
-        Eigen::VectorXd f = Eigen::Map<Eigen::VectorXd>(skel.data(), 3*N); 
-
-        Eigen::VectorXd r = f - V_target;
-        r = (r.array() * m_weightsEigen.array()).matrix(); 
-        Eigen::MatrixXd H1 = J.transpose() * J;
-        double lambda = 0.00; 
+        std::cout << "ok" << std::endl; 
+        // solve
+        Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(3+3*M, 3+3*M); // data term 
+        Eigen::VectorXd b1 = Eigen::VectorXd::Zero(3+3*M);  // data term 
+        for(int k = 0; k < m_source.view_ids.size(); k++)
+        {
+            Eigen::MatrixXd H_view;
+            Eigen::VectorXd b_view;
+            Calc2DJacobi(k, H_view, b_view); 
+            std::cout << "ok " << k << std::endl; 
+            H1 += H_view; 
+            b1 += b_view;  
+        }
+        double lambda = 0.001; 
         double w1 = 1; 
         double w_reg = 0.01; 
         Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3+3*M, 3+3*M);
-        Eigen::VectorXd b1 = - J.transpose() * r; 
-        Eigen::MatrixXd H_reg = DTD; 
-        Eigen::VectorXd b_reg = - theta; 
+        Eigen::MatrixXd H_reg = DTD;  // reg term 
+        Eigen::VectorXd b_reg = - theta; // reg term 
 
         Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda; 
         Eigen::VectorXd b = b1 * w1 + b_reg * w_reg; 
         
-        Eigen::VectorXd delta = H.ldlt().solve(b); 
+        Eigen::VectorXd delta = H.ldlt().solve(b);
+
+        // update 
         m_translation += delta.segment<3>(0); 
         for(int i = 0; i < M; i++)
         {
@@ -200,7 +168,6 @@ void SMAL_JSOLVER::optimizePose(const int maxIterTime, const double updateTolera
             m_poseParam.segment<3>(3*jIdx) += delta.segment<3>(3+3*i); 
         }
 #ifdef DEBUG_SOLVER
-        std::cout << "residual     : " << r.norm() << std::endl; 
         std::cout << "delta.norm() : " << delta.norm() << std::endl; 
 #endif 
         if(delta.norm() < updateTolerance) break; 
@@ -210,7 +177,7 @@ void SMAL_JSOLVER::optimizePose(const int maxIterTime, const double updateTolera
 
 
 
-void SMAL_JSOLVER::CalcPoseJacobi()
+void SMAL_2DSOLVER::CalcPoseJacobi()
 {
 /*
 AN Liang. 20191227 comments. This function was written by ZHANG Yuxiang. 
@@ -329,40 +296,8 @@ below function update this matrix in colwise manner, in articulated tree structu
     }
 }
 
-// void SMAL_JSOLVER::CalcShapeJacobi()
-// {
-//     // compute d_joint_d_beta
-//     m_jointJacobiShape.resize(3*m_jointNum, m_shapeNum); 
-//     m_jointJacobiShape.setZero(); 
-//     for(int jIdx = 0; jIdx < m_jointNum; jIdx++)
-//     {
-//         if(jIdx==0)
-//             m_jointJacobiShape.middleRows(3*jIdx, 3) += m_shapeBlendJ.middleRows(3*jIdx,3);
-//         else 
-//         {
-//             int pIdx = m_parent(jIdx); 
-//             m_jointJacobiShape.middleRows(3*jIdx,3) = m_jointJacobiShape.middleRows(3*pIdx, 3) + m_globalAffine.block<3,3>(0,4*pIdx) 
-//                                                       * ( m_shapeBlendJ.middleRows(3*jIdx,3) - m_shapeBlendJ.middleRows(3*pIdx,3) ); 
-//         }
-//     }
 
-//     // compute d_v_d_beta
-//     m_vertJacobiShape.resize(3*m_vertexNum, m_shapeNum);
-//     m_vertJacobiShape.setZero(); 
-//     for(int vIdx = 0; vIdx < m_vertexNum; vIdx++)
-//     {
-//         for(int jIdx=0; jIdx < m_jointNum; jIdx++)
-//         {
-//             if(m_lbsweights(jIdx, vIdx) < 0.00001) continue; 
-//             m_vertJacobiShape.middleRows(3*vIdx, 3) += ( ( m_jointJacobiShape.middleRows(3*jIdx,3) 
-//                                                     + m_globalAffine.block<3,3>(0, 4*jIdx) * (m_shapeBlendV.middleRows(3*vIdx,3) - m_shapeBlendJ.middleRows(3*jIdx,3))
-//             ) * m_lbsweights(jIdx, vIdx) ) ; 
-//         }
-//     }
-// }
-
-
-Eigen::MatrixXd SMAL_JSOLVER::getRegressedSkel()
+Eigen::MatrixXd SMAL_2DSOLVER::getRegressedSkel()
 {
     int N = Y.cols(); 
     Eigen::MatrixXd skel = Eigen::MatrixXd::Zero(3,N); 
@@ -380,9 +315,48 @@ Eigen::MatrixXd SMAL_JSOLVER::getRegressedSkel()
             skel.col(i) = m_verticesFinal.col(vIdx); 
         }
         else {
-            std::cout << RED_TEXT("fatal error: in SMAL_JSOLVER::getRegressedSkel.") << std::endl;
+            std::cout << RED_TEXT("fatal error: in SMAL_2DSOLVER::getRegressedSkel.") << std::endl;
             exit(-1);
         }
     }
     return skel; 
+}
+
+void SMAL_2DSOLVER::Calc2DJacobi(
+    int k, 
+    Eigen::MatrixXd& H,
+    Eigen::VectorXd& b
+)
+{
+    std::cout << m_source.view_ids.size() << std::endl; 
+    std::cout << "k; " << k<< std::endl; 
+    int view = m_source.view_ids[k]; 
+    Camera cam = m_cameras[view]; 
+    DetInstance& det = m_source.dets[k]; 
+    Eigen::Matrix3d R = cam.R;
+    Eigen::Matrix3d K = cam.K; 
+    Eigen::Vector3d T = cam.T; 
+    
+    int N = Y.cols(); 
+    int M = m_poseToOptimize.size(); 
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(2*N, 3+3*M); 
+    Eigen::VectorXd r = Eigen::VectorXd::Zero(2*N); 
+    Eigen::MatrixXd skel = getRegressedSkel(); 
+    for(int i = 0; i < N; i++)
+    {
+        Eigen::Vector3d x_local = K * (R * skel.col(i) + T);
+        Eigen::MatrixXd D = Eigen::MatrixXd::Zero(2,3); 
+        D(0,0) = 1/x_local(2); 
+        D(1,1) = 1/x_local(2); 
+        D(0,2) = -x_local(0) / (x_local(2) * x_local(2)); 
+        D(1,2) = -x_local(1) / (x_local(2) * x_local(2)); 
+        J.middleRows(2*i,2) = D * K * R * m_JacobiPose.middleRows(3*i, 3);
+        Eigen::Vector2d u;
+        u(0) = x_local(0) / x_local(2); 
+        u(1) = x_local(1) / x_local(2); 
+        r.segment<2>(2*i) = m_weights[i] * (u - det.keypoints[i].segment<2>(0) ); 
+        if(det.keypoints[i](2) < m_topo.kpt_conf_thresh[i]) r.segment<2>(2*i) = Eigen::Vector2d::Zero();  
+    }
+    b = - J.transpose() * r; 
+    H = J.transpose() * J; 
 }

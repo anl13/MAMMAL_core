@@ -74,7 +74,7 @@ void FrameData::fetchData()
     readMask(); 
     undistMask(); 
     assembleDets(); 
-    detNMS(); 
+    // detNMS(); 
 }
 
 void FrameData::readKeypoints() // load hrnet keypoints

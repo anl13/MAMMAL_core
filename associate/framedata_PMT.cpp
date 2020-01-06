@@ -15,16 +15,29 @@ void FrameData::matching()
             keypoints[camid][candid] = m_detUndist[camid][candid].keypoints; 
         }
     }
-    EpipolarMatching m_matcher; 
-    m_matcher.set_cams(m_camsUndist); 
-    m_matcher.set_dets(m_detUndist); 
-    m_matcher.set_epi_thres(m_epi_thres); 
-    m_matcher.set_epi_type(m_epi_type); 
-    m_matcher.set_topo(m_topo); 
-    m_matcher.match(); // main match func 
-    m_matcher.truncate(4); // retain only 4 clusters 
-    m_matcher.get_clusters(m_clusters); 
-    m_matcher.get_skels3d(m_skels3d); 
+    EpipolarMatching matcher; 
+    matcher.set_cams(m_camsUndist); 
+    matcher.set_dets(m_detUndist); 
+    matcher.set_epi_thres(m_epi_thres); 
+    matcher.set_epi_type(m_epi_type); 
+    matcher.set_topo(m_topo); 
+    matcher.match(); // main match func 
+    matcher.truncate(4); // retain only 4 clusters 
+    matcher.get_clusters(m_clusters); 
+    matcher.get_skels3d(m_skels3d); 
+    
+    m_matched.resize(m_clusters.size()); 
+    for(int i = 0; i < m_clusters.size(); i++)
+    {
+        for(int camid = 0; camid < m_camNum; camid++)
+        {
+            int candid = m_clusters[i][camid]; 
+            if(candid < 0) continue; 
+            m_matched[i].view_ids.push_back(camid); 
+            m_matched[i].cand_ids.push_back(candid); 
+            m_matched[i].dets.push_back(m_detUndist[camid][candid]); 
+        }
+    }
 }
 
 void FrameData::tracking()

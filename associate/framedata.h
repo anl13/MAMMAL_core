@@ -42,6 +42,8 @@ public:
     int get_frame_num(){return m_framenum;}
     SkelTopology get_topo(){return m_topo;}
     PIGS3D get_skels3d(){return m_skels3d;}
+    vector<MatchedInstance> get_matched() {return m_matched; }
+    vector<Camera> get_cameras(){return m_camsUndist; }
 
     void configByJson(std::string jsonfile); 
     void fetchData(); 
@@ -82,7 +84,8 @@ protected:
     std::vector<Camera>                       m_camsUndist; 
     std::vector<cv::Mat>                      m_imgsUndist; 
 
-    vector<vector<DetInstance> >              m_detUndist; 
+    vector<vector<DetInstance> >              m_detUndist; // [camnum, candnum]
+    vector<MatchedInstance>                   m_matched; 
 
     // matching & 3d data 
     vector<vector<int> > m_clusters; 

@@ -14,7 +14,7 @@
 #include "../utils/Hungarian.h"
 #include "skel.h" 
 #include "clusterclique.h"
-
+#include "../smal/smal_jsolver.h"
 
 using std::vector; 
 
@@ -93,14 +93,6 @@ Eigen::Vector3d triangulate_ransac(
     double sigma1=20, double sigma2=50); 
 
 
-struct ConcensusInstance{
-    vector<Camera> cams; // visible cams (for box)
-    vector<int> ids;  // index in all detection candidates
-    vector<vector<Eigen::Vector3d> > dets; 
-    vector<Eigen::Vector3d> Xs; 
-    vector<Eigen::Vector4d> boxes; 
-    int num; 
-    vector<vector<double> > proj_errs; 
-    vector<double> proj_max_errs; 
-}; 
+
+
 

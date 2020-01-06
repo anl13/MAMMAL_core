@@ -3,9 +3,9 @@
     "sequence" : "/home/al17/animal/pig-data/sequences/20190704_morning", 
     "imgExtension": "jpg", 
     "camfolder": "/home/al17/animal/animal_calib/results/",
-    "startid" : 0, 
+    "startid" : 5000, 
     "epipolartype": "p2l", // "p2l" or "l2l" 
-    "framenum": 3000, 
+    "framenum": 1500, 
     "epipolar_threshold": 25,
     "box_expand_ratio": 0.05,
     "skel_type" : "UNIV"

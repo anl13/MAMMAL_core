@@ -3,6 +3,8 @@
 #include <vector> 
 #include <Eigen/Eigen> 
 
+using std::vector; 
+
 class SkelTopology
 {
 public: 
@@ -25,3 +27,8 @@ struct DetInstance // class storing data of an instance
     std::vector<std::vector<Eigen::Vector2d> > mask; // as contours
 };
 
+struct MatchedInstance{
+    vector<int> view_ids; 
+    vector<int> cand_ids; 
+    vector<DetInstance> dets; 
+}; 
