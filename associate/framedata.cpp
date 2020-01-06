@@ -31,8 +31,8 @@ void FrameData::configByJson(std::string jsonfile)
     m_sequence     = root["sequence"].asString(); 
     m_keypointsDir = m_sequence + "/keypoints_hrnet/"; 
     m_imgDir       = m_sequence + "/images/";  
-    m_boxDir       = m_sequence + "/boxes/"; 
-    m_maskDir      = m_sequence + "/masks/";
+    m_boxDir       = m_sequence + "/boxes_mm/"; 
+    m_maskDir      = m_sequence + "/masks_mm/";
     m_camDir       = root["camfolder"].asString(); 
     m_imgExtension = root["imgExtension"].asString(); 
     m_startid      = root["startid"].asInt(); 

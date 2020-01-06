@@ -227,7 +227,7 @@ void EpipolarMatching::compute3dRANSAC()
                 cams_visible.push_back(m_cams[camid]);
             }
             if(cams_visible.size() < 2) continue; 
-            if(cams_visible.size() > 6)
+            if(cams_visible.size() >= 8)
             {
                 joints3d[kptid] = triangulate_ceres(cams_visible, joints2d); 
             }

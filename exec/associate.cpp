@@ -18,40 +18,6 @@
 
 DEFINE_string(debug_type, "assoc", "debug type"); 
 
-int test2d_write_video()
-{
-    FrameData frame; 
-    std::string configFile = "/home/al17/animal/animal_calib/associate/config.json"; 
-    frame.configByJson(configFile); 
-
-    std::string videoname = "/home/al17/animal/animal_calib/data/keypoints_noon10000.avi"; 
-    cv::VideoWriter writer(videoname, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1920*4, 1080*3)); 
-    if(!writer.isOpened())
-    {
-        std::cout << "can not open video file " << videoname << std::endl; 
-        return -1; 
-    }
-
-    for(int frameid = 0; frameid < 3000; frameid++)
-    {
-        frame.set_frame_id(frameid); 
-        std::cout << "set frame id" << frameid << std::endl; 
-        frame.fetchData(); 
-        std::cout << "fetch data" << std::endl; 
-        cv::Mat show = frame.test(); 
-        cv::namedWindow("show", cv::WINDOW_NORMAL); 
-        cv::imshow("show", show); 
-        writer.write(show); 
-        int key = cv::waitKey(1); 
-        if(key == 27){
-            break; 
-        }
-    }
-    cv::destroyAllWindows(); 
-    writer.release(); 
-    return 0; 
-}
-
 int test_topdown(bool is_vis=false)
 {
     FrameData frame; 
@@ -138,7 +104,7 @@ int main(int argc, char** argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true); 
     // test_readingdata(true); 
-    test_topdown(false); 
+    test_topdown(true); 
 
     return 0; 
 }
