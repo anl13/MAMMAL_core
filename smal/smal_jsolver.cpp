@@ -199,9 +199,15 @@ void SMAL_JSOLVER::optimizePose(const int maxIterTime, const double updateTolera
             int jIdx = m_poseToOptimize[i];
             m_poseParam.segment<3>(3*jIdx) += delta.segment<3>(3+3*i); 
         }
+
+
 #ifdef DEBUG_SOLVER
         std::cout << "residual     : " << r.norm() << std::endl; 
         std::cout << "delta.norm() : " << delta.norm() << std::endl; 
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(H);
+        double cond = svd.singularValues()(0) 
+            / svd.singularValues()(svd.singularValues().size()-1);
+        std::cout << "H cond: " << cond << std::endl; 
 #endif 
         if(delta.norm() < updateTolerance) break; 
 	}

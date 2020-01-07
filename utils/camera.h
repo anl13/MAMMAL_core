@@ -22,6 +22,7 @@ public:
     void SetRT(const Mat3 &_R, const Vec3 &_T); 
     void SetDistortion(const Vec3 &_k, const Vec2 &_p){k = _k; p = _p;}
     void SetRT(const Vec3 &Rvec, const Vec3 &T); 
+    void NormalizeK(); 
 
     int uniqueID;  
     int W; 

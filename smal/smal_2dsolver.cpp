@@ -5,8 +5,39 @@
 #include "../utils/math_utils.h"
 #include <Eigen/Eigen>
 #include "../associate/skel.h"
+#include "../utils/geometry.h"
 
-#define DEBUG_SOLVER
+// #define DEBUG_SOLVER
+
+void SMAL_2DSOLVER::setCameras(const vector<Camera>& _cameras)
+{
+    m_cameras = _cameras; 
+}
+
+void SMAL_2DSOLVER::setSource(const MatchedInstance& _source)
+{
+     m_source = _source;
+}
+
+void SMAL_2DSOLVER::normalizeCamera()
+{
+    for(int i = 0; i < m_cameras.size(); i++)
+    {
+        m_cameras[i].NormalizeK(); 
+    }
+}
+
+void SMAL_2DSOLVER::normalizeSource()
+{
+    for(int i = 0; i < m_source.dets.size(); i++)
+    {
+        for(int k = 0; k < m_source.dets[i].keypoints.size(); k++)
+        {
+        m_source.dets[i].keypoints[k](0) /= 1920; 
+        m_source.dets[i].keypoints[k](1) /= 1080; 
+        }
+    }
+}
 
 SMAL_2DSOLVER::SMAL_2DSOLVER(std::string folder) : SMAL(folder)
 {
@@ -128,6 +159,8 @@ void SMAL_2DSOLVER::optimizePose(const int maxIterTime, const double updateToler
 #endif 
         UpdateVertices(); 
         CalcPoseJacobi();
+        Eigen::MatrixXd skel = getRegressedSkel(); 
+
         Eigen::VectorXd theta(3+3*M); 
         theta.segment<3>(0) = m_translation; 
         for(int i = 0; i < M; i++)
@@ -135,7 +168,6 @@ void SMAL_2DSOLVER::optimizePose(const int maxIterTime, const double updateToler
             int jIdx = m_poseToOptimize[i];
             theta.segment<3>(3+3*i) = m_poseParam.segment<3>(3*jIdx); 
         }
-        std::cout << "ok" << std::endl; 
         // solve
         Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(3+3*M, 3+3*M); // data term 
         Eigen::VectorXd b1 = Eigen::VectorXd::Zero(3+3*M);  // data term 
@@ -143,8 +175,8 @@ void SMAL_2DSOLVER::optimizePose(const int maxIterTime, const double updateToler
         {
             Eigen::MatrixXd H_view;
             Eigen::VectorXd b_view;
-            Calc2DJacobi(k, H_view, b_view); 
-            std::cout << "ok " << k << std::endl; 
+            Calc2DJacobi(k, skel, H_view, b_view); 
+            // Calc2DJacobiNumeric(k,skel, H_view, b_view); 
             H1 += H_view; 
             b1 += b_view;  
         }
@@ -168,8 +200,13 @@ void SMAL_2DSOLVER::optimizePose(const int maxIterTime, const double updateToler
             m_poseParam.segment<3>(3*jIdx) += delta.segment<3>(3+3*i); 
         }
 #ifdef DEBUG_SOLVER
+        Eigen::JacobiSVD<Eigen::MatrixXd> svd(H);
+        double cond = svd.singularValues()(0) 
+            / svd.singularValues()(svd.singularValues().size()-1);
+        std::cout << "H cond: " << cond << std::endl; 
         std::cout << "delta.norm() : " << delta.norm() << std::endl; 
 #endif 
+        // if(iterTime == 1) break; 
         if(delta.norm() < updateTolerance) break; 
 	}
 }
@@ -323,16 +360,15 @@ Eigen::MatrixXd SMAL_2DSOLVER::getRegressedSkel()
 }
 
 void SMAL_2DSOLVER::Calc2DJacobi(
-    int k, 
+    const int k, 
+    const Eigen::MatrixXd& skel, 
     Eigen::MatrixXd& H,
     Eigen::VectorXd& b
 )
 {
-    std::cout << m_source.view_ids.size() << std::endl; 
-    std::cout << "k; " << k<< std::endl; 
     int view = m_source.view_ids[k]; 
     Camera cam = m_cameras[view]; 
-    DetInstance& det = m_source.dets[k]; 
+    const DetInstance& det = m_source.dets[k]; 
     Eigen::Matrix3d R = cam.R;
     Eigen::Matrix3d K = cam.K; 
     Eigen::Vector3d T = cam.T; 
@@ -341,7 +377,7 @@ void SMAL_2DSOLVER::Calc2DJacobi(
     int M = m_poseToOptimize.size(); 
     Eigen::MatrixXd J = Eigen::MatrixXd::Zero(2*N, 3+3*M); 
     Eigen::VectorXd r = Eigen::VectorXd::Zero(2*N); 
-    Eigen::MatrixXd skel = getRegressedSkel(); 
+    
     for(int i = 0; i < N; i++)
     {
         Eigen::Vector3d x_local = K * (R * skel.col(i) + T);
@@ -354,9 +390,177 @@ void SMAL_2DSOLVER::Calc2DJacobi(
         Eigen::Vector2d u;
         u(0) = x_local(0) / x_local(2); 
         u(1) = x_local(1) / x_local(2); 
-        r.segment<2>(2*i) = m_weights[i] * (u - det.keypoints[i].segment<2>(0) ); 
-        if(det.keypoints[i](2) < m_topo.kpt_conf_thresh[i]) r.segment<2>(2*i) = Eigen::Vector2d::Zero();  
+
+        if(m_mapper[i].first < 0) continue; 
+        if(det.keypoints[i](2) < m_topo.kpt_conf_thresh[i]) continue; 
+        r.segment<2>(2*i) = u - det.keypoints[i].segment<2>(0); 
+        
+    }
+    // std::cout << "K: " << k << std::endl; 
+    // std::cout << "J: " << std::endl << J.middleCols(3,6) << std::endl; 
+    b = - J.transpose() * r; 
+    H = J.transpose() * J; 
+}
+
+void SMAL_2DSOLVER::Calc2DJacobiNumeric(
+    const int k, const Eigen::MatrixXd& skel,
+    Eigen::MatrixXd& H, Eigen::VectorXd& b)
+{
+    int view = m_source.view_ids[k]; 
+    Camera cam = m_cameras[view]; 
+    const DetInstance& det = m_source.dets[k]; 
+    Eigen::Matrix3d R = cam.R;
+    Eigen::Matrix3d K = cam.K; 
+    Eigen::Vector3d T = cam.T;
+    int N = Y.cols();  
+    Eigen::VectorXd target_vec = Eigen::VectorXd::Zero(2*N); 
+    for(int i = 0; i < N; i++)
+    {
+        if(det.keypoints[i](2) < m_topo.kpt_conf_thresh[i]) continue; 
+        target_vec.segment<2>(2*i) = det.keypoints[i].segment<2>(0); 
+    }
+    
+    int M = m_poseToOptimize.size(); 
+    Eigen::MatrixXd J = Eigen::MatrixXd::Zero(2*N, 3+3*M); 
+    double alpha = 0.0001;
+    double inv_alpha = 1/alpha; 
+    Eigen::VectorXd previous_proj = getRegressedSkelProj(K,R,T); 
+    Eigen::VectorXd delta_x = Eigen::VectorXd::Zero(3*m_jointNum);
+     
+    for(int i = 0; i < 3; i++)
+    {
+        Eigen::Vector3d delta_t = Eigen::Vector3d::Zero(); 
+        delta_t(i) = alpha; 
+        m_translation += delta_t;
+        UpdateVertices(); 
+        Eigen::VectorXd proj = getRegressedSkelProj(K,R,T); 
+        J.col(i) = (proj - previous_proj) * inv_alpha; 
+        m_translation -= delta_t; 
+    }
+    for(int i = 0; i < 3*M; i++)
+    {
+        delta_x.setZero(); 
+        int a = i / 3;
+        int b = i % 3;
+        int pose_id = m_poseToOptimize[a];  
+        delta_x(3*pose_id+b) = alpha;
+        m_poseParam += delta_x; 
+        UpdateVertices();
+        Eigen::VectorXd proj = getRegressedSkelProj(K,R,T); 
+        J.col(3+i) = (proj - previous_proj) * inv_alpha; 
+        m_poseParam -= delta_x; 
+    }
+    std::cout << "K: " << k << std::endl; 
+    std::cout << "numeric J: " << std::endl << J.middleCols(3, 6); 
+
+    Eigen::VectorXd r = previous_proj - target_vec; 
+    for(int i = 0; i < N; i++)
+    {
+        if(det.keypoints[i](2) < m_topo.kpt_conf_thresh[i]) 
+            r.segment<2>(2*i) = Eigen::Vector2d::Zero(); 
     }
     b = - J.transpose() * r; 
     H = J.transpose() * J; 
+} 
+
+
+void SMAL_2DSOLVER::optimizeJoints()
+{
+    int N = Y.cols(); 
+    std::cout << "N: " << N << std::endl; 
+    Z = Eigen::MatrixXd::Zero(3, N); 
+    for(int i = 0; i < N; i++)
+    {
+        Eigen::Vector3d X = Eigen::Vector3d::Zero(); // joint position to solve.  
+        Eigen::Vector3d Gt = Y.col(i); 
+        int validnum = 0; 
+        for(int k = 0; k < m_source.view_ids.size(); k++)
+        {
+            if(m_source.dets[k].keypoints[i](2) < m_topo.kpt_conf_thresh[i]) continue;
+            validnum++;
+        }
+        if(validnum < 2) 
+        {
+            Z.col(i) = X;
+            continue; 
+        } 
+
+        // usually, converge in 3 iteractions 
+        for(int iter = 0; iter < 100; iter ++)
+        {
+            Eigen::Matrix3d H1 = Eigen::Matrix3d::Zero(); 
+            Eigen::Vector3d b1 = Eigen::Vector3d::Zero(); 
+            for(int k = 0; k < m_source.view_ids.size(); k++)
+            {
+                int view = m_source.view_ids[k]; 
+                Camera cam = m_cameras[view]; 
+                Eigen::Vector3d keypoint = m_source.dets[k].keypoints[i]; 
+                if(keypoint(2) < m_topo.kpt_conf_thresh[i]) continue; 
+                Eigen::Vector3d x_local = cam.K * (cam.R * X + cam.T); 
+                Eigen::MatrixXd D = Eigen::MatrixXd::Zero(2,3); 
+                D(0,0) = 1/x_local(2); 
+                D(1,1) = 1/x_local(2); 
+                D(0,2) = -x_local(0) / (x_local(2) * x_local(2)); 
+                D(1,2) = -x_local(1) / (x_local(2) * x_local(2)); 
+                Eigen::MatrixXd J = Eigen::MatrixXd::Zero(2,3); 
+                J = D * cam.K * cam.R; 
+                Eigen::Vector2d u; 
+                u(0) = x_local(0) / x_local(2); 
+                u(1) = x_local(1) / x_local(2); 
+                Eigen::Vector2d r = u - keypoint.segment<2>(0);  
+                H1 += J.transpose() * J; 
+                b1 += -J.transpose() * r; 
+            }
+
+            Eigen::Matrix3d DTD = Eigen::Matrix3d::Identity();
+            double w1 = 1; 
+            double lambda = 0.0; 
+            Eigen::Matrix3d H = H1 * w1 + DTD * lambda; 
+            Eigen::Vector3d b = b1 * w1; 
+            Eigen::Vector3d delta = H.ldlt().solve(b); 
+            X = X + delta; 
+            if(delta.norm() < 0.00001) break; 
+            else 
+            {
+#ifdef DEBUG_SOLVER
+                std::cout << "iter : " << iter
+                          << " delta: " << delta.norm() << std::endl; 
+#endif 
+            }
+        }
+        
+        // // as a comparison, solve with ceres 
+        // std::vector<Camera> v_cams; 
+        // std::vector<Eigen::Vector3d> v_joints; 
+        // for(int k = 0; k < m_source.view_ids.size(); k++)
+        // {
+        //     if(m_source.dets[k].keypoints[i](2) < m_topo.kpt_conf_thresh[i]) continue; 
+        //     int view = m_source.view_ids[k];
+        //     v_cams.push_back(m_cameras[view]); 
+        //     v_joints.push_back(m_source.dets[k].keypoints[i]); 
+        // }
+        // if(v_cams.size() < 2)
+        // {
+        //     Z.col(i) = X; 
+        // }
+        // else 
+        // {
+        //     Eigen::Vector3d W = triangulate_ceres(v_cams, v_joints);
+        //     Z.col(i) = W; 
+        // }
+        Z.col(i) = X; 
+    }
+}
+
+Eigen::VectorXd SMAL_2DSOLVER::getRegressedSkelProj(
+    const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T)
+{
+    int N = Y.cols(); 
+    Eigen::MatrixXd skel = getRegressedSkel(); 
+    Eigen::Matrix<double, -1,-1,Eigen::ColMajor> proj;
+    proj.resize(2,N); proj.setZero(); 
+    Eigen::MatrixXd local = K * ((R * skel).colwise() + T);
+    for(int i = 0; i < N; i++) proj.col(i) = local.block<2,1>(0,i) / local(2,i); 
+    Eigen::VectorXd proj_vec = Eigen::Map<Eigen::VectorXd>(proj.data(), 2*N); 
+    return proj_vec; 
 }

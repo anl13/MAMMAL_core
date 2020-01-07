@@ -82,6 +82,15 @@ Vec3 Camera::GetRelT(const Camera& cam2) const
     return T_rel; 
 }
 
+void Camera::NormalizeK()
+{
+    K.row(0) /= W;
+    K.row(1) /= H; 
+    inv_K = K.inverse(); 
+    P_g.block<3,3>(0,0) = K * R; 
+    P_g.block<3,1>(0,3) = K * T; 
+}
+
 /// default cameras for pig data
 Camera getDefaultCameraRaw()
 {
@@ -98,7 +107,6 @@ Camera getDefaultCameraRaw()
     Mat3 R = Mat3::Identity(); 
     Vec3 T = Vec3::Zero(); 
     camera.SetRT(R,T); 
-
     return camera; 
 }
 
@@ -120,3 +128,4 @@ Camera getDefaultCameraUndist()
 
     return camera; 
 }
+
