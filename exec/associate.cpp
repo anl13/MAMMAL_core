@@ -104,7 +104,7 @@ int main(int argc, char** argv)
 {
     gflags::ParseCommandLineFlags(&argc, &argv, true); 
     // test_readingdata(true); 
-    test_topdown(true); 
+    test_topdown(false); 
 
     return 0; 
 }

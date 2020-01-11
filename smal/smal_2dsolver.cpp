@@ -7,7 +7,7 @@
 #include "../associate/skel.h"
 #include "../utils/geometry.h"
 
-// #define DEBUG_SOLVER
+#define DEBUG_SOLVER
 
 void SMAL_2DSOLVER::setCameras(const vector<Camera>& _cameras)
 {

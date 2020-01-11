@@ -38,6 +38,7 @@ void NaiveTracker::track()
     std::cout << G << std::endl; 
 #endif 
     assignments_t assign = solveHungarian(G); 
+    m_map = assign; 
     m_skels_curr_track.clear(); 
     for(int i = 0; i < last_num; i++)
     {

@@ -53,4 +53,15 @@ void FrameData::tracking()
     m_skels3d = m_tracker.get_skels_curr_track(); 
 
     m_skels3d_last = m_skels3d; 
+
+    vector<int> map = m_tracker.get_map(); 
+    vector<MatchedInstance> rematch;
+    rematch.resize(m_matched.size()); 
+    for(int i = 0; i < map.size(); i++)
+    {
+        int id = map[i];
+        if(id>-1)
+        rematch[i] = m_matched[id]; 
+    }
+    m_matched = rematch; 
 }
