@@ -17,12 +17,12 @@ public:
     inline void set_skels_curr(const vector<vector<Eigen::Vector3d> >& _skel) {
         m_skels_curr = _skel; 
     }
-    inline vector<int> get_map() {return m_map;}
+    std::vector<int> get_map(){return m_map; }
     inline vector<vector<Eigen::Vector3d> > get_skels_curr_track(){return m_skels_curr_track;}
     void track();     
 private: 
     vector<vector<Eigen::Vector3d> > m_skels_last; 
     vector<vector<Eigen::Vector3d> > m_skels_curr; 
     vector<vector<Eigen::Vector3d> > m_skels_curr_track; 
-    vector<int> m_map;
+    vector<int> m_map; 
 };

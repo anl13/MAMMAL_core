@@ -63,5 +63,5 @@ void FrameData::tracking()
         if(id>-1)
         rematch[i] = m_matched[id]; 
     }
-    m_matched = rematch; 
+    m_matched = rematch;
 }
