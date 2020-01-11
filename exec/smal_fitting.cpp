@@ -129,16 +129,12 @@ int TestKeypointsAlign()
     SkelTopology topo = getSkelTopoByType("UNIV"); 
     FrameData frame;
     frame.configByJson("/home/al17/animal/animal_calib/associate/config.json");
-    int frameid = frame.get_start_id(); 
+    int startid = frame.get_start_id(); 
     // std::stringstream ss; 
     // ss << "/home/al17/animal/animal_calib/result_data/skels3d/skel_" 
     //    << std::setw(6) << std::setfill('0') << frameid << ".json"; 
     // frame.readSkel3DfromJson(ss.str()); 
-    frame.set_frame_id(frameid); 
-    frame.fetchData();
-    frame.matching(); 
-    std::vector<std::vector<Eigen::Vector3d> > data = frame.get_skels3d(); 
-    std::vector<MatchedInstance> matched = frame.get_matched(); 
+
 
     //// rendering pipeline. 
     std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
@@ -181,56 +177,85 @@ int TestKeypointsAlign()
 
     m_renderer.s_camViewer.SetExtrinsic(camPos, camUp, camCen); 
 
+
+
+    int framenum = frame.get_frame_num(); 
+    std::string videoname_render = "/home/al17/animal/animal_calib/result_data/render.avi"; 
+    cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('H', '2', '6', '4'), 25.0, cv::Size(1024, 1024)); 
+    if(!writer_render.isOpened())
+    {
+        std::cout << "can not open video file " << videoname_render << std::endl; 
+        return -1; 
+    }
     std::string smal_folder = "/home/al17/animal/smal/smal_online_V1.0/smalr_txt";
     SMAL_2DSOLVER solver(smal_folder); 
     solver.setMapper(M); 
-    std::vector<Camera> cams = frame.get_cameras(); 
-    solver.setCameras(cams); 
-    solver.normalizeCamera(); 
-    for(int pid = 0; pid < 4; pid++)
+
+    for(int frameid = startid; frameid < startid+framenum; frameid++)
     {
-        Eigen::MatrixXd Y = Eigen::MatrixXd::Zero(3, data[pid].size()); 
-        for(int i = 0; i < data[pid].size(); i++) Y.col(i) = data[pid][i]; 
-    
-        solver.readState("../data/pig_shape.txt");
-        solver.setY(Y); 
-        solver.setSource(matched[pid]); 
-        solver.normalizeSource(); 
-        solver.globalAlign(); 
-        solver.optimizePose(100, 0.001); 
-        // solver.optimizeJoints(); 
-        // Eigen::MatrixXd Z = solver.getZ(); 
-        // vector<Eigen::Vector3d> joints; 
-        // for(int k = 0; k < Z.cols(); k++) joints.push_back(Z.col(k)); 
+        std::cout << "processig " << frameid << std::endl; 
+        frame.set_frame_id(frameid); 
+        frame.fetchData(); 
+        frame.matching(); 
+        frame.tracking(); 
+        std::vector<std::vector<Eigen::Vector3d> > data = frame.get_skels3d(); 
+        std::vector<MatchedInstance> matched = frame.get_matched(); 
+        m_renderer.colorObjs.clear(); 
+        m_renderer.skels.clear(); 
 
-        RenderObjectColor* smal_render = new RenderObjectColor(); 
-        Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces = solver.GetFaces(); 
-        Eigen::MatrixXf vs = solver.GetVertices().cast<float>(); 
-        smal_render->SetFaces(faces); 
-        smal_render->SetVertices(vs);
-        smal_render->SetColor(CM[pid]); 
-        m_renderer.colorObjs.push_back(smal_render); 
+        std::vector<Camera> cams = frame.get_cameras(); 
+        solver.setCameras(cams); 
+        solver.normalizeCamera(); 
+        for(int pid = 0; pid < 4; pid++)
+        {
+            Eigen::MatrixXd Y = Eigen::MatrixXd::Zero(3, data[pid].size()); 
+            for(int i = 0; i < data[pid].size(); i++) Y.col(i) = data[pid][i]; 
+        
+            solver.readState("../data/pig_shape.txt");
+            solver.setY(Y); 
+            solver.setSource(matched[pid]); 
+            solver.normalizeSource(); 
+            solver.globalAlign(); 
+            solver.optimizePose(100, 0.001); 
+            // solver.optimizeJoints(); 
+            // Eigen::MatrixXd Z = solver.getZ(); 
+            // vector<Eigen::Vector3d> joints; 
+            // for(int k = 0; k < Z.cols(); k++) joints.push_back(Z.col(k)); 
 
-        std::vector<Eigen::Vector3f> balls; 
-        std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
-        GetBallsAndSticks(data[pid], topo.bones, balls, sticks); 
-        BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks, 
-                                    0.02f, 0.01f, 0.5 * CM[pid]); 
-        m_renderer.skels.push_back(skelObject); 
+            RenderObjectColor* smal_render = new RenderObjectColor(); 
+            Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces = solver.GetFaces(); 
+            Eigen::MatrixXf vs = solver.GetVertices().cast<float>(); 
+            smal_render->SetFaces(faces); 
+            smal_render->SetVertices(vs);
+            smal_render->SetColor(CM[pid]); 
+            m_renderer.colorObjs.push_back(smal_render); 
 
-        // GetBallsAndSticks(joints, topo.bones, balls, sticks); 
-        // BallStickObject* skelObject2 = new BallStickObject(ballObj, stickObj, balls, sticks,
-        //                             0.03f, 0.01f, CM[pid]); 
-        // m_renderer.skels.push_back(skelObject2); 
+            std::vector<Eigen::Vector3f> balls; 
+            std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
+            GetBallsAndSticks(data[pid], topo.bones, balls, sticks); 
+            BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks, 
+                                        0.02f, 0.01f, 0.5 * CM[pid]); 
+            m_renderer.skels.push_back(skelObject); 
+
+            // GetBallsAndSticks(joints, topo.bones, balls, sticks); 
+            // BallStickObject* skelObject2 = new BallStickObject(ballObj, stickObj, balls, sticks,
+            //                             0.03f, 0.01f, CM[pid]); 
+            // m_renderer.skels.push_back(skelObject2); 
+        }
+
+        // while(!glfwWindowShouldClose(windowPtr))
+        // {
+            m_renderer.Draw(); 
+            cv::Mat capture = m_renderer.GetImage(); 
+            writer_render.write(capture); 
+            // std::stringstream ss; 
+            // ss << "../result_data/render/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+            // cv::imwrite(ss.str(), capture); 
+            glfwSwapBuffers(windowPtr); 
+            glfwPollEvents(); 
+        // };
     }
-
-    while(!glfwWindowShouldClose(windowPtr))
-    {
-        m_renderer.Draw(); 
-
-        glfwSwapBuffers(windowPtr); 
-        glfwPollEvents(); 
-    };
+    
     return 0; 
 }
 

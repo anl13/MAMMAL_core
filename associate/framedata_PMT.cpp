@@ -26,6 +26,7 @@ void FrameData::matching()
     matcher.get_clusters(m_clusters); 
     matcher.get_skels3d(m_skels3d); 
     
+    m_matched.clear(); 
     m_matched.resize(m_clusters.size()); 
     for(int i = 0; i < m_clusters.size(); i++)
     {
