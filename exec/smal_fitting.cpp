@@ -187,6 +187,21 @@ int TestKeypointsAlign()
         std::cout << "can not open video file " << videoname_render << std::endl; 
         return -1; 
     }
+    std::string videoname = "/home/al17/animal/animal_calib/result_data/reproj_topdown.avi"; 
+    cv::VideoWriter writer(videoname, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1920*4, 1080*3)); 
+    if(!writer.isOpened())
+    {
+        std::cout << "can not open video file " << videoname << std::endl; 
+        return -1; 
+    }
+
+    std::string videoname_det = "/home/al17/animal/animal_calib/result_data/det_topdown.avi"; 
+    cv::VideoWriter writer_det(videoname_det, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1920*4, 1080*3)); 
+    if(!writer_det.isOpened())
+    {
+        std::cout << "can not open video file " << videoname << std::endl; 
+        return -1; 
+    }
     std::string smal_folder = "/home/al17/animal/smal/smal_online_V1.0/smalr_txt";
     SMAL_2DSOLVER solver(smal_folder); 
     solver.setMapper(M); 
@@ -198,6 +213,11 @@ int TestKeypointsAlign()
         frame.fetchData(); 
         frame.matching(); 
         frame.tracking(); 
+        frame.reproject_skels();
+        cv::Mat img1 = frame.visualizeIdentity2D(); 
+        cv::Mat img = frame.visualizeProj(); 
+        writer_det.write(img1); 
+        writer.write(img); 
         std::vector<std::vector<Eigen::Vector3d> > data = frame.get_skels3d(); 
         std::vector<MatchedInstance> matched = frame.get_matched(); 
         m_renderer.colorObjs.clear(); 

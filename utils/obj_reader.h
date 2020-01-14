@@ -26,7 +26,7 @@ public:
 	std::vector<Eigen::Vector3i> faces_t; // textures of faces
 	std::vector<Eigen::Vector2f> textures;
     Eigen::MatrixXf vertices_eigen; 
-    Eigen::MatrixXi faces_v_eigen; 
+    Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces_v_eigen; 
 
 private:
 	void split_face_str(std::string str, int& i1, int &i2, int &i3);

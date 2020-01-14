@@ -314,11 +314,12 @@ cv::Mat FrameData::visualizeIdentity2D()
     std::vector<cv::Mat> imgdata;
     cloneImgs(m_imgsUndist, imgdata); 
     
-    for(int id = 0; id < m_clusters.size(); id++)
+    for(int id = 0; id < m_matched.size(); id++)
     {
-        for(int camid = 0; camid < m_camNum; camid++)
+        for(int i = 0; i < m_matched[id].view_ids.size(); i++)
         {
-            int candid = m_clusters[id][camid];
+            int camid = m_matched[id].view_ids[i];
+            int candid = m_matched[id].cand_ids[i];
             if(candid < 0) continue; 
             drawSkel(imgdata[camid], m_detUndist[camid][candid].keypoints, id);
             my_draw_box(imgdata[camid], m_detUndist[camid][candid].box, m_CM[id]); 

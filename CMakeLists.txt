@@ -141,3 +141,22 @@ ${OPENGL_LIBRARY}
 glfw
 mce
 )
+
+## exe: smal fitting test 
+add_executable(custom
+exec/custom_pig.cpp
+${UTIL_FILES}
+smal/pigmodel.cpp 
+${RENDER_FILES}
+)
+target_link_libraries(custom 
+${CERES_LIBRARIES}
+${MY_Boost_LIBS}
+${GFLAGS_LIBS}
+${GLOG_LIBRARY}
+${OpenCV_LIBS}
+${OPENGL_gl_LIBRARY}
+${GLUT_LIBRARIES}
+${OPENGL_LIBRARY}
+glfw
+)

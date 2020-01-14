@@ -5,7 +5,7 @@
     "camfolder": "/home/al17/animal/animal_calib/results/",
     "startid" : 0, 
     "epipolartype": "p2l", // "p2l" or "l2l" 
-    "framenum": 3000, 
+    "framenum": 1500, 
     "epipolar_threshold": 25,
     "box_expand_ratio": 0.05,
     "skel_type" : "UNIV"
