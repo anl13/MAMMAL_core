@@ -1,6 +1,8 @@
 #include "math_utils.h"
 #include <algorithm>
 
+#define PI 3.14159265359 
+
 Mat3 GetSkewMatrix(const Vec3& w)
 {
     Mat3 expw = Mat3::Zero(); 
@@ -325,4 +327,51 @@ void IoU_xyxy_ratio(Eigen::Vector4d b1, Eigen::Vector4d b2, double& iou, double 
 bool in_image(float w, float h, float x, float y)
 {
     return (x>=0 && x<w && y>=0 && y<h); 
+}
+
+
+Mat3 EulerToRotRadD(double x, double y, double z, std::string type)
+{
+    if(type=="XYZ")
+    {
+        double cx = cos(x); 
+        double sx = sin(x); 
+        double cy = cos(y); 
+        double sy = sin(y); 
+        double cz = cos(z); 
+        double sz = sin(z); 
+        Mat3 Rx = Mat3::Identity(); 
+        Rx(1,1) = Rx(2,2) = cx; 
+        Rx(1,2) = -sx; Rx(2,1) = sx; 
+        Mat3 Ry = Mat3::Identity(); 
+        Ry(0,0) = Ry(2,2) = cy; 
+        Ry(0,2) = sy; Ry(2,0) = -sy; 
+        Mat3 Rz = Mat3::Identity(); 
+        Rz(0,0) = Rz(1,1) = cz; 
+        Rz(0,1) = -sz; Rz(1,0) = sz;  
+        
+        return Rz * Ry * Rx; 
+    }
+    else { 
+        std::cout << "euler type " << type << " not implemented yet." << std::endl; 
+        return Mat3::Identity();
+    }
+}
+
+Mat3 EulerToRotDegreeD(double x, double y, double z, std::string type)
+{
+    double xrad = x * 3.14159265359 / 180; 
+    double yrad = y * 3.14159265359 / 180; 
+    double zrad = z * 3.14159265359 / 180; 
+    return EulerToRotRadD(xrad, yrad, zrad, type); 
+}
+
+Mat3 EulerToRotRadD(Vec3 rads, std::string type)
+{
+    return EulerToRotRadD(rads(0), rads(1), rads(2), type); 
+}
+
+Mat3 EulerToRotDegreeD(Vec3 rads, std::string type)
+{
+    return EulerToRotDegreeD(rads(0), rads(1), rads(2), type); 
 }

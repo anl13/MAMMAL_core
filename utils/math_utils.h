@@ -1,5 +1,4 @@
-#ifndef __MATH_UTILS_HPP__
-#define __MATH_UTILS_HPP__
+#pragma once 
 
 #include <opencv2/opencv.hpp>
 #include <Eigen/Dense> 
@@ -38,6 +37,8 @@ Mat3 GetRodrigues(const Vec3& w);
 Eigen::Matrix<float, 3, 9, Eigen::ColMajor> RodriguesJacobiF(const Eigen::Vector3f& vec);
 Eigen::Matrix<double, 3, 9, Eigen::ColMajor> RodriguesJacobiD(const Eigen::Vector3d& vec); 
 
+
+
 /*****************average rotations*******************/
 Vec3 AvgAxisAngles(const std::vector<Vec3> &rots); 
 
@@ -70,4 +71,9 @@ void IoU_xyxy_ratio(Eigen::Vector4d b1, Eigen::Vector4d b2, double& iou, double 
 
 bool in_image(float w, float h, float x, float y); 
 
-#endif 
+
+// XYZ: roll pitch yaw convention. 
+Mat3 EulerToRotRadD(double x, double y, double z, std::string type="XYZ");
+Mat3 EulerToRotDegreeD(double x, double y, double z, std::string type="XYZ");
+Mat3 EulerToRotRadD(Vec3 rads, std::string type="XYZ"); 
+Mat3 EulerToRotDegreeD(Vec3 rads, std::string type="XYZ");

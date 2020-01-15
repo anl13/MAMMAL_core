@@ -67,8 +67,6 @@ PigModel::PigModel(const std::string &folder)
 	}
 	jfile.close(); 
 	m_jointsFinal = m_jointsOrigin / 100; 
-	
-
 }
 
 
