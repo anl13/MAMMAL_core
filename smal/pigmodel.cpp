@@ -50,9 +50,15 @@ PigModel::PigModel(const std::string &folder)
 	Eigen::Vector3d mean = m_verticesFinal.rowwise().mean(); 
 	m_verticesFinal = m_verticesFinal.colwise() - mean; 
 
+	// load pose 
+	m_poseParam.resize(3 * m_jointNum); 
+	std::ifstream rfile(folder + "rots.txt"); 
+	for (int i = 0; i < 3 * m_jointNum; i++) rfile >> m_poseParam(i); 
+	m_poseParam = m_poseParam * PI / 180; 
+
 	// read translations ? joints ? 
 	m_jointsOrigin.resize(3, m_jointNum); 
-	std::ifstream jfile(folder + "points"); 
+	std::ifstream jfile(folder + "joint.txt"); 
 	if(!jfile.is_open()) 
 	{
 		std::cout << "can not open jfile " << std::endl; 
@@ -65,8 +71,17 @@ PigModel::PigModel(const std::string &folder)
 			jfile >> m_jointsOrigin(j,i); 
 		}
 	}
-	jfile.close(); 
-	m_jointsFinal = m_jointsOrigin / 100; 
+	jfile.close();
+	m_jointsShaped = m_jointsOrigin / 100; 
+	
+	std::cout << "joints: " << std::endl << m_jointsOrigin.transpose() << std::endl; 
+	m_translation = Eigen::Vector3d::Zero(); 
+	m_singleAffine.resize(4, 4 * m_jointNum); 
+	m_globalAffine.resize(4, 4 * m_jointNum); 
+	m_jointsFinal.resize(3, m_jointNum); 
+	UpdateSingleAffine(); 
+	UpdateGlobalAffine(); 
+	UpdateJointsFinal(); 
 }
 
 
@@ -84,11 +99,15 @@ void PigModel::UpdateSingleAffine(const int jointCount)
 		Eigen::Matrix4d matrix;
 		matrix.setIdentity();
 
-		matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+		//matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+		matrix.block<3, 3>(0, 0) = EulerToRotRadD(pose); 
 		if (jointId == 0)
 			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) + m_translation;
 		else
-			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) - m_jointsShaped.col(m_parent(jointId));
+		{
+			
+			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId); 
+		}
 
 		m_singleAffine.block<4,4>(0, 4 * jointId) = matrix; 
 	}

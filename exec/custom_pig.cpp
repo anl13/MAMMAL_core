@@ -94,12 +94,12 @@ int main()
 	const ObjData cubeObj(conf_projectFolder + "/data/obj_model/cube.obj");
     const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj"); 
 
-    RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	RenderObjectTexture* chess_floor = new RenderObjectTexture();
 	chess_floor->SetTexture(conf_projectFolder + "/data/chessboard.png");
 	chess_floor->SetFaces(squareObj.faces, true);
 	chess_floor->SetVertices(squareObj.vertices);
 	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor); 
 
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 

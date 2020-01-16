@@ -1,7 +1,6 @@
 #include "math_utils.h"
 #include <algorithm>
 
-#define PI 3.14159265359 
 
 Mat3 GetSkewMatrix(const Vec3& w)
 {

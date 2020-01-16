@@ -6,6 +6,9 @@
 #include <opencv2/core/eigen.hpp> 
 #include <vector> 
 
+#define PI 3.14159265359 
+
+
 typedef Eigen::Matrix4d Mat4; 
 typedef Eigen::Matrix3d Mat3; 
 typedef Eigen::Vector3d Vec3; 
