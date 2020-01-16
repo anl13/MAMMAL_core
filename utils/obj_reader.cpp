@@ -64,6 +64,8 @@ void OBJReader::read(std::string filename)
 	for(int i = 0; i < vertices.size(); i++) vertices_eigen.col(i) = vertices[i]; 
 	faces_v_eigen.resize(3, faces_v.size()); 
 	for(int i = 0; i < faces_v.size(); i++) faces_v_eigen.col(i) = faces_v[i].cast<unsigned int>(); 
+	textures_eigen.resize(2, vertices.size()); 
+	for (int i = 0; i < vertices.size(); i++) textures_eigen.col(i) = textures[i]; 
 	std::cout << "[OBJReader]vertices number:" << vertices.size() << std::endl;
 	std::cout << "[OBJReader]textures number:" << textures.size() << std::endl;
 	std::cout << "[OBJReader]faces v size   :" << faces_v.size() << std::endl; 

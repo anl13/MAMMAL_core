@@ -63,10 +63,10 @@ std::vector<Eigen::Vector2i> bones = {
 int main()
 {
 #ifdef _WIN32
-    std::string folder = "D:/Projects/animal_calib/data/embed_skel/"; 
+    std::string folder = "D:/Projects/animal_calib/data/pig_model/"; 
 	std::string conf_projectFolder = "D:/Projects/animal_calib/render/";
 #else 
-	std::string folder = "/home/al17/animal/animal_calib/data/embed_skel/"; 
+	std::string folder = "/home/al17/animal/animal_calib/data/pig_model/"; 
 	std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
 #endif 
     PigModel model(folder); 
@@ -104,15 +104,15 @@ int main()
 
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
 
-    // RenderObjectColor* pig_render = new RenderObjectColor(); 
-    // Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces = model.GetFaces(); 
-    // Eigen::MatrixXf vs = model.GetVertices().cast<float>(); 
-    // pig_render->SetFaces(faces); 
-    // pig_render->SetVertices(vs);
-    // Eigen::Vector3f color; 
-    // color << 1.0f, 0.0f, 0.0f; 
-    // pig_render->SetColor(color); 
-    // m_renderer.colorObjs.push_back(pig_render); 
+     RenderObjectColor* pig_render = new RenderObjectColor(); 
+     Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces = model.GetFaces(); 
+     Eigen::MatrixXf vs = model.GetVertices().cast<float>(); 
+     pig_render->SetFaces(faces); 
+     pig_render->SetVertices(vs);
+     Eigen::Vector3f color; 
+     color << 1.0f, 0.0f, 0.0f; 
+     pig_render->SetColor(color); 
+     m_renderer.colorObjs.push_back(pig_render); 
 
     std::vector<Eigen::Vector3f> balls; 
     std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 

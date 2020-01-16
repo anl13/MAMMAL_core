@@ -40,7 +40,7 @@ protected:
 	const int m_jointNum = 43;
 	const int m_vertexNum = 2176;
 	const int m_shapeNum = 0;
-	const int m_faceNum = 3718;
+	const int m_faceNum = 3719;
 
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsOrigin;
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsShaped;
@@ -51,6 +51,7 @@ protected:
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesFinal;
 
 	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> m_faces;
+	Eigen::Matrix<double, 2, -1, Eigen::ColMajor> m_texcoords; 
 
 	Eigen::VectorXi m_parent;
 

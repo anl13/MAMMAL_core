@@ -12,7 +12,7 @@
 PigModel::PigModel(const std::string &folder)
 {
 	// read vertices 
-	std::ifstream vfile(folder + "vertices"); 
+	std::ifstream vfile(folder + "vertices.txt"); 
 	if(!vfile.is_open()){
 		std::cout << "vfile not open" << std::endl; exit(-1); 
 	}
@@ -38,27 +38,22 @@ PigModel::PigModel(const std::string &folder)
 	pfile.close(); 
 
 	// read faces 
-	OBJReader reader; 
-	reader.read(folder+"pig_tpose.obj"); 
-	std::cout << "v num: " << reader.vertices.size() << std::endl; 
-	std::cout << "f num: " << reader.faces_v.size() << std::endl;
-	m_faces = reader.faces_v_eigen; 
-    std::cout << "PigModel model prepared. " << std::endl; 
+	m_faces.resize(3, m_faceNum); 
+	std::ifstream facefile(folder + "faces.txt"); 
+	if (!facefile.is_open())
+	{
+		std::cout << "facefile not open " << std::endl; 
+		exit(-1); 
+	}
+	for (int i = 0; i < m_faceNum; i++)
+	{
+		facefile >> m_faces(0, i) >> m_faces(1, i) >> m_faces(2, i);
+	}
+	facefile.close(); 
 
-	// m_verticesFinal = m_verticesOrigin / 100; 
-	m_verticesFinal = reader.vertices_eigen.cast<double>() / 100; 
-	Eigen::Vector3d mean = m_verticesFinal.rowwise().mean(); 
-	m_verticesFinal = m_verticesFinal.colwise() - mean; 
-
-	// load pose 
-	m_poseParam.resize(3 * m_jointNum); 
-	std::ifstream rfile(folder + "rots.txt"); 
-	for (int i = 0; i < 3 * m_jointNum; i++) rfile >> m_poseParam(i); 
-	m_poseParam = m_poseParam * PI / 180; 
-
-	// read translations ? joints ? 
+	// read t pose joints
 	m_jointsOrigin.resize(3, m_jointNum); 
-	std::ifstream jfile(folder + "joint.txt"); 
+	std::ifstream jfile(folder + "t_pose_joints.txt"); 
 	if(!jfile.is_open()) 
 	{
 		std::cout << "can not open jfile " << std::endl; 
@@ -71,17 +66,53 @@ PigModel::PigModel(const std::string &folder)
 			jfile >> m_jointsOrigin(j,i); 
 		}
 	}
-	jfile.close();
-	m_jointsShaped = m_jointsOrigin / 100; 
-	
-	std::cout << "joints: " << std::endl << m_jointsOrigin.transpose() << std::endl; 
+	jfile.close();	
+
+	// read skinning weights 
+	std::ifstream weightsfile(folder + "skinning_weights.txt");
+	if (!weightsfile.is_open())
+	{
+		std::cout << "weights file not open " << std::endl; 
+		exit(-1); 
+	}
+	m_lbsweights.resize(m_jointNum, m_vertexNum);
+	m_lbsweights.setZero(); 
+	while (true)
+	{
+		if (weightsfile.eof()) break; 
+		int row, col; 
+		double value; 
+		weightsfile >> row; 
+		if (weightsfile.eof()) break; 
+		weightsfile >> col >> value;
+		m_lbsweights(row, col) = value; 
+	}
+	weightsfile.close(); 
+
+	// read texture coordinates 
+	std::ifstream texfile(folder + "textures.txt"); 
+	if (!texfile.is_open())
+	{
+		std::cout << "texture file not open " << std::endl; 
+		exit(-1); 
+	}
+	m_texcoords.resize(2, m_vertexNum); 
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		texfile >> m_texcoords(0, i) >> m_texcoords(1, i); 
+	}
+	texfile.close(); 
+
+	// init 
 	m_translation = Eigen::Vector3d::Zero(); 
+	m_poseParam = Eigen::VectorXd::Zero(3 * m_jointNum); 
+
 	m_singleAffine.resize(4, 4 * m_jointNum); 
 	m_globalAffine.resize(4, 4 * m_jointNum); 
 	m_jointsFinal.resize(3, m_jointNum); 
-	UpdateSingleAffine(); 
-	UpdateGlobalAffine(); 
-	UpdateJointsFinal(); 
+	m_verticesFinal.resize(3, m_vertexNum); 
+	
+	UpdateVertices(); 
 }
 
 
@@ -99,16 +130,15 @@ void PigModel::UpdateSingleAffine(const int jointCount)
 		Eigen::Matrix4d matrix;
 		matrix.setIdentity();
 
-		//matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
-		matrix.block<3, 3>(0, 0) = EulerToRotRadD(pose); 
+		matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+		//matrix.block<3, 3>(0, 0) = EulerToRotRadD(pose);
 		if (jointId == 0)
 			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) + m_translation;
 		else
 		{
-			
-			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId); 
+			int p = m_parent(jointId); 
+			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) - m_jointsShaped.col(p); 
 		}
-
 		m_singleAffine.block<4,4>(0, 4 * jointId) = matrix; 
 	}
 }
@@ -129,8 +159,15 @@ void PigModel::UpdateGlobalAffine(const int jointCount)
 
 void PigModel::UpdateJointsShaped()
 {
-	Eigen::VectorXd jointsOffset = m_shapeBlendJ * m_shapeParam;
-	m_jointsShaped = m_jointsOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(jointsOffset.data(), 3, m_jointNum);
+	if (m_shapeNum == 0)
+	{
+		m_jointsShaped = m_jointsOrigin; 
+	}
+	else
+	{
+		Eigen::VectorXd jointsOffset = m_shapeBlendJ * m_shapeParam;
+		m_jointsShaped = m_jointsOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(jointsOffset.data(), 3, m_jointNum);
+	}
 }
 
 
@@ -154,10 +191,16 @@ void PigModel::UpdateJoints()
 
 void PigModel::UpdateVerticesShaped()
 {
-	Eigen::VectorXd verticesOffset = m_shapeBlendV * m_shapeParam;
-	m_verticesShaped = m_verticesOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(verticesOffset.data(), 3, m_vertexNum);
+	if (m_shapeNum == 0)
+	{
+		m_verticesShaped = m_verticesOrigin; 
+	}
+	else
+	{
+		Eigen::VectorXd verticesOffset = m_shapeBlendV * m_shapeParam;
+		m_verticesShaped = m_verticesOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(verticesOffset.data(), 3, m_vertexNum);
+	}
 }
-
 
 void PigModel::UpdateVerticesFinal()
 {
@@ -175,7 +218,6 @@ void PigModel::UpdateVerticesFinal()
 		m_verticesFinal.col(vertexId) = globalAffineAverage.block<3, 4>(0, 0)*(m_verticesShaped.col(vertexId).homogeneous());
 	}
 }
-
 
 void PigModel::UpdateVertices()
 {
