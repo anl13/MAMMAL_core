@@ -18,6 +18,10 @@
 
 #include <cstdlib>
 
+#ifdef _WIN32
+#include <algorithm>
+#include <Windows.h>
+#endif 
 using namespace std; 
 
 /*! \file MemoryManager.h
@@ -104,6 +108,7 @@ static void* CallocWithCheck(size_t x, size_t y)
     #define Free(x) free(x)
 
     #else
+
 
     #define Malloc(x) malloc(max((int)x,1))
     #define Calloc(x,y) calloc(max((int)x,1),max((int)y,1))

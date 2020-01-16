@@ -1,0 +1,213 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="associate">
+      <UniqueIdentifier>{5fb99e46-a45e-477d-addc-74fbd43b11a8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="associate\mce">
+      <UniqueIdentifier>{0ba8c2f1-cdb7-4b96-88db-c707de187fd9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="render">
+      <UniqueIdentifier>{eb5f9722-17dd-4e41-aee9-d4598ec4a98b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="smal">
+      <UniqueIdentifier>{79a208ca-a076-444e-91f6-ed564d41b8c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{91701ef2-797d-46d1-8f09-e94f5f7d76ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="exec">
+      <UniqueIdentifier>{07d708d4-d665-42f0-af08-d8df9e911d67}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\associate\clusterclique.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\framedata.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\framedata_PMT.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\matching.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\skel.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\tracking.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\mce\AdjacencyListAlgorithm.cpp">
+      <Filter>associate\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\mce\Algorithm.cpp">
+      <Filter>associate\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\mce\MemoryManager.cpp">
+      <Filter>associate\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\mce\Tools.cpp">
+      <Filter>associate\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\camviewer.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\glad.c">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_object.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_utils.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\renderer.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\shader.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\pigmodel.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\smal.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\smal_2dsolver.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\smal_jsolver.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\smal_solver.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\camera.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\geometry.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\Hungarian.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\math_utils.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\obj_reader.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\custom_pig.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\associate\clusterclique.h">
+      <Filter>associate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\framedata.h">
+      <Filter>associate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\matching.h">
+      <Filter>associate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\skel.h">
+      <Filter>associate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\tracking.h">
+      <Filter>associate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\mce\AdjacencyListAlgorithm.h">
+      <Filter>associate\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\mce\Algorithm.h">
+      <Filter>associate\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\mce\MemoryManager.h">
+      <Filter>associate\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\mce\Tools.h">
+      <Filter>associate\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\camviewer.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\eigen_util.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\render_object.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\render_utils.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\renderer.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\shader.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\stb_image.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\smal\pigmodel.h">
+      <Filter>smal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\smal\smal.h">
+      <Filter>smal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\smal\smal_2dsolver.h">
+      <Filter>smal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\smal\smal_jsolver.h">
+      <Filter>smal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\smal\smal_solver.h">
+      <Filter>smal</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\camera.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\colorterminal.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\geometry.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\Hungarian.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\image_utils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\math_utils.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\obj_reader.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\associate\config.json">
+      <Filter>associate</Filter>
+    </None>
+    <None Include="..\.gitignore" />
+  </ItemGroup>
+</Project>

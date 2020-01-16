@@ -166,8 +166,13 @@ void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output)
 
 void getColorMap(std::string cm_type, std::vector<Eigen::Vector3i> &colormap)
 {
+#ifdef _WIN32
+	std::string cm_folder = "D:/Projects/animal_calib/data/colormaps/"; 
+#else 
+	std::string cm_folder = "/home/al17/animal/animal_calib/data/colormaps/";
+#endif 
     std::stringstream ss; 
-    ss << "/home/al17/animal/animal_calib/data/colormaps/" << cm_type << ".txt";
+    ss << cm_folder << cm_type << ".txt";
 
     colormap.clear(); 
     std::ifstream colorstream; 

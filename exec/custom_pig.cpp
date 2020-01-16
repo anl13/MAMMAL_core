@@ -62,11 +62,16 @@ std::vector<Eigen::Vector2i> bones = {
 
 int main()
 {
-    std::string folder = "/home/al17/animal/animal_calib/data/embed_skel/"; 
+#ifdef _WIN32
+    std::string folder = "D:/Projects/animal_calib/data/embed_skel/"; 
+	std::string conf_projectFolder = "D:/Projects/animal_calib/render/";
+#else 
+	std::string folder = "/home/al17/animal/animal_calib/data/embed_skel/"; 
+	std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
+#endif 
     PigModel model(folder); 
 
     //// rendering pipeline. 
-    std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
     auto CM = getColorMapEigen("anliang_rgb"); 
 
     // init a camera 

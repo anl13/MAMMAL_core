@@ -1,15 +1,14 @@
 #include "BASolver.h"
-#include <ceres/rotation.h>
+//#include <ceres/rotation.h>
 #include <iostream> 
 
 using ceres::AutoDiffCostFunction;
-using ceres::NumericDiffCostFunction;
 using ceres::CostFunction;
 using ceres::Problem;
 using ceres::Solver;
 using ceres::Solve;
-using ceres::LossFunction;
-using ceres::LossFunctionWrapper;
+//using ceres::LossFunction;
+//using ceres::LossFunctionWrapper;
 
 const float c_dxi = 0; 
 const float c_dyi = 0; 
@@ -28,7 +27,7 @@ struct ReprojectionError {
 		p_global[1] = point[1];
 		p_global[2] = point[2];
 		T p[3];
-		ceres::AngleAxisRotatePoint(rvec, p_global, p);
+		//ceres::AngleAxisRotatePoint(rvec, p_global, p);
 		// camera[3,4,5] are the translation.
 		p[0] += tvec[0]; p[1] += tvec[1]; p[2] += tvec[2];
 
@@ -75,7 +74,7 @@ struct ReprojectionErrorRatio {
 		point[0] = T(x);
 		point[1] = T(y) * (*ratio); 
 		point[2] = T(z); 
-		ceres::AngleAxisRotatePoint(rvec, point, p);
+		//ceres::AngleAxisRotatePoint(rvec, point, p);
 		// camera[3,4,5] are the translation.
 		p[0] += tvec[0]; p[1] += tvec[1]; p[2] += tvec[2];
 

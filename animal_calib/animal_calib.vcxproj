@@ -1,0 +1,184 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\associate\clusterclique.cpp" />
+    <ClCompile Include="..\associate\framedata.cpp" />
+    <ClCompile Include="..\associate\framedata_PMT.cpp" />
+    <ClCompile Include="..\associate\matching.cpp" />
+    <ClCompile Include="..\associate\mce\AdjacencyListAlgorithm.cpp" />
+    <ClCompile Include="..\associate\mce\Algorithm.cpp" />
+    <ClCompile Include="..\associate\mce\MemoryManager.cpp" />
+    <ClCompile Include="..\associate\mce\Tools.cpp" />
+    <ClCompile Include="..\associate\skel.cpp" />
+    <ClCompile Include="..\associate\tracking.cpp" />
+    <ClCompile Include="..\exec\custom_pig.cpp" />
+    <ClCompile Include="..\render\camviewer.cpp" />
+    <ClCompile Include="..\render\glad.c" />
+    <ClCompile Include="..\render\renderer.cpp" />
+    <ClCompile Include="..\render\render_object.cpp" />
+    <ClCompile Include="..\render\render_utils.cpp" />
+    <ClCompile Include="..\render\shader.cpp" />
+    <ClCompile Include="..\smal\pigmodel.cpp" />
+    <ClCompile Include="..\smal\smal.cpp" />
+    <ClCompile Include="..\smal\smal_2dsolver.cpp" />
+    <ClCompile Include="..\smal\smal_jsolver.cpp" />
+    <ClCompile Include="..\smal\smal_solver.cpp" />
+    <ClCompile Include="..\utils\camera.cpp" />
+    <ClCompile Include="..\utils\geometry.cpp" />
+    <ClCompile Include="..\utils\Hungarian.cpp" />
+    <ClCompile Include="..\utils\image_utils.cpp" />
+    <ClCompile Include="..\utils\math_utils.cpp" />
+    <ClCompile Include="..\utils\obj_reader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\associate\clusterclique.h" />
+    <ClInclude Include="..\associate\framedata.h" />
+    <ClInclude Include="..\associate\matching.h" />
+    <ClInclude Include="..\associate\mce\AdjacencyListAlgorithm.h" />
+    <ClInclude Include="..\associate\mce\Algorithm.h" />
+    <ClInclude Include="..\associate\mce\MemoryManager.h" />
+    <ClInclude Include="..\associate\mce\Tools.h" />
+    <ClInclude Include="..\associate\skel.h" />
+    <ClInclude Include="..\associate\tracking.h" />
+    <ClInclude Include="..\render\camviewer.h" />
+    <ClInclude Include="..\render\eigen_util.h" />
+    <ClInclude Include="..\render\renderer.h" />
+    <ClInclude Include="..\render\render_object.h" />
+    <ClInclude Include="..\render\render_utils.h" />
+    <ClInclude Include="..\render\shader.h" />
+    <ClInclude Include="..\render\stb_image.h" />
+    <ClInclude Include="..\smal\pigmodel.h" />
+    <ClInclude Include="..\smal\smal.h" />
+    <ClInclude Include="..\smal\smal_2dsolver.h" />
+    <ClInclude Include="..\smal\smal_jsolver.h" />
+    <ClInclude Include="..\smal\smal_solver.h" />
+    <ClInclude Include="..\utils\camera.h" />
+    <ClInclude Include="..\utils\colorterminal.h" />
+    <ClInclude Include="..\utils\geometry.h" />
+    <ClInclude Include="..\utils\Hungarian.h" />
+    <ClInclude Include="..\utils\image_utils.h" />
+    <ClInclude Include="..\utils\math_utils.h" />
+    <ClInclude Include="..\utils\obj_reader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\.gitignore" />
+    <None Include="..\associate\config.json" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}</ProjectGuid>
+    <RootNamespace>animal_calib</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>../3rdparty/eigen;../3rdparty/ceres/include;../3rdparty/opencv/include;../3rdparty/json/include;../3rdparty/opengl/include;../3rdparty/boost/include;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+    </ClCompile>
+    <Link>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>..\3rdparty\boost\lib\*.lib;..\3rdparty\ceres\lib\*.lib;..\3rdparty\opengl\lib\*.lib;..\3rdparty\json\lib\*.lib;..\3rdparty\opencv\lib\*.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
