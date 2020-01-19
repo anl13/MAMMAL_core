@@ -24,6 +24,13 @@ void GetBallsAndSticks(
     std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > &sticks
 ); 
 
+void GetBallsAndSticks(
+	const Eigen::MatrixXd& joints,
+	const std::vector<Eigen::Vector2i>& bones,
+	std::vector<Eigen::Vector3f>& balls,
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks
+);
+
 // // get balls with proposals 
 // void GetBalls(
 //     const vector<vector<ConcensusData> > & data, 

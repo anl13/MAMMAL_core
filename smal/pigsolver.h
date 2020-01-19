@@ -19,7 +19,7 @@ public:
 		m_topo = getSkelTopoByType("UNIV"); 
 		m_poseToOptimize =
 		{
-			0, 5, 6, 7, 8, 20, 21, 22, 23, 26, 27, 28, 38, 39 ,40, 11, 14
+			0, 4, 5, 6, 7, 8, 20, 21, 22, 23, 26, 27, 28, 38, 39 ,40, 11, 14
 		};
 	} 
 	~PigSolver() {}

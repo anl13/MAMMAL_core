@@ -15,6 +15,8 @@
 
 #include "../associate/framedata.h"
 
+#define RUN_SEQ
+
 using std::vector; 
 const float kFloorDx = 0.28; 
 const float kFloorDy = 0.2; 
@@ -127,7 +129,7 @@ int main()
     const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj"); 
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard_bk.png");
 	chess_floor->SetFaces(squareObj.faces, true);
 	chess_floor->SetVertices(squareObj.vertices);
 	chess_floor->SetTexcoords(squareObj.texcoords);
@@ -174,31 +176,36 @@ int main()
 			Eigen::MatrixXf vs = model.GetVertices().cast<float>();
 			pig_render->SetFaces(faces);
 			pig_render->SetVertices(vs);
-			Eigen::Vector3f color;
-			color << 1.0f, 0.0f, 0.0f;
+			Eigen::Vector3f color = CM[pid];
 			pig_render->SetColor(color);
 			m_renderer.colorObjs.push_back(pig_render);
 
 			std::vector<Eigen::Vector3f> balls;
 			std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			Eigen::Matrix3Xf joints = model.GetJoints().cast<float>();
-			Eigen::VectorXi parents = model.GetParents().cast<int>();
-			GetBallsAndSticks(joints, parents, balls, sticks);
+			Eigen::MatrixXd joints = model.getZ();
+			GetBallsAndSticks(joints, topo.bones, balls, sticks);
 			BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
-				0.02f, 0.01f, 0.5 * CM[1]);
+				0.015f, 0.01f, 0.5f * color);
 			m_renderer.skels.push_back(skelObject);
 		}
 
-		m_renderer.Draw();
-		cv::Mat capture = m_renderer.GetImage();
-		//writer_render.write(capture);
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
+#ifndef RUN_SEQ
 		while (!glfwWindowShouldClose(windowPtr))
 		{
-
+#endif 
+			m_renderer.Draw();
+#ifdef RUN_SEQ
+			cv::Mat capture = m_renderer.GetImage();
+			writer_render.write(capture);
+#endif 
+			glfwSwapBuffers(windowPtr);
+			glfwPollEvents();
+#ifndef RUN_SEQ
 		}
+		break;
+#endif 
 
+		
 	}
     return 0; 
 }

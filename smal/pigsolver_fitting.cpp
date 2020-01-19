@@ -3,6 +3,9 @@
 #include <iostream> 
 #include <iomanip>
 #include <fstream> 
+#include "../utils/colorterminal.h"
+
+//#define DEBUG_SOLVER
 
 void PigSolver::setCameras(const vector<Camera>& _cameras)
 {
@@ -38,7 +41,6 @@ void PigSolver::normalizeSource()
 void PigSolver::CalcZ()
 {
 	int N = m_topo.joint_num; 
-	std::cout << "N: " << N << std::endl;
 	Z = Eigen::MatrixXd::Zero(3, N);
 	for (int i = 0; i < N; i++)
 	{
@@ -92,10 +94,10 @@ void PigSolver::CalcZ()
 			if (delta.norm() < 0.00001) break;
 			else
 			{
-#ifdef DEBUG_SOLVER
-				std::cout << "iter : " << iter
-					<< " delta: " << delta.norm() << std::endl;
-#endif 
+//#ifdef DEBUG_SOLVER
+//				std::cout << "iter : " << iter
+//					<< " delta: " << delta.norm() << std::endl;
+//#endif 
 			}
 		}
 
@@ -153,8 +155,9 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	CalcZ(); 
 	int N = m_topo.joint_num; 
 	m_weights.resize(N);
-	m_weightsEigen = Eigen::VectorXd::Zero(N);
-	// compute scale
+	m_weightsEigen = Eigen::VectorXd::Zero(N * 3);
+	Eigen::MatrixXd skel = getRegressedSkel(); 
+	// STEP 1: compute scale
 	std::vector<double> target_bone_lens;
 	std::vector<double> source_bone_lens;
 	for (int bid = 0; bid < m_topo.bones.size(); bid++)
@@ -163,23 +166,7 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 		int eid = m_topo.bones[bid](1);
 		if (Z.col(sid).norm() == 0 || Z.col(eid).norm() == 0) continue;
 		double target_len = (Z.col(sid) - Z.col(eid)).norm();
-		std::vector<int> ids = { sid, eid };
-		std::vector<Eigen::Vector3d> points;
-		for (int k = 0; k < 2; k++)
-		{
-			if (m_mapper[ids[k]].first < 0) continue;
-			if (m_mapper[ids[k]].first == 0)
-			{
-				Eigen::Vector3d X = m_jointsFinal.col(m_mapper[ids[k]].second);
-				points.push_back(X);
-			}
-			else
-			{
-				Eigen::Vector3d X = m_verticesFinal.col(m_mapper[ids[k]].second);
-				points.push_back(X);
-			}
-		}
-		double source_len = (points[0] - points[1]).norm();
+		double source_len = (skel.col(sid) - skel.col(eid)).norm();
 		target_bone_lens.push_back(target_len);
 		source_bone_lens.push_back(source_len);
 	}
@@ -194,22 +181,26 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	m_scale = alpha;
 	m_jointsOrigin *= alpha;
 	m_verticesOrigin *= alpha;
-	m_shapeBlendV *= alpha;
-	m_shapeBlendJ *= alpha;
+	if (m_shapeNum > 0)
+	{
+		m_shapeBlendV *= alpha;
+		m_shapeBlendJ *= alpha;
+	}
 #ifdef DEBUG_SOLVER
 	std::cout << BLUE_TEXT("scale: ") << alpha << std::endl;
 #endif 
 	UpdateVertices();
 
-	// compute translation 
+	// STEP 2: compute translation 
 	Eigen::Vector3d barycenter_target = Z.col(18);
-	Eigen::Vector3d barycenter_source = m_jointsOrigin.col(25);
+	int center_id = m_mapper[18].second; 
+	Eigen::Vector3d barycenter_source = m_jointsOrigin.col(center_id);
 	m_translation = barycenter_target - barycenter_source;
 
-	// compute rotation 
+	// STEP 3 : compute global rotation 
 	Eigen::MatrixXd A, B;
 	int nonzero = 0;
-	for (int i = 0; i < Z.cols(); i++) {
+	for (int i = 0; i < N; i++) {
 		if (Z.col(i).norm() > 0) {
 			nonzero++;
 			m_weights[i] = 1;
