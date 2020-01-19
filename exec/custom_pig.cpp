@@ -11,6 +11,9 @@
 #include "../render/renderer.h"
 
 #include "../smal/pigmodel.h"
+#include "../smal/pigsolver.h"
+
+#include "../associate/framedata.h"
 
 using std::vector; 
 const float kFloorDx = 0.28; 
@@ -60,16 +63,45 @@ std::vector<Eigen::Vector2i> bones = {
 { 42 , 41 }
 }; 
 
+std::vector<std::pair<int, int> > Mapper = {
+	{1, 239}, // nose
+{1, 50}, // left eye
+{1, 353}, // right eye
+{1, 1551}, // left ear 
+{1, 1571}, // right ear 
+{0, 21}, 
+{0, 6}, 
+{0, 22 },
+{0, 7},
+{0, 23},
+{0,8},
+{0, 39},
+{0, 27},
+{0,40},
+{0,28},
+{0,41},
+{0,29},
+{-1, -1}, 
+{0, 31},
+{-1, -1},
+{0, 2},
+{-1, -1},
+{-1,-1}
+};
+
 int main()
 {
 #ifdef _WIN32
     std::string folder = "D:/Projects/animal_calib/data/pig_model/"; 
-	std::string conf_projectFolder = "D:/Projects/animal_calib/render/";
+	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 #else 
 	std::string folder = "/home/al17/animal/animal_calib/data/pig_model/"; 
 	std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
 #endif 
-    PigModel model(folder); 
+	SkelTopology topo = getSkelTopoByType("UNIV"); 
+	FrameData frame; 
+	frame.configByJson(conf_projectFolder + "/associate/config.json");
+	int startid = frame.get_start_id(); 
 
     //// rendering pipeline. 
     auto CM = getColorMapEigen("anliang_rgb"); 
@@ -84,50 +116,89 @@ int main()
     Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
     // init renderer 
     Renderer::s_Init(); 
-    Renderer m_renderer(conf_projectFolder + "/shader/"); 
+    Renderer m_renderer(conf_projectFolder + "/render/shader/"); 
     m_renderer.s_camViewer.SetIntrinsic(K, 1, 1); 
     m_renderer.s_camViewer.SetExtrinsic(pos, up, center); 
 
     // init element obj
-    const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/data/obj_model/cylinder.obj");
-	const ObjData cubeObj(conf_projectFolder + "/data/obj_model/cube.obj");
-    const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj"); 
+    const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	const ObjData cubeObj(conf_projectFolder + "/render/data/obj_model/cube.obj");
+    const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj"); 
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/data/chessboard.png");
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
 	chess_floor->SetFaces(squareObj.faces, true);
 	chess_floor->SetVertices(squareObj.vertices);
 	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor); 
 
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
 
-     RenderObjectColor* pig_render = new RenderObjectColor(); 
-     Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces = model.GetFaces(); 
-     Eigen::MatrixXf vs = model.GetVertices().cast<float>(); 
-     pig_render->SetFaces(faces); 
-     pig_render->SetVertices(vs);
-     Eigen::Vector3f color; 
-     color << 1.0f, 0.0f, 0.0f; 
-     pig_render->SetColor(color); 
-     m_renderer.colorObjs.push_back(pig_render); 
+	int framenum = frame.get_frame_num();
+	std::string videoname_render = conf_projectFolder + "/result_data/render.avi";
+	cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1024, 1024));
+	if (!writer_render.isOpened())
+	{
+		std::cout << "can not open video file " << videoname_render << std::endl;
+		return -1;
+	}
 
-    std::vector<Eigen::Vector3f> balls; 
-    std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
-    Eigen::Matrix3Xf joints = model.GetJoints().cast<float>(); 
-    Eigen::VectorXi parents = model.GetParents().cast<int>(); 
-    GetBallsAndSticks(joints, parents, balls, sticks); 
-    BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks, 
-                                0.02f, 0.01f, 0.5 * CM[1]); 
-    m_renderer.skels.push_back(skelObject); 
+	PigSolver model(folder);
+	model.setMapper(Mapper); 
 
-    while(!glfwWindowShouldClose(windowPtr))
-    {
-        m_renderer.Draw(); 
-        glfwSwapBuffers(windowPtr); 
-        glfwPollEvents(); 
-    };
+	for (int frameid = startid; frameid < startid + framenum; frameid++)
+	{
+		std::cout << "processing frame " << frameid << std::endl; 
+		frame.set_frame_id(frameid); 
+		frame.fetchData();
+		frame.matching(); 
+		frame.tracking(); 
+		
+		std::vector<MatchedInstance> matched_source = frame.get_matched(); 
+		m_renderer.colorObjs.clear(); 
+		m_renderer.skels.clear(); 
+		std::vector<Camera> cams = frame.get_cameras(); 
+		model.setCameras(cams); 
+		model.normalizeCamera(); 
+		for (int pid = 0; pid < 4; pid++)
+		{
+			model.setSource(matched_source[pid]); 
+			model.normalizeSource(); 
+			model.globalAlign();
+			model.optimizePose(100, 0.001); 
+
+			RenderObjectColor* pig_render = new RenderObjectColor();
+			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = model.GetFaces();
+			Eigen::MatrixXf vs = model.GetVertices().cast<float>();
+			pig_render->SetFaces(faces);
+			pig_render->SetVertices(vs);
+			Eigen::Vector3f color;
+			color << 1.0f, 0.0f, 0.0f;
+			pig_render->SetColor(color);
+			m_renderer.colorObjs.push_back(pig_render);
+
+			std::vector<Eigen::Vector3f> balls;
+			std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+			Eigen::Matrix3Xf joints = model.GetJoints().cast<float>();
+			Eigen::VectorXi parents = model.GetParents().cast<int>();
+			GetBallsAndSticks(joints, parents, balls, sticks);
+			BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
+				0.02f, 0.01f, 0.5 * CM[1]);
+			m_renderer.skels.push_back(skelObject);
+		}
+
+		m_renderer.Draw();
+		cv::Mat capture = m_renderer.GetImage();
+		//writer_render.write(capture);
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+		while (!glfwWindowShouldClose(windowPtr))
+		{
+
+		}
+
+	}
     return 0; 
 }

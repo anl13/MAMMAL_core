@@ -19,6 +19,7 @@ void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, c
     cv::Mat R; 
     cv::Mat map1;
     cv::Mat map2; 
+
     cv::initUndistortRectifyMap(
         K, distCoef, R, K2, input.size(), CV_32FC1, map1, map2
     ); 

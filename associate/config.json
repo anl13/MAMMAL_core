@@ -1,12 +1,14 @@
 {
-    "camids": [0,1,2,5,6,7,8,9,10,11], 
-    "sequence" : "/home/al17/animal/pig-data/sequences/20190704_morning", 
-    "imgExtension": "jpg", 
-    "camfolder": "/home/al17/animal/animal_calib/results/",
-    "startid" : 0, 
-    "epipolartype": "p2l", // "p2l" or "l2l" 
-    "framenum": 1500, 
-    "epipolar_threshold": 25,
-    "box_expand_ratio": 0.05,
-    "skel_type" : "UNIV"
+  "camids": [ 0, 1, 2, 5, 6, 7, 8, 9, 10, 11 ],
+  //"sequence" : "/home/al17/animal/pig-data/sequences/20190704_morning",
+  "sequence": "E:/sequences/20190704_morning",
+  "imgExtension": "jpg",
+  //"camfolder": "/home/al17/animal/animal_calib/results/",
+  "camfolder":  "D:/Projects/animal_calib/results/", 
+  "startid": 0,
+  "epipolartype": "p2l", // "p2l" or "l2l"
+  "framenum": 1500,
+  "epipolar_threshold": 25,
+  "box_expand_ratio": 0.05,
+  "skel_type": "UNIV"
 }

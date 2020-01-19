@@ -225,7 +225,13 @@ void FrameData::readImages()
     {
         std::stringstream ss; 
         ss << m_imgDir << "/cam" << m_camids[camid] << "/" << std::setw(6) << std::setfill('0') << m_frameid << "." << m_imgExtension;
-        m_imgs.emplace_back(cv::imread(ss.str()));
+		cv::Mat img = cv::imread(ss.str()); 
+		if (img.empty())
+		{
+			std::cout << "can not read image " << ss.str() << std::endl;
+			exit(-1); 
+		}
+		m_imgs.emplace_back(img);
     }
 }
 

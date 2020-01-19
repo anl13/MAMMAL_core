@@ -11,6 +11,7 @@
 
 PigModel::PigModel(const std::string &folder)
 {
+	m_folder = folder; 
 	// read vertices 
 	std::ifstream vfile(folder + "vertices.txt"); 
 	if(!vfile.is_open()){
@@ -106,6 +107,7 @@ PigModel::PigModel(const std::string &folder)
 	// init 
 	m_translation = Eigen::Vector3d::Zero(); 
 	m_poseParam = Eigen::VectorXd::Zero(3 * m_jointNum); 
+	if (m_shapeNum > 0) m_shapeParam = Eigen::VectorXd::Zero(m_shapeNum); 
 
 	m_singleAffine.resize(4, 4 * m_jointNum); 
 	m_globalAffine.resize(4, 4 * m_jointNum); 

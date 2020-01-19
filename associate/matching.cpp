@@ -59,6 +59,7 @@ void EpipolarMatching::epipolarWholeBody(const Camera& cam1, const Camera& cam2,
     else 
     {
         std::cout << "Epipolar Type " << m_epi_type << " not implemented yet" << std::endl; 
+		exit(-1); 
     }
     double total_loss = 0; 
     int valid = 0; 

@@ -114,6 +114,12 @@
     <ClCompile Include="..\utils\obj_reader.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\smal\pigsolver.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\pigsolver_fitting.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
     <ClCompile Include="..\exec\custom_pig.cpp">
       <Filter>exec</Filter>
     </ClCompile>
@@ -202,6 +208,9 @@
     </ClInclude>
     <ClInclude Include="..\utils\obj_reader.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\smal\pigsolver.h">
+      <Filter>smal</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
