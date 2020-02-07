@@ -153,6 +153,7 @@ Eigen::MatrixXd PigSolver::getRegressedSkel()
 void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and transform Y
 {
 	CalcZ(); 
+	if (m_frameid > 0.5) return; 
 	int N = m_topo.joint_num; 
 	m_weights.resize(N);
 	m_weightsEigen = Eigen::VectorXd::Zero(N * 3);
@@ -178,23 +179,33 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 		b += source_bone_lens[i] * source_bone_lens[i];
 	}
 	double alpha = a / b;
-	m_scale = alpha;
-	m_jointsOrigin *= alpha;
-	m_verticesOrigin *= alpha;
+	if (m_frameid > 0)
+	{
+		//double scale = m_scale * alpha; 
+		//double m_scale = (m_scale * m_frameid + scale) / (m_frameid + 1); 
+	}
+	else
+	{
+		m_scale = alpha;
+	}
+	
+	m_jointsOrigin *= m_scale; 
+	m_verticesOrigin *= m_scale; 
 	if (m_shapeNum > 0)
 	{
 		m_shapeBlendV *= alpha;
 		m_shapeBlendJ *= alpha;
 	}
-#ifdef DEBUG_SOLVER
-	std::cout << BLUE_TEXT("scale: ") << alpha << std::endl;
-#endif 
+
+	std::cout << "scale: " << m_scale << std::endl; 
 	UpdateVertices();
+	if (m_frameid > 0) return; 
+	m_frameid += 1;
 
 	// STEP 2: compute translation 
 	Eigen::Vector3d barycenter_target = Z.col(18);
 	int center_id = m_mapper[18].second; 
-	Eigen::Vector3d barycenter_source = m_jointsOrigin.col(center_id);
+	Eigen::Vector3d barycenter_source = m_jointsShaped.col(center_id);
 	m_translation = barycenter_target - barycenter_source;
 
 	// STEP 3 : compute global rotation 

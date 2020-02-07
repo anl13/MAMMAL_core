@@ -66,3 +66,29 @@ void FrameData::tracking()
     }
     m_matched = rematch;
 }
+
+void FrameData::solve_parametric_model()
+{
+	m_smalDir = "D:/Projects/animal_calib/data/pig_model/"; 
+	if(mp_bodysolver.empty()) mp_bodysolver.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		if (mp_bodysolver[i] == nullptr)
+		{
+			mp_bodysolver[i] = std::make_shared<PigSolver>(m_smalDir);
+			mp_bodysolver[i]->setMapper(getPigMapper()); 
+			mp_bodysolver[i]->setCameras(m_camsUndist);
+			mp_bodysolver[i]->normalizeCamera();
+			std::cout << "init model " << i << std::endl; 
+		}
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		std::cout << "solving ... " << i << std::endl; 
+		mp_bodysolver[i]->setSource(m_matched[i]); 
+		mp_bodysolver[i]->normalizeSource(); 
+		mp_bodysolver[i]->globalAlign(); 
+		mp_bodysolver[i]->optimizePose(100, 0.001); 
+	}
+}

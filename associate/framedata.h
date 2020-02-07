@@ -12,6 +12,7 @@
 #include "../utils/image_utils.h"
 #include "../utils/geometry.h" 
 #include "../utils/Hungarian.h"
+#include "../smal/pigsolver.h"
 #include "clusterclique.h"
 #include "skel.h" 
 
@@ -44,6 +45,7 @@ public:
     PIGS3D get_skels3d(){return m_skels3d;}
     vector<MatchedInstance> get_matched() {return m_matched; }
     vector<Camera> get_cameras(){return m_camsUndist; }
+	vector<std::shared_ptr<PigSolver> > get_models() { return mp_bodysolver; }
 
     void configByJson(std::string jsonfile); 
     void fetchData(); 
@@ -52,10 +54,10 @@ public:
     // top-down matching
     void matching(); 
     void tracking(); 
-    void re_matching_sac(); // re-matching by sample-concensus 
     void reproject_skels(); 
+	void solve_parametric_model(); 
 
-    // visual function  
+    // visualization function  
     cv::Mat visualizeSkels2D(); 
     cv::Mat visualizeIdentity2D();
     cv::Mat visualizeProj(); 
@@ -85,7 +87,9 @@ protected:
     std::vector<cv::Mat>                      m_imgsUndist; 
 
     vector<vector<DetInstance> >              m_detUndist; // [camnum, candnum]
-    vector<MatchedInstance>                   m_matched; 
+    vector<MatchedInstance>                   m_matched; // matched raw data after matching()
+	vector<BodyState>                         m_bodies; 
+	vector<std::shared_ptr<PigSolver> >       mp_bodysolver; 
 
     // matching & 3d data 
     vector<vector<int> > m_clusters; 
@@ -102,7 +106,7 @@ protected:
     int m_startid;
     int m_framenum; 
 
- // io function and tmp data
+    // io function and tmp data
     vector<vector<vector<Eigen::Vector3d> > > m_keypoints; // [viewid, candid, kptid]
     vector<vector<Eigen::Vector4d> >          m_boxes_raw; // xyxy
     vector<vector<vector<vector<Eigen::Vector2d> > > > m_masks; // mask in contours 
@@ -115,6 +119,7 @@ protected:
     std::string m_imgExtension; 
     std::string m_camDir; 
     std::string m_imgDir; 
+	std::string m_smalDir; 
     void readImages(); 
     void readCameras(); 
     void readKeypoints(); 

@@ -16,6 +16,7 @@ public:
     std::vector<double> kpt_conf_thresh; 
 };
 SkelTopology getSkelTopoByType(std::string type); 
+vector<std::pair<int, int>> getPigMapper(); 
 typedef Eigen::MatrixXd PIG_SKEL; 
 typedef Eigen::MatrixXd PIG_SKEL_2D; 
 
@@ -32,3 +33,25 @@ struct MatchedInstance{
     vector<int> cand_ids; 
     vector<DetInstance> dets; 
 }; 
+
+struct BodyState {
+	// Level5: social state 
+
+	// Level4: discrete pose state label or continuous state vector
+
+	// Level3: parametric state
+	Eigen::Vector3d trans;
+	Eigen::VectorXd pose;
+	double alpha; 
+	double frameid;
+	int id; 
+	
+	// Level2: body orientation
+	vector<Eigen::Vector3d> points; 
+
+	// Level1: center position 
+	Eigen::Vector3d center; 
+	
+	void saveState(std::string filename); 
+	void loadState(std::string filename); 
+};

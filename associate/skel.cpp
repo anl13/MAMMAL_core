@@ -177,3 +177,33 @@ SkelTopology getSkelTopoByType(std::string type)
     
     return A; 
 }
+
+vector<std::pair<int, int> > getPigMapper()
+{
+	std::vector<std::pair<int, int> > Mapper = {
+		{ 1, 239 }, // nose
+	{ 1, 50 }, // left eye
+	{ 1, 353 }, // right eye
+	{ 1, 1551 }, // left ear 
+	{ 1, 1571 }, // right ear 
+	{ 0, 21 },
+	{ 0, 6 },
+	{ 0, 22 },
+	{ 0, 7 },
+	{ 0, 23 },
+	{ 0,8 },
+	{ 0, 39 },
+	{ 0, 27 },
+	{ 0,40 },
+	{ 0,28 },
+	{ 0,41 },
+	{ 0,29 },
+	{ -1, -1 },
+	{ 0, 31 },
+	{ -1, -1 },
+	{ 0, 2 },
+	{ -1, -1 },
+	{ -1,-1 }
+	};
+	return Mapper; 
+}

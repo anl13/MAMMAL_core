@@ -65,31 +65,7 @@ std::vector<Eigen::Vector2i> bones = {
 { 42 , 41 }
 }; 
 
-std::vector<std::pair<int, int> > Mapper = {
-	{1, 239}, // nose
-{1, 50}, // left eye
-{1, 353}, // right eye
-{1, 1551}, // left ear 
-{1, 1571}, // right ear 
-{0, 21}, 
-{0, 6}, 
-{0, 22 },
-{0, 7},
-{0, 23},
-{0,8},
-{0, 39},
-{0, 27},
-{0,40},
-{0,28},
-{0,41},
-{0,29},
-{-1, -1}, 
-{0, 31},
-{-1, -1},
-{0, 2},
-{-1, -1},
-{-1,-1}
-};
+
 
 int main()
 {
@@ -139,16 +115,13 @@ int main()
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
 
 	int framenum = frame.get_frame_num();
-	std::string videoname_render = conf_projectFolder + "/result_data/render.avi";
+	std::string videoname_render = conf_projectFolder + "/result_data/render20200207.avi";
 	cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1024, 1024));
 	if (!writer_render.isOpened())
 	{
 		std::cout << "can not open video file " << videoname_render << std::endl;
 		return -1;
 	}
-
-	PigSolver model(folder);
-	model.setMapper(Mapper); 
 
 	for (int frameid = startid; frameid < startid + framenum; frameid++)
 	{
@@ -157,23 +130,17 @@ int main()
 		frame.fetchData();
 		frame.matching(); 
 		frame.tracking(); 
+		frame.solve_parametric_model(); 
+		auto models = frame.get_models(); 
 		
-		std::vector<MatchedInstance> matched_source = frame.get_matched(); 
 		m_renderer.colorObjs.clear(); 
 		m_renderer.skels.clear(); 
-		std::vector<Camera> cams = frame.get_cameras(); 
-		model.setCameras(cams); 
-		model.normalizeCamera(); 
 		for (int pid = 0; pid < 4; pid++)
 		{
-			model.setSource(matched_source[pid]); 
-			model.normalizeSource(); 
-			model.globalAlign();
-			model.optimizePose(100, 0.001); 
-
 			RenderObjectColor* pig_render = new RenderObjectColor();
-			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = model.GetFaces();
-			Eigen::MatrixXf vs = model.GetVertices().cast<float>();
+			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = models[pid]->GetFaces();
+			Eigen::MatrixXf vs = models[pid]->GetVertices().cast<float>();
+			
 			pig_render->SetFaces(faces);
 			pig_render->SetVertices(vs);
 			Eigen::Vector3f color = CM[pid];
@@ -182,7 +149,7 @@ int main()
 
 			std::vector<Eigen::Vector3f> balls;
 			std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			Eigen::MatrixXd joints = model.getZ();
+			Eigen::MatrixXd joints = models[pid]->getZ();
 			GetBallsAndSticks(joints, topo.bones, balls, sticks);
 			BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
 				0.015f, 0.01f, 0.5f * color);

@@ -21,6 +21,8 @@ public:
 		{
 			0, 4, 5, 6, 7, 8, 20, 21, 22, 23, 26, 27, 28, 38, 39 ,40, 11, 14
 		};
+		m_scale = 1; 
+		m_frameid = 0.0; 
 	} 
 	~PigSolver() {}
 	PigSolver() = delete; 
@@ -30,9 +32,13 @@ public:
 	void setSource(const MatchedInstance& _source);
 	void setMapper(const std::vector<std::pair<int, int> > _mapper) { m_mapper = _mapper; }
 	void setCameras(const vector<Camera>& _cameras);
+	void setBodySize(const double _alpha) { m_scale = _alpha; }
+	void setFrameId(const double _frameid) { m_frameid = _frameid; }
+
 	void normalizeCamera();
 	void normalizeSource();
 	Eigen::MatrixXd getZ() { return Z; }
+	double getBodySize() { return m_scale; }
 
 	Eigen::MatrixXd getRegressedSkel(); 
 	void globalAlign(); 
@@ -45,7 +51,7 @@ public:
 	void solve(); 
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> R; // regressor to solve
 private: 
-	
+	double m_frameid; 
 	MatchedInstance m_source;
 	vector<Camera> m_cameras;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
