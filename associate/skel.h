@@ -42,7 +42,7 @@ struct BodyState {
 
 	// Level3: parametric state
 	Eigen::Vector3d trans;
-	double alpha; 
+	double scale; 
 	double frameid;
 	int id; 
 	

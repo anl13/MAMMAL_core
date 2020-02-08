@@ -38,8 +38,9 @@ public:
 	Eigen::MatrixXd              getZ() { return Z; }
 	double                       getBodySize() { return m_scale; }
 	std::vector<Eigen::Vector3d> getPivot() { return m_pivot;  }
-	BodyState                    getBodyState() { return m_bodystate; }
+	BodyState&                   getBodyState() { return m_bodystate; }
 
+	void readBodyState(std::string filename); 
 	void normalizeCamera();
 	void normalizeSource();
 

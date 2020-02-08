@@ -222,7 +222,7 @@ void BodyState::saveState(std::string filename)
 	// 2. pose, double * 43 * 3
 	os << pose << std::endl; 
 	// 3. alpha, double * 1 
-	os << alpha << std::endl; 
+	os << scale << std::endl; 
 	// 4. id, int * 1
 	os << frameid << std::endl;
 	os << id << std::endl; 
@@ -244,9 +244,11 @@ void BodyState::loadState(std::string filename)
 	for (int i = 0; i < 3; i++)is >> trans(i);
 	pose.resize(43 * 3);
 	for (int i = 0; i < 43 * 3; i++) is >> pose(i);
-	is >> alpha; 
+	is >> scale; 
 	is >> frameid;
-	is >> id; 
+	double d_id; 
+	is >> d_id; id = int(d_id); 
+	points.resize(3); 
 	for (int i = 0; i < 3; i++)
 	{
 		for (int j = 0; j < 3; j++)

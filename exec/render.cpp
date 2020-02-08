@@ -3,7 +3,15 @@
 #include <iostream> 
 #include <fstream> 
 #include <sstream> 
+#ifndef WIN32
 #include <unistd.h> 
+#else 
+#ifndef _UNISTD_H
+#define _UNISTD_H
+#include <io.h>
+#include <process.h>
+#endif /* _UNISTD_H */
+#endif 
 #include "../utils/camera.h"
 #include "../utils/image_utils.h"
 #include "../associate/framedata.h" 
@@ -15,8 +23,7 @@
 
 #include <gflags/gflags.h> 
 
-DEFINE_string(type, "smal", "hint which func to use"); 
-
+DEFINE_string(type, "smal", "smal: show smal");
 // #define DEBUG_RENDER
 
 const float kFloorDx = 0.28; 
@@ -24,6 +31,7 @@ const float kFloorDy = 0.2;
 
 int render_animal_skels() 
 {
+
     std::string conf_projectFolder = "/home/al17/animal/animal_calib/render";
     auto CM = getColorMapEigen("anliang_rgb", true); 
 

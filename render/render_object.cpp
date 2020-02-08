@@ -429,6 +429,62 @@ BallStickObject::BallStickObject(
 	}
 }
 
+BallStickObject::BallStickObject(
+	const ObjData& ballObj, const ObjData& stickObj,
+	const std::vector<Eigen::Vector3f>& balls,
+	const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
+	float ballSize, float StickSize, const std::vector<Eigen::Vector3f>& colors)
+{
+	for (int i = 0; i < balls.size(); i++)
+	{
+		// std::cout << balls[i].transpose() << std::endl; 
+		ObjData ballObjCopy(ballObj);
+		float current_size = ballSize; 
+		Eigen::Vector3f color = colors[i];
+		if (i == 0)
+		{
+			current_size *= 3.5; 
+		}
+		else if (i == 1)
+		{
+			current_size *= 1.5;
+		}
+		else if (i == 2)
+		{
+			current_size *= 0.8;
+		}
+		ballObjCopy.Deform(Eigen::Vector3f(current_size, current_size, current_size));
+
+		RenderObjectColor* ballObject = new RenderObjectColor();
+		ballObject->SetFaces(ballObjCopy.faces);
+		ballObject->SetVertices(ballObjCopy.vertices);
+		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), 1.0f);
+		ballObject->SetColor(colors[i]);
+		objectPtrs.push_back(ballObject);
+	}
+
+	for (const std::pair<Eigen::Vector3f, Eigen::Vector3f>& stick : sticks)
+	{
+		ObjData stickObjCopy(stickObj);
+		Eigen::Vector3f direction = stick.first - stick.second;
+		stickObjCopy.Deform(Eigen::Vector3f(StickSize, StickSize, 0.5f * direction.norm()));
+
+		RenderObjectColor* stickObject = new RenderObjectColor();
+
+		Eigen::Vector3f rotation = (Eigen::Vector3f(0.0f, 0.0f, 1.0f).cross(direction.normalized())).normalized()
+			* acosf(Eigen::Vector3f(0.0f, 0.0f, 1.0f).dot(direction.normalized()));
+
+		Eigen::Vector3f translation = (stick.first + stick.second) * 0.5f;
+
+		stickObject->SetFaces(stickObjCopy.faces);
+		stickObject->SetVertices(stickObjCopy.vertices);
+		stickObject->SetTransform(translation, rotation, 1.0f);
+		// stickObject->SetColor(Eigen::Vector3f::Ones() - color);
+		stickObject->SetColor(colors[0]);
+
+		objectPtrs.push_back(stickObject);
+	}
+}
 
 BallStickObject::~BallStickObject()
 {

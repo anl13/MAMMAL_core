@@ -11,6 +11,10 @@ python/markers/
 python/pyRender/
 python/results/
 python/results_bk
+*.pkl
+*.pig
+*.npy
+*.npz
 
 *.png
 !associate/pig-topo.png 

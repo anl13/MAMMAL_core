@@ -102,3 +102,32 @@ void FrameData::solve_parametric_model()
 		body.saveState(ss.str()); 
 	}
 }
+
+void FrameData::read_parametric_data()
+{
+	m_smalDir = "D:/Projects/animal_calib/data/pig_model/";
+	if (mp_bodysolver.empty()) mp_bodysolver.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		if (mp_bodysolver[i] == nullptr)
+		{
+			mp_bodysolver[i] = std::make_shared<PigSolver>(m_smalDir);
+			mp_bodysolver[i]->setMapper(getPigMapper());
+			mp_bodysolver[i]->setCameras(m_camsUndist);
+			mp_bodysolver[i]->normalizeCamera();
+			mp_bodysolver[i]->setId(i);
+			std::cout << "init model " << i << std::endl;
+		}
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		std::string savefolder = "E:/pig_results/";
+		std::stringstream ss;
+		ss << savefolder << "state_" << i << "_" <<
+			std::setw(6) << std::setfill('0') << m_frameid
+			<< ".pig";
+		mp_bodysolver[i]->readBodyState(ss.str()); 
+	}
+
+}

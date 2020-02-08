@@ -450,6 +450,7 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 			int jIdx = m_poseToOptimize[i];
 			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 		}
+		Eigen::VectorXd theta0 = theta;
 		// solve
 		Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(3 + 3 * M, 3 + 3 * M); // data term 
 		Eigen::VectorXd b1 = Eigen::VectorXd::Zero(3 + 3 * M);  // data term 
@@ -465,12 +466,14 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		double lambda = 0.001;
 		double w1 = 1;
 		double w_reg = 0.01;
+		double w_temp = 0.01; 
 		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXd H_reg = DTD;  // reg term 
 		Eigen::VectorXd b_reg = -theta; // reg term 
+		Eigen::VectorXd b_temp = -theta0; 
 
-		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda + DTD * w_temp;
+		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg + b_temp * w_temp;
 
 		Eigen::VectorXd delta = H.ldlt().solve(b);
 
@@ -521,4 +524,28 @@ void PigSolver::computePivot()
 	m_bodystate.id = m_id; 
 	m_bodystate.points = m_pivot; 
 	m_bodystate.center = m_pivot[1];
+	m_bodystate.scale = m_scale;
+}
+
+void PigSolver::readBodyState(std::string filename)
+{
+	m_bodystate.loadState(filename); 
+	m_translation = m_bodystate.trans;
+	m_poseParam = m_bodystate.pose;
+	m_frameid = m_bodystate.id; 
+	m_id = m_bodystate.id;
+	m_pivot = m_bodystate.points; 
+	m_scale = m_bodystate.scale; 
+
+	UpdateVertices(); 
+	auto skel = getRegressedSkel(); 
+	vector<Eigen::Vector3d> est(3); 
+	est[0] = skel.col(0); 
+	est[1] = skel.col(20); 
+	est[2] = skel.col(18); 
+	m_scale = ((m_pivot[0] - m_pivot[1]).norm() + (m_pivot[1] - m_pivot[2]).norm() + (m_pivot[2] - m_pivot[0]).norm())
+		/ ((est[0] - est[1]).norm() + (est[1] - est[2]).norm() + (est[2] - est[0]).norm());
+	m_jointsOrigin *= m_scale; 
+	m_verticesOrigin *= m_scale; 
+	UpdateVertices(); 
 }

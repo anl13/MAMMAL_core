@@ -19,6 +19,7 @@
 
 #define RUN_SEQ
 //#define VIS 
+//#define LOAD_STATE
 
 using std::vector; 
 const float kFloorDx = 0.28; 
@@ -68,8 +69,6 @@ std::vector<Eigen::Vector2i> bones = {
 { 42 , 41 }
 }; 
 
-
-
 int main()
 {
 #ifdef _WIN32
@@ -109,7 +108,7 @@ int main()
     const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj"); 
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard_bk.png");
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
 	chess_floor->SetFaces(squareObj.faces, true);
 	chess_floor->SetVertices(squareObj.vertices);
 	chess_floor->SetTexcoords(squareObj.texcoords);
@@ -129,11 +128,13 @@ int main()
 		return -1;
 	}
 #endif 
-
+	TimerUtil::Timer<std::chrono::seconds> total;
+	total.Start(); 
 	for (int frameid = startid; frameid < startid + framenum; frameid++)
 	{
 		std::cout << "processing frame " << frameid << std::endl; 
 		frame.set_frame_id(frameid); 
+#ifndef LOAD_STATE
 		TimerUtil::Timer<std::chrono::milliseconds> timer1; 
 		timer1.Start(); 
 		frame.fetchData();
@@ -147,6 +148,9 @@ int main()
 		timer1.Start(); 
 		frame.solve_parametric_model(); 
 		std::cout << "fitting: " << timer1.Elapsed() << " ms" << std::endl; 
+#else
+		frame.read_parametric_data(); 
+#endif 
 		auto models = frame.get_models(); 
 		
 #ifdef VIS
@@ -158,18 +162,38 @@ int main()
 			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = models[pid]->GetFaces();
 			Eigen::MatrixXf vs = models[pid]->GetVertices().cast<float>();
 			
-			pig_render->SetFaces(faces);
-			pig_render->SetVertices(vs);
-			Eigen::Vector3f color = CM[pid];
-			pig_render->SetColor(color);
-			m_renderer.colorObjs.push_back(pig_render);
+			//pig_render->SetFaces(faces);
+			//pig_render->SetVertices(vs);
+			//Eigen::Vector3f color = CM[pid];
+			//pig_render->SetColor(color);
+			//m_renderer.colorObjs.push_back(pig_render);
 
+			/// skels, require Z
+			//std::vector<Eigen::Vector3f> balls;
+			//std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+			//Eigen::MatrixXd joints = models[pid]->getZ();
+			//GetBallsAndSticks(joints, topo.bones, balls, sticks);
+			//BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
+			//	0.015f, 0.01f, 0.5f * color);
+			//m_renderer.skels.push_back(skelObject);
+
+			std::vector<Eigen::Vector2i> ori_bones = {
+				{0,1}, {1,2} };
+			std::vector<Eigen::Vector3f> colors;
+			colors.push_back(CM[pid] * 1.1f);
+			colors.push_back(CM[pid] * 0.6f);
+			colors.push_back(CM[pid] * 0.2f);
+			Eigen::MatrixXd joints;
+			joints.resize(3, 3); 
+			vector<Eigen::Vector3d> pivots = models[pid]->getPivot(); 
+			joints.col(0) = pivots[0];
+			joints.col(1) = pivots[1]; 
+			joints.col(2) = pivots[2]; 
 			std::vector<Eigen::Vector3f> balls;
 			std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			Eigen::MatrixXd joints = models[pid]->getZ();
-			GetBallsAndSticks(joints, topo.bones, balls, sticks);
+			GetBallsAndSticks(joints, ori_bones, balls, sticks);
 			BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
-				0.015f, 0.01f, 0.5f * color);
+				0.015f, 0.01f, colors);
 			m_renderer.skels.push_back(skelObject);
 		}
 
@@ -192,5 +216,9 @@ int main()
 #endif 
 
 	}
+	double timeavg = total.Elapsed(); 
+	timeavg /= framenum; 
+	std::cout << "Avg time: " << timeavg << " s per frame. " << std::endl; 
+
     return 0; 
 }

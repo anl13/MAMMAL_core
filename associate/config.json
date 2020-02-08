@@ -7,7 +7,7 @@
   "camfolder":  "D:/Projects/animal_calib/results/", 
   "startid": 0,
   "epipolartype": "p2l", // "p2l" or "l2l"
-  "framenum": 5000,
+  "framenum": 10000,
   "epipolar_threshold": 25,
   "box_expand_ratio": 0.05,
   "skel_type": "UNIV"

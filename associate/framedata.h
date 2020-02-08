@@ -56,6 +56,7 @@ public:
     void tracking(); 
     void reproject_skels(); 
 	void solve_parametric_model(); 
+	void read_parametric_data(); 
 
     // visualization function  
     cv::Mat visualizeSkels2D(); 
@@ -90,6 +91,7 @@ protected:
     vector<MatchedInstance>                   m_matched; // matched raw data after matching()
 	vector<BodyState>                         m_bodies; 
 	vector<std::shared_ptr<PigSolver> >       mp_bodysolver; 
+	vector<BodyState>                         m_bodystates; 
 
     // matching & 3d data 
     vector<vector<int> > m_clusters; 
