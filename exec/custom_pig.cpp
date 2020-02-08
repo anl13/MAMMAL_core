@@ -4,8 +4,10 @@
 #include <iostream> 
 #include <fstream> 
 #include <Eigen/Eigen> 
+
 #include "../utils/colorterminal.h" 
 #include "../utils/obj_reader.h"
+#include "../utils/timer_util.h"
 #include "../render/render_object.h"
 #include "../render/render_utils.h"
 #include "../render/renderer.h"
@@ -16,6 +18,7 @@
 #include "../associate/framedata.h"
 
 #define RUN_SEQ
+//#define VIS 
 
 using std::vector; 
 const float kFloorDx = 0.28; 
@@ -81,6 +84,7 @@ int main()
 	frame.configByJson(conf_projectFolder + "/associate/config.json");
 	int startid = frame.get_start_id(); 
 
+#ifdef VIS
     //// rendering pipeline. 
     auto CM = getColorMapEigen("anliang_rgb"); 
 
@@ -113,8 +117,10 @@ int main()
 	m_renderer.texObjs.push_back(chess_floor); 
 
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
-
+#endif 
 	int framenum = frame.get_frame_num();
+
+#ifdef VIS
 	std::string videoname_render = conf_projectFolder + "/result_data/render20200207.avi";
 	cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1024, 1024));
 	if (!writer_render.isOpened())
@@ -122,17 +128,28 @@ int main()
 		std::cout << "can not open video file " << videoname_render << std::endl;
 		return -1;
 	}
+#endif 
 
 	for (int frameid = startid; frameid < startid + framenum; frameid++)
 	{
 		std::cout << "processing frame " << frameid << std::endl; 
 		frame.set_frame_id(frameid); 
+		TimerUtil::Timer<std::chrono::milliseconds> timer1; 
+		timer1.Start(); 
 		frame.fetchData();
+		std::cout << "fetch: " << timer1.Elapsed() << " ms" << std::endl;
+		timer1.Start(); 
 		frame.matching(); 
+		std::cout << "match: " << timer1.Elapsed() << " ms" << std::endl; 
+		timer1.Start(); 
 		frame.tracking(); 
+		std::cout << "track: " << timer1.Elapsed() << " ms" << std::endl; 
+		timer1.Start(); 
 		frame.solve_parametric_model(); 
+		std::cout << "fitting: " << timer1.Elapsed() << " ms" << std::endl; 
 		auto models = frame.get_models(); 
 		
+#ifdef VIS
 		m_renderer.colorObjs.clear(); 
 		m_renderer.skels.clear(); 
 		for (int pid = 0; pid < 4; pid++)
@@ -172,7 +189,8 @@ int main()
 		break;
 #endif 
 
-		
+#endif 
+
 	}
     return 0; 
 }

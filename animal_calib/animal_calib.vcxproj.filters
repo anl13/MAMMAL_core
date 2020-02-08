@@ -212,6 +212,9 @@
     <ClInclude Include="..\smal\pigsolver.h">
       <Filter>smal</Filter>
     </ClInclude>
+    <ClInclude Include="..\utils\timer_util.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\associate\config.json">

@@ -1,5 +1,6 @@
 #include "skel.h" 
 #include <iostream> 
+#include <fstream>
 
 SkelTopology getSkelTopoByType(std::string type)
 {
@@ -206,4 +207,53 @@ vector<std::pair<int, int> > getPigMapper()
 	{ -1,-1 }
 	};
 	return Mapper; 
+}
+
+void BodyState::saveState(std::string filename)
+{
+	std::ofstream os(filename);
+	if (!os.is_open())
+	{
+		std::cout << "Could not open " << filename << std::endl;
+		exit(-1); 
+	}
+	// 1. trans, double * 3 
+	os << trans << std::endl; 
+	// 2. pose, double * 43 * 3
+	os << pose << std::endl; 
+	// 3. alpha, double * 1 
+	os << alpha << std::endl; 
+	// 4. id, int * 1
+	os << frameid << std::endl;
+	os << id << std::endl; 
+	// 5. points, double * 3 *3 
+	os << points[0] << std::endl
+		<< points[1] << std::endl
+		<< points[2] << std::endl; 
+	os.close(); 
+}
+
+void BodyState::loadState(std::string filename)
+{
+	std::ifstream is(filename); 
+	if (!is.is_open())
+	{
+		std::cout << "could not open " << filename << std::endl; 
+		exit(-1); 
+	}
+	for (int i = 0; i < 3; i++)is >> trans(i);
+	pose.resize(43 * 3);
+	for (int i = 0; i < 43 * 3; i++) is >> pose(i);
+	is >> alpha; 
+	is >> frameid;
+	is >> id; 
+	for (int i = 0; i < 3; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			is >> points[i](j);
+		}
+	}
+	center = points[1]; 
+	is.close(); 
 }

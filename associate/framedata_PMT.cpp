@@ -1,6 +1,7 @@
 #include "framedata.h"
 #include "matching.h"
 #include "tracking.h" 
+#include <sstream> 
 
 void FrameData::matching()
 {
@@ -79,6 +80,7 @@ void FrameData::solve_parametric_model()
 			mp_bodysolver[i]->setMapper(getPigMapper()); 
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
+			mp_bodysolver[i]->setId(i); 
 			std::cout << "init model " << i << std::endl; 
 		}
 	}
@@ -90,5 +92,13 @@ void FrameData::solve_parametric_model()
 		mp_bodysolver[i]->normalizeSource(); 
 		mp_bodysolver[i]->globalAlign(); 
 		mp_bodysolver[i]->optimizePose(100, 0.001); 
+		mp_bodysolver[i]->computePivot();
+		std::string savefolder = "E:/pig_results/"; 
+		std::stringstream ss; 
+		ss << savefolder << "state_" << i << "_" <<
+			std::setw(6) << std::setfill('0') << m_frameid
+			<< ".pig";
+		auto body = mp_bodysolver[i]->getBodyState(); 
+		body.saveState(ss.str()); 
 	}
 }

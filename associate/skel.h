@@ -38,10 +38,10 @@ struct BodyState {
 	// Level5: social state 
 
 	// Level4: discrete pose state label or continuous state vector
+	Eigen::VectorXd pose;
 
 	// Level3: parametric state
 	Eigen::Vector3d trans;
-	Eigen::VectorXd pose;
 	double alpha; 
 	double frameid;
 	int id; 

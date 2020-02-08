@@ -80,6 +80,7 @@
     <ClInclude Include="..\utils\image_utils.h" />
     <ClInclude Include="..\utils\math_utils.h" />
     <ClInclude Include="..\utils\obj_reader.h" />
+    <ClInclude Include="..\utils\timer_util.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />

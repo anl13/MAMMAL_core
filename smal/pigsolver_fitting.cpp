@@ -492,3 +492,33 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		if (delta.norm() < updateTolerance) break;
 	}
 }
+
+void PigSolver::computePivot()
+{
+	// assume center is always observed 
+	Eigen::MatrixXd skel = getRegressedSkel(); 
+	Eigen::Vector3d headz = Z.col(0); 
+	Eigen::Vector3d centerz = Z.col(20);
+	Eigen::Vector3d tailz = Z.col(18); 
+	Eigen::Vector3d heads = skel.col(0); 
+	Eigen::Vector3d centers = skel.col(20); 
+	Eigen::Vector3d tails = skel.col(18); 
+
+	// m_pivot[0]: head(nose)
+	// m_pivot[1]: center
+	// m_pivot[2]: tail(tail root)
+	m_pivot.resize(3);
+	
+	// choosing policy 
+	m_pivot[1] = centers; 
+	
+	m_pivot[0] = heads; 
+	m_pivot[2] = tails; 
+	
+	m_bodystate.trans = m_translation; 
+	m_bodystate.pose = m_poseParam; 
+	m_bodystate.frameid = m_frameid; 
+	m_bodystate.id = m_id; 
+	m_bodystate.points = m_pivot; 
+	m_bodystate.center = m_pivot[1];
+}
