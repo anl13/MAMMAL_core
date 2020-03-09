@@ -42,6 +42,7 @@ void FrameData::configByJson(std::string jsonfile)
     m_boxExpandRatio = root["box_expand_ratio"].asDouble(); 
     m_skelType     = root["skel_type"].asString(); 
     m_topo         = getSkelTopoByType(m_skelType); 
+	m_match_alg = root["match_alg"].asString(); 
 
     std::vector<int> camids; 
     for(auto const &c : root["camids"])
@@ -119,7 +120,9 @@ void FrameData::readKeypoints() // load hrnet keypoints
                 {
                     v(idx) = c[candid][pid*3+idx].asDouble(); 
                 }
-                pig[pid] = v; 
+				if(v(2) > m_topo.kpt_conf_thresh[pid])
+					pig[pid] = v; 
+				else pig[pid] = Eigen::Vector3d::Zero(); 
             }
             aframe.push_back(pig);
         }
@@ -315,26 +318,39 @@ cv::Mat FrameData::visualizeSkels2D()
     return output; 
 }
 
-cv::Mat FrameData::visualizeIdentity2D()
+cv::Mat FrameData::visualizeIdentity2D(int viewid, int vid)
 {
-    std::vector<cv::Mat> imgdata;
-    cloneImgs(m_imgsUndist, imgdata); 
+    cloneImgs(m_imgsUndist, m_imgsDetect); 
     
     for(int id = 0; id < m_matched.size(); id++)
     {
+		if (vid >= 0 && id != vid)continue;
         for(int i = 0; i < m_matched[id].view_ids.size(); i++)
         {
             int camid = m_matched[id].view_ids[i];
             int candid = m_matched[id].cand_ids[i];
             if(candid < 0) continue; 
-            drawSkel(imgdata[camid], m_detUndist[camid][candid].keypoints, id);
-            my_draw_box(imgdata[camid], m_detUndist[camid][candid].box, m_CM[id]); 
-            my_draw_mask(imgdata[camid], m_detUndist[camid][candid].mask, m_CM[id], 0.5); 
+            drawSkel(m_imgsDetect[camid], m_detUndist[camid][candid].keypoints, id);
+            my_draw_box(m_imgsDetect[camid], m_detUndist[camid][candid].box, m_CM[id]);
+            my_draw_mask(m_imgsDetect[camid], m_detUndist[camid][candid].mask, m_CM[id], 0.5);
         }
     }
-    cv::Mat packed; 
-    packImgBlock(imgdata, packed); 
-    return packed;
+	if (viewid < 0)
+	{
+		cv::Mat packed;
+		packImgBlock(m_imgsDetect, packed);
+		return packed;
+	}
+	else
+	{
+		if (viewid >= m_camNum)
+		{
+			return m_imgsDetect[0];
+		}
+		else {
+			return m_imgsDetect[viewid];
+		}
+	}
 }
 
 cv::Mat FrameData::visualizeProj()
@@ -613,4 +629,213 @@ void FrameData::assembleDets()
             m_detUndist[camid][candid].mask = m_masksUndist[camid][candid]; 
         }
     }
+}
+
+void FrameData::drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d)
+{
+
+	for (int i = 0; i < _skel2d.size(); i++)
+	{
+		int colorid = m_topo.kpt_color_ids[i];
+		Eigen::Vector3i color = m_CM[colorid];
+		cv::Scalar cv_color(color(0), color(1), color(2));
+
+		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
+		double conf = _skel2d[i](2);
+		if (conf < m_topo.kpt_conf_thresh[i]) continue;
+		cv::circle(img, p, 9, cv_color, -1);
+	}
+	for (int k = 0; k < m_topo.bone_num; k++)
+	{
+		int jid = m_topo.bones[k](0);
+		int colorid = m_topo.kpt_color_ids[jid];
+		Eigen::Vector3i color = m_CM[colorid];
+		cv::Scalar cv_color(color(0), color(1), color(2));
+
+		Eigen::Vector2i b = m_topo.bones[k];
+		Eigen::Vector3d p1 = _skel2d[b(0)];
+		Eigen::Vector3d p2 = _skel2d[b(1)];
+		if (p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue;
+		cv::Point2d p1_cv(p1(0), p1(1));
+		cv::Point2d p2_cv(p2(0), p2(1));
+		cv::line(img, p1_cv, p2_cv, cv_color, 4);
+	}
+}
+
+void FrameData::view_dependent_clean()
+{
+	std::vector<int> top_views = { 3,5,6 };
+	
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		if (in_list(camid, top_views))
+		{
+			// for top views, we use center-tail to clean flipped legs 
+			for (int i = 0; i < m_detUndist[camid].size(); i++)
+			{
+				//cv::Mat temp = m_imgsUndist[3]; // for debug only
+				//drawSkelDebug(temp, m_detUndist[camid][i].keypoints);
+				//cv::namedWindow("test", cv::WINDOW_NORMAL); 
+				//cv::imshow("test", temp);
+				//cv::waitKey(); 
+				top_view_clean(m_detUndist[camid][i]);
+			}
+		}
+		else
+		{
+			// for side views, we do visibility checking by number of leg points 
+			for (int i = 0; i < m_detUndist[camid].size(); i++)
+			{
+				//if (camid == 8) // for debug
+				//{
+				//	cv::Mat temp = m_imgsUndist[8];
+				//	drawSkelDebug(temp, m_detUndist[camid][i].keypoints);
+				//	cv::namedWindow("test", cv::WINDOW_NORMAL);
+				//	cv::imshow("test", temp);
+				//	cv::waitKey();
+				//}
+				side_view_clean(m_detUndist[camid][i]); 
+				//if (camid == 8 && i==2) // for debug
+				//{
+				//	cv::Mat temp = m_imgsUndist[8];
+				//	drawSkelDebug(temp, m_detUndist[camid][i].keypoints);
+				//	cv::namedWindow("test", cv::WINDOW_NORMAL);
+				//	cv::imshow("test", temp);
+				//	cv::waitKey();
+				//}
+			}
+		}
+	}
+}
+
+// Attention: z points towards ground 
+// and note that, on image coordinate, to_left_test result should be reverse. 
+void FrameData::to_left_clean(DetInstance& det)
+{
+	vector<int> left_front_leg = { 5,7,9 };
+	vector<int> right_front_leg = { 6,8,10 };
+	vector<int> left_back_leg = { 11,13,15 };
+	vector<int> right_back_leg = { 12,14,16 };
+	vector<int> left = { 5,7,9,11,13,15 };
+	vector<int> right = { 6,8,10,12,14,16 };
+	Eigen::Vector3d center = det.keypoints[20];
+	Eigen::Vector3d tail = det.keypoints[18];
+	for (int i = 0; i < 6; i++)
+	{
+		int kid = left[i];
+		auto kpt = det.keypoints[kid];
+		if (kpt(2) < m_topo.kpt_conf_thresh[kid])
+		{
+			det.keypoints[kid] = Eigen::Vector3d::Zero();
+			continue;
+		}
+		else
+		{
+			bool is_left = to_left_test(tail, center, kpt);
+			if (is_left)det.keypoints[kid] = Eigen::Vector3d::Zero();
+		}
+	}
+	for (int i = 0; i < 6; i++)
+	{
+		int kid = right[i];
+		auto kpt = det.keypoints[kid];
+		if (kpt(2) < m_topo.kpt_conf_thresh[kid])
+		{
+			det.keypoints[kid] = Eigen::Vector3d::Zero();
+			continue;
+		}
+		else
+		{
+			bool is_left = to_left_test(tail, center, kpt);
+			if (!is_left)det.keypoints[kid] = Eigen::Vector3d::Zero();
+		}
+	}
+}
+void FrameData::top_view_clean(DetInstance& det)
+{
+	Eigen::Vector3d center = det.keypoints[20];
+	Eigen::Vector3d tail = det.keypoints[18];
+	if (tail(2) < m_topo.kpt_conf_thresh[18] || tail(2) < m_topo.kpt_conf_thresh[20]) return;
+	
+	to_left_clean(det); 
+}
+
+void FrameData::side_view_clean(DetInstance& det)
+{
+	vector<int> left_front_leg = { 5,7,9 };
+	vector<int> right_front_leg = { 6,8,10 };
+	vector<int> left_back_leg = { 11,13,15 };
+	vector<int> right_back_leg = { 12,14,16 };
+	vector<int> left = { 5,7,9,11,13,15 };
+	vector<int> right = { 6,8,10,12,14,16 };
+	vector<int> front = { 5,7,9,6,8,10 };
+	vector<int> back = { 11,13,15,12,14,16 };
+	Eigen::Vector3d center = det.keypoints[20];
+	Eigen::Vector3d tail = det.keypoints[18];
+	if (tail(2) < m_topo.kpt_conf_thresh[18] || tail(2) < m_topo.kpt_conf_thresh[20]) return;
+	Eigen::Vector2d vec = (center - tail).segment<2>(0);
+	double angle = vec2angle(vec);
+	// if tail-center is nearly perpendicular to x-axis, use to_left_test
+	double angle_range = 30;
+	if (angle > 90-angle_range && angle < 90+angle_range)
+	{
+		to_left_clean(det);
+	}
+	if (angle > -90-angle_range && angle < -90+angle_range)
+	{
+		to_left_clean(det);
+	}
+	// else, use leg count to do visibility checking
+	// a leg is reserved if and only if its 3 points are all visible
+	// and we assume not all legs are visible, only at most 3 are visible.
+	// 0(1)\    /1(2)
+	//      \  /
+	//       C
+	//      /  \
+	// 2(4)/    \3(8)
+	// states: invisible parts
+	// 12: front
+	// 3:  back 
+	// 5:  right 
+	// 10: left
+	// 13: right front 
+	// 14: left front
+	// 7:  right back 
+	// 11: left back 
+	// others: leave un-handled
+	vector<int> vis_count(4, 0);
+	for (int i = 0; i < 3; i++)
+	{
+		int kid = left_front_leg[i];
+		if (det.keypoints[kid](2) > m_topo.kpt_conf_thresh[kid]) vis_count[0]++;
+		kid = right_front_leg[i];
+		if (det.keypoints[kid](2) > m_topo.kpt_conf_thresh[kid]) vis_count[1]++;
+		kid = left_back_leg[i];
+		if (det.keypoints[kid](2) > m_topo.kpt_conf_thresh[kid]) vis_count[2]++;
+		kid = right_back_leg[i];
+		if (det.keypoints[kid](2) > m_topo.kpt_conf_thresh[kid]) vis_count[3]++;
+	}
+	int state = 0;
+	for (int i = 0; i < 4; i++)
+	{
+		if (vis_count[i] == 3)state += (1 << i);
+	}
+	vector<int> invisible_list; 
+	switch (state)
+	{
+	case 12: invisible_list = front; break; 
+	case 3: invisible_list = back; break; 
+	case 5: invisible_list = right; break;
+	case 10:invisible_list = left; break; 
+	case 13: invisible_list = right_front_leg; break; 
+	case 14:invisible_list = left_front_leg; break; 
+	case 7: invisible_list = right_back_leg; break; 
+	case 11: invisible_list = left_back_leg; break; 
+	default:break; 
+	}
+	for (int i = 0; i < invisible_list.size(); i++)
+	{
+		int kid = invisible_list[i];
+		det.keypoints[kid] = Eigen::Vector3d::Zero(); 
+	}
 }

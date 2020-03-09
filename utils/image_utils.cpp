@@ -393,3 +393,43 @@ cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)
     cv::Mat out = img1 * alpha + img2 * (1-alpha); 
     return out; 
 }
+
+Eigen::Vector3f rgb2bgr(const Eigen::Vector3f& color)
+{
+	Eigen::Vector3f color2; 
+	color2(0) = color(2); 
+	color2(1) = color(1); 
+	color2(2) = color(0); 
+	return color2; 
+}
+
+cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height)
+{
+	cv::Mat final_image(cv::Size(width, height), CV_8UC3, cv::Scalar(255, 255, 255));
+
+	int in_width = img.cols; 
+	int in_height = img.rows; 
+	int out_width, out_height; 
+	int start_x, start_y;
+	float r_final = (float)width / height; 
+	float r_in = (float)in_width / in_height;
+	if (r_in > r_final)
+	{
+		out_width = width; 
+		out_height = (int)(width / r_in); 
+		start_x = 0; 
+		start_y = (height - out_height) / 2; 
+	}
+	else
+	{
+		out_height = height; 
+		out_width = (int)(height * r_in); 
+		start_y = 0;
+		start_x = (width - out_width) / 2; 
+	}
+	cv::Mat resized; 
+	cv::resize(img, resized, cv::Size(out_width, out_height)); 
+	cv::Rect2i roi(start_x, start_y, out_width, out_height); 
+	resized.copyTo(final_image(roi));
+	return final_image; 
+}

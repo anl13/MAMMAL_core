@@ -41,6 +41,7 @@ public:
     int get_frame_id() {return m_frameid;}
     int get_start_id(){return m_startid;}
     int get_frame_num(){return m_framenum;}
+	vector<cv::Mat> get_imgs_undist() { return m_imgsUndist; }
     SkelTopology get_topo(){return m_topo;}
     PIGS3D get_skels3d(){return m_skels3d;}
     vector<MatchedInstance> get_matched() {return m_matched; }
@@ -51,17 +52,26 @@ public:
     void fetchData(); 
     cv::Mat test(); 
 
+	// debug 
+	void debug_fitting(int pid=0); 
+	void view_dependent_clean();
+	void top_view_clean(DetInstance& det);
+	void side_view_clean(DetInstance& det); 
+
     // top-down matching
     void matching(); 
     void tracking(); 
+	void matching_by_tracking(); 
     void reproject_skels(); 
 	void solve_parametric_model(); 
 	void read_parametric_data(); 
 
     // visualization function  
     cv::Mat visualizeSkels2D(); 
-    cv::Mat visualizeIdentity2D();
+    cv::Mat visualizeIdentity2D(int viewid=-1, int id=-1);
     cv::Mat visualizeProj(); 
+	void visualizeDebug(int id = -1); 
+
     void writeSkel3DtoJson(std::string savepath); 
     void readSkel3DfromJson(std::string jsonfile); 
 
@@ -74,7 +84,9 @@ protected:
     int _countValid(const vector<Vec3>& skel); 
 
     void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, int colorid);
-    int m_imh; 
+	void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
+	
+	int m_imh; 
     int m_imw; 
     int m_frameid; 
     int m_camNum; 
@@ -86,6 +98,9 @@ protected:
     std::vector<cv::Mat>                      m_imgs; 
     std::vector<Camera>                       m_camsUndist; 
     std::vector<cv::Mat>                      m_imgsUndist; 
+
+	std::vector<cv::Mat>                      m_imgsDetect;
+	std::vector<cv::Mat>                      m_imgsOverlay; 
 
     vector<vector<DetInstance> >              m_detUndist; // [camnum, candnum]
     vector<MatchedInstance>                   m_matched; // matched raw data after matching()
@@ -122,6 +137,7 @@ protected:
     std::string m_camDir; 
     std::string m_imgDir; 
 	std::string m_smalDir; 
+	std::string m_match_alg; 
     void readImages(); 
     void readCameras(); 
     void readKeypoints(); 
@@ -132,5 +148,6 @@ protected:
     void undistImgs(); 
     void undistMask(); 
     
+	void to_left_clean(DetInstance& det);
 };
 

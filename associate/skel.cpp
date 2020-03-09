@@ -142,32 +142,32 @@ SkelTopology getSkelTopoByType(std::string type)
             0,0,0,0,0, // face 
             2,1,2,1,2,1, // front legs 
             4,3,4,3,4,3, // back legs 
-            2,2,2,2,2,2 // ceneter and tail 
+            5,9,5,6,5,5 // ceneter and tail 
         }; 
         A.kpt_conf_thresh = {
-            0.5, // nose
-            0.5, // eye left  
-            0.5, // eye right  
-            0.5, // ear root left 
-            0.5, // ear root right
-            0.5, // left shoulder
-            0.5, // right shoulder
-            0.5, // left elbow
-            0.5, // right elbow
-            0.5, // left paw
-            0.5, // right paw
-            0.5, // hip left
-            0.5, // hip right 
-            0.5, // knee left  
-            0.5, // knee right 
-            0.5, // foot left 
-            0.5, // foot right 
-            0.5, // neck 
-            0.5, // tail root
-            0.5, // withers   
-            0.5, // center
-            0.5, // tail middle 
-            0.5  // tail end 
+            0.5, // nose 0
+            0.5, // eye left  1
+            0.5, // eye right   2 
+            0.5, // ear root left 3
+            0.5, // ear root right 4
+            0.5, // left shoulder 5
+            0.5, // right shoulder 6
+            0.5, // left elbow 7
+            0.5, // right elbow 8
+            0.5, // left paw 9
+            0.5, // right paw 10
+            0.5, // hip left 11
+            0.5, // hip right  12
+            0.5, // knee left  13
+            0.5, // knee right  14
+            0.5, // foot left 15
+            0.5, // foot right 16
+            0.5, // neck 17
+            0.5, // tail root 18
+            0.5, // withers    19
+            0.5, // center 20
+            0.5, // tail middle  21
+            0.5  // tail end 22
         }; 
     }
     else 
@@ -258,4 +258,16 @@ void BodyState::loadState(std::string filename)
 	}
 	center = points[1]; 
 	is.close(); 
+}
+
+
+vector<Eigen::Vector3d> convertMatToVec(const Eigen::MatrixXd& skel)
+{
+	vector<Eigen::Vector3d> vec;
+	vec.resize(skel.cols()); 
+	for (int i = 0; i < skel.cols(); i++)
+	{
+		vec[i] = skel.col(i); 
+	}
+	return vec; 
 }

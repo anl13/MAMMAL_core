@@ -80,3 +80,8 @@ Mat3 EulerToRotRadD(double x, double y, double z, std::string type="XYZ");
 Mat3 EulerToRotDegreeD(double x, double y, double z, std::string type="XYZ");
 Mat3 EulerToRotRadD(Vec3 rads, std::string type="XYZ"); 
 Mat3 EulerToRotDegreeD(Vec3 rads, std::string type="XYZ");
+
+
+bool to_left_test(const Eigen::Vector3d& x, const Eigen::Vector3d& y, const Eigen::Vector3d& z); 
+
+double vec2angle(const Eigen::Vector2d& vec); 

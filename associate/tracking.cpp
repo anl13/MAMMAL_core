@@ -1,6 +1,6 @@
 #include "tracking.h" 
 
-// #define DEBUG_TRACK
+ #define DEBUG_TRACK
 
 double distBetweenSkel3D(const vector<Eigen::Vector3d>& S1, const vector<Eigen::Vector3d>& S2)
 {
@@ -16,16 +16,14 @@ double distBetweenSkel3D(const vector<Eigen::Vector3d>& S1, const vector<Eigen::
     }
     if(overlay == 0) return 10000; 
     return total_dist / pow(overlay, 2.0); 
+
 }
 
 void NaiveTracker::track()
 {
     int last_num = m_skels_last.size(); 
     int curr_num = m_skels_curr.size(); 
-#ifdef DEBUG_TRACK
-    std::cout << "last num : " << last_num << std::endl;
-    std::cout << "curr num : " << curr_num << std::endl; 
-#endif 
+
     Eigen::MatrixXd G(last_num, curr_num); 
     for(int i = 0; i < last_num; i++)
     {

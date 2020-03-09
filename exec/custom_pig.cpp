@@ -18,7 +18,8 @@
 #include "../associate/framedata.h"
 
 #define RUN_SEQ
-//#define VIS 
+#define VIS 
+#define DEBUG_VIS
 //#define LOAD_STATE
 
 using std::vector; 
@@ -89,17 +90,20 @@ int main()
 
     // init a camera 
     Eigen::Matrix3f K; 
-    K << 0.5, 0, 0.5, 0, 0.5, 0.5, 0, 0, 1;
+    //K << 0.5, 0, 0.5, 0, 0.5, 0.5, 0, 0, 1;
+	K << 0.698, 0, 0.502,
+		0, 1.243, 0.483,
+		0, 0, 1;
     // std::cout << K << std::endl; 
 
-    Eigen::Vector3f up; up << 0,0, -1; 
-    Eigen::Vector3f pos; pos << -1, 1.5, -0.8; 
-    Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
+    //Eigen::Vector3f up; up << 0,0, -1; 
+    //Eigen::Vector3f pos; pos << -1, 1.5, -0.8; 
+    //Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
     // init renderer 
     Renderer::s_Init(); 
     Renderer m_renderer(conf_projectFolder + "/render/shader/"); 
     m_renderer.s_camViewer.SetIntrinsic(K, 1, 1); 
-    m_renderer.s_camViewer.SetExtrinsic(pos, up, center); 
+    //m_renderer.s_camViewer.SetExtrinsic(pos, up, center); 
 
     // init element obj
     const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
@@ -107,26 +111,28 @@ int main()
 	const ObjData cubeObj(conf_projectFolder + "/render/data/obj_model/cube.obj");
     const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj"); 
 
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, true);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor); 
+	//RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	//chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	//chess_floor->SetFaces(squareObj.faces, true);
+	//chess_floor->SetVertices(squareObj.vertices);
+	//chess_floor->SetTexcoords(squareObj.texcoords);
+	//chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//m_renderer.texObjs.push_back(chess_floor); 
 
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
 #endif 
 	int framenum = frame.get_frame_num();
 
 #ifdef VIS
-	std::string videoname_render = conf_projectFolder + "/result_data/render20200207.avi";
+#ifndef DEBUG_VIS
+	std::string videoname_render = conf_projectFolder + "/result_data/render20200209-orientation.avi";
 	cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1024, 1024));
 	if (!writer_render.isOpened())
 	{
 		std::cout << "can not open video file " << videoname_render << std::endl;
 		return -1;
 	}
+#endif 
 #endif 
 	TimerUtil::Timer<std::chrono::seconds> total;
 	total.Start(); 
@@ -135,19 +141,13 @@ int main()
 		std::cout << "processing frame " << frameid << std::endl; 
 		frame.set_frame_id(frameid); 
 #ifndef LOAD_STATE
-		TimerUtil::Timer<std::chrono::milliseconds> timer1; 
-		timer1.Start(); 
+		//TimerUtil::Timer<std::chrono::milliseconds> timer1; 
 		frame.fetchData();
-		std::cout << "fetch: " << timer1.Elapsed() << " ms" << std::endl;
-		timer1.Start(); 
-		frame.matching(); 
-		std::cout << "match: " << timer1.Elapsed() << " ms" << std::endl; 
-		timer1.Start(); 
-		frame.tracking(); 
-		std::cout << "track: " << timer1.Elapsed() << " ms" << std::endl; 
-		timer1.Start(); 
+		frame.view_dependent_clean(); 
+		frame.matching_by_tracking(); 
 		frame.solve_parametric_model(); 
-		std::cout << "fitting: " << timer1.Elapsed() << " ms" << std::endl; 
+		for (int i = 0; i < 4; i++) frame.debug_fitting(i); 
+
 #else
 		frame.read_parametric_data(); 
 #endif 
@@ -156,17 +156,22 @@ int main()
 #ifdef VIS
 		m_renderer.colorObjs.clear(); 
 		m_renderer.skels.clear(); 
+		cv::Mat det_img = frame.visualizeIdentity2D();
+		std::stringstream ss1; 
+		ss1 << "E:/debug_pig/assoc/" << std::setw(6) << std::setfill('0')
+			<< frameid << ".jpg"; 
+		cv::imwrite(ss1.str(), det_img); 
 		for (int pid = 0; pid < 4; pid++)
 		{
 			RenderObjectColor* pig_render = new RenderObjectColor();
 			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = models[pid]->GetFaces();
 			Eigen::MatrixXf vs = models[pid]->GetVertices().cast<float>();
 			
-			//pig_render->SetFaces(faces);
-			//pig_render->SetVertices(vs);
-			//Eigen::Vector3f color = CM[pid];
-			//pig_render->SetColor(color);
-			//m_renderer.colorObjs.push_back(pig_render);
+			pig_render->SetFaces(faces);
+			pig_render->SetVertices(vs);
+			Eigen::Vector3f color = rgb2bgr(CM[pid]);
+			pig_render->SetColor(color);
+			m_renderer.colorObjs.push_back(pig_render);
 
 			/// skels, require Z
 			//std::vector<Eigen::Vector3f> balls;
@@ -177,34 +182,61 @@ int main()
 			//	0.015f, 0.01f, 0.5f * color);
 			//m_renderer.skels.push_back(skelObject);
 
-			std::vector<Eigen::Vector2i> ori_bones = {
-				{0,1}, {1,2} };
-			std::vector<Eigen::Vector3f> colors;
-			colors.push_back(CM[pid] * 1.1f);
-			colors.push_back(CM[pid] * 0.6f);
-			colors.push_back(CM[pid] * 0.2f);
-			Eigen::MatrixXd joints;
-			joints.resize(3, 3); 
-			vector<Eigen::Vector3d> pivots = models[pid]->getPivot(); 
-			joints.col(0) = pivots[0];
-			joints.col(1) = pivots[1]; 
-			joints.col(2) = pivots[2]; 
-			std::vector<Eigen::Vector3f> balls;
-			std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			GetBallsAndSticks(joints, ori_bones, balls, sticks);
-			BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
-				0.015f, 0.01f, colors);
-			m_renderer.skels.push_back(skelObject);
+			//std::vector<Eigen::Vector2i> ori_bones = {
+			//	{0,1}, {1,2} };
+			//std::vector<Eigen::Vector3f> colors;
+			//colors.push_back(CM[pid] * 1.1f);
+			//colors.push_back(CM[pid] * 0.6f);
+			//colors.push_back(CM[pid] * 0.2f);
+			//Eigen::MatrixXd joints;
+			//joints.resize(3, 3); 
+			//vector<Eigen::Vector3d> pivots = models[pid]->getPivot(); 
+			//joints.col(0) = pivots[0];
+			//joints.col(1) = pivots[1]; 
+			//joints.col(2) = pivots[2]; 
+			//std::vector<Eigen::Vector3f> balls;
+			//std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+			//GetBallsAndSticks(joints, ori_bones, balls, sticks);
+			//BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
+			//	0.015f, 0.01f, colors);
+			//m_renderer.skels.push_back(skelObject);
 		}
 
 #ifndef RUN_SEQ
 		while (!glfwWindowShouldClose(windowPtr))
 		{
 #endif 
-			m_renderer.Draw();
+			auto cameras = frame.get_cameras();
+			auto rawimgs = frame.get_imgs_undist(); 
+			cv::Mat rawpack;
+			packImgBlock(rawimgs, rawpack); 
+			std::stringstream ss_raw;
+			ss_raw << "E:/debug_pig/render/raw_" << std::setw(6) << std::setfill('0')
+				<< frameid << ".jpg";
+			cv::imwrite(ss_raw.str(), rawpack); 
+			std::vector<cv::Mat> renders; 
+			for (int camid = 0; camid < cameras.size(); camid++)
+			{
+				Eigen::Matrix3f R = cameras[camid].R.cast<float>();
+				Eigen::Vector3f T = cameras[camid].T.cast<float>();
+				m_renderer.s_camViewer.SetExtrinsic(R, T);
+				m_renderer.Draw();
 #ifdef RUN_SEQ
-			cv::Mat capture = m_renderer.GetImage();
-			writer_render.write(capture);
+				cv::Mat capture = m_renderer.GetImage();
+				renders.push_back(capture);
+#ifndef DEBUG_VIS
+				writer_render.write(capture);
+#else 
+			}
+			cv::Mat pack_render;
+			packImgBlock(renders, pack_render);
+			std::stringstream ss;
+			ss << "E:/debug_pig/render/" << std::setw(6) << std::setfill('0')
+				<< frameid << ".jpg";
+			cv::Mat blended; 
+			blended = blend_images(pack_render, rawpack, 0.5); 
+			cv::imwrite(ss.str(), blended);
+#endif 
 #endif 
 			glfwSwapBuffers(windowPtr);
 			glfwPollEvents();
@@ -220,5 +252,6 @@ int main()
 	timeavg /= framenum; 
 	std::cout << "Avg time: " << timeavg << " s per frame. " << std::endl; 
 
+	//system("pause"); 
     return 0; 
 }

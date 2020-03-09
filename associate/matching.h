@@ -49,15 +49,20 @@ public:
     void set_cams(const vector<Camera>& _cams){m_cams = _cams;}
     void set_epi_type(std::string _epi_type){m_epi_type = _epi_type;}
     void set_epi_thres(double _epi_thres){m_epi_thres = _epi_thres;}
+	void set_skels_t_1(vector<vector<Eigen::Vector3d> > _skels_t_1) { m_skels_t_1 = _skels_t_1; }
     void get_clusters(vector<vector<int> > &_clusters){_clusters=m_clusters;}
     void get_skels3d(vector<vector<Eigen::Vector3d> >&_skels3d){
         _skels3d.clear(); _skels3d=m_skels3d;}
     
+	// single view matching 
     void match(); 
     void truncate(int _clusternum); 
+
+	// spatio-temporal matching
     void match_by_tracking(); 
 
 private: 
+	/// t
     void epipolarSimilarity(); 
     void epipolarClustering();
     void compute3dRANSAC(); 
@@ -66,7 +71,7 @@ private:
         double &avg_loss, int &matched_num);
     // input data 
     SkelTopology                              m_topo;
-    vector<vector<DetInstance> >              m_dets; 
+    vector<vector<DetInstance> >              m_dets; //[camid, candid]
     vector<Camera>                            m_cams; 
     std::string                               m_epi_type; 
     double                                    m_epi_thres; 
@@ -80,12 +85,16 @@ private:
     vector<vector<int> >              m_clusters; // [clusterid, camid]
     vector<vector<Eigen::Vector3d> >  m_skels3d;  // [clusterid, jointnum]
 
-    // t-1 
-    vector<vector<Eigen::Vector3d> >  m_skels_last; 
+    /// t-1 
+    vector<vector<Eigen::Vector3d> >  m_skels_t_1; 
+	vector<vector<DetInstance> >      m_dets_t_1; 
+	vector<vector<int> >              m_clusters_t_1; 
+	vector < vector<vector<Eigen::Vector3d> > > m_skels_proj_t_1; 
     void trackingSimilarity(); 
     void trackingClustering(); 
-    void projectLoss(const vector<Eigen::Vector3d>& skel3d, const Camera& cam, 
+	void projectLoss(int pig_id, int camid,
         const DetInstance& det,double& mean_err, double& matched_num); 
+	void project_all(); 
 }; 
 
 Eigen::Vector3d triangulate_ransac(

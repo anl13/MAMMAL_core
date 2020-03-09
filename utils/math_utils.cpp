@@ -1,6 +1,8 @@
-#include "math_utils.h"
+﻿#include "math_utils.h"
 #include <algorithm>
+#include <cmath>
 
+#define M_PI 3.1415926
 
 Mat3 GetSkewMatrix(const Vec3& w)
 {
@@ -373,4 +375,21 @@ Mat3 EulerToRotRadD(Vec3 rads, std::string type)
 Mat3 EulerToRotDegreeD(Vec3 rads, std::string type)
 {
     return EulerToRotDegreeD(rads(0), rads(1), rads(2), type); 
+}
+
+//Q.x∗R.y+P.x∗Q.y+P.y∗R.x−P.x∗R.y−Q.y∗R.x−P.y∗Q.x
+bool to_left_test(const Eigen::Vector3d& p, const Eigen::Vector3d& q, const Eigen::Vector3d& r)
+{
+	double v = q(0) * r(1) + p(0) * q(1) + p(1) * r(0)
+		- p(0) * r(1) - q(1) * r(0) - p(1) * q(0);
+	if (v > 0) return true; 
+	return false; 
+}
+
+double vec2angle(const Eigen::Vector2d& vec)
+{
+	double angleInRadians = std::atan2(vec(1), vec(0));
+	double angleInDegrees = (angleInRadians / M_PI) * 180.0;
+	return angleInDegrees;
+	// -180 ~ 180
 }

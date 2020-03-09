@@ -55,3 +55,5 @@ struct BodyState {
 	void saveState(std::string filename); 
 	void loadState(std::string filename); 
 };
+
+vector<Eigen::Vector3d> convertMatToVec(const Eigen::MatrixXd& skel); 

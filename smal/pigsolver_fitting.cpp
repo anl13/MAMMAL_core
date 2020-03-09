@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <fstream> 
 #include "../utils/colorterminal.h"
-
+#include <cstdlib> 
 //#define DEBUG_SOLVER
 
 void PigSolver::setCameras(const vector<Camera>& _cameras)
@@ -532,20 +532,26 @@ void PigSolver::readBodyState(std::string filename)
 	m_bodystate.loadState(filename); 
 	m_translation = m_bodystate.trans;
 	m_poseParam = m_bodystate.pose;
-	m_frameid = m_bodystate.id; 
+	m_frameid = m_bodystate.frameid; 
 	m_id = m_bodystate.id;
 	m_pivot = m_bodystate.points; 
 	m_scale = m_bodystate.scale; 
 
-	UpdateVertices(); 
-	auto skel = getRegressedSkel(); 
-	vector<Eigen::Vector3d> est(3); 
-	est[0] = skel.col(0); 
-	est[1] = skel.col(20); 
-	est[2] = skel.col(18); 
-	m_scale = ((m_pivot[0] - m_pivot[1]).norm() + (m_pivot[1] - m_pivot[2]).norm() + (m_pivot[2] - m_pivot[0]).norm())
-		/ ((est[0] - est[1]).norm() + (est[1] - est[2]).norm() + (est[2] - est[0]).norm());
-	m_jointsOrigin *= m_scale; 
-	m_verticesOrigin *= m_scale; 
+	//UpdateVertices(); 
+	//auto skel = getRegressedSkel(); 
+	//vector<Eigen::Vector3d> est(3); 
+	//est[0] = skel.col(0); 
+	//est[1] = skel.col(20); 
+	//est[2] = skel.col(18); 
+	//m_scale = ((m_pivot[0] - m_pivot[1]).norm() + (m_pivot[1] - m_pivot[2]).norm() + (m_pivot[2] - m_pivot[0]).norm())
+	//	/ ((est[0] - est[1]).norm() + (est[1] - est[2]).norm() + (est[2] - est[0]).norm());
+	
+	if (!tmp_init)
+	{
+		tmp_init = true; 
+		m_jointsOrigin *= m_scale;
+		m_verticesOrigin *= m_scale;
+	}
+
 	UpdateVertices(); 
 }

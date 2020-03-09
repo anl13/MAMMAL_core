@@ -443,33 +443,60 @@ void EpipolarMatching::truncate(int _clusternum)
 
 void EpipolarMatching::match_by_tracking()
 {
+	// init clusters 
     int cluster_num = 4; 
     int camNum = m_cams.size(); 
-    assert(m_skels_last.size() == 4); 
-    m_clusters.resize(m_skels_last.size());  // 4 clusters 
-    for(int i = 0; i < cluster_num; i++)
-    {
-        m_clusters[i].resize(camNum); 
-    }
-    // 
+    assert(m_skels_t_1.size() == 4); 
+	project_all();
+
+    // create similarity matrix m_G
+	trackingSimilarity();
+	// solve m_G
+	trackingClustering(); 
 }
 
-void EpipolarMatching::projectLoss(const vector<Eigen::Vector3d>& skel3d, 
-    const Camera& cam, const DetInstance& det, double& mean_err, double& matched_num)
+void EpipolarMatching::project_all()
+{
+	int camNum = m_cams.size(); 
+	int pointNum = m_topo.joint_num;
+	m_skels_proj_t_1.resize(camNum);
+	for (int camid = 0; camid < camNum; camid++)
+	{
+		m_skels_proj_t_1[camid].resize(4); 
+		for (int j = 0; j < 4; j++)
+		{
+			m_skels_proj_t_1[camid][j].resize(pointNum);
+			for (int jid = 0; jid < pointNum; jid++)
+			{
+				Eigen::Vector3d j3d = m_skels_t_1[j][jid];
+				if (j3d.norm() > 0) m_skels_proj_t_1[camid][j][jid] = project(m_cams[camid], j3d);
+				else
+				{
+					m_skels_proj_t_1[camid][j][jid] = Eigen::Vector3d::Zero();
+				}
+			}
+		}
+	}
+}
+
+void EpipolarMatching::projectLoss(
+	int pig_id, 
+    int camid, 
+	const DetInstance& det, 
+	double& mean_err, double& matched_num)
 {
     mean_err = 0; 
     double validnum = 0; 
     double dist_thres = 100; 
     matched_num = 0;
-    for(int kptid = 0; kptid < skel3d.size(); kptid++)
+    for(int kptid = 0; kptid < m_topo.joint_num; kptid++)
     {
         Eigen::Vector3d j2d = det.keypoints[kptid];
         if(j2d(2) >= m_topo.kpt_conf_thresh[kptid]) continue; 
-        Eigen::Vector3d j3d = skel3d[kptid]; 
-        if(j3d.norm() > 0) 
+        Eigen::Vector3d j_proj = m_skels_proj_t_1[camid][pig_id][kptid]; 
+        if(j_proj.norm() > 0) 
         {
-            Eigen::Vector3d proj = project(cam, j3d);
-            double dist = (proj.segment<2>(0) - j2d.segment<2>(0)).norm();
+            double dist = (j_proj.segment<2>(0) - j2d.segment<2>(0)).norm();
             mean_err += dist; 
             validnum += 1; 
             if(dist < dist_thres) matched_num += 1; 
@@ -490,12 +517,13 @@ void EpipolarMatching::projectLoss(const vector<Eigen::Vector3d>& skel3d,
 
 void EpipolarMatching::trackingSimilarity()
 {
+
     // build table and invtable 
     m_total_detection_num = 0; 
     m_table.clear(); 
     m_inv_table.clear(); 
     int cam_num = m_cams.size(); 
-    m_inv_table.resize(cam_num); 
+    m_inv_table.resize(cam_num+1); 
     for(int i = 0; i < cam_num; i++)
     {
         int cand_num = m_dets[i].size();
@@ -510,11 +538,21 @@ void EpipolarMatching::trackingSimilarity()
             m_total_detection_num++; 
         }
     }
+	m_inv_table[cam_num] = { m_total_detection_num,
+		m_total_detection_num+1,
+		m_total_detection_num+2,
+		m_total_detection_num+3 };
+	m_table.push_back({ cam_num,0 });
+	m_table.push_back({ cam_num,1 });
+	m_table.push_back({ cam_num,2 });
+	m_table.push_back({ cam_num,3 });
 
     // construct graph 
-    m_G.resize(m_total_detection_num, m_total_detection_num); 
+	int graph_size = m_total_detection_num + 4; // 4 is cluster num 
+    m_G.resize(graph_size, graph_size); 
     m_G.setZero(); 
     
+	// matching block 
     for(int index_i=0; index_i<m_total_detection_num; index_i++)
     {
         for(int index_j=0; index_j<m_total_detection_num; index_j++)
@@ -543,9 +581,72 @@ void EpipolarMatching::trackingSimilarity()
             m_G(index_i, index_j) = avg_loss / pow(matched_num, 1.0); 
         }
     }
+
+	// tracking block 
+	for (int i = 0; i < 4; i++)
+	{
+		for (int index_i = 0; index_i < m_total_detection_num; index_i++)
+		{
+			int camid = m_table[index_i].first; 
+			int candid = m_table[index_i].second; 
+			double mean_err, matched_num;
+			projectLoss(i, camid, m_dets[camid][candid], mean_err, matched_num);
+			m_G(index_i, i+m_total_detection_num) = mean_err / 25; 
+			m_G(i+m_total_detection_num, index_i) = mean_err / 25; 
+			//std::cout << "proj err: " << i << ": " << index_i << ": " << mean_err << std::endl;
+		}
+	}
+	//std::cout << "threshold: " << m_epi_thres << std::endl; 
+
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			m_G(i + m_total_detection_num, j + m_total_detection_num) = -1; 
+			m_G(j + m_total_detection_num, i + m_total_detection_num) = -1;
+		}
+	}
 }
 
 void EpipolarMatching::trackingClustering()
 {
+	ClusterClique CC;
+	CC.G = m_G;
+	CC.table = m_table;
+	CC.invTable = m_inv_table;
+	CC.vertexNum = m_total_detection_num + 4;
+	CC.threshold = m_epi_thres;
+	CC.constructAdjacentGraph();
+	CC.enumerateBestCliques();
+	 CC.printGraph();  
+	// CC.printAllMC();
+	// CC.printCliques(); 
+	m_cliques = CC.cliques;
+	int cluster_num = 4; 
+	std::vector<std::vector<int> > m_cliques_resort;
+	m_cliques_resort.resize(4); 
 
+	for (int cluster_id = 0; cluster_id < 4; cluster_id++)
+	{
+		for (int i = 0; i < m_cliques.size(); i++)
+		{
+			if (in_list(cluster_id + m_total_detection_num, m_cliques[i]))
+			{
+				m_cliques_resort[cluster_id] = m_cliques[i];
+			}
+		}
+	}
+	m_clusters.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		m_clusters[i].resize(m_cams.size(), -1);
+		for (int j = 0; j < m_cliques_resort[i].size(); j++)
+		{
+			int node_id = m_cliques_resort[i][j];
+			if (node_id >= m_total_detection_num) continue;
+			int camid = m_table[node_id].first;
+			int candid = m_table[node_id].second;
+			m_clusters[i][camid] = candid;
+		}
+	}
 }

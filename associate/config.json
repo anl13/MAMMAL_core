@@ -5,10 +5,11 @@
   "imgExtension": "jpg",
   //"camfolder": "/home/al17/animal/animal_calib/results/",
   "camfolder":  "D:/Projects/animal_calib/results/", 
-  "startid": 0,
+  "startid": 2570,
   "epipolartype": "p2l", // "p2l" or "l2l"
-  "framenum": 10000,
+  "framenum": 10,
   "epipolar_threshold": 25,
   "box_expand_ratio": 0.05,
-  "skel_type": "UNIV"
+  "skel_type": "UNIV",
+  "match_alg": "match"  // "match" or "track"
 }

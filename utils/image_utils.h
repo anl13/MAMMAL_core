@@ -43,3 +43,7 @@ void my_draw_mask(cv::Mat& img, vector<vector<Eigen::Vector2d> > contour_list, E
 
 // outimg = img1 * alpha + img2 * (1-alpha)
 cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha);
+
+Eigen::Vector3f rgb2bgr(const Eigen::Vector3f& color); 
+
+cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height); 

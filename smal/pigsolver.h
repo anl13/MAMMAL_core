@@ -23,6 +23,7 @@ public:
 		};
 		m_scale = 1; 
 		m_frameid = 0.0; 
+		tmp_init = false; 
 	} 
 	~PigSolver() {}
 	PigSolver() = delete; 
@@ -77,4 +78,7 @@ private:
 	Eigen::VectorXd m_weightsEigen;
 	SkelTopology m_topo;
 	std::vector<int> m_poseToOptimize;
+
+
+	bool tmp_init; 
 };
