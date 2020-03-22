@@ -67,6 +67,9 @@ public:
 
 	void Draw(); 
 	cv::Mat GetImage(); 
+	void SetBackgroundColor(const Eigen::Vector4f& _color) {
+		m_backgroundColor = _color;
+	}
 	
 private:
 	static MOUSE_ACTION s_mouseAction;
@@ -85,6 +88,8 @@ private:
 	static void s_KeyCallBack(GLFWwindow *_windowPtr, int key, int scancode, int action, int mods);
 
 	std::string m_shaderFolder;
+
+	Eigen::Vector4f m_backgroundColor; 
 };
 
 

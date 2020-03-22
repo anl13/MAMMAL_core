@@ -181,13 +181,13 @@ void project(const Camera& cam, const vector<Eigen::Vector3d> &points3d, vector<
     }
 }
 
-void project(const Camera& cam, Eigen::Vector3d p3d, Eigen::Vector3d &p2d)
+void project(const Camera& cam, const Eigen::Vector3d& p3d, Eigen::Vector3d &p2d)
 {
     p2d = cam.K * (cam.R * p3d + cam.T);
     p2d = p2d / p2d(2); 
 }
 
-Eigen::Vector3d project(const Camera& cam, Eigen::Vector3d p3d)
+Eigen::Vector3d project(const Camera& cam, const Eigen::Vector3d& p3d)
 {
     Vec3 p2d = cam.K * (cam.R * p3d + cam.T);
     p2d = p2d / p2d(2); 

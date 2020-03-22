@@ -58,7 +58,6 @@ void FrameData::tracking() // naive 3d 2 3d tracking
 
 void FrameData::solve_parametric_model()
 {
-	m_smalDir = "D:/Projects/animal_calib/data/pig_model/"; 
 	if(mp_bodysolver.empty()) mp_bodysolver.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
@@ -190,6 +189,32 @@ void FrameData::debug_fitting(int pig_id)
 	return; 
 }
 
+void FrameData::debug_chamfer(int pid)
+{
+	// init gray images 
+	std::vector<cv::Mat> grays; 
+	grays.resize(10);
+	for (int i = 0; i < 10; i++)
+	{
+		grays[i].create(cv::Size(1920, 1080), CV_8UC1);
+	}
+	// create chamfer 
+	for (int i = 0; i < m_matched[pid].view_ids.size(); i++)
+	{
+		int camid = m_matched[pid].view_ids[i];
+		int candid = m_matched[pid].cand_ids[i];
+		if (candid < 0) continue;
+		my_draw_mask_gray(grays[camid], 
+			m_detUndist[camid][candid].mask, 255);
+		cv::Mat chamfer = get_dist_trans(grays[camid]);
+		cv::Mat chamfer_vis = vis_float_image(chamfer); 
+		cv::namedWindow("mask"); 
+		cv::imshow("mask", chamfer_vis);
+		int key = cv::waitKey(); 
+		if (key == 27)exit(-1); 
+	}
+}
+
 void FrameData::visualizeDebug(int pid)
 {
 	cloneImgs(m_imgsUndist, m_imgsDetect);
@@ -207,4 +232,35 @@ void FrameData::visualizeDebug(int pid)
 			//my_draw_mask(m_imgsDetect[camid], m_detUndist[camid][candid].mask, m_CM[id], 0.5);
 		}
 	}
+}
+
+// draw masks according to 
+void FrameData::drawMask()
+{
+	m_imgsMask.resize(m_camNum);
+	for (int i = 0; i < m_camNum; i++)
+	{
+		m_imgsMask[i].create(cv::Size(m_imw, m_imh), CV_8UC1);
+	}
+	for (int pid = 0; pid < 4; pid++)
+	{
+		cv::Mat temp(cv::Size(m_imw, m_imh), CV_8UC1);
+		for (int k = 0; k < m_matched[pid].view_ids.size(); k++)
+		{
+			int viewid = m_matched[pid].view_ids[k];
+			my_draw_mask_gray(temp, m_matched[pid].dets[k].mask, 1 << pid);
+		}
+	}
+}
+
+void FrameData::getChamferMap(int pid, int viewid,
+	cv::Mat& chamfer, cv::Mat& mask)
+{
+	mask.create(cv::Size(m_imw, m_imh), CV_8UC1); 
+	int camid = m_matched[pid].view_ids[viewid];
+	int candid = m_matched[pid].cand_ids[viewid];
+	my_draw_mask_gray(mask,
+		m_matched[pid].dets[viewid].mask, 255);
+	chamfer = get_dist_trans(mask);
+	return; 
 }

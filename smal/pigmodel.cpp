@@ -114,7 +114,27 @@ PigModel::PigModel(const std::string &folder)
 	m_jointsFinal.resize(3, m_jointNum); 
 	m_verticesFinal.resize(3, m_vertexNum); 
 	
-	UpdateVertices(); 
+	m_normalOrigin.resize(3, m_vertexNum); 
+	m_normalShaped.resize(3, m_vertexNum);
+	m_normalFinal.resize(3, m_vertexNum); 
+	m_normalOrigin.setZero();
+	m_normalShaped.setZero(); 
+	m_normalFinal.setZero(); 
+	m_verticesDeformed.resize(3, m_vertexNum); 
+	m_verticesDeformed.setZero(); 
+	m_deform.resize(m_vertexNum); 
+	m_deform.setZero();
+
+	UpdateVertices();
+
+	m_bodyParts.resize(m_vertexNum); 
+	std::string teximgfile = m_folder + "/body_red.png";
+	m_texImgBody = cv::imread(teximgfile); 
+	if (m_texImgBody.empty())
+	{
+		std::cout << "texture img is empty!";
+		exit(-1); 
+	}
 }
 
 
@@ -217,7 +237,7 @@ void PigModel::UpdateVerticesFinal()
 		Eigen::Matrix<double, 4, 4, Eigen::ColMajor> globalAffineAverage;
 		Eigen::Map<Eigen::VectorXd>(globalAffineAverage.data(), 16)
 			= Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(globalAffineNormalized.data(), 16, m_jointNum) * (m_lbsweights.col(vertexId) );
-		m_verticesFinal.col(vertexId) = globalAffineAverage.block<3, 4>(0, 0)*(m_verticesShaped.col(vertexId).homogeneous());
+		m_verticesFinal.col(vertexId) = globalAffineAverage.block<3, 4>(0, 0)*(m_verticesDeformed.col(vertexId).homogeneous());
 	}
 }
 
@@ -225,6 +245,7 @@ void PigModel::UpdateVertices()
 {
 	UpdateJoints();
 	UpdateVerticesShaped();
+	UpdateVerticesDeformed(); 
 	UpdateVerticesFinal();
 }
 
@@ -256,7 +277,9 @@ void PigModel::saveState(std::string state_file)
     for(int i = 0; i < 3; i++) os << m_translation(i) << std::endl; 
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) os << m_poseParam(3*i+k) << std::endl; 
     for(int i = 0; i < m_shapeNum; i++) os << m_shapeParam(i) << std::endl; 
-    os.close(); 
+	for (int i = 0; i < m_vertexNum; i++) os << m_deform(i) << std::endl; 
+	os << m_scale;
+	os.close(); 
 }
 
 void PigModel::readState(std::string state_file)
@@ -270,5 +293,129 @@ void PigModel::readState(std::string state_file)
     for(int i = 0; i < 3; i++) is >> m_translation(i);
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) is >> m_poseParam(3*i+k); 
     for(int i = 0; i < m_shapeNum; i++) is >> m_shapeParam(i); 
-    is.close(); 
+	for (int i = 0; i < m_vertexNum; i++) is >> m_deform(i); 
+	is >> m_scale; 
+	is.close(); 
+}
+
+void PigModel::UpdateNormalOrigin()
+{
+	for (int fid = 0; fid < m_faceNum; fid++)
+	{
+		int x = m_faces(0, fid); 
+		int y = m_faces(1, fid); 
+		int z = m_faces(2, fid); 
+		Eigen::Vector3d px = m_verticesOrigin.col(x); 
+		Eigen::Vector3d py = m_verticesOrigin.col(y);
+		Eigen::Vector3d pz = m_verticesOrigin.col(z); 
+		Eigen::Vector3d norm = (py - px).cross(pz - px);
+		m_normalOrigin.col(x) += norm;
+		m_normalOrigin.col(y) += norm;
+		m_normalOrigin.col(z) += norm; 
+	}
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		m_normalOrigin.col(i).normalize(); 
+	}
+}
+
+void PigModel::UpdateNormalShaped()
+{
+	for (int fid = 0; fid < m_faceNum; fid++)
+	{
+		int x = m_faces(0, fid);
+		int y = m_faces(1, fid);
+		int z = m_faces(2, fid);
+		Eigen::Vector3d px = m_verticesShaped.col(x);
+		Eigen::Vector3d py = m_verticesShaped.col(y);
+		Eigen::Vector3d pz = m_verticesShaped.col(z);
+		Eigen::Vector3d norm = (py - px).cross(pz - px);
+		m_normalShaped.col(x) += norm;
+		m_normalShaped.col(y) += norm;
+		m_normalShaped.col(z) += norm;
+	}
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		m_normalShaped.col(i).normalize();
+	}
+}
+
+void PigModel::UpdateNormalFinal()
+{
+	for (int fid = 0; fid < m_faceNum; fid++)
+	{
+		int x = m_faces(0, fid);
+		int y = m_faces(1, fid);
+		int z = m_faces(2, fid);
+		Eigen::Vector3d px = m_verticesFinal.col(x);
+		Eigen::Vector3d py = m_verticesFinal.col(y);
+		Eigen::Vector3d pz = m_verticesFinal.col(z);
+		Eigen::Vector3d norm = (py - px).cross(pz - px);
+		m_normalFinal.col(x) += norm;
+		m_normalFinal.col(y) += norm;
+		m_normalFinal.col(z) += norm;
+	}
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		m_normalFinal.col(i).normalize();
+	}
+}
+
+void PigModel::UpdateVerticesDeformed()
+{
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		m_verticesDeformed.col(i) =
+			m_verticesShaped.col(i) +
+			m_normalShaped.col(i) * m_deform(i); 
+	}
+}
+
+void PigModel::RescaleOriginVertices()
+{
+	if (m_scale == 0) return; 
+	m_verticesOrigin = m_verticesOrigin * m_scale;
+	m_jointsOrigin = m_jointsOrigin * m_scale; 
+	m_shapeBlendJ = m_shapeBlendJ * m_scale; 
+	m_shapeBlendV = m_shapeBlendV * m_scale;
+}
+
+void PigModel::readTexImg(std::string filename)
+{
+	m_texImgBody = cv::imread(filename);
+	if (m_texImgBody.empty())
+	{
+		std::cout << filename << "  is empty!" << std::endl;
+		exit(-1); 
+	}
+}
+
+void PigModel::determineBodyParts()
+{
+	if (m_texImgBody.empty() || m_texcoords.cols() == 0)
+	{
+		std::cout << "no valid data!" << std::endl; 
+		exit(-1);
+	}
+	std::cout << "determin body parts: " << std::endl; 
+	int texW = m_texImgBody.cols;
+	int texH = m_texImgBody.rows; 
+
+	std::cout << "img type: " << m_texImgBody.type() << std::endl; 
+	cv::Mat temp(cv::Size(texW, texH), CV_8UC3);
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		Eigen::Vector2d t = m_texcoords.col(i); 
+		int x = int(round(t(0) * texW)); 
+		int y = texH - int(round(t(1) * texH));
+
+		if (m_texImgBody.at<cv::Vec3b>(y, x) == cv::Vec3b(0,0,255))
+		{
+			m_bodyParts[i] = MAIN_BODY;
+		}
+		else
+		{
+			m_bodyParts[i] = OTHERS;
+		}
+	}
 }

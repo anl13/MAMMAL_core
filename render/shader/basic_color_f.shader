@@ -73,4 +73,3 @@ void main()
     //out_color = vec4(vec3(texture(depth_cube, vec3(fs_in.pos - light_pos)).r),1.0);
     //out_color = vec4(vec3(shadow),1.0);
 }
-

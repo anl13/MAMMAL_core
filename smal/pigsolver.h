@@ -11,6 +11,9 @@
 #include "../associate/skel.h"
 #include "../utils/camera.h"
 #include "../utils/colorterminal.h"
+#include "../utils/image_utils.h"
+#include "../utils/math_utils.h"
+
 
 class PigSolver : public PigModel
 {
@@ -50,6 +53,16 @@ public:
 	void optimizePose(const int maxIterTime = 100, const double terminal = 0.001);
 	Eigen::VectorXd getRegressedSkelProj(const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T);
 	void computePivot(); 
+
+	// 2020-03-11 shape deformation solver
+	vector<ROIdescripter> m_rois;
+	vector<BodyState>     m_bodies;
+	vector<cv::Mat>       m_renders; 
+	void feedData(const ROIdescripter& _roi, 
+		const BodyState& _body);
+	void feedRender(const cv::Mat& _render);
+	void iterateStep(int iter); 
+	void clearData(); 
 
 	// 2020-01-17 Tried to solve Regressor matrix, but failed due to memory error.
 	void solveR(int samplenum=10); 

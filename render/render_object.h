@@ -128,7 +128,6 @@ public:
 	virtual void SetTexture(const std::string& texturePath);
 	virtual void SetTexcoords(const Eigen::Matrix<float, 2, -1, Eigen::ColMajor>& texcoords);
 
-
 private:
 	GLuint VBO_texcoord;
 	GLuint textureID;

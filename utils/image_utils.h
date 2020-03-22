@@ -7,6 +7,7 @@
 
 #include <Eigen/Eigen>
 #include <opencv2/opencv.hpp> 
+#include <opencv2/core/eigen.hpp> 
 
 #include "camera.h" 
 #include "colorterminal.h"
@@ -40,6 +41,7 @@ Eigen::Vector4d expand_box(Eigen::Vector4d box, double ratio = 0.15);
 void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes); 
 void my_draw_box(cv::Mat& img, const Eigen::Vector4d& box, Eigen::Vector3i c);
 void my_draw_mask(cv::Mat& img, vector<vector<Eigen::Vector2d> > contour_list, Eigen::Vector3i c, float alpha=0);
+void my_draw_mask_gray(cv::Mat& img, vector<vector<Eigen::Vector2d> > contour_list, int c);
 
 // outimg = img1 * alpha + img2 * (1-alpha)
 cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha);
@@ -47,3 +49,30 @@ cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha);
 Eigen::Vector3f rgb2bgr(const Eigen::Vector3f& color); 
 
 cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height); 
+
+cv::Mat get_dist_trans(cv::Mat input);
+
+cv::Mat vis_float_image(cv::Mat chamfer); 
+
+// This class is used as struct 
+class ROIdescripter {
+public:
+	ROIdescripter() {}
+	inline void setCam(const Camera& _cam) { cam = _cam; }
+	inline void setId(const int& _id) { id = _id; }
+	inline void setT(const int& _t) { t = _t; }
+
+	cv::Mat chamfer; // <float>
+	cv::Mat mask; // <uint8> including other body, to check visibility
+
+	Camera cam; 
+	Eigen::Vector4d box; // (x,y,x+w,y+h)
+	int id;
+	int t; 
+	int queryMask(const Eigen::Vector3d& point);
+	float queryChamfer(const Eigen::Vector3d& point);
+};
+
+float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam);
+
+cv::Mat reverseChamfer(const cv::Mat& chamfer);

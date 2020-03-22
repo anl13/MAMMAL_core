@@ -43,6 +43,7 @@ void FrameData::configByJson(std::string jsonfile)
     m_skelType     = root["skel_type"].asString(); 
     m_topo         = getSkelTopoByType(m_skelType); 
 	m_match_alg = root["match_alg"].asString(); 
+	m_smalDir = root["smal_dir"].asString(); 
 
     std::vector<int> camids; 
     for(auto const &c : root["camids"])
@@ -839,3 +840,4 @@ void FrameData::side_view_clean(DetInstance& det)
 		det.keypoints[kid] = Eigen::Vector3d::Zero(); 
 	}
 }
+

@@ -3,7 +3,14 @@
 #include <string>
 #include <vector>
 #include <Eigen/Core>
+#include <opencv2/opencv.hpp>
 
+enum BODY_PART
+{
+	NOT_BODY = 0,
+	MAIN_BODY,
+	OTHERS
+};
 class PigModel
 {
 public:
@@ -19,6 +26,7 @@ public:
 	void SetPose(Eigen::VectorXd _poseParam) { m_poseParam = _poseParam; }
 	void SetShape(Eigen::VectorXd _shapeParam) { m_shapeParam = _shapeParam; }
 	void SetTranslation(Eigen::VectorXd _translation) { m_translation = _translation; }
+	void SetScale(double _scale) { m_scale = _scale; }
 	void ResetPose() { m_poseParam.setZero();}
 	void ResetShape() { m_shapeParam.setZero(); }
 	void ResetTranslation() { m_translation.setZero(); }
@@ -30,11 +38,23 @@ public:
 	Eigen::VectorXd GetShape() { return m_shapeParam; }
 	Eigen::VectorXd GetPose() { return m_poseParam; }
 	Eigen::VectorXi GetParents() {return m_parent; }
+	double GetScale() { return m_scale; }
+	cv::Mat getTexImg() { return m_texImgBody; }
+	Eigen::MatrixXd GetTexcoords() { return m_texcoords; }
 
 	void UpdateJoints();
 	void UpdateVertices();
 
+	void UpdateNormalOrigin();
+	void UpdateNormalShaped();
+	void UpdateNormalFinal();
+
 	void SaveObj(const std::string& filename) const;
+	void RescaleOriginVertices();
+
+	// texture
+	void readTexImg(std::string filename);
+	void determineBodyParts();
 
 protected:
 	const int m_jointNum = 43;
@@ -42,12 +62,23 @@ protected:
 	const int m_shapeNum = 0;
 	const int m_faceNum = 3719;
 
+	cv::Mat m_texImgBody; 
+	std::vector<BODY_PART> m_bodyParts; // body part label of each vertex
+
+	// shape deformation
+	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalOrigin; 
+	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalShaped;
+	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalFinal;
+	Eigen::VectorXd m_deform; // deformation distance 
+	
+
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsOrigin;
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsShaped;
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsFinal;
 
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesOrigin;
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesShaped;
+	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesDeformed; 
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesFinal;
 
 	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> m_faces;
@@ -82,5 +113,8 @@ protected:
 	inline void UpdateJointsFinal() { UpdateJointsFinal(m_jointNum); }
 	void UpdateJointsFinal(const int jointCount);
 
-	
+
+
+	void UpdateVerticesDeformed(); 
+
 };

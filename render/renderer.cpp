@@ -267,13 +267,15 @@ void Renderer::s_KeyCallBack(GLFWwindow *_windowPtr, int key, int scancode, int 
 	case 341:	// ctrl
 		newPos -= sensitivity * up;
 		break;
+	case 27:
+		exit(-1); 
+		break; 
 	// case 67: // c
 	// 	// if(action == GLFW_PRESS)
 	// 		// s_outContinue++; 
 	// 	break; 
-
 	default:
-		std::cout << "key: " << key << std::endl; 
+		//std::cout << "key: " << key << std::endl; 
 		break;
 	}
 
@@ -336,7 +338,11 @@ void Renderer::InitShader()
 void Renderer::Draw()
 {
 	// set background
-	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+	glClearColor(m_backgroundColor(0),
+		m_backgroundColor(1),
+		m_backgroundColor(2),
+		m_backgroundColor(3));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
 	

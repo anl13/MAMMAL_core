@@ -23,7 +23,7 @@ typedef Eigen::MatrixXd PIG_SKEL_2D;
 
 struct DetInstance // class storing data of an instance 
 {
-    Eigen::Vector4d box; 
+    Eigen::Vector4d box; // x1,y1,x2,y2
     std::vector<Eigen::Vector3d> keypoints; 
     std::vector<std::vector<Eigen::Vector2d> > mask; // as contours
 };

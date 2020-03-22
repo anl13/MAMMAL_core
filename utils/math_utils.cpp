@@ -284,7 +284,7 @@ bool my_exclude(std::vector<int> a, std::vector<int> b)
     return exclude; 
 }
 
-bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box)
+bool in_box_test(const Eigen::Vector2d& x, const Eigen::Vector4d& box)
 {
     if(
         x(0) >= box(0) && x(0) <= box(2) && x(1) >= box(1) && x(1) <= box(3)
@@ -292,6 +292,16 @@ bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box)
     return true; 
     else return false; 
 }
+
+bool in_box_test(const Eigen::Vector2i& x, const Eigen::Vector4i& box)
+{
+	if (
+		x(0) >= box(0) && x(0) < box(2) && x(1) >= box(1) && x(1) < box(3)
+		)
+		return true;
+	else return false;
+}
+
 
 double welsch(double x, double c)
 {
@@ -393,3 +403,4 @@ double vec2angle(const Eigen::Vector2d& vec)
 	return angleInDegrees;
 	// -180 ~ 180
 }
+

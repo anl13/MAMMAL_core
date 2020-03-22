@@ -4,12 +4,13 @@
   "sequence": "E:/sequences/20190704_morning",
   "imgExtension": "jpg",
   //"camfolder": "/home/al17/animal/animal_calib/results/",
-  "camfolder":  "D:/Projects/animal_calib/results/", 
-  "startid": 2570,
+  "camfolder": "D:/Projects/animal_calib/results/",
+  "startid": 0,
   "epipolartype": "p2l", // "p2l" or "l2l"
-  "framenum": 10,
+  "framenum": 1000,
   "epipolar_threshold": 25,
   "box_expand_ratio": 0.05,
   "skel_type": "UNIV",
-  "match_alg": "match"  // "match" or "track"
+  "match_alg": "match", // "match" or "track"
+  "smal_dir": "D:/Projects/animal_calib/data/pig_model/"
 }

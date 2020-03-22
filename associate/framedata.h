@@ -16,6 +16,7 @@
 #include "clusterclique.h"
 #include "skel.h" 
 
+
 using std::vector; 
 
 typedef vector<vector<Eigen::Vector3d> > PIGS3D;
@@ -41,6 +42,7 @@ public:
     int get_frame_id() {return m_frameid;}
     int get_start_id(){return m_startid;}
     int get_frame_num(){return m_framenum;}
+	std::string get_smal_dir() { return m_smalDir; }
 	vector<cv::Mat> get_imgs_undist() { return m_imgsUndist; }
     SkelTopology get_topo(){return m_topo;}
     PIGS3D get_skels3d(){return m_skels3d;}
@@ -54,6 +56,8 @@ public:
 
 	// debug 
 	void debug_fitting(int pid=0); 
+	void visualizeDebug(int id = -1);
+	void debug_chamfer(int pid = 0); 
 	void view_dependent_clean();
 	void top_view_clean(DetInstance& det);
 	void side_view_clean(DetInstance& det); 
@@ -70,10 +74,12 @@ public:
     cv::Mat visualizeSkels2D(); 
     cv::Mat visualizeIdentity2D(int viewid=-1, int id=-1);
     cv::Mat visualizeProj(); 
-	void visualizeDebug(int id = -1); 
 
     void writeSkel3DtoJson(std::string savepath); 
     void readSkel3DfromJson(std::string jsonfile); 
+
+	// shape solver 
+	vector<ROIdescripter> getROI(int id = 0); 
 
 protected:
     // io functions 
@@ -85,7 +91,9 @@ protected:
 
     void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, int colorid);
 	void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
-	
+	void drawMask(); 
+	void getChamferMap(int pid, int viewid, cv::Mat& chamfer, cv::Mat& mask);
+
 	int m_imh; 
     int m_imw; 
     int m_frameid; 
@@ -101,12 +109,11 @@ protected:
 
 	std::vector<cv::Mat>                      m_imgsDetect;
 	std::vector<cv::Mat>                      m_imgsOverlay; 
+	std::vector<cv::Mat>                      m_imgsMask; // draw masks according to pig id
 
     vector<vector<DetInstance> >              m_detUndist; // [camnum, candnum]
     vector<MatchedInstance>                   m_matched; // matched raw data after matching()
-	vector<BodyState>                         m_bodies; 
 	vector<std::shared_ptr<PigSolver> >       mp_bodysolver; 
-	vector<BodyState>                         m_bodystates; 
 
     // matching & 3d data 
     vector<vector<int> > m_clusters; 

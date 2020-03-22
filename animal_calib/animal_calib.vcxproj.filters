@@ -123,6 +123,18 @@
     <ClCompile Include="..\exec\custom_pig.cpp">
       <Filter>exec</Filter>
     </ClCompile>
+    <ClCompile Include="..\exec\main.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\pigsolver_shape.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\framedata_shape.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\run_shape.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">
@@ -215,11 +227,20 @@
     <ClInclude Include="..\utils\timer_util.h">
       <Filter>utils</Filter>
     </ClInclude>
+    <ClInclude Include="..\exec\main.h">
+      <Filter>exec</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\associate\config.json">
       <Filter>associate</Filter>
     </None>
     <None Include="..\.gitignore" />
+    <None Include="..\smal\pigmodel_config.json">
+      <Filter>smal</Filter>
+    </None>
+    <None Include="..\smal\smal_config.json">
+      <Filter>smal</Filter>
+    </None>
   </ItemGroup>
 </Project>

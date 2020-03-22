@@ -29,8 +29,8 @@ double getEpipolarDist(const Camera& cam1, const Camera& cam2, const Vec3& u1, c
 double getEpipolarDist(const Vec3& p1, const Mat3& F, const Vec3& p2); 
 
 void project(const Camera& cam, const vector<Eigen::Vector3d> &points3d, vector<Eigen::Vector3d> &points2d); 
-void project(const Camera& cam, Eigen::Vector3d p3d, Eigen::Vector3d &p2d); 
-Eigen::Vector3d project(const Camera& cam, Eigen::Vector3d p3d); 
+void project(const Camera& cam, const Eigen::Vector3d& p3d, Eigen::Vector3d &p2d); 
+Eigen::Vector3d project(const Camera& cam, const Eigen::Vector3d& p3d); 
 
 class Joint3DSolver 
 {

@@ -1,6 +1,7 @@
-#include "image_utils.h"
 
-#include <opencv2/core/eigen.hpp> 
+#include "image_utils.h"
+#include "geometry.h"
+#include "math_utils.h"
 
 void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, const Camera &newcam)
 {
@@ -150,7 +151,7 @@ void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output)
     int rows = m_camNum / cols;
     if(rows*cols < m_camNum) rows = rows+1; 
 
-    output.create(cv::Size(cols*W, rows*H), CV_8UC3); 
+    output.create(cv::Size(cols*W, rows*H), imgs[0].type()); 
     try{
         for(int i = 0; i < m_camNum; i++)
         {
@@ -388,6 +389,29 @@ void my_draw_mask(cv::Mat& img,
     img = blend_images(raw, img, alpha); 
 }
 
+void my_draw_mask_gray(cv::Mat& img,
+	vector<vector<Eigen::Vector2d> > contour_list,
+	int c)
+{
+	cv::Mat color_img(cv::Size(1920, 1080), CV_8UC3); 
+	vector<vector<cv::Point2i> > contours;
+	for (int i = 0; i < contour_list.size(); i++)
+	{
+		vector<cv::Point2i> contour_part;
+		for (int j = 0; j < contour_list[i].size(); j++)
+		{
+			cv::Point2i p;
+			p.x = int(contour_list[i][j](0));
+			p.y = int(contour_list[i][j](1));
+			contour_part.push_back(p);
+		}
+		contours.push_back(contour_part);
+	}
+	cv::fillPoly(color_img, contours, cv::Scalar(c, c, c));
+	cv::cvtColor(color_img, img, cv::COLOR_BGR2GRAY);
+
+}
+
 cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)
 {
     cv::Mat out = img1 * alpha + img2 * (1-alpha); 
@@ -432,4 +456,94 @@ cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height)
 	cv::Rect2i roi(start_x, start_y, out_width, out_height); 
 	resized.copyTo(final_image(roi));
 	return final_image; 
+}
+
+cv::Mat get_dist_trans(cv::Mat input)
+{
+	cv::Mat gray; 
+	if (input.channels() == 3)
+	{
+		cv::cvtColor(input, gray, cv::COLOR_BGR2GRAY);
+	}
+	else gray = input; 
+	//cv::threshold(gray, gray, 40, 255, cv::/*THRESH_BINARY*/ | cv::THRESH_OTSU);
+	cv::Mat chamfer; 
+	cv::distanceTransform(gray, chamfer, cv::DIST_L2, 3);
+	//std::cout << chamfer.type() << std::endl;
+	return chamfer; 
+}
+
+cv::Mat vis_float_image(cv::Mat chamfer)
+{
+	int w = chamfer.cols; 
+	int h = chamfer.rows; 
+	cv::Mat img(cv::Size(w, h), CV_8UC1);
+	for (int i = 0; i < h; i++)
+	{
+		for (int j = 0; j < w; j++)
+		{
+			if(chamfer.at<float>(i,j)<256)
+				img.at<uchar>(i, j) = uchar(chamfer.at<float>(i, j));
+			else img.at<uchar>(i, j) = 255; 
+		}
+	}
+	return img; 
+}
+
+/// ROIDescripter 
+float ROIdescripter::queryChamfer(const Eigen::Vector3d& point)
+{
+	Eigen::Vector3d proj = project(cam, point);
+	Eigen::Vector2i p_int;
+	p_int(0) = int(round(proj(0)));
+	p_int(1) = int(round(proj(1)));
+	if (p_int(0) < 0 || p_int(0) >= 1920 || p_int(1) < 0 || p_int(1) >= 1080)
+		return -1;
+	return chamfer.at<float>(p_int(1), p_int(0));
+}
+
+int ROIdescripter::queryMask(const Eigen::Vector3d& point)
+{
+	Eigen::Vector3d proj = project(cam, point);
+	Eigen::Vector2i p_int;
+	p_int(0) = int(round(proj(0)));
+	p_int(1) = int(round(proj(1)));
+	if (p_int(0) < 0 || p_int(0) >= 1920 || p_int(1) < 0 || p_int(1) >= 1080)
+		return -1; 
+	return mask.at<uchar>(p_int(1), p_int(0));
+}	
+
+float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam)
+{
+	Eigen::Vector3d proj = project(cam, point);
+	Eigen::Vector2i p_int;
+	p_int(0) = int(round(proj(0)));
+	p_int(1) = int(round(proj(1)));
+	Eigen::Vector4i box(0, 0, img.cols, img.rows);
+	bool is_in_box = in_box_test(p_int, box);
+	if (!is_in_box)
+	{
+		return -1;
+	}
+	else
+	{
+		return img.at<float>(p_int(1), p_int(0));
+	}
+}
+
+
+cv::Mat reverseChamfer(const cv::Mat& chamfer)
+{
+	cv::Mat out;
+	out.create(cv::Size(chamfer.cols, chamfer.rows), CV_8UC1);
+	for (int j = 0; j < out.rows; j++)
+	{
+		for (int i = 0; i < out.cols; i++)
+		{
+			if (chamfer.at<float>(j, i) == 0)out.at<uchar>(j, i) = 1;
+			else out.at<uchar>(j, i) = 0;
+		}
+	}
+	out = get_dist_trans(out); 
+	return out; 
 }

@@ -28,7 +28,7 @@ Mat4 ToHomogeneous(const Mat3 &_m, const Vec3 &_v);
 /*****************rotation convert********************/ 
 Vec4 AxisAngleToQuat(const Vec3 &v); 
 
-Vec3 QuatToAxisAngle(const Vec4 &q);
+//Vec3 QuatToAxisAngle(const Vec4 &q);
 
 // Get skew matrix of a norm vec3
 Mat3 GetSkewMatrix(const Vec3& w);
@@ -66,7 +66,9 @@ bool my_exclude(std::vector<int> a, std::vector<int> b);
 inline double my_min(double a, double b){ return a>b?b:a; }
 inline double my_max(double a, double b){ return a>b?a:b; }
 
-bool in_box_test(Eigen::Vector2d x, Eigen::Vector4d box); 
+// box: (x1,y1,x2,y2)
+bool in_box_test(const Eigen::Vector2d& x, const Eigen::Vector4d& box); 
+bool in_box_test(const Eigen::Vector2i& x, const Eigen::Vector4i& box);
 double welsch(double x, double c); 
 
 double IoU_xyxy(Eigen::Vector4d b1, Eigen::Vector4d b2); 
