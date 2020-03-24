@@ -11,10 +11,11 @@ enum BODY_PART
 	MAIN_BODY,
 	OTHERS
 };
+
 class PigModel
 {
 public:
-	PigModel(const std::string &folder);
+	PigModel(const std::string &_configfile);
 	~PigModel();
 	PigModel() = delete;
 	PigModel(const PigModel& _) = delete;
@@ -48,19 +49,19 @@ public:
 	void UpdateNormalOrigin();
 	void UpdateNormalShaped();
 	void UpdateNormalFinal();
-
-	void SaveObj(const std::string& filename) const;
 	void RescaleOriginVertices();
 
+	void SaveObj(const std::string& filename) const;
+	
 	// texture
 	void readTexImg(std::string filename);
 	void determineBodyParts();
 
 protected:
-	const int m_jointNum = 43;
-	const int m_vertexNum = 2176;
-	const int m_shapeNum = 0;
-	const int m_faceNum = 3719;
+	int m_jointNum;// 43 / 33
+	int m_vertexNum; // 2176 / 3889
+	int m_shapeNum; // 0 / 41
+	int m_faceNum; // 3719 / 7774
 
 	cv::Mat m_texImgBody; 
 	std::vector<BODY_PART> m_bodyParts; // body part label of each vertex
@@ -113,8 +114,5 @@ protected:
 	inline void UpdateJointsFinal() { UpdateJointsFinal(m_jointNum); }
 	void UpdateJointsFinal(const int jointCount);
 
-
-
 	void UpdateVerticesDeformed(); 
-
 };

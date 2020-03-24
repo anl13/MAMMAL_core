@@ -135,6 +135,15 @@
     <ClCompile Include="..\exec\run_shape.cpp">
       <Filter>exec</Filter>
     </ClCompile>
+    <ClCompile Include="..\exec\run_render.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\smal_fitting.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\smal\pigsolver_jacobi.cpp">
+      <Filter>smal</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">

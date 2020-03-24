@@ -32,7 +32,9 @@
     <ClCompile Include="..\associate\tracking.cpp" />
     <ClCompile Include="..\exec\custom_pig.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
+    <ClCompile Include="..\exec\run_render.cpp" />
     <ClCompile Include="..\exec\run_shape.cpp" />
+    <ClCompile Include="..\exec\smal_fitting.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\glad.c" />
     <ClCompile Include="..\render\renderer.cpp" />
@@ -42,6 +44,7 @@
     <ClCompile Include="..\smal\pigmodel.cpp" />
     <ClCompile Include="..\smal\pigsolver.cpp" />
     <ClCompile Include="..\smal\pigsolver_fitting.cpp" />
+    <ClCompile Include="..\smal\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\smal\pigsolver_shape.cpp" />
     <ClCompile Include="..\smal\smal.cpp" />
     <ClCompile Include="..\smal\smal_2dsolver.cpp" />

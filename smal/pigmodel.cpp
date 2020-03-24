@@ -8,12 +8,35 @@
 #include "../utils/math_utils.h"
 #include "../utils/colorterminal.h"
 #include "../utils/obj_reader.h"
+#include <json/json.h>
 
-PigModel::PigModel(const std::string &folder)
+PigModel::PigModel(const std::string &_configfile)
 {
-	m_folder = folder; 
+	Json::Value root; 
+	Json::CharReaderBuilder rbuilder; 
+	std::string errs;
+	std::ifstream instream(_configfile);
+	if (!instream.is_open())
+	{
+		std::cout << "can not open " << _configfile << std::endl;
+		exit(-1); 
+	}
+	bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs); 
+	if (!parsingSuccessful)
+	{
+		std::cout << "Fail to parse \n" << errs << std::endl;
+		exit(-1);
+	}
+
+	// read basic params 
+	m_folder = root["folder"].asString(); 
+	m_jointNum = root["joint_num"].asInt();
+	m_vertexNum = root["vertex_num"].asInt(); 
+	m_shapeNum = root["shape_num"].asInt(); 
+	m_faceNum = root["face_num"].asInt(); 
+
 	// read vertices 
-	std::ifstream vfile(folder + "vertices.txt"); 
+	std::ifstream vfile(m_folder + "vertices.txt"); 
 	if(!vfile.is_open()){
 		std::cout << "vfile not open" << std::endl; exit(-1); 
 	}
@@ -25,7 +48,7 @@ PigModel::PigModel(const std::string &folder)
 	vfile.close(); 
 
     // read parents 
-	std::ifstream pfile(folder + "parents.txt"); 
+	std::ifstream pfile(m_folder + "parents.txt"); 
 	if(!pfile.is_open())
 	{
 		std::cout << "pfile not open" << std::endl; 
@@ -40,7 +63,7 @@ PigModel::PigModel(const std::string &folder)
 
 	// read faces 
 	m_faces.resize(3, m_faceNum); 
-	std::ifstream facefile(folder + "faces.txt"); 
+	std::ifstream facefile(m_folder + "faces.txt"); 
 	if (!facefile.is_open())
 	{
 		std::cout << "facefile not open " << std::endl; 
@@ -54,7 +77,7 @@ PigModel::PigModel(const std::string &folder)
 
 	// read t pose joints
 	m_jointsOrigin.resize(3, m_jointNum); 
-	std::ifstream jfile(folder + "t_pose_joints.txt"); 
+	std::ifstream jfile(m_folder + "t_pose_joints.txt"); 
 	if(!jfile.is_open()) 
 	{
 		std::cout << "can not open jfile " << std::endl; 
@@ -70,7 +93,7 @@ PigModel::PigModel(const std::string &folder)
 	jfile.close();	
 
 	// read skinning weights 
-	std::ifstream weightsfile(folder + "skinning_weights.txt");
+	std::ifstream weightsfile(m_folder + "skinning_weights.txt");
 	if (!weightsfile.is_open())
 	{
 		std::cout << "weights file not open " << std::endl; 
@@ -90,19 +113,72 @@ PigModel::PigModel(const std::string &folder)
 	}
 	weightsfile.close(); 
 
+	// read joint regressor 
+	std::ifstream jregressorFile(m_folder + "/J_regressor.txt");
+	if (!jregressorFile.is_open())
+	{
+		std::cout << "no regressor file" << std::endl; 
+	}
+	else {
+		m_jregressor.resize(m_vertexNum, m_jointNum);
+		m_jregressor.setZero();
+
+		double jregressorRow, jregressorCol;
+		double jregressorValue;
+
+		while (true)
+		{
+			jregressorFile >> jregressorCol;
+			if (jregressorFile.eof()) break;
+			jregressorFile >> jregressorRow >> jregressorValue;
+			m_jregressor(int(jregressorRow), int(jregressorCol)) = jregressorValue;
+		}
+		jregressorFile.close();
+	}
+
+	// read blendshape
+	if (m_shapeNum > 0)
+	{
+		std::ifstream shapeblendFile(m_folder + "/shapedirs.txt");
+		if (!shapeblendFile.is_open())
+		{
+			std::cout << "shape file not open" << std::endl;
+		}
+		else {
+			m_shapeBlendV.resize(3 * m_vertexNum, m_shapeNum);
+			for (int i = 0; i < 3 * m_vertexNum; i++)
+			{
+				for (int j = 0; j < m_shapeNum; j++)
+				{
+					shapeblendFile >> m_shapeBlendV(i, j);
+				}
+			}
+			m_shapeBlendJ.resize(3 * m_jointNum, m_shapeNum);
+			for (int i = 0; i < m_shapeNum; i++)
+			{
+				const Eigen::Map<const Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shapeBlendCol(m_shapeBlendV.col(i).data(), 3, m_vertexNum);
+				Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shape2JointCol(m_shapeBlendJ.col(i).data(), 3, m_jointNum);
+				shape2JointCol = shapeBlendCol * m_jregressor;
+			}
+			shapeblendFile.close();
+		}
+	}
+
+
 	// read texture coordinates 
-	std::ifstream texfile(folder + "textures.txt"); 
+	std::ifstream texfile(m_folder + "textures.txt"); 
 	if (!texfile.is_open())
 	{
 		std::cout << "texture file not open " << std::endl; 
-		exit(-1); 
 	}
-	m_texcoords.resize(2, m_vertexNum); 
-	for (int i = 0; i < m_vertexNum; i++)
-	{
-		texfile >> m_texcoords(0, i) >> m_texcoords(1, i); 
+	else {
+		m_texcoords.resize(2, m_vertexNum);
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			texfile >> m_texcoords(0, i) >> m_texcoords(1, i);
+		}
+		texfile.close();
 	}
-	texfile.close(); 
 
 	// init 
 	m_translation = Eigen::Vector3d::Zero(); 
@@ -126,15 +202,7 @@ PigModel::PigModel(const std::string &folder)
 	m_deform.setZero();
 
 	UpdateVertices();
-
-	m_bodyParts.resize(m_vertexNum); 
-	std::string teximgfile = m_folder + "/body_red.png";
-	m_texImgBody = cv::imread(teximgfile); 
-	if (m_texImgBody.empty())
-	{
-		std::cout << "texture img is empty!";
-		exit(-1); 
-	}
+	instream.close();
 }
 
 
@@ -392,6 +460,15 @@ void PigModel::readTexImg(std::string filename)
 
 void PigModel::determineBodyParts()
 {
+	m_bodyParts.resize(m_vertexNum);
+	std::string teximgfile = m_folder + "/body_red.png";
+	m_texImgBody = cv::imread(teximgfile);
+	if (m_texImgBody.empty())
+	{
+		std::cout << "texture img is empty!";
+		exit(-1);
+	}
+
 	if (m_texImgBody.empty() || m_texcoords.cols() == 0)
 	{
 		std::cout << "no valid data!" << std::endl; 

@@ -18,16 +18,7 @@
 class PigSolver : public PigModel
 {
 public:
-	PigSolver(std::string folder) :PigModel(folder) {
-		m_topo = getSkelTopoByType("UNIV"); 
-		m_poseToOptimize =
-		{
-			0, 4, 5, 6, 7, 8, 20, 21, 22, 23, 26, 27, 28, 38, 39 ,40, 11, 14
-		};
-		m_scale = 1; 
-		m_frameid = 0.0; 
-		tmp_init = false; 
-	} 
+	PigSolver(const std::string& _configfile);
 	~PigSolver() {}
 	PigSolver() = delete; 
 	PigSolver(const PigSolver& _) = delete;
@@ -39,6 +30,8 @@ public:
 	void setBodySize(const double _alpha) { m_scale = _alpha; }
 	void setFrameId(const double _frameid) { m_frameid = _frameid; }
 	void setId(const int _id) { m_id = _id;  }
+	void setTargetVSameTopo(const Eigen::MatrixXd& _targetV) { m_targetVSameTopo = _targetV; }
+
 	Eigen::MatrixXd              getZ() { return Z; }
 	double                       getBodySize() { return m_scale; }
 	std::vector<Eigen::Vector3d> getPivot() { return m_pivot;  }
@@ -48,11 +41,15 @@ public:
 	void normalizeCamera();
 	void normalizeSource();
 
+	// Fit functions
 	Eigen::MatrixXd getRegressedSkel(); 
 	void globalAlign(); 
+	void globalAlignToVerticesSameTopo(); 
 	void optimizePose(const int maxIterTime = 100, const double terminal = 0.001);
 	Eigen::VectorXd getRegressedSkelProj(const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T);
 	void computePivot(); 
+	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
+
 
 	// 2020-03-11 shape deformation solver
 	vector<ROIdescripter> m_rois;
@@ -64,34 +61,59 @@ public:
 	void iterateStep(int iter); 
 	void clearData(); 
 
+	void CalcZ();
+
 	// 2020-01-17 Tried to solve Regressor matrix, but failed due to memory error.
 	void solveR(int samplenum=10); 
 	void generateSamples(int samplenum); 
 	void solve(); 
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> R; // regressor to solve
+
+	void debug_jacobi();
+
 private: 
+	// control info 
 	int m_id; 
 	double m_frameid; 
+	std::vector<std::pair<int, int> > m_mapper;
+	SkelTopology m_topo;
+	std::vector<int> m_poseToOptimize;
+	bool tmp_init;
+
+	// targets to fit 
 	MatchedInstance m_source;
 	vector<Camera> m_cameras;
+	std::vector<double> m_weights;
+	Eigen::VectorXd m_weightsEigen;
+	Eigen::MatrixXd m_targetVSameTopo;
+
+	// inferred data
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
 	BodyState m_bodystate; 
-
 	std::vector<Eigen::Vector3d> m_pivot; // head, center, tail.
-	std::vector<std::pair<int, int> > m_mapper; 
-	void CalcPoseJacobi(); 
+	
 	void Calc2DJacobi(const int k, const Eigen::MatrixXd& skel,
 		Eigen::MatrixXd& H, Eigen::VectorXd& b);
-	void CalcZ(); 
+	void Calc2DJacobiNumeric(const int k, const Eigen::MatrixXd& skel,
+		Eigen::MatrixXd& H, Eigen::VectorXd& b);
+	void CalcPoseJacobi();
+	void CalcShapeJacobi();
+	void CalcPoseJacobiNumeric();
+	void CalcShapeJacobiNumeric();
 
+	// optimization parameters
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_JacobiPose;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_2DJacobi;
 
-	std::vector<double> m_weights;
-	Eigen::VectorXd m_weightsEigen;
-	SkelTopology m_topo;
-	std::vector<int> m_poseToOptimize;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiPose;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiPose;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiShape;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiShape;
 
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiPoseNumeric;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiPoseNumeric;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiShapeNumeric;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiShapeNumeric;
 
-	bool tmp_init; 
+	
 };

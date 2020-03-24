@@ -1,7 +1,9 @@
 #include "main.h"	
 
-int main()
+int main(int argc, char** argv)
 {
-	//run_on_sequence(); 
-	run_shape();
+	 //render_smal_test(); 
+	//run_shape();
+
+	TestVerticesAlign();
 }

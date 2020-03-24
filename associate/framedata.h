@@ -42,7 +42,6 @@ public:
     int get_frame_id() {return m_frameid;}
     int get_start_id(){return m_startid;}
     int get_frame_num(){return m_framenum;}
-	std::string get_smal_dir() { return m_smalDir; }
 	vector<cv::Mat> get_imgs_undist() { return m_imgsUndist; }
     SkelTopology get_topo(){return m_topo;}
     PIGS3D get_skels3d(){return m_skels3d;}
@@ -143,7 +142,7 @@ protected:
     std::string m_imgExtension; 
     std::string m_camDir; 
     std::string m_imgDir; 
-	std::string m_smalDir; 
+	std::string m_pigConfig; 
 	std::string m_match_alg; 
     void readImages(); 
     void readCameras(); 

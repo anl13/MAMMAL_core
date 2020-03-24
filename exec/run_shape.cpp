@@ -26,54 +26,56 @@
 
 using std::vector;
 
-std::vector<Eigen::Vector2i> bones = {
-	{ 1 , 0 },
-{ 2 , 1 },
-{ 3 , 2 },
-{ 4 , 3 },
-{ 5 , 4 },
-{ 6 , 5 },
-{ 7 , 6 },
-{ 8 , 7 },
-{ 9 , 8 },
-{ 10 , 9 },
-{ 11 , 4 },
-{ 12 , 11 },
-{ 13 , 12 },
-{ 14 , 13 },
-{ 15 , 14 },
-{ 16 , 14 },
-{ 17 , 16 },
-{ 18 , 14 },
-{ 19 , 18 },
-{ 20 , 4 },
-{ 21 , 20 },
-{ 22 , 21 },
-{ 23 , 22 },
-{ 24 , 23 },
-{ 25 , 24 },
-{ 26 , 0 },
-{ 27 , 26 },
-{ 28 , 27 },
-{ 29 , 28 },
-{ 30 , 29 },
-{ 31 , 0 },
-{ 32 , 31 },
-{ 33 , 32 },
-{ 34 , 33 },
-{ 35 , 34 },
-{ 36 , 35 },
-{ 37 , 36 },
-{ 38 , 0 },
-{ 39 , 38 },
-{ 40 , 39 },
-{ 41 , 40 },
-{ 42 , 41 }
-};
-
 int run_shape()
 {
+
+	std::vector<Eigen::Vector2i> bones = {
+		{ 1 , 0 },
+	{ 2 , 1 },
+	{ 3 , 2 },
+	{ 4 , 3 },
+	{ 5 , 4 },
+	{ 6 , 5 },
+	{ 7 , 6 },
+	{ 8 , 7 },
+	{ 9 , 8 },
+	{ 10 , 9 },
+	{ 11 , 4 },
+	{ 12 , 11 },
+	{ 13 , 12 },
+	{ 14 , 13 },
+	{ 15 , 14 },
+	{ 16 , 14 },
+	{ 17 , 16 },
+	{ 18 , 14 },
+	{ 19 , 18 },
+	{ 20 , 4 },
+	{ 21 , 20 },
+	{ 22 , 21 },
+	{ 23 , 22 },
+	{ 24 , 23 },
+	{ 25 , 24 },
+	{ 26 , 0 },
+	{ 27 , 26 },
+	{ 28 , 27 },
+	{ 29 , 28 },
+	{ 30 , 29 },
+	{ 31 , 0 },
+	{ 32 , 31 },
+	{ 33 , 32 },
+	{ 34 , 33 },
+	{ 35 , 34 },
+	{ 36 , 35 },
+	{ 37 , 36 },
+	{ 38 , 0 },
+	{ 39 , 38 },
+	{ 40 , 39 },
+	{ 41 , 40 },
+	{ 42 , 41 }
+	};
+
 	std::string folder = "D:/Projects/animal_calib/data/pig_model/";
+	std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 
 	SkelTopology topo = getSkelTopoByType("UNIV");
@@ -97,16 +99,13 @@ int run_shape()
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 #endif 
 	int framenum = frame.get_frame_num();
-	PigSolver shapesolver(folder); 
+	PigSolver shapesolver(pig_config); 
 	int m_pid = 0; // pig identity to solve now. 
 
 	for (int frameid = startid; frameid < startid + 1; frameid++)
 	{
-
-
 		std::cout << "processing frame " << frameid << std::endl;
 		frame.set_frame_id(frameid);
-
 		frame.fetchData();
 		frame.view_dependent_clean();
 		frame.matching_by_tracking();
@@ -170,13 +169,8 @@ int run_shape()
 		//std::stringstream ss;
 		//ss << "E:/debug_pig/render2/rend_" << frameid << ".png";
 		//cv::imwrite(ss.str(), blended); 
-
-
 #else 
-
-
 		frame.solve_parametric_model();
-
 		auto models = frame.get_models();
 		auto m_matched = frame.get_matched();
 		auto m_rois = frame.getROI();

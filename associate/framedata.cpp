@@ -43,7 +43,7 @@ void FrameData::configByJson(std::string jsonfile)
     m_skelType     = root["skel_type"].asString(); 
     m_topo         = getSkelTopoByType(m_skelType); 
 	m_match_alg = root["match_alg"].asString(); 
-	m_smalDir = root["smal_dir"].asString(); 
+	m_pigConfig = root["pig_config"].asString(); 
 
     std::vector<int> camids; 
     for(auto const &c : root["camids"])

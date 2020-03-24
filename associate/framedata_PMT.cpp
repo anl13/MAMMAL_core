@@ -63,7 +63,7 @@ void FrameData::solve_parametric_model()
 	{
 		if (mp_bodysolver[i] == nullptr)
 		{
-			mp_bodysolver[i] = std::make_shared<PigSolver>(m_smalDir);
+			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
 			mp_bodysolver[i]->setMapper(getPigMapper()); 
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
@@ -96,13 +96,12 @@ void FrameData::solve_parametric_model()
 
 void FrameData::read_parametric_data()
 {
-	m_smalDir = "D:/Projects/animal_calib/data/pig_model/";
 	if (mp_bodysolver.empty()) mp_bodysolver.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
 		if (mp_bodysolver[i] == nullptr)
 		{
-			mp_bodysolver[i] = std::make_shared<PigSolver>(m_smalDir);
+			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
 			mp_bodysolver[i]->setMapper(getPigMapper());
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
