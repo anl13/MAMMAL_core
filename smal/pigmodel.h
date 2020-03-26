@@ -36,7 +36,7 @@ public:
 	Eigen::MatrixXd GetVertices() const { return m_verticesFinal; }
 	Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> GetFacesTex() { return m_facesTex; }
 	Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> GetFacesVert() { return m_facesVert; }
-
+	Eigen::MatrixXd GetVerticesTex()const { return m_verticesTex; }
 	Eigen::Vector3d GetTranslation() { return m_translation; }
 	Eigen::VectorXd GetShape() { return m_shapeParam; }
 	Eigen::VectorXd GetPose() { return m_poseParam; }
@@ -59,6 +59,7 @@ public:
 	void UpdateNormalShaped();
 	void UpdateNormalFinal();
 	void RescaleOriginVertices();
+	void UpdateVerticesTex(); 
 
 	void SaveObj(const std::string& filename) const;
 	
@@ -68,22 +69,27 @@ public:
 	/// only used for standalone processing
 	void determineBodyPartsByTex();
 	void determineBodyPartsByWeight(); 
-	void debugStitchModel(); 
+	
 	// for debug:stitching
+#if 0
+	void debugStitchModel();
 	std::vector<int> m_stitchMaps;
 	std::vector<int> m_texToVert;
 	std::vector<int> m_vertToTex;
+#endif 
 	void debug(); 
 
 protected:
 	int m_jointNum;// 43 / 33
-	int m_vertexNum; // 2176 / 3889
+	int m_vertexNum; // 1879 / 3889
 	int m_shapeNum; // 0 / 41
 	int m_faceNum; // 3718 / 7774
 	int m_texNum; // 2176 
 
 	cv::Mat m_texImgBody; 
 	std::vector<BODY_PART> m_bodyParts; // body part label of each vertex
+	std::vector<int> m_texToVert; // [texNum, vertNum], map tex indices to vert indices
+	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesTex; 
 
 	// shape deformation
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalOrigin; 
@@ -137,5 +143,4 @@ protected:
 	void UpdateJointsFinal(const int jointCount);
 
 	void UpdateVerticesDeformed(); 
-
 };

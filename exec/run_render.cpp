@@ -66,9 +66,8 @@ int render_smal_test()
     smal.UpdateVertices();
 	smal.debug(); 
 #if 1
-    Eigen::Matrix<unsigned int,-1,-1, Eigen::ColMajor> faces = smal.GetFacesTex(); 
+    Eigen::Matrix<unsigned int,-1,-1, Eigen::ColMajor> faces = smal.GetFacesVert(); 
     Eigen::MatrixXf vs    = smal.GetVertices().cast<float>(); 
-	Eigen::MatrixXf texcoords = smal.GetTexcoords().cast<float>(); 
 
 	RenderObjectColor* smal_render = new RenderObjectColor();
     smal_render->SetFaces(faces); 
@@ -78,6 +77,7 @@ int render_smal_test()
     smal_render->SetColor(color); 
     m_renderer.colorObjs.push_back(smal_render); 
 
+	//Eigen::MatrixXf texcoords = smal.GetTexcoords().cast<float>();
 	//RenderObjectTexture* pig_tex_render = new RenderObjectTexture(); 
 	//pig_tex_render->SetFaces(faces); 
 	//pig_tex_render->SetVertices(vs); 
@@ -104,14 +104,7 @@ int render_smal_test()
 		}
 	}
 #endif 
-	smal.debugStitchModel();
 	std::vector<float> sizes(vertexNum, 0.005);
-	for (int i = 0; i < smal.m_stitchMaps.size(); i++)
-	{
-		int stitch_id = smal.m_stitchMaps[i];
-		colors[stitch_id] = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
-		sizes[stitch_id] = 0.01;
-	}
     
     std::vector<Eigen::Vector3f> balls; 
     std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
@@ -149,6 +142,7 @@ int render_smal_test()
         glfwPollEvents(); 
     };
 	
+	smal.SaveObj("D:/Projects/cpp_nonrigid_icp/data/pig_stitched.obj");
     return 0; 
 }
 

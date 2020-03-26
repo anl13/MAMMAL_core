@@ -12,16 +12,16 @@
 
 PigModel::PigModel(const std::string &_configfile)
 {
-	Json::Value root; 
-	Json::CharReaderBuilder rbuilder; 
+	Json::Value root;
+	Json::CharReaderBuilder rbuilder;
 	std::string errs;
 	std::ifstream instream(_configfile);
 	if (!instream.is_open())
 	{
 		std::cout << "can not open " << _configfile << std::endl;
-		exit(-1); 
+		exit(-1);
 	}
-	bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs); 
+	bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs);
 	if (!parsingSuccessful)
 	{
 		std::cout << "Fail to parse \n" << errs << std::endl;
@@ -29,14 +29,16 @@ PigModel::PigModel(const std::string &_configfile)
 	}
 
 	// read basic params 
-	m_folder = root["folder"].asString(); 
+	m_folder = root["folder"].asString();
 	m_jointNum = root["joint_num"].asInt();
-	m_vertexNum = root["vertex_num"].asInt(); 
-	m_shapeNum = root["shape_num"].asInt(); 
-	m_faceNum = root["face_num"].asInt(); 
+	m_vertexNum = root["vertex_num"].asInt();
+	m_shapeNum = root["shape_num"].asInt();
+	m_faceNum = root["face_num"].asInt();
+	m_texNum = root["tex_num"].asInt(); 
+	instream.close();
 
 	// read vertices 
-	std::ifstream vfile(m_folder + "vertices.txt"); 
+	std::ifstream vfile(m_folder + "vertices_stitched.txt"); 
 	if(!vfile.is_open()){
 		std::cout << "vfile not open" << std::endl; exit(-1); 
 	}
@@ -61,19 +63,34 @@ PigModel::PigModel(const std::string &_configfile)
 	}
 	pfile.close(); 
 
+	// read tex to vert 
+	m_texToVert.resize(m_texNum); 
+	std::ifstream ttvfile(m_folder + "/tex_to_vert.txt");
+	if (!ttvfile.is_open())
+	{
+		std::cout << "ttv file is not opened" << std::endl;
+		exit(-1);
+	}
+	for (int i = 0; i < m_texNum; i++) ttvfile >> m_texToVert[i];
+	ttvfile.close();
+
 	// read faces 
 	m_facesTex.resize(3, m_faceNum); 
-	std::ifstream facefile(m_folder + "faces.txt"); 
-	if (!facefile.is_open())
+	m_facesVert.resize(3, m_faceNum);
+	std::ifstream facetfile(m_folder + "faces_tex.txt"); 
+	std::ifstream facevfile(m_folder + "faces_vert.txt");
+	if (!facetfile.is_open() || !facevfile.is_open())
 	{
 		std::cout << "facefile not open " << std::endl; 
 		exit(-1); 
 	}
 	for (int i = 0; i < m_faceNum; i++)
 	{
-		facefile >> m_facesTex(0, i) >> m_facesTex(1, i) >> m_facesTex(2, i);
+		facetfile >> m_facesTex(0, i) >> m_facesTex(1, i) >> m_facesTex(2, i);
+		facevfile >> m_facesVert(0, i) >> m_facesVert(1, i) >> m_facesVert(2, i);
 	}
-	facefile.close(); 
+	facetfile.close(); 
+	facevfile.close(); 
 
 	// read t pose joints
 	m_jointsOrigin.resize(3, m_jointNum); 
@@ -93,7 +110,7 @@ PigModel::PigModel(const std::string &_configfile)
 	jfile.close();	
 
 	// read skinning weights 
-	std::ifstream weightsfile(m_folder + "skinning_weights.txt");
+	std::ifstream weightsfile(m_folder + "skinning_weights_stitched.txt");
 	if (!weightsfile.is_open())
 	{
 		std::cout << "weights file not open " << std::endl; 
@@ -169,7 +186,6 @@ PigModel::PigModel(const std::string &_configfile)
 		}
 	}
 
-
 	// read texture coordinates 
 	std::ifstream texfile(m_folder + "textures.txt"); 
 	if (!texfile.is_open())
@@ -177,8 +193,8 @@ PigModel::PigModel(const std::string &_configfile)
 		std::cout << "texture file not open " << std::endl; 
 	}
 	else {
-		m_texcoords.resize(2, m_vertexNum);
-		for (int i = 0; i < m_vertexNum; i++)
+		m_texcoords.resize(2, m_texNum);
+		for (int i = 0; i < m_texNum; i++)
 		{
 			texfile >> m_texcoords(0, i) >> m_texcoords(1, i);
 		}
@@ -205,9 +221,10 @@ PigModel::PigModel(const std::string &_configfile)
 	m_verticesDeformed.setZero(); 
 	m_deform.resize(m_vertexNum); 
 	m_deform.setZero();
+	m_verticesTex.resize(3, m_texNum); 
+	m_verticesTex.setZero(); 
 
 	UpdateVertices();
-	instream.close();
 }
 
 
@@ -333,7 +350,7 @@ void PigModel::SaveObj(const std::string& filename) const
 
 	for (int i = 0; i < m_faceNum; i++)
 	{
-		f << "f " << m_facesTex(0, i) + 1 << " " << m_facesTex(1, i) + 1 << " " << m_facesTex(2, i) + 1 << std::endl;
+		f << "f " << m_facesVert(0, i) + 1 << " " << m_facesVert(1, i) + 1 << " " << m_facesVert(2, i) + 1 << std::endl;
 	}
 	f.close();
 }
@@ -375,9 +392,9 @@ void PigModel::UpdateNormalOrigin()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
 	{
-		int x = m_facesTex(0, fid); 
-		int y = m_facesTex(1, fid); 
-		int z = m_facesTex(2, fid); 
+		int x = m_facesVert(0, fid); 
+		int y = m_facesVert(1, fid); 
+		int z = m_facesVert(2, fid); 
 		Eigen::Vector3d px = m_verticesOrigin.col(x); 
 		Eigen::Vector3d py = m_verticesOrigin.col(y);
 		Eigen::Vector3d pz = m_verticesOrigin.col(z); 
@@ -396,9 +413,9 @@ void PigModel::UpdateNormalShaped()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
 	{
-		int x = m_facesTex(0, fid);
-		int y = m_facesTex(1, fid);
-		int z = m_facesTex(2, fid);
+		int x = m_facesVert(0, fid);
+		int y = m_facesVert(1, fid);
+		int z = m_facesVert(2, fid);
 		Eigen::Vector3d px = m_verticesShaped.col(x);
 		Eigen::Vector3d py = m_verticesShaped.col(y);
 		Eigen::Vector3d pz = m_verticesShaped.col(z);
@@ -417,9 +434,9 @@ void PigModel::UpdateNormalFinal()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
 	{
-		int x = m_facesTex(0, fid);
-		int y = m_facesTex(1, fid);
-		int z = m_facesTex(2, fid);
+		int x = m_facesVert(0, fid);
+		int y = m_facesVert(1, fid);
+		int z = m_facesVert(2, fid);
 		Eigen::Vector3d px = m_verticesFinal.col(x);
 		Eigen::Vector3d py = m_verticesFinal.col(y);
 		Eigen::Vector3d pz = m_verticesFinal.col(z);
@@ -451,6 +468,15 @@ void PigModel::RescaleOriginVertices()
 	m_jointsOrigin = m_jointsOrigin * m_scale; 
 	m_shapeBlendJ = m_shapeBlendJ * m_scale; 
 	m_shapeBlendV = m_shapeBlendV * m_scale;
+}
+
+void PigModel::UpdateVerticesTex()
+{
+	for (int i = 0; i < m_texNum; i++)
+	{
+		m_verticesTex.col(i) =
+			m_verticesFinal.col(m_texToVert[i]);
+	}
 }
 
 void PigModel::readTexImg(std::string filename)
@@ -502,6 +528,7 @@ void PigModel::determineBodyPartsByTex()
 	}
 }
 
+#if 0
 void PigModel::debugStitchModel()
 {
 	// find stitches
@@ -604,6 +631,7 @@ void PigModel::debugStitchModel()
 	}
 	os_skinweight.close();
 }
+#endif  
 
 void PigModel::debug()
 {

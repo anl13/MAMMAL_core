@@ -1,7 +1,7 @@
 {
-  "folder": "D:/Projects/animal_calib/data/pig_model/",
+  "folder": "D:/Projects/animal_calib/data/pig_model_stitched/",
   "joint_num": 43,
-  "vertex_num": 2176,
+  "vertex_num": 1879,
   "tex_num": 2176,
   "shape_num": 0,
   "face_num": 3718,
