@@ -62,7 +62,7 @@ PigModel::PigModel(const std::string &_configfile)
 	pfile.close(); 
 
 	// read faces 
-	m_faces.resize(3, m_faceNum); 
+	m_facesTex.resize(3, m_faceNum); 
 	std::ifstream facefile(m_folder + "faces.txt"); 
 	if (!facefile.is_open())
 	{
@@ -71,7 +71,7 @@ PigModel::PigModel(const std::string &_configfile)
 	}
 	for (int i = 0; i < m_faceNum; i++)
 	{
-		facefile >> m_faces(0, i) >> m_faces(1, i) >> m_faces(2, i);
+		facefile >> m_facesTex(0, i) >> m_facesTex(1, i) >> m_facesTex(2, i);
 	}
 	facefile.close(); 
 
@@ -101,6 +101,7 @@ PigModel::PigModel(const std::string &_configfile)
 	}
 	m_lbsweights.resize(m_jointNum, m_vertexNum);
 	m_lbsweights.setZero(); 
+	m_weightsNoneZero.resize(m_jointNum);
 	while (true)
 	{
 		if (weightsfile.eof()) break; 
@@ -110,10 +111,12 @@ PigModel::PigModel(const std::string &_configfile)
 		if (weightsfile.eof()) break; 
 		weightsfile >> col >> value;
 		m_lbsweights(row, col) = value; 
+		m_weightsNoneZero[row].push_back(col); 
 	}
 	weightsfile.close(); 
 
 	// read joint regressor 
+	m_regressorNoneZero.clear();
 	std::ifstream jregressorFile(m_folder + "/J_regressor.txt");
 	if (!jregressorFile.is_open())
 	{
@@ -122,6 +125,7 @@ PigModel::PigModel(const std::string &_configfile)
 	else {
 		m_jregressor.resize(m_vertexNum, m_jointNum);
 		m_jregressor.setZero();
+		m_regressorNoneZero.resize(m_jointNum); 
 
 		double jregressorRow, jregressorCol;
 		double jregressorValue;
@@ -132,6 +136,7 @@ PigModel::PigModel(const std::string &_configfile)
 			if (jregressorFile.eof()) break;
 			jregressorFile >> jregressorRow >> jregressorValue;
 			m_jregressor(int(jregressorRow), int(jregressorCol)) = jregressorValue;
+			m_regressorNoneZero[jregressorCol].push_back(jregressorRow);
 		}
 		jregressorFile.close();
 	}
@@ -328,7 +333,7 @@ void PigModel::SaveObj(const std::string& filename) const
 
 	for (int i = 0; i < m_faceNum; i++)
 	{
-		f << "f " << m_faces(0, i) + 1 << " " << m_faces(1, i) + 1 << " " << m_faces(2, i) + 1 << std::endl;
+		f << "f " << m_facesTex(0, i) + 1 << " " << m_facesTex(1, i) + 1 << " " << m_facesTex(2, i) + 1 << std::endl;
 	}
 	f.close();
 }
@@ -370,9 +375,9 @@ void PigModel::UpdateNormalOrigin()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
 	{
-		int x = m_faces(0, fid); 
-		int y = m_faces(1, fid); 
-		int z = m_faces(2, fid); 
+		int x = m_facesTex(0, fid); 
+		int y = m_facesTex(1, fid); 
+		int z = m_facesTex(2, fid); 
 		Eigen::Vector3d px = m_verticesOrigin.col(x); 
 		Eigen::Vector3d py = m_verticesOrigin.col(y);
 		Eigen::Vector3d pz = m_verticesOrigin.col(z); 
@@ -391,9 +396,9 @@ void PigModel::UpdateNormalShaped()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
 	{
-		int x = m_faces(0, fid);
-		int y = m_faces(1, fid);
-		int z = m_faces(2, fid);
+		int x = m_facesTex(0, fid);
+		int y = m_facesTex(1, fid);
+		int z = m_facesTex(2, fid);
 		Eigen::Vector3d px = m_verticesShaped.col(x);
 		Eigen::Vector3d py = m_verticesShaped.col(y);
 		Eigen::Vector3d pz = m_verticesShaped.col(z);
@@ -412,9 +417,9 @@ void PigModel::UpdateNormalFinal()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
 	{
-		int x = m_faces(0, fid);
-		int y = m_faces(1, fid);
-		int z = m_faces(2, fid);
+		int x = m_facesTex(0, fid);
+		int y = m_facesTex(1, fid);
+		int z = m_facesTex(2, fid);
 		Eigen::Vector3d px = m_verticesFinal.col(x);
 		Eigen::Vector3d py = m_verticesFinal.col(y);
 		Eigen::Vector3d pz = m_verticesFinal.col(z);
@@ -458,7 +463,7 @@ void PigModel::readTexImg(std::string filename)
 	}
 }
 
-void PigModel::determineBodyParts()
+void PigModel::determineBodyPartsByTex()
 {
 	m_bodyParts.resize(m_vertexNum);
 	std::string teximgfile = m_folder + "/body_red.png";
@@ -495,4 +500,111 @@ void PigModel::determineBodyParts()
 			m_bodyParts[i] = OTHERS;
 		}
 	}
+}
+
+void PigModel::debugStitchModel()
+{
+	// find stitches
+	m_stitchMaps.clear(); 
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		Eigen::Vector3d p1 = m_verticesOrigin.col(i); 
+		for (int j = i + 1; j < m_vertexNum; j++)
+		{
+			Eigen::Vector3d p2 = m_verticesOrigin.col(j);
+			if ((p1 - p2).norm() < 0.0001)
+			{
+				m_stitchMaps.push_back(i);
+				m_stitchMaps.push_back(j); 
+			}
+		}
+	} // 327 size
+	// remvoe them 
+	m_texNum = m_vertexNum;
+	m_texToVert.resize(m_texNum);
+	m_vertToTex.clear(); 
+
+	int v_count = 0; 
+	for (int i = 0; i < m_texNum; i++)
+	{
+		int corr = find_in_list(i, m_stitchMaps);
+		if (corr < 0) {
+			m_texToVert[i] = v_count;
+			v_count++;
+			m_vertToTex.push_back(i);
+		}
+		else
+		{
+			int left = corr % 2;
+			int vid = m_stitchMaps[corr - left];
+			if (left == 0)
+			{
+				m_texToVert[i] = v_count;
+				v_count++;
+				m_vertToTex.push_back(i); 
+			}
+			else {
+				m_texToVert[i] = m_texToVert[vid];
+			}
+		}
+	}
+	std::ofstream os_verts(m_folder + "/vertices_stitched.txt");
+	for (int i = 0; i < m_vertToTex.size(); i++)
+	{
+		int t_vid = m_vertToTex[i];
+		os_verts << m_verticesOrigin.col(t_vid).transpose() << std::endl;
+	}
+	os_verts.close(); 
+
+	std::ofstream os_map(m_folder + "/tex_to_vert.txt");
+	for (int i = 0; i < m_texNum; i++)
+	{
+		os_map << m_texToVert[i] << "\n";
+	}
+	os_map.close(); 
+
+	m_facesVert.resize(3, m_faceNum);
+	for (int i = 0; i < m_faceNum; i++)
+	{
+		m_facesVert(0, i) = m_texToVert[m_facesTex(0, i)];
+		m_facesVert(1, i) = m_texToVert[m_facesTex(1, i)];
+		m_facesVert(2, i) = m_texToVert[m_facesTex(2, i)];
+	}
+	std::ofstream os_face_vert(m_folder + "/faces_vert.txt");
+	for (int i = 0; i < m_faceNum; i++)
+	{
+		os_face_vert << m_facesVert(0, i) << " "
+			<< m_facesVert(1, i) << " "
+			<< m_facesVert(2, i) << "\n";
+	}
+	os_face_vert.close(); 
+
+	// re-compute skinning weights
+	std::ofstream os_skinweight(m_folder + "/skinning_weights_stitched.txt");
+	for (int i = 0; i < m_jointNum; i++)
+	{
+		for (int j = 0; j < m_vertexNum; j++)
+		{
+			if (m_lbsweights(i, j) > 0)
+			{
+				int stitched = find_in_list(j, m_stitchMaps);
+				if (stitched >= 0 && stitched%2==1)
+				{
+					continue;
+				}
+				else
+				{
+					os_skinweight << i << " "
+						<< m_texToVert[j] << " "
+						<< m_lbsweights(i, j) << "\n";
+				}
+
+			}
+		}
+	}
+	os_skinweight.close();
+}
+
+void PigModel::debug()
+{
 }

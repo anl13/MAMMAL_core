@@ -4,7 +4,6 @@
 #include <iostream> 
 #include <fstream> 
 #include <Eigen/Eigen> 
-#include "../smal/smal.h" 
 #include "../utils/colorterminal.h" 
 #include "../utils/obj_reader.h"
 #include "../render/render_object.h"
@@ -12,9 +11,6 @@
 #include "../render/renderer.h"
 
 #include "../associate/framedata.h"
-//#include "../smal/smal_2dsolver.h"
-//#include "../smal/smal_solver.h"
-//#include "../smal/smal_jsolver.h" 
 #include "../smal/pigmodel.h"
 #include "../smal/pigsolver.h"
 #include "main.h"
@@ -71,7 +67,7 @@ int TestVerticesAlign()
     GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
 
     RenderObjectColor* smal_render = new RenderObjectColor(); 
-    Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces = solver.GetFaces(); 
+    Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces = solver.GetFacesTex(); 
     Eigen::MatrixXf vs = solver.GetVertices().cast<float>(); 
     smal_render->SetFaces(faces); 
     smal_render->SetVertices(vs);

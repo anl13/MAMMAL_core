@@ -34,7 +34,9 @@ public:
 
 	Eigen::MatrixXd GetJoints() const { return m_jointsFinal; }
 	Eigen::MatrixXd GetVertices() const { return m_verticesFinal; }
-	Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> GetFaces() const { return m_faces; }
+	Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> GetFacesTex() { return m_facesTex; }
+	Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> GetFacesVert() { return m_facesVert; }
+
 	Eigen::Vector3d GetTranslation() { return m_translation; }
 	Eigen::VectorXd GetShape() { return m_shapeParam; }
 	Eigen::VectorXd GetPose() { return m_poseParam; }
@@ -42,7 +44,14 @@ public:
 	double GetScale() { return m_scale; }
 	cv::Mat getTexImg() { return m_texImgBody; }
 	Eigen::MatrixXd GetTexcoords() { return m_texcoords; }
-
+	std::string GetFolder() { return m_folder; }
+	int GetVertexNum() { return m_vertexNum; }
+	int GetJointNum() { return m_jointNum; }
+	int GetFaceNum() { return m_faceNum; }
+	Eigen::MatrixXd GetLBSWeights() { return m_lbsweights; }
+	std::vector<std::vector<int> > GetWeightsNoneZero() { return m_weightsNoneZero; }
+	std::vector<std::vector<int> > GetRegressorNoneZero() { return m_regressorNoneZero; }
+	
 	void UpdateJoints();
 	void UpdateVertices();
 
@@ -55,13 +64,23 @@ public:
 	
 	// texture
 	void readTexImg(std::string filename);
-	void determineBodyParts();
+
+	/// only used for standalone processing
+	void determineBodyPartsByTex();
+	void determineBodyPartsByWeight(); 
+	void debugStitchModel(); 
+	// for debug:stitching
+	std::vector<int> m_stitchMaps;
+	std::vector<int> m_texToVert;
+	std::vector<int> m_vertToTex;
+	void debug(); 
 
 protected:
 	int m_jointNum;// 43 / 33
 	int m_vertexNum; // 2176 / 3889
 	int m_shapeNum; // 0 / 41
-	int m_faceNum; // 3719 / 7774
+	int m_faceNum; // 3718 / 7774
+	int m_texNum; // 2176 
 
 	cv::Mat m_texImgBody; 
 	std::vector<BODY_PART> m_bodyParts; // body part label of each vertex
@@ -82,7 +101,8 @@ protected:
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesDeformed; 
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesFinal;
 
-	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> m_faces;
+	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> m_facesTex;
+	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> m_facesVert;
 	Eigen::Matrix<double, 2, -1, Eigen::ColMajor> m_texcoords; 
 
 	Eigen::VectorXi m_parent;
@@ -91,6 +111,8 @@ protected:
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jregressor;  // vertexnum * jointnum
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_shapeBlendV;  // (vertexnum*3) * shapenum
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_shapeBlendJ; // (jointnum*3) * shapenum
+	std::vector<std::vector<int> > m_weightsNoneZero;
+	std::vector<std::vector<int> > m_regressorNoneZero;
 
 	Eigen::VectorXd m_poseParam;
 	Eigen::VectorXd m_shapeParam;
@@ -115,4 +137,5 @@ protected:
 	void UpdateJointsFinal(const int jointCount);
 
 	void UpdateVerticesDeformed(); 
+
 };

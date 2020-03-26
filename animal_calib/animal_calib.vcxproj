@@ -46,10 +46,6 @@
     <ClCompile Include="..\smal\pigsolver_fitting.cpp" />
     <ClCompile Include="..\smal\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\smal\pigsolver_shape.cpp" />
-    <ClCompile Include="..\smal\smal.cpp" />
-    <ClCompile Include="..\smal\smal_2dsolver.cpp" />
-    <ClCompile Include="..\smal\smal_jsolver.cpp" />
-    <ClCompile Include="..\smal\smal_solver.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
@@ -77,10 +73,6 @@
     <ClInclude Include="..\render\stb_image.h" />
     <ClInclude Include="..\smal\pigmodel.h" />
     <ClInclude Include="..\smal\pigsolver.h" />
-    <ClInclude Include="..\smal\smal.h" />
-    <ClInclude Include="..\smal\smal_2dsolver.h" />
-    <ClInclude Include="..\smal\smal_jsolver.h" />
-    <ClInclude Include="..\smal\smal_solver.h" />
     <ClInclude Include="..\utils\camera.h" />
     <ClInclude Include="..\utils\colorterminal.h" />
     <ClInclude Include="..\utils\geometry.h" />

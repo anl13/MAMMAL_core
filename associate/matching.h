@@ -14,7 +14,6 @@
 #include "../utils/Hungarian.h"
 #include "skel.h" 
 #include "clusterclique.h"
-#include "../smal/smal_jsolver.h"
 
 using std::vector; 
 

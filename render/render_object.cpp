@@ -405,7 +405,7 @@ BallStickObject::BallStickObject(
 	}
 }
 
-BallStickObject::BallStickObject(
+BallStickObject::BallStickObject( // point clouds 
 	const ObjData& ballObj, 
 	const std::vector<Eigen::Vector3f>& balls, 
 	const std::vector<float> sizes, 

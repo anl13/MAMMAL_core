@@ -170,7 +170,7 @@ int run_on_sequence()
 		for (int pid = 0; pid < 4; pid++)
 		{
 			RenderObjectColor* pig_render = new RenderObjectColor();
-			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = models[pid]->GetFaces();
+			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = models[pid]->GetFacesTex();
 			Eigen::MatrixXf vs = models[pid]->GetVertices().cast<float>();
 			
 			pig_render->SetFaces(faces);

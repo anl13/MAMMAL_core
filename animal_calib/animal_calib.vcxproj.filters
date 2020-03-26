@@ -84,18 +84,6 @@
     <ClCompile Include="..\smal\pigmodel.cpp">
       <Filter>smal</Filter>
     </ClCompile>
-    <ClCompile Include="..\smal\smal.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\smal\smal_2dsolver.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\smal\smal_jsolver.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\smal\smal_solver.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\camera.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -195,18 +183,6 @@
       <Filter>render</Filter>
     </ClInclude>
     <ClInclude Include="..\smal\pigmodel.h">
-      <Filter>smal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\smal\smal.h">
-      <Filter>smal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\smal\smal_2dsolver.h">
-      <Filter>smal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\smal\smal_jsolver.h">
-      <Filter>smal</Filter>
-    </ClInclude>
-    <ClInclude Include="..\smal\smal_solver.h">
       <Filter>smal</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\camera.h">

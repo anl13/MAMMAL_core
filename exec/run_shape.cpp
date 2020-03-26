@@ -184,7 +184,7 @@ int run_shape()
 		shapesolver.RescaleOriginVertices(); 
 		shapesolver.UpdateNormalOrigin(); 
 		shapesolver.UpdateNormalShaped();
-		shapesolver.determineBodyParts(); 
+		shapesolver.determineBodyPartsByTex(); 
 		//cv::Mat packMask;
 		//vector<cv::Mat> masks;
 		//for (int i = 0; i < m_rois.size(); i++)masks.push_back(m_rois[i].mask);
@@ -201,7 +201,7 @@ int run_shape()
 			m_renderer.colorObjs.clear(); 
 			m_renderer.texObjs.clear(); 
 
-			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = shapesolver.GetFaces();
+			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = shapesolver.GetFacesTex();
 			Eigen::MatrixXf vs = shapesolver.GetVertices().cast<float>();
 			Eigen::MatrixXf texcoords = shapesolver.GetTexcoords().cast<float>(); 
 			

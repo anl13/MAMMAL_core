@@ -62,6 +62,7 @@ double p2ldist(Vec3 x,  Vec3 a,  Vec3 b); // a,b form a line
 bool my_equal(std::vector<int> a, std::vector<int> b); 
 bool my_contain(std::vector<int> full, std::vector<int> sub); 
 bool in_list(const int& query, const std::vector<int>& list); 
+int find_in_list(const int &query, const std::vector<int>& list);
 bool my_exclude(std::vector<int> a, std::vector<int> b); 
 inline double my_min(double a, double b){ return a>b?b:a; }
 inline double my_max(double a, double b){ return a>b?a:b; }

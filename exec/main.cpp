@@ -2,8 +2,8 @@
 
 int main(int argc, char** argv)
 {
-	 //render_smal_test(); 
+	 render_smal_test(); 
 	//run_shape();
 
-	TestVerticesAlign();
+	//TestVerticesAlign();
 }

@@ -266,6 +266,15 @@ bool in_list(const int& query, const std::vector<int>& list)
     return false; 
 }
 
+int find_in_list(const int&query, const std::vector<int>& list)
+{
+	for (int i = 0; i < list.size(); i++)
+	{
+		if (list[i] == query) return i;
+	}
+	return -1; 
+}
+
 // check if a and b has same element. 
 // if yes, return false 
 // else return true 
