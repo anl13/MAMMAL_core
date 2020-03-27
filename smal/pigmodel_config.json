@@ -1,18 +1,21 @@
 {
-  "folder": "D:/Projects/animal_calib/data/pig_model_stitched/",
+  "folder": "D:/Projects/animal_calib/data/pig_model_noeye/",
   "joint_num": 43,
-  "vertex_num": 1879,
-  "tex_num": 2176,
+  //"vertex_num": 1879,
+  //"tex_num": 2176,
+  //"face_num": 3718,
+  "vertex_num": 1787,
+  "tex_num": 2084,
+  "face_num": 3570,
   "shape_num": 0,
-  "face_num": 3718,
   "topo": "UNIV",
   "texture_img": "body_red.png",
   "mapper": [
-    [ 1, 239 ], // nose
-    [ 1, 50 ], // left eye
-    [ 1, 353 ], // right eye
-    [ 1, 1551 ], // left ear
-    [ 1, 1571 ], // right ear
+    [ 1, 193 ], // nose
+    [ 1, 108 ], // left eye
+    [ 1, 295 ], // right eye
+    [ 1, 1318 ], // left ear
+    [ 1, 1329 ], // right ear
     [ 0, 21 ],
     [ 0, 6 ],
     [ 0, 22 ],

@@ -30,10 +30,6 @@ void OBJReader::read(std::string filename)
 		}
 		else if (tempstr == "vn")
 		{
-            //// AN Liang 201912
-			// reader >> vn1 >> vn2 >> vn3;
-			// Eigen::Vector3f temp_vn(vn1, vn2, vn3);
-			// normals.push_back(temp_vn);
 		}
 		else if (tempstr == "vt")
 		{
@@ -50,7 +46,8 @@ void OBJReader::read(std::string filename)
 			split_face_str(v_str_2, v2_index, t2_index, n2_index);
 			split_face_str(v_str_3, v3_index, t3_index, n3_index);
 			faces_v.push_back(Eigen::Vector3i(v1_index-1, v2_index-1, v3_index-1));
-			faces_t.push_back(Eigen::Vector3i(t1_index-1, t2_index-1, t3_index-1));
+			if(t1_index>0&&t2_index>0&&t3_index>0)
+				faces_t.push_back(Eigen::Vector3i(t1_index-1, t2_index-1, t3_index-1));
 		}
 		else
 		{
@@ -64,8 +61,11 @@ void OBJReader::read(std::string filename)
 	for(int i = 0; i < vertices.size(); i++) vertices_eigen.col(i) = vertices[i]; 
 	faces_v_eigen.resize(3, faces_v.size()); 
 	for(int i = 0; i < faces_v.size(); i++) faces_v_eigen.col(i) = faces_v[i].cast<unsigned int>(); 
-	textures_eigen.resize(2, vertices.size()); 
-	for (int i = 0; i < vertices.size(); i++) textures_eigen.col(i) = textures[i]; 
+	if (textures.size() > 0)
+	{
+		textures_eigen.resize(2, textures.size());
+		for (int i = 0; i < textures.size(); i++) textures_eigen.col(i) = textures[i];
+	}
 	std::cout << "[OBJReader]vertices number:" << vertices.size() << std::endl;
 	std::cout << "[OBJReader]textures number:" << textures.size() << std::endl;
 	std::cout << "[OBJReader]faces v size   :" << faces_v.size() << std::endl; 
@@ -76,9 +76,15 @@ void OBJReader::split_face_str(std::string str, int &i1, int &i2, int &i3)
 	std::vector<std::string> strs;
 	boost::split(strs, str, boost::is_any_of("/"));
 	if (strs.size() == 3){
-		i1 = stoi(strs[0]);
-		i2 = stoi(strs[1]);
-		i3 = stoi(strs[2]);
+		if(strs[0]!="")
+			i1 = stoi(strs[0]);
+		else i1 = -1;
+		if(strs[1]!="")
+			i2 = stoi(strs[1]);
+		else i2 = -1; 
+		if(strs[2]!="")
+			i3 = stoi(strs[2]);
+		else i3 = -1;
 	}
 	else
 	{

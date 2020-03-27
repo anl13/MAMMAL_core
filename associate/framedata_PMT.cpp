@@ -64,7 +64,6 @@ void FrameData::solve_parametric_model()
 		if (mp_bodysolver[i] == nullptr)
 		{
 			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
-			mp_bodysolver[i]->setMapper(getPigMapper()); 
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i); 

@@ -76,8 +76,10 @@ public:
 	std::vector<int> m_stitchMaps;
 	std::vector<int> m_texToVert;
 	std::vector<int> m_vertToTex;
+	
 #endif 
-	void debug(); 
+	void debugRemoveEye();
+
 
 protected:
 	int m_jointNum;// 43 / 33

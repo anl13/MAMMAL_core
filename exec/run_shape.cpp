@@ -74,7 +74,7 @@ int run_shape()
 	{ 42 , 41 }
 	};
 
-	std::string folder = "D:/Projects/animal_calib/data/pig_model/";
+	std::string folder = "D:/Projects/animal_calib/data/pig_model_noeye/";
 	std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 
@@ -194,15 +194,16 @@ int run_shape()
 		//cv::waitKey();
 
 		int iter = 0; 
-		for (; iter < 20; iter++)
+		for (; iter < 10; iter++)
 		{
 			shapesolver.UpdateVertices();
-
+			shapesolver.UpdateVerticesTex();
 			m_renderer.colorObjs.clear(); 
 			m_renderer.texObjs.clear(); 
 
 			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = shapesolver.GetFacesTex();
-			Eigen::MatrixXf vs = shapesolver.GetVertices().cast<float>();
+			Eigen::MatrixXf vs = shapesolver.GetVerticesTex().cast<float>();
+			
 			Eigen::MatrixXf texcoords = shapesolver.GetTexcoords().cast<float>(); 
 			
 			//RenderObjectColor* pig_render = new RenderObjectColor();

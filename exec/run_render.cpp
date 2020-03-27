@@ -20,7 +20,6 @@
 #include "../render/render_utils.h" 
 #include "../utils/colorterminal.h" 
 #include "../smal/pigmodel.h"
-// #define DEBUG_RENDER
 
 int render_smal_test()
 {
@@ -30,41 +29,39 @@ int render_smal_test()
 	std::string smal_config = "D:/Projects/animal_calib/smal/smal_config.json";
 	std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
 	auto CM = getColorMapEigen("jet"); 
+    /// read smal model 
+    //Eigen::VectorXd pose = Eigen::VectorXd::Random(43*3); 
+	PigModel smal(pig_config); 
+    //smal.SetPose(pose); 
+    smal.UpdateVertices();
+	//smal.debugRemoveEye();
+	//exit(-1);
 
-    // init a camera 
-    Eigen::Matrix3f K; 
+	// init render
+	Eigen::Matrix3f K;
 	K << 0.698, 0, 0.502,
 		0, 1.243, 0.483,
 		0, 0, 1;
-    std::cout << K << std::endl; 
+	std::cout << K << std::endl;
 
-    Eigen::Vector3f up; up << 0,0, -1; 
-    Eigen::Vector3f pos; pos << -1, 1.5, -0.8; 
-    Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
+	Eigen::Vector3f up; up << 0, 0, -1;
+	Eigen::Vector3f pos; pos << -1, 1.5, -0.8;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
 
-    // init renderer 
-    Renderer::s_Init(); 
-    Renderer m_renderer(conf_projectFolder + "/shader/"); 
-    m_renderer.s_camViewer.SetIntrinsic(K, 1, 1); 
-    m_renderer.s_camViewer.SetExtrinsic(pos, up, center); 
+	// init renderer 
+	Renderer::s_Init();
+	Renderer m_renderer(conf_projectFolder + "/shader/");
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 
-    // init element obj
-    const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");
+	// init element obj
+	const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");
 	const ObjData stickObj(conf_projectFolder + "/data/obj_model/cylinder.obj");
-    const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj"); 
+	const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj");
 
-    GLFWwindow* windowPtr = m_renderer.s_windowPtr; 
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
 
-    /// read smal model 
-    Eigen::VectorXd pose = Eigen::VectorXd::Random(99) * 0.1; 
-    Eigen::VectorXd shape = Eigen::VectorXd::Random(41) * 0.1; 
-    
-	PigModel smal(pig_config); 
-    //smal.SetPose(pose); 
-    //smal.SetShape(shape); 
-    smal.UpdateVertices();
-	smal.debug(); 
 #if 1
     Eigen::Matrix<unsigned int,-1,-1, Eigen::ColMajor> faces = smal.GetFacesVert(); 
     Eigen::MatrixXf vs    = smal.GetVertices().cast<float>(); 
@@ -89,10 +86,10 @@ int render_smal_test()
 	//vector<vector<int> > nonzero = smal.GetRegressorNoneZero(); 
 	vector<vector<int> > nonzero = smal.GetWeightsNoneZero(); 
     std::vector<Eigen::Vector3f> colors(vertexNum,Eigen::Vector3f(0.8,0.8,0.8)); 
-	
-#ifdef DEBUG_SKINNING
+	std::vector<float> sizes(vertexNum, 0.006);
+
 	std::vector<int> partIds = {
-	    4
+	    7,8,9,10
 	};
 	for (int k = 0; k < partIds.size(); k++)
 	{
@@ -103,8 +100,15 @@ int render_smal_test()
 			colors[col] = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
 		}
 	}
-#endif 
-	std::vector<float> sizes(vertexNum, 0.005);
+
+	//std::vector<int> vids = {
+	//	193, 108, 295, 1318,1329
+	//};
+	//for (int i = 0; i < vids.size(); i++)
+	//{
+	//	colors[vids[i]] = Eigen::Vector3f(0.0f, 1.0f, 0.0f);
+	//	sizes[vids[i]] = 0.005;
+	//}
     
     std::vector<Eigen::Vector3f> balls; 
     std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
@@ -136,7 +140,7 @@ int render_smal_test()
 
     while(!glfwWindowShouldClose(windowPtr))
     {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         m_renderer.Draw(); 
         glfwSwapBuffers(windowPtr); 
         glfwPollEvents(); 
