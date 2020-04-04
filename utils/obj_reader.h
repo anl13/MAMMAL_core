@@ -10,6 +10,7 @@
 #include <string>
 #include <Eigen/Dense>
 #include <boost/algorithm/string.hpp>
+#include "math_utils.h"
 
 class OBJReader
 {
@@ -19,23 +20,19 @@ public:
 
 	void read(std::string filename);
     void write(std::string filename); 
-	void set_face_buffer(std::vector<Eigen::Vector3i> &face_buffer);
-    // variales 
-	std::vector<Eigen::Vector3f> vertices;
-	std::vector<Eigen::Vector3i> faces_v; // vertices of faces
-	std::vector<Eigen::Vector3i> faces_t; // textures of faces
-	std::vector<Eigen::Vector2f> textures;
-    Eigen::MatrixXf vertices_eigen; 
+	std::vector<Eigen::Vector3d> vertices;
+	std::vector<int> tex_to_vert; 
+	std::vector<Eigen::Vector3u> faces_v; // vertices of faces
+	std::vector<Eigen::Vector3u> faces_t; // textures of faces
+	std::vector<Eigen::Vector2d> textures;
+    Eigen::MatrixXd vertices_eigen; 
     Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces_v_eigen; 
-	Eigen::MatrixXf textures_eigen; 
+	Eigen::MatrixXd textures_eigen; 
 
 private:
 	void split_face_str(std::string str, int& i1, int &i2, int &i3);
-	// core function to get right face buffer
-	float calcTriangleArea(float u1, float v1,
-		float u2, float v2,
-		float u3, float v3);
-	//std::unordered_map<int, std::vector<int>> f_map;
-	//std::unordered_map<int, int> v_map;
+	float calcTriangleArea(double u1, double v1,
+		double u2, double v2,
+		double u3, double v3);
 };
 #endif 

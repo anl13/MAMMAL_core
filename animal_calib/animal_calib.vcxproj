@@ -51,6 +51,7 @@
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
+    <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\obj_reader.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -78,7 +79,11 @@
     <ClInclude Include="..\utils\geometry.h" />
     <ClInclude Include="..\utils\Hungarian.h" />
     <ClInclude Include="..\utils\image_utils.h" />
+    <ClInclude Include="..\utils\kdtree.h" />
     <ClInclude Include="..\utils\math_utils.h" />
+    <ClInclude Include="..\utils\model.h" />
+    <ClInclude Include="..\utils\nanoflann.hpp" />
+    <ClInclude Include="..\utils\node_graph.h" />
     <ClInclude Include="..\utils\obj_reader.h" />
     <ClInclude Include="..\utils\timer_util.h" />
   </ItemGroup>
@@ -86,6 +91,7 @@
     <None Include="..\.gitignore" />
     <None Include="..\associate\config.json" />
     <None Include="..\smal\pigmodel_config.json" />
+    <None Include="..\smal\smal2_config.json" />
     <None Include="..\smal\smal_config.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

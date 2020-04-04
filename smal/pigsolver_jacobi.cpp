@@ -364,3 +364,16 @@ void PigSolver::Calc2DJacobiNumeric(
 	b = -J.transpose() * r;
 	H = J.transpose() * J;
 }
+
+void PigSolver::CalcSmthTerm(
+	Eigen::SparseMatrix<double>& ATA,
+	Eigen::VectorXd& ATb
+)
+{
+
+}
+
+void PigSolver::CalcVertJacobiNode()
+{
+
+}

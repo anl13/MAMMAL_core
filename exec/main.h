@@ -13,3 +13,5 @@ int renderScene();
 
 // saml_fitting.cpp
 int TestVerticesAlign();
+int removeSmalTail();
+int ComputeSymmetry();

@@ -132,6 +132,9 @@
     <ClCompile Include="..\smal\pigsolver_jacobi.cpp">
       <Filter>smal</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils\node_graph.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">
@@ -215,6 +218,18 @@
     <ClInclude Include="..\exec\main.h">
       <Filter>exec</Filter>
     </ClInclude>
+    <ClInclude Include="..\utils\kdtree.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\model.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\nanoflann.hpp">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\node_graph.h">
+      <Filter>utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\associate\config.json">
@@ -225,6 +240,9 @@
       <Filter>smal</Filter>
     </None>
     <None Include="..\smal\smal_config.json">
+      <Filter>smal</Filter>
+    </None>
+    <None Include="..\smal\smal2_config.json">
       <Filter>smal</Filter>
     </None>
   </ItemGroup>

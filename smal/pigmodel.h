@@ -9,6 +9,16 @@ enum BODY_PART
 {
 	NOT_BODY = 0,
 	MAIN_BODY,
+	HEAD,
+	L_EAR,
+	R_EAR,
+	L_F_LEG,
+	R_F_LEG,
+	L_B_LEG,
+	R_B_LEG,
+	TAIL,
+	JAW,
+	NECK,
 	OTHERS
 };
 
@@ -23,6 +33,12 @@ public:
 
 	void saveState(std::string state_file="state.txt"); 
     void readState(std::string state_file="state.txt");
+	void saveShapeParam(std::string state_file = "shape.txt");
+	void readShapeParam(std::string state_file = "shape.txt");
+	void saveDeform(std::string state_file = "deform.txt");
+	void readDeform(std::string state_file = "deform.txt");
+	void saveScale(std::string state_file = "scale.txt");
+	void readScale(std::string state_file = "scale.txt");
 
 	void SetPose(Eigen::VectorXd _poseParam) { m_poseParam = _poseParam; }
 	void SetShape(Eigen::VectorXd _shapeParam) { m_shapeParam = _shapeParam; }
@@ -48,16 +64,20 @@ public:
 	int GetVertexNum() { return m_vertexNum; }
 	int GetJointNum() { return m_jointNum; }
 	int GetFaceNum() { return m_faceNum; }
+	Eigen::MatrixXd GetShapeBlendV() { return m_shapeBlendV; }
+	Eigen::MatrixXd GetJRegressor() { return m_jregressor; }
 	Eigen::MatrixXd GetLBSWeights() { return m_lbsweights; }
 	std::vector<std::vector<int> > GetWeightsNoneZero() { return m_weightsNoneZero; }
 	std::vector<std::vector<int> > GetRegressorNoneZero() { return m_regressorNoneZero; }
-	
+	std::vector<BODY_PART> GetBodyPart() { return m_bodyParts; }
 	void UpdateJoints();
 	void UpdateVertices();
+	void UpdateNormals();
 
 	void UpdateNormalOrigin();
 	void UpdateNormalShaped();
 	void UpdateNormalFinal();
+
 	void RescaleOriginVertices();
 	void UpdateVerticesTex(); 
 
@@ -76,9 +96,9 @@ public:
 	std::vector<int> m_stitchMaps;
 	std::vector<int> m_texToVert;
 	std::vector<int> m_vertToTex;
-	
-#endif 
 	void debugRemoveEye();
+#endif 
+	
 
 
 protected:

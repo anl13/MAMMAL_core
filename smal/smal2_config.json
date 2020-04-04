@@ -1,0 +1,36 @@
+{
+  "folder": "D:/Projects/animal_calib/data/smalr_notail/",
+  "joint_num": 27,
+  "vertex_num": 3784,
+  "shape_num": 41,
+  "face_num": 7564,
+  "tex_num": 0,
+  "topo": "UNIV", 
+  "texture_img":  "body_red.png", 
+  "mapper": [
+    [ 1, 1790 ], // nose
+    [ 1, 1049 ], // eye left
+    [ 1, 2951 ], // eye right
+    [ 1, 463 ],  // ear root left 
+    [ 1, 2369 ], // ear root right
+    [ 0, 8 ],
+    [ 0, 12 ],
+    [ 0, 9 ],
+    [ 0, 13 ],
+    [ 0, 10 ],
+    [ 0, 14 ],
+    [ 0, 18 ],
+    [ 0, 22 ],
+    [ 0, 19 ],
+    [ 0, 23 ],
+    [ 0, 20 ],
+    [ 0, 24 ],
+    [ -1, -1 ],
+    [ 0, 25 ],
+    [ 0, 6 ],
+    [ 0, 4 ],
+    [ -1, -1 ],
+    [ -1, -1 ]
+  ],
+  "pose_to_solve": [ 0, 2, 3, 5, 6, 7, 8, 9, 11, 12, 13, 15, 16, 17, 18, 19, 21, 22, 23 ]
+}

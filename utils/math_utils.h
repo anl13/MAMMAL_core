@@ -5,6 +5,8 @@
 #include <math.h> 
 #include <opencv2/core/eigen.hpp> 
 #include <vector> 
+#include <cmath> 
+#include <type_traits>
 
 #define PI 3.14159265359 
 
@@ -14,7 +16,7 @@ typedef Eigen::Matrix3d Mat3;
 typedef Eigen::Vector3d Vec3; 
 typedef Eigen::Vector4d Vec4; 
 typedef Eigen::Vector2d Vec2; 
-
+typedef Eigen::Matrix<unsigned int, -1, -1> MatXui;
 
 typedef Eigen::aligned_allocator<Mat4>  Alloc_Mat4; 
 typedef std::vector<Mat4, Alloc_Mat4>  ProjectionList; 
@@ -88,3 +90,67 @@ Mat3 EulerToRotDegreeD(Vec3 rads, std::string type="XYZ");
 bool to_left_test(const Eigen::Vector3d& x, const Eigen::Vector3d& y, const Eigen::Vector3d& z); 
 
 double vec2angle(const Eigen::Vector2d& vec); 
+
+// Yuxiang Zhang's math util, added at 2020/Mar/28
+
+namespace Eigen {
+	typedef Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> MatrixXb;
+	typedef Eigen::Matrix<unsigned char, 3, 3> Matrix3b;
+	typedef Eigen::Matrix<unsigned char, 3, Eigen::Dynamic> Matrix3Xb;
+	typedef Eigen::Matrix<unsigned char, 4, Eigen::Dynamic> Matrix4Xb;
+	typedef Eigen::Matrix<unsigned char, 2, 1> Vector2b;
+	typedef Eigen::Matrix<unsigned char, 3, 1> Vector3b;
+	typedef Eigen::Matrix<unsigned char, 4, 1> Vector4b;
+	typedef Eigen::Matrix<unsigned int, Eigen::Dynamic, Eigen::Dynamic> MatrixXu;
+	typedef Eigen::Matrix<unsigned int, 3, 3> Matrix3u;
+	typedef Eigen::Matrix<unsigned int, 3, Eigen::Dynamic> Matrix3Xu;
+	typedef Eigen::Matrix<unsigned int, 4, Eigen::Dynamic> Matrix4Xu;
+	typedef Eigen::Matrix<unsigned int, 2, 1> Vector2u;
+	typedef Eigen::Matrix<unsigned int, 3, 1> Vector3u;
+	typedef Eigen::Matrix<unsigned int, 4, 1> Vector4u;
+	typedef Eigen::Matrix<float, 6, 1> Vector6f;
+	typedef Eigen::Matrix<float, 3, 4> Matrix34f;
+	typedef Eigen::Matrix<float, 3, 2> Matrix32f;
+	typedef Eigen::Matrix<double, 6, 1> Vector6d;
+	typedef Eigen::Matrix<double, 3, 4> Matrix34d;
+	typedef Eigen::Matrix<double, 3, 2> Matrix32d;
+}
+
+namespace MathUtil {
+	// Linear Algebra
+	inline Eigen::Matrix3d Skew(const Eigen::Vector3d& vec)
+	{
+		Eigen::Matrix3d skew;
+		skew << 0, -vec.z(), vec.y(),
+			vec.z(), 0, -vec.x(),
+			-vec.y(), vec.x(), 0;
+		return skew;
+	}
+
+
+	inline Eigen::Matrix4d Twist(const Eigen::Vector6d &_twist)
+	{
+		// calculate exponential mapping from Lie Algebra (se(3)) to Lie Group (SE(3))
+		Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+		Eigen::Vector3d axis = _twist.head(3);
+
+		if (axis.cwiseAbs().sum() > 1e-5f) {
+			double angle = axis.norm();
+			axis.normalize();
+
+			// rotation
+			T.topLeftCorner(3, 3) = Eigen::AngleAxisd(angle, axis).matrix();
+
+			// translation
+			Eigen::Vector3d rho(_twist.tail(3));
+			const double s = std::sin(angle) / angle;
+			const double t = (1 - std::cos(angle)) / angle;
+
+			Eigen::Matrix3d skew = Skew(axis);
+			Eigen::Matrix3d J = s * Eigen::Matrix3d::Identity() + (1 - s) * (skew * skew + Eigen::Matrix3d::Identity()) + t * skew;
+			Eigen::Vector3d trans = J * rho;
+			T.topRightCorner(3, 1) = trans;
+		}
+		return T;
+	}
+}

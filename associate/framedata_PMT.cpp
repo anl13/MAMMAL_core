@@ -64,6 +64,11 @@ void FrameData::solve_parametric_model()
 		if (mp_bodysolver[i] == nullptr)
 		{
 			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
+			//mp_bodysolver[i]->readState("shapestate.txt");
+			//mp_bodysolver[i]->RescaleOriginVertices();
+			mp_bodysolver[i]->UpdateNormalOrigin();
+			mp_bodysolver[i]->UpdateNormalShaped();
+			//mp_bodysolver[i]->determineBodyPartsByTex();
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i); 
@@ -80,13 +85,13 @@ void FrameData::solve_parametric_model()
 		mp_bodysolver[i]->globalAlign(); 
 		mp_bodysolver[i]->optimizePose(100, 0.001); 
 		mp_bodysolver[i]->computePivot();
-		//std::string savefolder = "E:/pig_results/"; 
-		//std::stringstream ss; 
-		//ss << savefolder << "state_" << i << "_" <<
-		//	std::setw(6) << std::setfill('0') << m_frameid
-		//	<< ".pig";
-		//auto body = mp_bodysolver[i]->getBodyState(); 
-		//body.saveState(ss.str()); 
+		std::string savefolder = "E:/pig_results/"; 
+		std::stringstream ss; 
+		ss << savefolder << "state_" << i << "_" <<
+			std::setw(6) << std::setfill('0') << m_frameid
+			<< ".pig";
+		auto body = mp_bodysolver[i]->getBodyState(); 
+		body.saveState(ss.str()); 
 
 		auto skels = mp_bodysolver[i]->getRegressedSkel();
 		m_skels3d[i] = convertMatToVec(skels); 
@@ -101,7 +106,6 @@ void FrameData::read_parametric_data()
 		if (mp_bodysolver[i] == nullptr)
 		{
 			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
-			mp_bodysolver[i]->setMapper(getPigMapper());
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i);

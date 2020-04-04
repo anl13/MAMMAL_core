@@ -13,8 +13,13 @@
 #include "../utils/colorterminal.h"
 #include "../utils/image_utils.h"
 #include "../utils/math_utils.h"
+#include "../utils/model.h"
+#include "../utils/node_graph.h"
 
-
+/*
+Some Functions for nonrigid deformation borrows from 
+https://github.com/zhangyux15/cpp_nonrigid_icp
+*/
 class PigSolver : public PigModel
 {
 public:
@@ -50,6 +55,10 @@ public:
 	void computePivot(); 
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
 
+	// node graph deformation
+	NodeGraph m_ng;
+	void UpdateWarpField();
+	void UpdateModel();
 
 	// 2020-03-11 shape deformation solver
 	vector<ROIdescripter> m_rois;
@@ -91,6 +100,14 @@ private:
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
 	BodyState m_bodystate; 
 	std::vector<Eigen::Vector3d> m_pivot; // head, center, tail.
+	Eigen::Matrix4Xd m_warpField;
+	Eigen::VectorXi m_corr;
+	Eigen::MatrixXd m_deltaTwist;
+	Eigen::VectorXd m_wDeform;
+	double m_wSmth = .1f;
+	double m_wRegular = 1e-3f;
+	double m_maxDist = 0.2f;
+	double m_maxAngle = double(EIGEN_PI) / 4;
 	
 	void Calc2DJacobi(const int k, const Eigen::MatrixXd& skel,
 		Eigen::MatrixXd& H, Eigen::VectorXd& b);
@@ -100,6 +117,7 @@ private:
 	void CalcShapeJacobi();
 	void CalcPoseJacobiNumeric();
 	void CalcShapeJacobiNumeric();
+	void CalcVertJacobiNode();
 
 	// optimization parameters
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_JacobiPose;
@@ -115,5 +133,6 @@ private:
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiShapeNumeric;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiShapeNumeric;
 
-	
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
+	void CalcSmthTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
 };

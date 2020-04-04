@@ -4,6 +4,7 @@
   "vertex_num": 3889,
   "shape_num": 41,
   "face_num": 7774,
+  "tex_num": 6085,
   "topo": "UNIV", 
   "texture_img":  "body_red.png", 
   "mapper": [

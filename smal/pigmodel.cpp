@@ -36,9 +36,13 @@ PigModel::PigModel(const std::string &_configfile)
 	m_faceNum = root["face_num"].asInt();
 	m_texNum = root["tex_num"].asInt(); 
 	instream.close();
-
+	/*
+	necessary: vertices, parents, faces_vert, t_pose_joints, skinning_weights
+	           body parts
+	optional : textures, faces_tex, tex_to_vert, J_regressor, shapedir
+	*/
 	// read vertices 
-	std::ifstream vfile(m_folder + "vertices_stitched.txt"); 
+	std::ifstream vfile(m_folder + "vertices.txt"); 
 	if(!vfile.is_open()){
 		std::cout << "vfile not open" << std::endl; exit(-1); 
 	}
@@ -64,32 +68,48 @@ PigModel::PigModel(const std::string &_configfile)
 	pfile.close(); 
 
 	// read tex to vert 
-	m_texToVert.resize(m_texNum); 
-	std::ifstream ttvfile(m_folder + "/tex_to_vert.txt");
-	if (!ttvfile.is_open())
+	if (m_texNum > 0)
 	{
-		std::cout << "ttv file is not opened" << std::endl;
-		exit(-1);
+		m_texToVert.resize(m_texNum);
+		std::ifstream ttvfile(m_folder + "/tex_to_vert.txt");
+		if (!ttvfile.is_open())
+		{
+			std::cout << "ttv file is not opened" << std::endl;
+			exit(-1);
+		}
+		for (int i = 0; i < m_texNum; i++) ttvfile >> m_texToVert[i];
+		ttvfile.close();
 	}
-	for (int i = 0; i < m_texNum; i++) ttvfile >> m_texToVert[i];
-	ttvfile.close();
 
-	// read faces 
-	m_facesTex.resize(3, m_faceNum); 
-	m_facesVert.resize(3, m_faceNum);
-	std::ifstream facetfile(m_folder + "faces_tex.txt"); 
-	std::ifstream facevfile(m_folder + "faces_vert.txt");
-	if (!facetfile.is_open() || !facevfile.is_open())
+	// read faces tex
+	if (m_texNum > 0)
 	{
-		std::cout << "facefile not open " << std::endl; 
+		m_facesTex.resize(3, m_faceNum);
+		std::ifstream facetfile(m_folder + "faces_tex.txt");
+		if (!facetfile.is_open())
+		{
+			std::cout << "face tex file not open " << std::endl; 
+			exit(-1);
+		}
+		for (int i = 0; i < m_faceNum; i++)
+		{
+			facetfile >> m_facesTex(0, i) >> m_facesTex(1, i) >> m_facesTex(2, i);
+		}
+		facetfile.close();
+	}
+
+	// read faces vert 
+	m_facesVert.resize(3, m_faceNum);
+	std::ifstream facevfile(m_folder + "faces_vert.txt");
+	if (!facevfile.is_open())
+	{
+		std::cout << "face vert not open " << std::endl; 
 		exit(-1); 
 	}
 	for (int i = 0; i < m_faceNum; i++)
 	{
-		facetfile >> m_facesTex(0, i) >> m_facesTex(1, i) >> m_facesTex(2, i);
 		facevfile >> m_facesVert(0, i) >> m_facesVert(1, i) >> m_facesVert(2, i);
 	}
-	facetfile.close(); 
 	facevfile.close(); 
 
 	// read t pose joints
@@ -110,7 +130,7 @@ PigModel::PigModel(const std::string &_configfile)
 	jfile.close();	
 
 	// read skinning weights 
-	std::ifstream weightsfile(m_folder + "skinning_weights_stitched.txt");
+	std::ifstream weightsfile(m_folder + "skinning_weights.txt");
 	if (!weightsfile.is_open())
 	{
 		std::cout << "weights file not open " << std::endl; 
@@ -187,24 +207,47 @@ PigModel::PigModel(const std::string &_configfile)
 	}
 
 	// read texture coordinates 
-	std::ifstream texfile(m_folder + "textures.txt"); 
-	if (!texfile.is_open())
+	if (m_texNum > 0)
 	{
-		std::cout << "texture file not open " << std::endl; 
-	}
-	else {
-		m_texcoords.resize(2, m_texNum);
-		for (int i = 0; i < m_texNum; i++)
+		std::ifstream texfile(m_folder + "textures.txt");
+		if (!texfile.is_open())
 		{
-			texfile >> m_texcoords(0, i) >> m_texcoords(1, i);
+			std::cout << "texture file not open " << std::endl;
 		}
-		texfile.close();
+		else {
+			m_texcoords.resize(2, m_texNum);
+			for (int i = 0; i < m_texNum; i++)
+			{
+				texfile >> m_texcoords(0, i) >> m_texcoords(1, i);
+			}
+			texfile.close();
+		}
 	}
 
-	// init 
+	// read body parts 
+	std::ifstream partFile(m_folder + "/body_parts.txt");
+	if (!partFile.is_open())
+	{
+		std::cout << "no body parts file! Please run determineBodyPartsByWeight()" << std::endl;
+	}
+	else
+	{
+		m_bodyParts.resize(m_vertexNum, NOT_BODY);
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			int temp;
+			partFile >> temp;
+			m_bodyParts[i] = (BODY_PART)temp;
+		}
+	}
+	partFile.close();
+
+	// init params
 	m_translation = Eigen::Vector3d::Zero(); 
 	m_poseParam = Eigen::VectorXd::Zero(3 * m_jointNum); 
 	if (m_shapeNum > 0) m_shapeParam = Eigen::VectorXd::Zero(m_shapeNum); 
+	m_deform = Eigen::VectorXd::Zero(m_vertexNum);
+	m_scale = 1; 
 
 	m_singleAffine.resize(4, 4 * m_jointNum); 
 	m_globalAffine.resize(4, 4 * m_jointNum); 
@@ -219,8 +262,7 @@ PigModel::PigModel(const std::string &_configfile)
 	m_normalFinal.setZero(); 
 	m_verticesDeformed.resize(3, m_vertexNum); 
 	m_verticesDeformed.setZero(); 
-	m_deform.resize(m_vertexNum); 
-	m_deform.setZero();
+
 	m_verticesTex.resize(3, m_texNum); 
 	m_verticesTex.setZero(); 
 
@@ -388,6 +430,80 @@ void PigModel::readState(std::string state_file)
 	is.close(); 
 }
 
+void PigModel::saveShapeParam(std::string state_file)
+{
+	std::ofstream os(state_file);
+	if (!os.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	for (int i = 0; i < m_shapeNum; i++) os << m_shapeParam(i) << std::endl;
+	os.close();
+}
+
+void PigModel::readShapeParam(std::string state_file)
+{
+	std::ifstream is(state_file);
+	if (!is.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	for (int i = 0; i < m_shapeNum; i++) is >> m_shapeParam(i);
+	is.close();
+}
+
+
+void PigModel::saveDeform(std::string state_file)
+{
+	std::ofstream os(state_file);
+	if (!os.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	for (int i = 0; i < m_vertexNum; i++) os << m_deform(i) << std::endl;
+	os.close();
+}
+
+void PigModel::readDeform(std::string state_file)
+{
+	std::ifstream is(state_file);
+	if (!is.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	for (int i = 0; i < m_vertexNum; i++) is >> m_deform(i);
+	is.close();
+}
+
+
+void PigModel::saveScale(std::string state_file)
+{
+	std::ofstream os(state_file);
+	if (!os.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	os << m_scale;
+	os.close();
+}
+
+void PigModel::readScale(std::string state_file)
+{
+	std::ifstream is(state_file);
+	if (!is.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	is >> m_scale; 
+	is.close();
+}
+
 void PigModel::UpdateNormalOrigin()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
@@ -451,6 +567,13 @@ void PigModel::UpdateNormalFinal()
 	}
 }
 
+void PigModel::UpdateNormals()
+{
+	UpdateNormalOrigin();
+	UpdateNormalShaped();
+	UpdateNormalFinal();
+}
+
 void PigModel::UpdateVerticesDeformed()
 {
 	for (int i = 0; i < m_vertexNum; i++)
@@ -466,8 +589,11 @@ void PigModel::RescaleOriginVertices()
 	if (m_scale == 0) return; 
 	m_verticesOrigin = m_verticesOrigin * m_scale;
 	m_jointsOrigin = m_jointsOrigin * m_scale; 
-	m_shapeBlendJ = m_shapeBlendJ * m_scale; 
-	m_shapeBlendV = m_shapeBlendV * m_scale;
+	if (m_shapeNum > 0)
+	{
+		m_shapeBlendJ = m_shapeBlendJ * m_scale;
+		m_shapeBlendV = m_shapeBlendV * m_scale;
+	}
 }
 
 void PigModel::UpdateVerticesTex()
@@ -632,7 +758,7 @@ void PigModel::debugStitchModel()
 	}
 	os_skinweight.close();
 }
-#endif  
+
 
 
 void PigModel::debugRemoveEye()
@@ -746,4 +872,65 @@ void PigModel::debugRemoveEye()
 		double w = x.sum();
 		if (w > 0)std::cout << w << std::endl; 
 	}
+}
+
+#endif  
+
+void PigModel::determineBodyPartsByWeight()
+{
+	m_bodyParts.resize(m_vertexNum, NOT_BODY);
+	// pig model
+	//std::vector<int> head = { 14 };
+	//std::vector<int> l_f_leg = { 21,22,23,24,25 };
+	//std::vector<int> r_f_leg = { 6, 7,8,9,10 };
+	//std::vector<int> l_b_leg = { 40,41,42 };
+	//std::vector<int> r_b_leg = { 28,29,30 };
+	//std::vector<int> main_body = { 0,1,2,3,4 };
+	//std::vector<int> tail = { 31,32,33,34,35,36,37 };
+	//std::vector<int> l_ear = { 19 };
+	//std::vector<int> r_ear = { 17 };
+	//std::vector<int> jaw = { 15 };
+	//std::vector<int> neck = { 11 };
+	std::vector<int> head = { 16 };
+	std::vector<int> l_f_leg = { 9,10 };
+	std::vector<int> r_f_leg = { 13,14 };
+	std::vector<int> l_b_leg = { 18,19,20 };
+	std::vector<int> r_b_leg = { 22,23,24 };
+	std::vector<int> main_body = { 1,2,3,4,5,6 };
+	std::vector<int> tail = { 26,27,28,29,30,31 };
+	std::vector<int> l_ear = {  };
+	std::vector<int> r_ear = {  };
+	std::vector<int> jaw = { 32 };
+	std::vector<int> neck = { };
+	// priority 1
+	std::vector<std::vector<int>> prior1 = {
+		l_ear,r_ear,tail,l_f_leg,r_f_leg,jaw,main_body,head,l_b_leg,r_b_leg
+	};
+	std::vector<BODY_PART> prior1_name = {
+		L_EAR,R_EAR,TAIL,L_F_LEG,R_F_LEG,JAW,MAIN_BODY,HEAD,L_B_LEG,R_B_LEG
+	};
+	for (int list_id = 0;list_id<prior1.size();list_id++)
+	{
+		auto list = prior1[list_id];
+		for (int i = 0; i < list.size(); i++)
+		{
+			int part_id = list[i];
+			for (int j = 0; j < m_weightsNoneZero[part_id].size(); j++)
+			{
+				if (m_bodyParts[m_weightsNoneZero[part_id][j]] != NOT_BODY)continue;
+				m_bodyParts[m_weightsNoneZero[part_id][j]] = prior1_name[list_id];
+			}
+		}
+	}
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		if (m_bodyParts[i] == NOT_BODY) m_bodyParts[i] = MAIN_BODY;
+	}
+	
+	std::ofstream os_part(m_folder + "/body_parts.txt");
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		os_part << (int)m_bodyParts[i] << "\n";
+	}
+	os_part.close();
 }

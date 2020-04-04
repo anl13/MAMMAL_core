@@ -45,6 +45,9 @@ PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile)
 	m_scale = 1;
 	m_frameid = 0.0;
 	tmp_init = false;
+
+	// load node graph 
+	//m_ng.Load(m_folder + "/node_graph.txt");
 }
 
 void PigSolver::setCameras(const vector<Camera>& _cameras)
@@ -192,7 +195,7 @@ Eigen::MatrixXd PigSolver::getRegressedSkel()
 void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and transform Y
 {
 	CalcZ(); 
-	if (m_frameid > 0.5) return; 
+	if (m_frameid > 0) return; 
 	int N = m_topo.joint_num; 
 	m_weights.resize(N);
 	m_weightsEigen = Eigen::VectorXd::Zero(N * 3);
@@ -218,25 +221,9 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 		b += source_bone_lens[i] * source_bone_lens[i];
 	}
 	double alpha = a / b;
-	if (m_frameid > 0)
-	{
-		//double scale = m_scale * alpha; 
-		//double m_scale = (m_scale * m_frameid + scale) / (m_frameid + 1); 
-	}
-	else
-	{
-		m_scale = alpha;
-	}
-	
-	m_jointsOrigin *= m_scale; 
-	m_verticesOrigin *= m_scale; 
-	if (m_shapeNum > 0)
-	{
-		m_shapeBlendV *= alpha;
-		m_shapeBlendJ *= alpha;
-	}
+	m_scale = alpha;
+	RescaleOriginVertices();
 
-	std::cout << "scale: " << m_scale << std::endl; 
 	UpdateVertices();
 	if (m_frameid > 0) return; 
 	m_frameid += 1;
@@ -376,9 +363,9 @@ void PigSolver::computePivot()
 {
 	// assume center is always observed 
 	Eigen::MatrixXd skel = getRegressedSkel(); 
-	Eigen::Vector3d headz = Z.col(0); 
-	Eigen::Vector3d centerz = Z.col(20);
-	Eigen::Vector3d tailz = Z.col(18); 
+	//Eigen::Vector3d headz = Z.col(0); 
+	//Eigen::Vector3d centerz = Z.col(20);
+	//Eigen::Vector3d tailz = Z.col(18); 
 	Eigen::Vector3d heads = skel.col(0); 
 	Eigen::Vector3d centers = skel.col(20); 
 	Eigen::Vector3d tails = skel.col(18); 
@@ -486,3 +473,4 @@ void PigSolver::globalAlignToVerticesSameTopo()
 	Eigen::AngleAxisd ax(R);
 	m_poseParam.segment<3>(0) = ax.axis() * ax.angle();
 }
+
