@@ -76,7 +76,6 @@ int run_on_sequence()
 	{ 42 , 41 }
 	};
 
-
 #ifdef _WIN32
     std::string folder = "D:/Projects/animal_calib/data/pig_model/"; 
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
@@ -130,15 +129,15 @@ int run_on_sequence()
 #endif 
 	int framenum = frame.get_frame_num();
 
-#ifdef VIS
-	std::string videoname_render = "E:/debug_pig2/render.avi";
-	cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1920, 1080));
-	if (!writer_render.isOpened())
-	{
-		std::cout << "can not open video file " << videoname_render << std::endl;
-		return -1;
-	}
-#endif 
+//#ifdef VIS
+//	std::string videoname_render = "E:/debug_pig2/render.avi";
+//	cv::VideoWriter writer_render(videoname_render, cv::VideoWriter::fourcc('M', 'P', 'E', 'G'), 25.0, cv::Size(1920, 1080));
+//	if (!writer_render.isOpened())
+//	{
+//		std::cout << "can not open video file " << videoname_render << std::endl;
+//		return -1;
+//	}
+//#endif 
 	TimerUtil::Timer<std::chrono::seconds> total;
 	total.Start(); 
 
@@ -147,7 +146,6 @@ int run_on_sequence()
 		std::cout << "processing frame " << frameid << std::endl; 
 		frame.set_frame_id(frameid); 
 #ifndef LOAD_STATE
-		//TimerUtil::Timer<std::chrono::milliseconds> timer1; 
 		frame.fetchData();
 		frame.view_dependent_clean(); 
 		frame.matching_by_tracking(); 
@@ -172,24 +170,23 @@ int run_on_sequence()
 		{
 			Eigen::Vector3f color = rgb2bgr(CM[pid]);
 
-			//RenderObjectColor* pig_render = new RenderObjectColor();
-			//models[pid]->UpdateVerticesTex();
-			//Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = models[pid]->GetFacesTex();
-			//Eigen::MatrixXf vs = models[pid]->GetVerticesTex().cast<float>();
-			//pig_render->SetFaces(faces);
-			//pig_render->SetVertices(vs);
-			//pig_render->SetColor(color);
-			//m_renderer.colorObjs.push_back(pig_render);
+			RenderObjectColor* pig_render = new RenderObjectColor();
+			Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = models[pid]->GetFacesVert();
+			Eigen::MatrixXf vs = models[pid]->GetVertices().cast<float>();
+			pig_render->SetFaces(faces);
+			pig_render->SetVertices(vs);
+			pig_render->SetColor(color);
+			m_renderer.colorObjs.push_back(pig_render);
 
-			/// skels, require Z
-			std::vector<Eigen::Vector3f> balls;
-			std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			Eigen::MatrixXd joints = models[pid]->getZ();
-			Eigen::MatrixXd joint_reg = models[pid]->getRegressedSkel();
-			GetBallsAndSticks(joints, topo.bones, balls, sticks);
-			BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
-				0.015f, 0.01f, 0.5f * color);
-			m_renderer.skels.push_back(skelObject);
+			///// skels, require Z
+			//std::vector<Eigen::Vector3f> balls;
+			//std::vector< std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+			//Eigen::MatrixXd joints = models[pid]->getZ();
+			//Eigen::MatrixXd joint_reg = models[pid]->getRegressedSkel();
+			//GetBallsAndSticks(joints, topo.bones, balls, sticks);
+			//BallStickObject* skelObject = new BallStickObject(ballObj, stickObj, balls, sticks,
+			//	0.015f, 0.01f, 0.5f * color);
+			//m_renderer.skels.push_back(skelObject);
 
 			//std::vector<Eigen::Vector2i> ori_bones = {
 			//	{0,1}, {1,2} };
@@ -239,10 +236,10 @@ int run_on_sequence()
 			blended = blend_images(pack_render, rawpack, 0.5); 
 			cv::imwrite(ss.str(), blended);
 			
-			m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-			m_renderer.Draw();
-			cv::Mat cap = m_renderer.GetImage();
-			writer_render.write(cap);
+			//m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+			//m_renderer.Draw();
+			//cv::Mat cap = m_renderer.GetImage();
+			//writer_render.write(cap);
 
 			glfwSwapBuffers(windowPtr);
 			glfwPollEvents();
@@ -253,6 +250,9 @@ int run_on_sequence()
 	double timeavg = total.Elapsed(); 
 	timeavg /= framenum; 
 	std::cout << "Avg time: " << timeavg << " s per frame. " << std::endl; 
+	std::ofstream os_time("E:/debug_pig2/avgtime.txt");
+	os_time << timeavg << std::endl; 
+	os_time.close();
 
 	//system("pause"); 
     return 0; 

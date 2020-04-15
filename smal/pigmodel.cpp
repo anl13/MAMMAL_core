@@ -195,6 +195,8 @@ PigModel::PigModel(const std::string &_configfile)
 					shapeblendFile >> m_shapeBlendV(i, j);
 				}
 			}
+			shapeblendFile.close();
+
 			m_shapeBlendJ.resize(3 * m_jointNum, m_shapeNum);
 			for (int i = 0; i < m_shapeNum; i++)
 			{
@@ -202,7 +204,6 @@ PigModel::PigModel(const std::string &_configfile)
 				Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shape2JointCol(m_shapeBlendJ.col(i).data(), 3, m_jointNum);
 				shape2JointCol = shapeBlendCol * m_jregressor;
 			}
-			shapeblendFile.close();
 		}
 	}
 
@@ -377,6 +378,10 @@ void PigModel::UpdateVertices()
 {
 	UpdateJoints();
 	UpdateVerticesShaped();
+	if (mp_nodeGraph)
+	{
+		UpdateModelShapedByKNN();
+	}
 	UpdateVerticesDeformed(); 
 	UpdateVerticesFinal();
 }
@@ -576,6 +581,7 @@ void PigModel::UpdateNormals()
 
 void PigModel::UpdateVerticesDeformed()
 {
+	UpdateNormalShaped(); 
 	for (int i = 0; i < m_vertexNum; i++)
 	{
 		m_verticesDeformed.col(i) =
@@ -933,4 +939,32 @@ void PigModel::determineBodyPartsByWeight()
 		os_part << (int)m_bodyParts[i] << "\n";
 	}
 	os_part.close();
+}
+
+void PigModel::UpdateModelShapedByKNN()
+{
+	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++)
+	{
+		Eigen::Matrix4d T = Eigen::Matrix4d::Zero();
+
+		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++) {
+			const int ni = mp_nodeGraph->knn(i, sIdx);
+			if (ni != -1)
+				T += mp_nodeGraph->weight(i, sIdx) * m_warpField.middleCols(4 * ni, 4);
+		}
+		m_verticesShaped.col(sIdx) = T.topLeftCorner(3, 4) * m_verticesShaped.col(sIdx).homogeneous();
+		m_normalShaped.col(sIdx) = T.topLeftCorner(3, 3) * m_normalShaped.col(sIdx);
+	}
+}
+
+void PigModel::InitNodeAndWarpField()
+{
+	if (!mp_nodeGraph)
+	{
+		mp_nodeGraph = std::make_shared<NodeGraph>();
+		mp_nodeGraph->Load(m_folder + "/node_graph.txt");
+	}
+	m_warpField.resize(4, 4 * mp_nodeGraph->nodeIdx.size());
+	for (int i = 0; i < mp_nodeGraph->nodeIdx.size(); i++)
+		m_warpField.middleCols(4 * i, 4).setIdentity();	
 }

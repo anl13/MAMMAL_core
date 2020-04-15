@@ -2,25 +2,19 @@
 #include <string> 
 #include <vector> 
 #include "../bundle/calibration.h"
+#include "main.h"
 
 using std::vector; 
 
 
-void test_calib()
+void test_calib(std::string folder)
 {
-	Calibrator calibrator; 
+	Calibrator calibrator(folder); 
 	calibrator.calib_pipeline(); 
 }
 
-void test_epipolar()
+void test_epipolar(std::string folder)
 {
-	Calibrator calib; 
+	Calibrator calib(folder); 
 	calib.test_epipolar(); 
-}
-
-int main()
-{
-	test_epipolar(); 
-
-	return 0;
 }

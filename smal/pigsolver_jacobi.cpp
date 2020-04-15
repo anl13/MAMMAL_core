@@ -134,7 +134,6 @@ void PigSolver::CalcPoseJacobi()
 	// 	}
 }
 
-
 void PigSolver::Calc2DJacobi(
 	const int k,
 	const Eigen::MatrixXd& skel,
@@ -365,15 +364,26 @@ void PigSolver::Calc2DJacobiNumeric(
 	H = J.transpose() * J;
 }
 
-void PigSolver::CalcSmthTerm(
-	Eigen::SparseMatrix<double>& ATA,
-	Eigen::VectorXd& ATb
-)
-{
 
+Eigen::MatrixXd PigSolver::CalcShapeJacobiToSkel()
+{
+	CalcShapeJacobi(); 
+	int N = m_topo.joint_num;
+	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(3 * N, m_shapeNum);
+	for (int i = 0; i < N; i++)
+	{
+		if (m_mapper[i].first < 0)continue;
+		if (m_mapper[i].first == 0)
+		{
+			int jid = m_mapper[i].second;
+			J.middleRows(3 * i, 3) = m_jointJacobiShape.middleRows(3 * jid, 3);
+		}
+		else
+		{
+			int vid = m_mapper[i].second;
+			J.middleRows(3 * i, 3) = m_vertJacobiShape.middleRows(3 * vid, 3);
+		}
+	}
+	return J; 
 }
 
-void PigSolver::CalcVertJacobiNode()
-{
-
-}

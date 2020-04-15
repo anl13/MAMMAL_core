@@ -25,7 +25,7 @@ public:
 	void addMarker(const vector<Vec3>& marks, const Vec3& mark3d); 
 
 	void initMarkers(vector<int> camids, int pointNum); 
-	void readInit();
+	void readInit(std::string _folder);
 	void solve_init_calib(bool optim_points = true); 
 	std::vector<Eigen::Vector3d> getPoints() { return m_points;  }
 	std::vector<Eigen::Vector3d> getAddedPoints(){return m_added_points;}
@@ -37,6 +37,7 @@ public:
 	vector<int>  m_camids; 
 private:
 	/// observations 
+	std::string m_folder; 
 	std::vector<std::vector<Eigen::Vector2d>> m_obs; // 2d points on image plane 
 	std::vector<std::vector<Vec3> > m_added_markers; // [pid, camid], is x < 0, then invisible. 
 	int last_add_marker_id; 

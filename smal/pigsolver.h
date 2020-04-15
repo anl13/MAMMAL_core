@@ -48,18 +48,27 @@ public:
 
 	// Fit functions
 	Eigen::MatrixXd getRegressedSkel(); 
+	Eigen::MatrixXd getRegressedSkelTPose(); 
 	void globalAlign(); 
 	void globalAlignToVerticesSameTopo(); 
 	void optimizePose(const int maxIterTime = 100, const double terminal = 0.001);
+	void optimizeShapeToBoneLength(int maxIter, double terminal); 
 	Eigen::VectorXd getRegressedSkelProj(const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T);
 	void computePivot(); 
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
 
 	// node graph deformation
-	NodeGraph m_ng;
 	void UpdateWarpField();
-	void UpdateModel();
+	
+	void CalcVertJacobiNode();
+	void NaiveNodeDeformStep(int iter); 
 
+	// targets to fit 
+	MatchedInstance m_source;
+	vector<Camera> m_cameras;
+	std::vector<double> m_weights;
+	Eigen::VectorXd m_weightsEigen;
+	Eigen::MatrixXd m_targetVSameTopo;
 	// 2020-03-11 shape deformation solver
 	vector<ROIdescripter> m_rois;
 	vector<BodyState>     m_bodies;
@@ -71,15 +80,10 @@ public:
 	void clearData(); 
 
 	void CalcZ();
-
-	// 2020-01-17 Tried to solve Regressor matrix, but failed due to memory error.
-	void solveR(int samplenum=10); 
-	void generateSamples(int samplenum); 
-	void solve(); 
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> R; // regressor to solve
-
 	void debug_jacobi();
 
+	std::vector<Eigen::MatrixXd> joints_frames;
+	
 private: 
 	// control info 
 	int m_id; 
@@ -89,18 +93,10 @@ private:
 	std::vector<int> m_poseToOptimize;
 	bool tmp_init;
 
-	// targets to fit 
-	MatchedInstance m_source;
-	vector<Camera> m_cameras;
-	std::vector<double> m_weights;
-	Eigen::VectorXd m_weightsEigen;
-	Eigen::MatrixXd m_targetVSameTopo;
-
 	// inferred data
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
 	BodyState m_bodystate; 
 	std::vector<Eigen::Vector3d> m_pivot; // head, center, tail.
-	Eigen::Matrix4Xd m_warpField;
 	Eigen::VectorXi m_corr;
 	Eigen::MatrixXd m_deltaTwist;
 	Eigen::VectorXd m_wDeform;
@@ -117,7 +113,7 @@ private:
 	void CalcShapeJacobi();
 	void CalcPoseJacobiNumeric();
 	void CalcShapeJacobiNumeric();
-	void CalcVertJacobiNode();
+	Eigen::MatrixXd CalcShapeJacobiToSkel();
 
 	// optimization parameters
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_JacobiPose;

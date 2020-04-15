@@ -103,10 +103,11 @@ struct ReprojectionErrorRatio {
 	double z; 
 };
 
-void BASolver::readInit()
+void BASolver::readInit(std::string _folder)
 {
+	m_folder = _folder;
 	vector<int> camids = m_camids; 
-	std::string file_folder = "/home/al17/animal/animal_calib/python/results/";
+	std::string file_folder = m_folder + "/python/results/";
 	for(int i = 0; i < m_camNum; i++)
 	{
 		std::stringstream ss; 

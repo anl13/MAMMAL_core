@@ -4,6 +4,8 @@
 #include <vector>
 #include <Eigen/Core>
 #include <opencv2/opencv.hpp>
+#include "../utils/node_graph.h"
+
 
 enum BODY_PART
 {
@@ -99,7 +101,8 @@ public:
 	void debugRemoveEye();
 #endif 
 	
-
+	void InitNodeAndWarpField(); 
+	void UpdateModelShapedByKNN();
 
 protected:
 	int m_jointNum;// 43 / 33
@@ -112,6 +115,8 @@ protected:
 	std::vector<BODY_PART> m_bodyParts; // body part label of each vertex
 	std::vector<int> m_texToVert; // [texNum, vertNum], map tex indices to vert indices
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesTex; 
+	std::shared_ptr<NodeGraph> mp_nodeGraph; 
+	Eigen::Matrix4Xd m_warpField; 
 
 	// shape deformation
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalOrigin; 

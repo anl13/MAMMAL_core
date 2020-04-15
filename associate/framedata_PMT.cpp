@@ -64,11 +64,11 @@ void FrameData::solve_parametric_model()
 		if (mp_bodysolver[i] == nullptr)
 		{
 			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
-			//mp_bodysolver[i]->readState("shapestate.txt");
+			std::string folder = mp_bodysolver[i]->GetFolder();
+			//mp_bodysolver[i]->readShapeParam(folder + "pigshape.txt");
 			//mp_bodysolver[i]->RescaleOriginVertices();
 			mp_bodysolver[i]->UpdateNormalOrigin();
 			mp_bodysolver[i]->UpdateNormalShaped();
-			//mp_bodysolver[i]->determineBodyPartsByTex();
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i); 
@@ -83,15 +83,17 @@ void FrameData::solve_parametric_model()
 		mp_bodysolver[i]->setSource(m_matched[i]); 
 		mp_bodysolver[i]->normalizeSource(); 
 		mp_bodysolver[i]->globalAlign(); 
+		//mp_bodysolver[i]->optimizeShapeToBoneLength(10, 0.001);
 		mp_bodysolver[i]->optimizePose(100, 0.001); 
-		mp_bodysolver[i]->computePivot();
-		std::string savefolder = "E:/pig_results/"; 
-		std::stringstream ss; 
-		ss << savefolder << "state_" << i << "_" <<
-			std::setw(6) << std::setfill('0') << m_frameid
-			<< ".pig";
-		auto body = mp_bodysolver[i]->getBodyState(); 
-		body.saveState(ss.str()); 
+		
+		//mp_bodysolver[i]->computePivot();
+		//std::string savefolder = "E:/pig_results/"; 
+		//std::stringstream ss; 
+		//ss << savefolder << "state_" << i << "_" <<
+		//	std::setw(6) << std::setfill('0') << m_frameid
+		//	<< ".pig";
+		//auto body = mp_bodysolver[i]->getBodyState(); 
+		//body.saveState(ss.str()); 
 
 		auto skels = mp_bodysolver[i]->getRegressedSkel();
 		m_skels3d[i] = convertMatToVec(skels); 
@@ -184,7 +186,7 @@ void FrameData::debug_fitting(int pig_id)
 	cv::Mat output; 
 	packImgBlock(crop_list, output);
 	std::stringstream ss; 
-	ss << "E:/debug_pig/debug/output" << m_frameid << "_" << pig_id << ".png";
+	ss << "E:/debug_pig2/fitting/output" << m_frameid << "_" << pig_id << ".png";
 	cv::imwrite(ss.str(), output); 
 	//cv::imshow("test", output); 
 	//cv::waitKey(); 

@@ -4,8 +4,9 @@ using std::cin;
 using std::cout; 
 using std::endl; 
 
-Calibrator::Calibrator()
+Calibrator::Calibrator(std::string _folder)
 {
+	folder = _folder;
 	m_camids = {0,1,2,5,6,7,8,9,10,11}; 
 	m_camNum = m_camids.size(); 
     for(int i = 0; i < m_camNum; i++)
@@ -270,7 +271,7 @@ void Calibrator::draw_points()
 
 void Calibrator::readImgs()
 {
-    std::string m_imgDir = "/home/al17/animal/animal_calib/data/calib_1_color/";
+    std::string m_imgDir = folder + "/data/calib_1_color/";
     for(int camid = 0; camid < m_camNum; camid++)
     {
         std::stringstream ss; 
@@ -334,7 +335,7 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata)
 
 void Calibrator::save_added()
 {
-    std::string path = "/home/al17/animal/animal_calib/data/add_marker/";
+    std::string path = folder+"/data/add_marker/";
     for(int v = 0; v < m_camNum; v++)
     {
         int camid = m_camids[v];
@@ -358,7 +359,7 @@ void Calibrator::save_added()
 
 void Calibrator::reload_added()
 {
-    std::string path = "/home/al17/animal/animal_calib/data/add_marker/";
+    std::string path = folder+"/data/add_marker/";
     m_added.clear(); 
     vector<vector<Vec3> > tmp; 
     tmp.resize(m_camNum); 
@@ -496,8 +497,8 @@ void Calibrator::interactive_mark()
 
 int Calibrator::calib_pipeline()
 {
-	std::string marker_folder = "/home/al17/animal/animal_calib/python/markers";
-	std::string K_file = "/home/al17/animal/animal_calib/python/data/newK.txt"; 
+	std::string marker_folder = folder+"/python/markers";
+	std::string K_file = folder+"/python/data/newK.txt"; 
 	readK(K_file); 
 	readAllMarkers(marker_folder); 
 	unprojectMarkers(); 
@@ -505,7 +506,7 @@ int Calibrator::calib_pipeline()
 	std::cout << "data prepared. " << std::endl; 
 
 	ba.initMarkers(m_camids, 42); 
-	ba.readInit(); 
+	ba.readInit(folder); 
 	ba.setObs(m_i_markers); 
 	ba.solve_init_calib(true); 
 	std::cout << "initial calibration done. " << std::endl; 
@@ -556,12 +557,12 @@ int Calibrator::calib_pipeline()
     }
     evaluate();
     draw_points(); 
-    save_results("results"); 
+    //save_results("results"); 
 
     // interactive calib 
     interactive_mark(); 
-    save_added();
-    save_results("results"); 
+    //save_added();
+    //save_results("results"); 
 
 	return 0; 
 }
@@ -597,8 +598,8 @@ void Calibrator::read_results_rt(std::string result_folder)
 
 void Calibrator::test_epipolar()
 {
-    std::string marker_folder = "/home/al17/animal/animal_calib/python/markers";
-	std::string K_file = "/home/al17/animal/animal_calib/python/data/newK.txt"; 
+    std::string marker_folder = folder+"/python/markers";
+	std::string K_file = folder+"/python/data/newK.txt"; 
 	readK(K_file); 
 	readAllMarkers(marker_folder); 
     read_results_rt("results"); 

@@ -1,4 +1,5 @@
 #pragma once
+#include <string> 
 
 // custom_pig.cpp
 int run_on_sequence();
@@ -15,3 +16,7 @@ int renderScene();
 int TestVerticesAlign();
 int removeSmalTail();
 int ComputeSymmetry();
+
+// calibration 
+void test_calib(std::string folder); 
+void test_epipolar(std::string folder); 

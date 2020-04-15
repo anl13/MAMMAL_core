@@ -45,9 +45,6 @@ PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile)
 	m_scale = 1;
 	m_frameid = 0.0;
 	tmp_init = false;
-
-	// load node graph 
-	//m_ng.Load(m_folder + "/node_graph.txt");
 }
 
 void PigSolver::setCameras(const vector<Camera>& _cameras)
@@ -474,3 +471,27 @@ void PigSolver::globalAlignToVerticesSameTopo()
 	m_poseParam.segment<3>(0) = ax.axis() * ax.angle();
 }
 
+Eigen::MatrixXd PigSolver::getRegressedSkelTPose()
+{
+	int N = m_topo.joint_num;
+	Eigen::MatrixXd skel = Eigen::MatrixXd::Zero(3, N);
+	for (int i = 0; i < N; i++)
+	{
+		if (m_mapper[i].first < 0) continue;
+		if (m_mapper[i].first == 0)
+		{
+			int jIdx = m_mapper[i].second;
+			skel.col(i) = m_jointsShaped.col(jIdx);
+		}
+		else if (m_mapper[i].first == 1)
+		{
+			int vIdx = m_mapper[i].second;
+			skel.col(i) = m_verticesShaped.col(vIdx);
+		}
+		else {
+			std::cout << RED_TEXT("fatal error: in ::getRegressedSkelTPose.") << std::endl;
+			exit(-1);
+		}
+	}
+	return skel;
+}

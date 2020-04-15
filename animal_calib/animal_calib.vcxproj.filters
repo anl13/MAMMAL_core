@@ -31,6 +31,9 @@
     <Filter Include="exec">
       <UniqueIdentifier>{07d708d4-d665-42f0-af08-d8df9e911d67}</UniqueIdentifier>
     </Filter>
+    <Filter Include="bundle">
+      <UniqueIdentifier>{4c08a9b2-c969-4199-a8a4-68c8bfa3b084}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\associate\clusterclique.cpp">
@@ -102,9 +105,6 @@
     <ClCompile Include="..\utils\obj_reader.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\smal\pigsolver.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
     <ClCompile Include="..\smal\pigsolver_fitting.cpp">
       <Filter>smal</Filter>
     </ClCompile>
@@ -134,6 +134,21 @@
     </ClCompile>
     <ClCompile Include="..\utils\node_graph.cpp">
       <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\volume.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\calib_bundle.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bundle\BASolver.cpp">
+      <Filter>bundle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bundle\calibration.cpp">
+      <Filter>bundle</Filter>
+    </ClCompile>
+    <ClCompile Include="..\bundle\annotator.cpp">
+      <Filter>bundle</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -229,6 +244,18 @@
     </ClInclude>
     <ClInclude Include="..\utils\node_graph.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\volume.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\bundle\BASolver.h">
+      <Filter>bundle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\bundle\calibration.h">
+      <Filter>bundle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\bundle\annotator.h">
+      <Filter>bundle</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

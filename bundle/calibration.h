@@ -18,8 +18,11 @@ using std::vector;
 
 class Calibrator{
 public: 
-    Calibrator(); 
+    Calibrator(std::string folder); 
+	Calibrator() = delete;
     ~Calibrator(){}
+
+	void setFolder(std::string _folder) { folder = _folder; }
     
     void readAllMarkers(std::string folder); 
     void readK(std::string filename);
@@ -38,6 +41,7 @@ public:
     void reload_added(); 
 
 private: 
+	std::string folder; 
     vector<Eigen::Vector3d> out_points; 
     vector<Eigen::Vector3d> out_points_new; 
     vector<Eigen::Vector3d> out_rvecs; 

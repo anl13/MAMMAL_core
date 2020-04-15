@@ -30,6 +30,10 @@
     <ClCompile Include="..\associate\mce\Tools.cpp" />
     <ClCompile Include="..\associate\skel.cpp" />
     <ClCompile Include="..\associate\tracking.cpp" />
+    <ClCompile Include="..\bundle\annotator.cpp" />
+    <ClCompile Include="..\bundle\BASolver.cpp" />
+    <ClCompile Include="..\bundle\calibration.cpp" />
+    <ClCompile Include="..\exec\calib_bundle.cpp" />
     <ClCompile Include="..\exec\custom_pig.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
     <ClCompile Include="..\exec\run_render.cpp" />
@@ -42,7 +46,6 @@
     <ClCompile Include="..\render\render_utils.cpp" />
     <ClCompile Include="..\render\shader.cpp" />
     <ClCompile Include="..\smal\pigmodel.cpp" />
-    <ClCompile Include="..\smal\pigsolver.cpp" />
     <ClCompile Include="..\smal\pigsolver_fitting.cpp" />
     <ClCompile Include="..\smal\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\smal\pigsolver_shape.cpp" />
@@ -53,6 +56,7 @@
     <ClCompile Include="..\utils\math_utils.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\obj_reader.cpp" />
+    <ClCompile Include="..\utils\volume.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h" />
@@ -64,6 +68,9 @@
     <ClInclude Include="..\associate\mce\Tools.h" />
     <ClInclude Include="..\associate\skel.h" />
     <ClInclude Include="..\associate\tracking.h" />
+    <ClInclude Include="..\bundle\annotator.h" />
+    <ClInclude Include="..\bundle\BASolver.h" />
+    <ClInclude Include="..\bundle\calibration.h" />
     <ClInclude Include="..\exec\main.h" />
     <ClInclude Include="..\render\camviewer.h" />
     <ClInclude Include="..\render\eigen_util.h" />
@@ -86,6 +93,7 @@
     <ClInclude Include="..\utils\node_graph.h" />
     <ClInclude Include="..\utils\obj_reader.h" />
     <ClInclude Include="..\utils\timer_util.h" />
+    <ClInclude Include="..\utils\volume.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />
