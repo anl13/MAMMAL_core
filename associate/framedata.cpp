@@ -562,6 +562,7 @@ void FrameData::readMask()
     // load data
     m_masks.clear(); 
     m_masks.resize(m_camNum); 
+
     for(int i = 0; i < m_camNum; i++)
     {
         int camid = m_camids[i]; 
@@ -625,16 +626,17 @@ void FrameData::assembleDets()
         m_detUndist[camid].resize(candnum); 
         for(int candid = 0; candid < candnum; candid++)
         {
+			m_detUndist[camid][candid].valid = true;
             m_detUndist[camid][candid].keypoints = m_keypoints_undist[camid][candid];
             m_detUndist[camid][candid].box = m_boxes_processed[camid][candid]; 
             m_detUndist[camid][candid].mask = m_masksUndist[camid][candid]; 
+			m_detUndist[camid][candid].mask_norm = computeContourNormalsAll(m_detUndist[camid][candid].mask);
         }
     }
 }
 
 void FrameData::drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d)
 {
-
 	for (int i = 0; i < _skel2d.size(); i++)
 	{
 		int colorid = m_topo.kpt_color_ids[i];

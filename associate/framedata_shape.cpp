@@ -15,6 +15,8 @@ vector<ROIdescripter> FrameData::getROI(int id)
 		roi.setId(id);
 		roi.setT(m_frameid);
 		roi.setCam(m_camsUndist[camid]);
+		roi.mask_list = m_matched[id].dets[view].mask;
+		roi.mask_norm = m_matched[id].dets[view].mask_norm;
 		cv::Mat chamfer, mask; 
 		getChamferMap(id, view, chamfer, mask);
 		//roi.setData(chamfer, mask, m_matched[id].dets[view].box);
@@ -29,7 +31,6 @@ vector<ROIdescripter> FrameData::getROI(int id)
 		//cv::imshow("debug_chamfer", chamfer_vis); 
 		//int key = cv::waitKey(); 
 		//if (key == 27) exit(-1); 
-
 	}
 	return rois; 
 }

@@ -23,8 +23,8 @@
 #define VIS 
 #define DEBUG_VIS
 //#define LOAD_STATE
-//#define SHAPE_SOLVER
-#define VOLUME
+#define SHAPE_SOLVER
+//#define VOLUME
 
 using std::vector;
 
@@ -81,67 +81,6 @@ int run_shape()
 		frame.fetchData();
 		frame.view_dependent_clean();
 		frame.matching_by_tracking();
-
-#ifdef LOAD_STATE
-		shapesolver.readState("shapestate.txt");	
-		shapesolver.RescaleOriginVertices(); 	
-		shapesolver.UpdateNormalOrigin(); 
-		shapesolver.UpdateNormalShaped();
-		shapesolver.determineBodyParts(); 
-		
-		shapesolver.UpdateVertices();
-		m_renderer.colorObjs.clear(); 
-		m_renderer.texObjs.clear(); 
-
-		Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = shapesolver.GetFaces();
-		Eigen::MatrixXf vs = shapesolver.GetVertices().cast<float>();
-		Eigen::MatrixXf texcoords = shapesolver.GetTexcoords().cast<float>(); 
-		
-		//RenderObjectTexture* pig_tex_render = new RenderObjectTexture(); 
-		//pig_tex_render->SetFaces(faces); 
-		//pig_tex_render->SetVertices(vs); 
-		//pig_tex_render->SetTexture(folder + "/piguv1.png");
-		//pig_tex_render->SetTexcoords(texcoords); 
-		//m_renderer.texObjs.push_back(pig_tex_render); 
-
-		RenderObjectColor* pig_render = new RenderObjectColor();
-		pig_render->SetFaces(faces);
-		pig_render->SetVertices(vs);
-		//Eigen::Vector3f color = rgb2bgr(CM[0]);
-		Eigen::Vector3f color(1.0f, 1.0f, 1.0f);
-		pig_render->SetColor(color);
-		m_renderer.colorObjs.push_back(pig_render);
-
-		m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-		
-		while (!glfwWindowShouldClose(windowPtr))
-		{
-			m_renderer.Draw(); 
-			glfwSwapBuffers(windowPtr); 
-			glfwPollEvents(); 
-		}
-
-		//auto cameras = frame.get_cameras(); 
-		//auto rawimgs = frame.get_imgs_undist(); 
-		//cv::Mat raw_pack;
-		//packImgBlock(rawimgs, raw_pack); 
-		//std::vector<cv::Mat> renders; 
-		//for (int camid = 0; camid < cameras.size(); camid++)
-		//{
-		//	Eigen::Matrix3f R = cameras[camid].R.cast<float>();
-		//	Eigen::Vector3f T = cameras[camid].T.cast<float>();
-		//	m_renderer.s_camViewer.SetExtrinsic(R, T);
-		//	m_renderer.Draw();
-		//	cv::Mat cap = m_renderer.GetImage();
-		//	renders.push_back(cap);
-		//}
-		//cv::Mat packRender; 
-		//packImgBlock(renders, packRender); 
-		//cv::Mat blended = blend_images(packRender, raw_pack, 0.5);
-		//std::stringstream ss;
-		//ss << "E:/debug_pig/render2/rend_" << frameid << ".png";
-		//cv::imwrite(ss.str(), blended); 
-#else 
 		frame.solve_parametric_model();
 		//for (int i = 0; i < 4; i++) frame.debug_fitting(i); 
 		auto models = frame.get_models();
@@ -219,6 +158,7 @@ int run_shape()
 #endif 
 
 #ifdef SHAPE_SOLVER
+		auto m_rois = frame.getROI(0);
 		Eigen::VectorXd pose = models[m_pid]->GetPose(); 
 		Eigen::Vector3d trans = models[m_pid]->GetTranslation(); 
 		double scale = models[m_pid]->GetScale(); 
@@ -303,7 +243,7 @@ int run_shape()
 		shapesolver.saveState("shapestate.txt"); 
 #endif // SHAPE_SOLVER
 
-#endif 
+
 	}
 	return 0;
 }

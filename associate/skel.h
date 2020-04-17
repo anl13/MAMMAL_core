@@ -16,16 +16,18 @@ public:
     std::vector<double> kpt_conf_thresh; 
 };
 SkelTopology getSkelTopoByType(std::string type); 
-vector<std::pair<int, int>> getPigMapper(); 
-typedef Eigen::MatrixXd PIG_SKEL; 
-typedef Eigen::MatrixXd PIG_SKEL_2D; 
-
+vector<std::pair<int, int>> getPigMapper();
 
 struct DetInstance // class storing data of an instance 
 {
+	DetInstance() {
+		valid = false;
+	}
+	bool valid;
     Eigen::Vector4d box; // x1,y1,x2,y2
     std::vector<Eigen::Vector3d> keypoints; 
     std::vector<std::vector<Eigen::Vector2d> > mask; // as contours
+	std::vector<std::vector<Eigen::Vector2d> > mask_norm; // normal of points
 };
 
 struct MatchedInstance{

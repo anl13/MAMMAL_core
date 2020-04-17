@@ -33,6 +33,7 @@
     <ClCompile Include="..\bundle\annotator.cpp" />
     <ClCompile Include="..\bundle\BASolver.cpp" />
     <ClCompile Include="..\bundle\calibration.cpp" />
+    <ClCompile Include="..\exec\annotate.cpp" />
     <ClCompile Include="..\exec\calib_bundle.cpp" />
     <ClCompile Include="..\exec\custom_pig.cpp" />
     <ClCompile Include="..\exec\main.cpp" />

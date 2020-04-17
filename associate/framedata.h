@@ -48,7 +48,7 @@ public:
     vector<MatchedInstance> get_matched() {return m_matched; }
     vector<Camera> get_cameras(){return m_camsUndist; }
 	vector<std::shared_ptr<PigSolver> > get_models() { return mp_bodysolver; }
-
+	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
     void configByJson(std::string jsonfile); 
     void fetchData(); 
     cv::Mat test(); 
@@ -112,6 +112,7 @@ protected:
 
     vector<vector<DetInstance> >              m_detUndist; // [camnum, candnum]
     vector<MatchedInstance>                   m_matched; // matched raw data after matching()
+	vector<vector<DetInstance> >              m_unmatched; // [camnum, candnum]
 	vector<std::shared_ptr<PigSolver> >       mp_bodysolver; 
 
     // matching & 3d data 

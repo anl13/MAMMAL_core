@@ -64,6 +64,8 @@ public:
 
 	cv::Mat chamfer; // <float>
 	cv::Mat mask; // <uint8> including other body, to check visibility
+	std::vector<std::vector<Eigen::Vector2d> > mask_list;
+	std::vector<std::vector<Eigen::Vector2d> > mask_norm;
 
 	Camera cam; 
 	Eigen::Vector4d box; // (x,y,x+w,y+h)
@@ -76,3 +78,6 @@ public:
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam);
 
 cv::Mat reverseChamfer(const cv::Mat& chamfer);
+
+std::vector<Eigen::Vector2d> computeContourNormal(const std::vector<Eigen::Vector2d>& points);
+std::vector<std::vector<Eigen::Vector2d> >  computeContourNormalsAll(const std::vector<std::vector<Eigen::Vector2d> >&points);

@@ -150,6 +150,9 @@
     <ClCompile Include="..\bundle\annotator.cpp">
       <Filter>bundle</Filter>
     </ClCompile>
+    <ClCompile Include="..\exec\annotate.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">

@@ -20,3 +20,6 @@ int ComputeSymmetry();
 // calibration 
 void test_calib(std::string folder); 
 void test_epipolar(std::string folder); 
+
+
+void annotate(); 

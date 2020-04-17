@@ -547,3 +547,35 @@ cv::Mat reverseChamfer(const cv::Mat& chamfer)
 	out = get_dist_trans(out); 
 	return out; 
 }
+
+std::vector<Eigen::Vector2d> computeContourNormal(const std::vector<Eigen::Vector2d>& points)
+{
+	std::vector<Eigen::Vector2d> normals; 
+	normals.resize(points.size());
+	int N = points.size();
+	for(int i = 0; i < N; i++)
+	{
+		const Eigen::Vector2d& a = points[(i - 1) % N];
+		const Eigen::Vector2d& b = points[i];
+		const Eigen::Vector2d& c = points[(i + 1) % N];
+		Eigen::Vector2d ac = (c - a).normalized();
+		Eigen::Vector2d n;
+		n(0) = -ac(1);
+		n(1) = ac(0); 
+		normals[i] = n;
+	}
+	return normals;
+}
+
+std::vector<std::vector<Eigen::Vector2d>  > 
+computeContourNormalsAll(
+	const std::vector<std::vector<Eigen::Vector2d> >&points)
+{
+	std::vector<std::vector<Eigen::Vector2d> > normals;
+	normals.resize(points.size());
+	for (int i = 0; i < points.size(); i++)
+	{
+		normals[i] = computeContourNormal(points[i]);
+	}
+	return normals;
+}

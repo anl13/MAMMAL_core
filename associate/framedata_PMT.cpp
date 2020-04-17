@@ -152,17 +152,38 @@ void FrameData::matching_by_tracking()
 
 	m_matched.clear();
 	m_matched.resize(m_clusters.size());
+	vector<vector<bool> > be_matched;
+	be_matched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		be_matched[camid].resize(m_detUndist[camid].size(),false);
+	}
 	for (int i = 0; i < m_clusters.size(); i++)
 	{
 		for (int camid = 0; camid < m_camNum; camid++)
 		{
 			int candid = m_clusters[i][camid];
 			if (candid < 0) continue;
+			be_matched[camid][candid] = true;
 			m_matched[i].view_ids.push_back(camid);
 			m_matched[i].cand_ids.push_back(candid);
 			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
 		}
 	}
+
+	m_unmatched.clear();
+	m_unmatched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int candid = 0; candid < be_matched[camid].size(); candid++)
+		{
+			if (!be_matched[camid][candid])
+			{
+				m_unmatched[camid].push_back(m_detUndist[camid][candid]);
+			}
+		}
+	}
+
 	if (m_match_alg == "match")
 	{
 		tracking(); 
