@@ -5,7 +5,7 @@ int main(int argc, char** argv)
 {
 	std::string projFolder = "D:/Projects/animal_calib/";
 	//render_smal_test(); 
-	//run_shape();
+	run_shape();
 	//run_on_sequence();
 
 	//removeSmalTail();
@@ -16,5 +16,5 @@ int main(int argc, char** argv)
 	/// calibration and annotation
 	//test_calib(projFolder); 
 
-	annotate(); 
+	//annotate(); 
 }

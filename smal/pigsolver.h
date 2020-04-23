@@ -15,6 +15,8 @@
 #include "../utils/math_utils.h"
 #include "../utils/model.h"
 #include "../utils/node_graph.h"
+#include "../utils/kdtree.h"
+#include "../render/renderer.h"
 
 /*
 Some Functions for nonrigid deformation borrows from 
@@ -58,10 +60,10 @@ public:
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
 
 	// node graph deformation
-	void UpdateWarpField();
-	
 	void CalcVertJacobiNode();
 	void NaiveNodeDeformStep(int iter); 
+	Renderer* mp_renderer;
+	void naiveNodeDeform();
 
 	// targets to fit 
 	MatchedInstance m_source;
@@ -83,7 +85,29 @@ public:
 	void debug_jacobi();
 
 	std::vector<Eigen::MatrixXd> joints_frames;
-	
+
+	// nodegraph deformation to point cloud
+	std::shared_ptr<Model> m_srcModel, m_tarModel;
+	std::shared_ptr<const KDTree<double>> m_tarTree;
+	Eigen::VectorXi m_corr;
+	Eigen::MatrixXd m_deltaTwist;
+	Eigen::VectorXd m_wDeform;
+	Model m_iterModel;
+	double m_wSmth = .1f;
+	double m_wRegular = 1e-3f;
+	double m_maxDist = 0.2f;
+	double m_maxAngle = double(EIGEN_PI) / 4;
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
+	void CalcSmthTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
+	void CalcDeformTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
+	void setTargetModel(std::shared_ptr<Model> m_tarModel);
+	void setSourceModel();
+	void findCorr();
+	void updateWarpField();
+	void updateIterModel();
+	void solveNonrigidDeform(int maxIterTime, double updateThresh);
+	void totalSolveProcedure(); 
+
 private: 
 	// control info 
 	int m_id; 
@@ -97,13 +121,7 @@ private:
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
 	BodyState m_bodystate; 
 	std::vector<Eigen::Vector3d> m_pivot; // head, center, tail.
-	Eigen::VectorXi m_corr;
-	Eigen::MatrixXd m_deltaTwist;
-	Eigen::VectorXd m_wDeform;
-	double m_wSmth = .1f;
-	double m_wRegular = 1e-3f;
-	double m_maxDist = 0.2f;
-	double m_maxAngle = double(EIGEN_PI) / 4;
+
 	
 	void Calc2DJacobi(const int k, const Eigen::MatrixXd& skel,
 		Eigen::MatrixXd& H, Eigen::VectorXd& b);
@@ -128,7 +146,4 @@ private:
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiPoseNumeric;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiShapeNumeric;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiShapeNumeric;
-
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
-	void CalcSmthTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
 };

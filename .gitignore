@@ -2,6 +2,9 @@
 *__pycache__*
 *.obj 
 *.zip
+*.txt
+*.ply
+
 
 .vscode/
 build/

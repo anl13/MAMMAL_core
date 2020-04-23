@@ -17,15 +17,15 @@ std::vector<std::pair<std::string, Eigen::Vector2i> > labels = {
 { "7 lelb",{ 2,7 } },
 { "8 relb",{ 2,8 } },
 { "9 lpaw",{ 2,9 } },
-{ "10 rpaw",{ 2, 10 } },
-{ "11 lhip",{ 3,0 } },
-{ "12 rhip",{ 3,1 } },
-{ "13 lknee",{ 3,2 } },
-{ "14 rknee",{ 3,3 } },
-{ "15 lfoot",{ 3,4 } },
-{ "16 rfoot",{ 3,5 } },
+{ "10 rpaw",{ 3,0 } },
+{ "11 lhip",{ 3,1 } },
+{ "12 rhip",{ 3,2 } },
+{ "13 lknee",{ 3,3 } },
+{ "14 rknee",{ 3,4 } },
+{ "15 lfoot",{ 3,5 } },
+{ "16 rfoot",{ 3,6 } },
 { "18 tail",{ 3,7 } },
-{ "20 center",{ 3,9 } },
+{ "20 center",{ 3,8 } },
 
 { "Is visible",{ 5,0 } },
 
@@ -107,11 +107,14 @@ void CallBackImage(int event, int x, int y, int flags, void* userdata)
 			int dx = x - c * 1920;
 			int dy = y - r * 1080;
 			int viewid = r * 4 + c;
-			data->camid = viewid;
-			data->cancel = false;
-			data->x = dx;
-			data->y = dy;
-			data->ready = true;
+			if (viewid < 10)
+			{
+				data->camid = viewid;
+				data->cancel = false;
+				data->x = dx;
+				data->y = dy;
+				data->ready = true;
+			}
 		}
 	}
 	else if (event == cv::EVENT_RBUTTONDOWN)
@@ -126,9 +129,12 @@ void CallBackImage(int event, int x, int y, int flags, void* userdata)
 			int c = x / 1920;
 			int r = y / 1080;
 			int viewid = r * 4 + c;
-			data->camid = viewid;
-			data->cancel = true;
-			data->ready = true;
+			if (viewid < 10)
+			{
+				data->camid = viewid;
+				data->cancel = true;
+				data->ready = true;
+			}
 		}
 	}
 	else if (event == cv::EVENT_MBUTTONDOWN)
@@ -142,10 +148,13 @@ void CallBackImage(int event, int x, int y, int flags, void* userdata)
 			int c = x / 1920;
 			int r = y / 1080;
 			int viewid = r * 4 + c;
-			data->camid = viewid;
-			data->cancel = false;
-			data->ready = false; 
-			data->single_image = true;
+			if (viewid < 10)
+			{
+				data->camid = viewid;
+				data->cancel = false;
+				data->ready = false;
+				data->single_image = true;
+			}
 		}
 	}
 }
@@ -299,8 +308,25 @@ void Annotator::setInitData(
 		for (int i = 0; i < matched[pid].view_ids.size(); i++)
 		{
 			int camid = matched[pid].view_ids[i];
-			int candid = matched[pid].cand_ids[i];
+			//int candid = matched[pid].cand_ids[i];
 			m_data[pid][camid] = matched[pid].dets[i];
+		}
+	}
+}
+
+void Annotator::getMatchedData(vector<MatchedInstance>& matched)
+{
+	matched.clear();
+	matched.resize(4);
+	for (int pid = 0; pid < 4; pid++)
+	{
+		for (int camid = 0; camid < m_data[pid].size(); camid++)
+		{
+			if (m_data[pid][camid].valid)
+			{
+				matched[pid].view_ids.push_back(camid);
+				matched[pid].dets.push_back(m_data[pid][camid]);
+			}
 		}
 	}
 }
@@ -465,6 +491,22 @@ void Annotator::read_label_result(std::string filename)
 	instream.close();
 }
 
+void Annotator::read_label_result()
+{
+	std::stringstream ss;
+	ss << result_folder << "label_frame_" << std::setw(6) << std::setfill('0')
+		<< frameid << ".json";
+	read_label_result(ss.str());
+}
+
+void Annotator::save_label_result()
+{
+	std::stringstream ss;
+	ss << result_folder << "label_frame_" << std::setw(6) << std::setfill('0')
+		<< frameid << ".json";
+	save_label_result(ss.str());
+}
+
 void Annotator::show_panel()
 {
 	std::vector<int> status = { 0,0,0,0 };
@@ -493,10 +535,11 @@ void Annotator::show_panel()
 		}
 		else if (c == 's' || c == 'S')
 		{
-			std::stringstream ss;
-			ss << result_folder << "label_frame_" << std::setw(6) << std::setfill('0')
-				<< frameid << ".json";
-			save_label_result(ss.str());
+			save_label_result();
+		}
+		else if (c == 'r' || c == 'R')
+		{
+			read_label_result();
 		}
 	}
 }

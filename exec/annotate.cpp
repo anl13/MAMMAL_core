@@ -16,12 +16,12 @@ void annotate()
 	int framenum = frame.get_frame_num();
 	int frameid = 0;
 
+	
 	frame.set_frame_id(frameid);
 	frame.fetchData();
 	frame.matching_by_tracking();
 
 	std::string result_folder = "E:/my_labels/";
-	std::string filename = "E:/my_labels/label_frame_000000.json";
 	Annotator A;
 	A.result_folder = result_folder;
 	A.frameid = frameid;
@@ -30,8 +30,7 @@ void annotate()
 	A.setInitData(frame.get_matched());
 	A.m_imgs = frame.get_imgs_undist();
 	A.m_unmatched = frame.get_unmatched();
-
-	A.read_label_result(filename);
+	
 	A.show_panel();
 }
 

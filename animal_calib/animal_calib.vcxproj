@@ -55,6 +55,7 @@
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
+    <ClCompile Include="..\utils\model.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\obj_reader.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />

@@ -235,4 +235,32 @@ void Volume::saveXYZFileWithNormal(std::string filename)
 	{
 		fout << point_cloud[i].transpose() << " " << normals[i].transpose() << std::endl;
 	}
+	fout.close();
+}
+
+void Volume::readXYZFileWithNormal(std::string filename)
+{
+	std::ifstream fin(filename);
+	if (!fin.is_open())
+	{
+		std::cout << filename << " is not open!" << std::endl;
+		exit(-1);
+	}
+	point_cloud.clear();
+	while (!fin.eof())
+	{
+		float x, y, z;
+		fin >> x;
+		if (fin.eof())break;
+		fin >> y >> z; 
+		point_cloud.push_back(Eigen::Vector3f(x, y, z));
+		fin >> x >> y >> z; 
+ 	}
+	fin.close();
+
+	point_cloud_eigen.resize(3, point_cloud.size());
+	for (int i = 0; i < point_cloud.size(); i++)
+	{
+		point_cloud_eigen.col(i) = point_cloud[i];
+	}
 }

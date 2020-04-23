@@ -32,10 +32,16 @@ struct NodeGraphGenerator : public NodeGraph
 	void LoadGeodesic(const std::string& filename);
 	void SaveGeodesic(const std::string& filename) const;
 
+	// param for pigmodel
+	//int netDegree = 4;
+	//int knnSize = 4;
+	//double nodeSpacing = 0.08f;
+	//double cutRate = 20.f;
+	// param for smal notail
 	int netDegree = 4;
-	int knnSize = 4;
-	double nodeSpacing = 0.08f;
-	double cutRate = 20.f;
+	int knnSize = 8;
+	double nodeSpacing = 0.05f;
+	double cutRate = 5.f;
 	Model model;
 	std::vector<std::map<int, double>> geodesic;
 };

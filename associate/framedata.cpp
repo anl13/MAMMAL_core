@@ -329,11 +329,11 @@ cv::Mat FrameData::visualizeIdentity2D(int viewid, int vid)
         for(int i = 0; i < m_matched[id].view_ids.size(); i++)
         {
             int camid = m_matched[id].view_ids[i];
-            int candid = m_matched[id].cand_ids[i];
-            if(candid < 0) continue; 
-            drawSkel(m_imgsDetect[camid], m_detUndist[camid][candid].keypoints, id);
-            my_draw_box(m_imgsDetect[camid], m_detUndist[camid][candid].box, m_CM[id]);
-            my_draw_mask(m_imgsDetect[camid], m_detUndist[camid][candid].mask, m_CM[id], 0.5);
+            //int candid = m_matched[id].cand_ids[i];
+            //if(candid < 0) continue; 
+            drawSkel(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, id);
+            my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, m_CM[id]);
+            my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, m_CM[id], 0.5);
         }
     }
 	if (viewid < 0)
@@ -843,3 +843,14 @@ void FrameData::side_view_clean(DetInstance& det)
 	}
 }
 
+
+void FrameData::load_labeled_data()
+{
+	Annotator A;
+	A.result_folder = "E:/my_labels/";
+	A.frameid = m_frameid;
+	A.m_cams = get_cameras();
+	A.m_camNum = m_camNum;
+	A.read_label_result();
+	A.getMatchedData(m_matched);
+}

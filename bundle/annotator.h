@@ -51,6 +51,7 @@ public:
 	int frameid;
 	
 	void setInitData(const vector<MatchedInstance>& matched);
+	void getMatchedData(vector<MatchedInstance>& matched);
 	int m_camNum;
 	std::vector<Camera> m_cams; 
 	std::vector<cv::Mat> m_imgs; //[camnum]
@@ -60,6 +61,8 @@ public:
 	void show_panel(); 
 	void save_label_result(std::string jsonname);
 	void read_label_result(std::string filename);
+	void read_label_result();
+	void save_label_result();
 
 	void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
 	void update_image_labeled(const SingleClickLabeledData& input, const std::vector<int>& status);

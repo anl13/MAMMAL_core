@@ -10,7 +10,6 @@ vector<ROIdescripter> FrameData::getROI(int id)
 	for (int view = 0; view < m_matched[id].view_ids.size(); view++)
 	{
 		int camid = m_matched[id].view_ids[view];
-		int candid = m_matched[id].cand_ids[view];
 		ROIdescripter roi;
 		roi.setId(id);
 		roi.setT(m_frameid);

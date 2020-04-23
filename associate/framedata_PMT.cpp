@@ -27,7 +27,7 @@ void FrameData::matching()
             int candid = m_clusters[i][camid]; 
             if(candid < 0) continue; 
             m_matched[i].view_ids.push_back(camid); 
-            m_matched[i].cand_ids.push_back(candid); 
+            //m_matched[i].cand_ids.push_back(candid); 
             m_matched[i].dets.push_back(m_detUndist[camid][candid]); 
         }
     }
@@ -166,7 +166,7 @@ void FrameData::matching_by_tracking()
 			if (candid < 0) continue;
 			be_matched[camid][candid] = true;
 			m_matched[i].view_ids.push_back(camid);
-			m_matched[i].cand_ids.push_back(candid);
+			//m_matched[i].cand_ids.push_back(candid);
 			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
 		}
 	}
@@ -227,10 +227,11 @@ void FrameData::debug_chamfer(int pid)
 	for (int i = 0; i < m_matched[pid].view_ids.size(); i++)
 	{
 		int camid = m_matched[pid].view_ids[i];
-		int candid = m_matched[pid].cand_ids[i];
-		if (candid < 0) continue;
-		my_draw_mask_gray(grays[camid], 
-			m_detUndist[camid][candid].mask, 255);
+		//int candid = m_matched[pid].cand_ids[i];
+		//if (candid < 0) continue;
+		my_draw_mask_gray(grays[camid],
+			//m_detUndist[camid][candid].mask, 255);
+			m_matched[pid].dets[i].mask, 255);
 		cv::Mat chamfer = get_dist_trans(grays[camid]);
 		cv::Mat chamfer_vis = vis_float_image(chamfer); 
 		cv::namedWindow("mask"); 
@@ -250,11 +251,11 @@ void FrameData::visualizeDebug(int pid)
 		for (int i = 0; i < m_matched[id].view_ids.size(); i++)
 		{
 			int camid = m_matched[id].view_ids[i];
-			int candid = m_matched[id].cand_ids[i];
-			if (candid < 0) continue;
-			drawSkelDebug(m_imgsDetect[camid], m_detUndist[camid][candid].keypoints);
-			my_draw_box(m_imgsDetect[camid], m_detUndist[camid][candid].box, m_CM[id]);
-			//my_draw_mask(m_imgsDetect[camid], m_detUndist[camid][candid].mask, m_CM[id], 0.5);
+			//int candid = m_matched[id].cand_ids[i];
+			//if (candid < 0) continue;
+			drawSkelDebug(m_imgsDetect[camid], m_matched[id].dets[i].keypoints);
+			my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, m_CM[id]);
+			//my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, m_CM[id], 0.5);
 		}
 	}
 }
@@ -283,7 +284,7 @@ void FrameData::getChamferMap(int pid, int viewid,
 {
 	mask.create(cv::Size(m_imw, m_imh), CV_8UC1); 
 	int camid = m_matched[pid].view_ids[viewid];
-	int candid = m_matched[pid].cand_ids[viewid];
+	//int candid = m_matched[pid].cand_ids[viewid];
 	my_draw_mask_gray(mask,
 		m_matched[pid].dets[viewid].mask, 255);
 	chamfer = get_dist_trans(mask);

@@ -15,7 +15,7 @@
 #include "../smal/pigsolver.h"
 #include "clusterclique.h"
 #include "skel.h" 
-
+#include "../bundle/annotator.h"
 
 using std::vector; 
 
@@ -68,6 +68,8 @@ public:
     void reproject_skels(); 
 	void solve_parametric_model(); 
 	void read_parametric_data(); 
+
+	void load_labeled_data();
 
     // visualization function  
     cv::Mat visualizeSkels2D(); 

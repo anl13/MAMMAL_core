@@ -147,8 +147,9 @@ int run_on_sequence()
 		frame.set_frame_id(frameid); 
 #ifndef LOAD_STATE
 		frame.fetchData();
-		frame.view_dependent_clean(); 
-		frame.matching_by_tracking(); 
+		//frame.view_dependent_clean(); 
+		//frame.matching_by_tracking(); 
+		frame.load_labeled_data();
 		frame.solve_parametric_model(); 
 		//for (int i = 0; i < 4; i++) frame.debug_fitting(i); 
 		//frame.debug_chamfer(0); 
@@ -161,11 +162,11 @@ int run_on_sequence()
 #ifdef VIS
 		m_renderer.colorObjs.clear(); 
 		m_renderer.skels.clear(); 
-		//cv::Mat det_img = frame.visualizeIdentity2D();
-		//std::stringstream ss1; 
-		//ss1 << "E:/debug_pig2/assoc/" << std::setw(6) << std::setfill('0')
-		//	<< frameid << ".jpg"; 
-		//cv::imwrite(ss1.str(), det_img); 
+		cv::Mat det_img = frame.visualizeIdentity2D();
+		std::stringstream ss1; 
+		ss1 << "E:/debug_pig2/assoc/" << std::setw(6) << std::setfill('0')
+			<< frameid << ".jpg"; 
+		cv::imwrite(ss1.str(), det_img); 
 		for (int pid = 0; pid < 4; pid++)
 		{
 			Eigen::Vector3f color = rgb2bgr(CM[pid]);

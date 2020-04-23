@@ -153,6 +153,9 @@
     <ClCompile Include="..\exec\annotate.cpp">
       <Filter>exec</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils\model.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">
