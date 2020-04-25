@@ -378,10 +378,10 @@ void PigModel::UpdateVertices()
 {
 	UpdateJoints();
 	UpdateVerticesShaped();
-	if (mp_nodeGraph)
-	{
-		UpdateModelShapedByKNN();
-	}
+	//if (mp_nodeGraph)
+	//{
+	//	UpdateModelShapedByKNN();
+	//}
 	UpdateVerticesDeformed(); 
 	UpdateVerticesFinal();
 }

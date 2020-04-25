@@ -87,6 +87,7 @@ public:
 	void debug_jacobi();
 
 	std::vector<Eigen::MatrixXd> joints_frames;
+	std::vector<int> m_poseToOptimize;
 
 	// nodegraph deformation to point cloud
 	std::shared_ptr<Model> m_srcModel, m_tarModel;
@@ -110,7 +111,9 @@ public:
 	void solveNonrigidDeform(int maxIterTime, double updateThresh);
 	void totalSolveProcedure(); 
 	void solvePoseAndShape();
-
+	void CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
+	void CalcShapeTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
+	
 	// compute volume 
 	Volume m_V;
 	Model m_V_mesh; 
@@ -121,7 +124,6 @@ private:
 	double m_frameid; 
 	std::vector<std::pair<int, int> > m_mapper;
 	SkelTopology m_topo;
-	std::vector<int> m_poseToOptimize;
 	bool tmp_init;
 
 	// inferred data

@@ -246,6 +246,60 @@ void PigSolver::naiveNodeDeform()
 		glfwPollEvents();
 	}
 }
+void PigSolver::CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
+{
+	Eigen::MatrixXd J;
+	CalcVertJacobiPose(J);
+	int M = J.cols();
+	//Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum);
+	Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum * 3);
+	Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m_vertexNum * 3, M);
+	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++)
+	{
+		const int tIdx = m_corr[sIdx];
+		const double wd = m_wDeform[sIdx];
+		if (tIdx == -1 || wd < DBL_EPSILON) continue; 
+		const auto tn = m_tarModel->normals.col(tIdx);
+		const auto iv = m_verticesFinal.col(sIdx);
+		const auto tv = m_tarModel->vertices.col(tIdx);
+		//A.middleRows(sIdx, 1) =
+		//	tn.transpose() * J.middleRows(3 * sIdx, 3);
+		//b(sIdx) = wd * (tn.dot(tv - iv));
+		A.middleRows(sIdx * 3, 3) = J.middleRows(3 * sIdx, 3);
+		b.segment<3>(sIdx * 3) = tv - iv; 
+	}
+	Eigen::MatrixXd AT = A.transpose(); 
+	ATA = AT * A;
+	ATb = AT * b;
+}
+
+void PigSolver::CalcShapeTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
+{
+	Eigen::MatrixXd J;
+	CalcShapeJacobi();
+	J = m_vertJacobiShape; // vnum * shapenum
+	int M = J.cols();
+	//Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum);
+	Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum * 3);
+	Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m_vertexNum * 3, M);
+	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++)
+	{
+		const int tIdx = m_corr[sIdx];
+		const double wd = m_wDeform[sIdx];
+		if (tIdx == -1 || wd < DBL_EPSILON) continue;
+		const auto tn = m_tarModel->normals.col(tIdx);
+		const auto iv = m_verticesFinal.col(sIdx);
+		const auto tv = m_tarModel->vertices.col(tIdx);
+		//A.middleRows(sIdx, 1) =
+		//	tn.transpose() * J.middleRows(3 * sIdx, 3);
+		//b(sIdx) = wd * (tn.dot(tv - iv));
+		A.middleRows(sIdx * 3, 3) = J.middleRows(3 * sIdx, 3);
+		b.segment<3>(sIdx * 3) = tv - iv;
+	}
+	Eigen::MatrixXd AT = A.transpose();
+	ATA = AT * A;
+	ATb = AT * b;
+}
 
 void PigSolver::CalcDeformTerm(
 	Eigen::SparseMatrix<double>& ATA,
@@ -542,12 +596,84 @@ void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double te
 	}
 }
 
-// TODO: solve pose and shape 
+// solve pose and shape 
+// to fit visualhull model
 void PigSolver::solvePoseAndShape()
 {
-	//solver.setTargetVSameTopo(objreader.vertices_eigen.cast<double>()); 
-	//solver.globalAlignToVerticesSameTopo(); 
-	//solver.FitShapeToVerticesSameTopo(50, 0.00000001); 
-	//solver.saveShapeParam("D:/Projects/animal_calib/data/smalr/pigshape.txt"); 
-	
+	int maxIterTime = 10; 
+	double terminal = 0.01;
+
+	int M = m_poseToOptimize.size();
+	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	{
+		UpdateVertices();
+		m_iterModel.vertices = m_verticesFinal;
+		m_iterModel.CalcNormal();
+		findCorr();
+		Eigen::MatrixXd ATA;
+		Eigen::VectorXd ATb;
+		CalcPoseTerm(ATA, ATb);
+
+		Eigen::VectorXd theta(3 + 3 * M);
+		theta.segment<3>(0) = m_translation;
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
+		}
+		// solve
+		double lambda = 0.001;
+		double w1 = 1;
+		double w_reg = 0.01;
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXd H_reg = DTD;  // reg term 
+		Eigen::VectorXd b_reg = -theta; // reg term 
+
+		Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg;
+
+		Eigen::VectorXd delta = H.ldlt().solve(b);
+
+		// update 
+		m_translation += delta.segment<3>(0);
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
+		}
+		// if(iterTime == 1) break; 
+		if (delta.norm() < terminal) break;
+
+		std::stringstream ss; 
+		ss << "E:/debug_pig2/shape/pose_" << iterTime << ".obj";
+		SaveObj(ss.str());
+	}
+
+	//
+	//for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	//{
+	//	UpdateVertices();
+	//	UpdateVertices();
+	//	m_iterModel.vertices = m_verticesFinal;
+	//	m_iterModel.CalcNormal();
+	//	findCorr();
+	//	Eigen::MatrixXd ATA;
+	//	Eigen::VectorXd ATb;
+	//	CalcShapeTerm(ATA, ATb);
+
+	//	Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(m_shapeNum, m_shapeNum);  // Leveberg Marquart
+	//	Eigen::MatrixXd H_reg = DTD;
+	//	Eigen::VectorXd b_reg = -m_shapeParam;
+	//	double lambda = 0.001;
+	//	double w1 = 1;
+	//	double w_reg = 0.01;
+	//	Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg + DTD * lambda;
+	//	Eigen::VectorXd b = ATb * w1 + b_reg * w_reg;
+
+	//	Eigen::VectorXd delta = H.ldlt().solve(b);
+	//	m_shapeParam = m_shapeParam + delta; 
+
+	//	if (delta.norm() < terminal) break;
+	//}
 }
+
