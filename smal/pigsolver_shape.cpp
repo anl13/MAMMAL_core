@@ -466,6 +466,88 @@ void PigSolver::totalSolveProcedure()
 	m_wRegular = 0.01;
 	m_maxDist = 0.01;
 	solveNonrigidDeform(20, 1e-5);
+}
 
 
+/// volumetric method
+void PigSolver::computeVolume()
+{
+	CalcZ();
+	m_V.center = Z.col(20).cast<float>();
+	m_V.computeVolumeFromRoi(m_rois);
+	m_V.getSurface();
+	std::stringstream ss;
+	ss << "E:/debug_pig2/visualhull/tmp.xyz";
+	m_V.saveXYZFileWithNormal(ss.str());
+	std::stringstream cmd;
+	cmd << "D:/Projects/animal_calib/PoissonRecon.x64.exe --in " << ss.str() << " --out " << ss.str() << ".ply";
+	const std::string cmd_str = cmd.str();
+	const char* cmd_cstr = cmd_str.c_str();
+	system(cmd_cstr);
+}
+
+void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal)
+{
+	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
+
+	int M = m_poseToOptimize.size();
+	int N = m_topo.joint_num;
+
+	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	{
+		UpdateVertices();
+		std::stringstream ss; 
+		ss << "E:/debug_pig2/shape/pose_" << iterTime << ".obj";
+		SaveObj(ss.str());
+
+		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
+
+		Eigen::VectorXd theta(3 + 3 * M);
+		theta.segment<3>(0) = m_translation;
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
+		}
+		Eigen::VectorXd theta0 = theta;
+		// solve
+		Eigen::MatrixXd H_view;
+		Eigen::VectorXd b_view;
+		Eigen::MatrixXd J; 
+		CalcVertJacobiPose(J);
+		Eigen::MatrixXd H1 = J.transpose() * J;
+		Eigen::MatrixXd b1 = -J.transpose() * r; 
+			
+		double lambda = 0.001;
+		double w1 = 1;
+		double w_reg = 0.01;
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXd H_reg = DTD;  // reg term 
+		Eigen::VectorXd b_reg = -theta; // reg term 
+
+		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+
+		Eigen::VectorXd delta = H.ldlt().solve(b);
+
+		// update 
+		m_translation += delta.segment<3>(0);
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
+		}
+		// if(iterTime == 1) break; 
+		if (delta.norm() < terminal) break;
+	}
+}
+
+// TODO: solve pose and shape 
+void PigSolver::solvePoseAndShape()
+{
+	//solver.setTargetVSameTopo(objreader.vertices_eigen.cast<double>()); 
+	//solver.globalAlignToVerticesSameTopo(); 
+	//solver.FitShapeToVerticesSameTopo(50, 0.00000001); 
+	//solver.saveShapeParam("D:/Projects/animal_calib/data/smalr/pigshape.txt"); 
+	
 }

@@ -31,8 +31,8 @@ using std::vector;
 int run_shape()
 {
 	std::string folder = "D:/Projects/animal_calib/data/pig_model_noeye/";
-	//std::string pig_config = "D:/Projects/animal_calib/smal/smal2_config.json";
-	std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
+	std::string pig_config = "D:/Projects/animal_calib/smal/smal2_config.json";
+	//std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
 
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 
@@ -83,17 +83,15 @@ int run_shape()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		//frame.view_dependent_clean();
-		//frame.matching_by_tracking();
-		frame.load_labeled_data();
+		frame.matching_by_tracking();
+		//frame.load_labeled_data();
 		frame.solve_parametric_model();
 		auto models = frame.get_models(); 
 		auto m_matched = frame.get_matched();
 		
-		
 #ifdef VOLUME
 		m_renderer.colorObjs.clear();
 		m_renderer.skels.clear();
-
 
 		for (int pid = 0; pid < 4; pid++)
 		{
@@ -121,7 +119,7 @@ int run_shape()
 #endif 
 
 #ifdef SHAPE_SOLVER
-		auto m_rois = frame.getROI(0);
+		auto m_rois = frame.getROI(m_pid);
 		shapesolver.setCameras(frame.get_cameras());
 		shapesolver.normalizeCamera();
 		shapesolver.setId(m_pid);
@@ -136,23 +134,39 @@ int run_shape()
 
 		shapesolver.mp_renderer = &m_renderer; 
 		shapesolver.m_rois = m_rois;
-		//shapesolver.naiveNodeDeform(); 
+
 		shapesolver.InitNodeAndWarpField();
-
-		std::shared_ptr<Model> targetModel = std::make_shared<Model>();
-		targetModel->Load("E:/debug_pig2/visualhull/0/000000.obj");
-		shapesolver.setTargetModel(targetModel);
-		shapesolver.setSourceModel();
-		shapesolver.totalSolveProcedure();
-
+		//std::shared_ptr<Model> targetModel = std::make_shared<Model>();
+		//targetModel->Load("E:/debug_pig2/visualhull/0/000000.obj");
+		//shapesolver.setTargetModel(targetModel);
+		//shapesolver.setSourceModel();
+		//shapesolver.totalSolveProcedure();
+		
+		OBJReader target_reader; 
+		target_reader.read("E:/debug_pig2/final.obj");
+		shapesolver.setTargetVSameTopo(target_reader.vertices_eigen);
+		//shapesolver.globalAlignToVerticesSameTopo();
+		for (int i = 0; i < 5; i++)
+		{
+			shapesolver.FitPoseToVerticesSameTopo(5, 0.00001);
+			shapesolver.FitShapeToVerticesSameTopo(5, 0.00001);
+		}
+		
 		RenderObjectColor* pig_render = new RenderObjectColor();
-		Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces 
-			= shapesolver.m_iterModel.faces;
-		Eigen::MatrixXf vs = shapesolver.m_iterModel.vertices.cast<float>();
+		Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces
+			= shapesolver.GetFacesVert();
+		Eigen::MatrixXf vs = shapesolver.GetVertices().cast<float>();
 		pig_render->SetFaces(faces);
 		pig_render->SetVertices(vs);
 		pig_render->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
 		m_renderer.colorObjs.push_back(pig_render);
+
+		RenderObjectColor* pig_render_target = new RenderObjectColor();
+		Eigen::MatrixXf vs_t = target_reader.vertices_eigen.cast<float>();
+		pig_render_target->SetFaces(faces);
+		pig_render_target->SetVertices(vs_t);
+		pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
+		m_renderer.colorObjs.push_back(pig_render_target);
 
 		while (!glfwWindowShouldClose(windowPtr))
 		{

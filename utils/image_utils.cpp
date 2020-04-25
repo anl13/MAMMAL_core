@@ -2,6 +2,7 @@
 #include "image_utils.h"
 #include "geometry.h"
 #include "math_utils.h"
+#include <opencv2/video/background_segm.hpp>
 
 void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, const Camera &newcam)
 {
@@ -393,7 +394,7 @@ void my_draw_mask_gray(cv::Mat& img,
 	vector<vector<Eigen::Vector2d> > contour_list,
 	int c)
 {
-	cv::Mat color_img(cv::Size(1920, 1080), CV_8UC3); 
+	cv::Mat grey(cv::Size(1920, 1080), CV_8UC1); 
 	vector<vector<cv::Point2i> > contours;
 	for (int i = 0; i < contour_list.size(); i++)
 	{
@@ -407,9 +408,8 @@ void my_draw_mask_gray(cv::Mat& img,
 		}
 		contours.push_back(contour_part);
 	}
-	cv::fillPoly(color_img, contours, cv::Scalar(c, c, c));
-	cv::cvtColor(color_img, img, cv::COLOR_BGR2GRAY);
-
+	cv::fillPoly(grey, contours, c);
+	img = grey;
 }
 
 cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)
@@ -469,7 +469,6 @@ cv::Mat get_dist_trans(cv::Mat input)
 	//cv::threshold(gray, gray, 40, 255, cv::/*THRESH_BINARY*/ | cv::THRESH_OTSU);
 	cv::Mat chamfer; 
 	cv::distanceTransform(gray, chamfer, cv::DIST_L2, 3);
-	//std::cout << chamfer.type() << std::endl;
 	return chamfer; 
 }
 
@@ -498,19 +497,26 @@ float ROIdescripter::queryChamfer(const Eigen::Vector3d& point)
 	p_int(0) = int(round(proj(0)));
 	p_int(1) = int(round(proj(1)));
 	if (p_int(0) < 0 || p_int(0) >= 1920 || p_int(1) < 0 || p_int(1) >= 1080)
-		return -1;
+		return -10000; // out of image
+	if (undist_mask.at<uchar>(p_int(1), p_int(0)) == 0) return -10000; 
 	return chamfer.at<float>(p_int(1), p_int(0));
 }
 
 int ROIdescripter::queryMask(const Eigen::Vector3d& point)
 {
+	vector<int> list = { 1,2,4,8 };
 	Eigen::Vector3d proj = project(cam, point);
 	Eigen::Vector2i p_int;
 	p_int(0) = int(round(proj(0)));
 	p_int(1) = int(round(proj(1)));
 	if (p_int(0) < 0 || p_int(0) >= 1920 || p_int(1) < 0 || p_int(1) >= 1080)
 		return -1; 
-	return mask.at<uchar>(p_int(1), p_int(0));
+	if (undist_mask.at<uchar>(p_int(1), p_int(0)) == 0)return -1; 
+	int code = mask.at<uchar>(p_int(1), p_int(0));
+	if (code == idcode) return 1;
+	if (code == 0) return 0; 
+	if (code > 0 && in_list(code, list)) return 0;
+	return 2; 
 }	
 
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam)
@@ -534,17 +540,7 @@ float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera&
 
 cv::Mat reverseChamfer(const cv::Mat& chamfer)
 {
-	cv::Mat out;
-	out.create(cv::Size(chamfer.cols, chamfer.rows), CV_8UC1);
-	for (int j = 0; j < out.rows; j++)
-	{
-		for (int i = 0; i < out.cols; i++)
-		{
-			if (chamfer.at<float>(j, i) == 0)out.at<uchar>(j, i) = 1;
-			else out.at<uchar>(j, i) = 0;
-		}
-	}
-	out = get_dist_trans(out); 
+	cv::Mat out = -chamfer;
 	return out; 
 }
 
@@ -578,4 +574,13 @@ computeContourNormalsAll(
 		normals[i] = computeContourNormal(points[i]);
 	}
 	return normals;
+}
+
+cv::Mat my_background_substraction(cv::Mat raw, cv::Mat bg)
+{
+	cv::Ptr<cv::BackgroundSubtractor> pBackSub;
+	pBackSub = cv::createBackgroundSubtractorMOG2();
+	cv::Mat fg; 
+	pBackSub->apply(raw, fg);
+	return fg; 
 }

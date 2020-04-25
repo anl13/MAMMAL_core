@@ -261,8 +261,9 @@ void FrameData::visualizeDebug(int pid)
 }
 
 // draw masks according to 
-void FrameData::drawMask()
+vector<cv::Mat> FrameData::drawMask()
 {
+	vector<cv::Mat> m_imgsMask; 
 	m_imgsMask.resize(m_camNum);
 	for (int i = 0; i < m_camNum; i++)
 	{
@@ -275,18 +276,31 @@ void FrameData::drawMask()
 		{
 			int viewid = m_matched[pid].view_ids[k];
 			my_draw_mask_gray(temp, m_matched[pid].dets[k].mask, 1 << pid);
+			m_imgsMask[viewid] = temp + m_imgsMask[viewid];
 		}
 	}
+	return m_imgsMask;
 }
 
 void FrameData::getChamferMap(int pid, int viewid,
-	cv::Mat& chamfer, cv::Mat& mask)
+	cv::Mat& chamfer)
 {
+	cv::Mat inner, outer;
+	// innner
+	cv::Mat mask;
 	mask.create(cv::Size(m_imw, m_imh), CV_8UC1); 
 	int camid = m_matched[pid].view_ids[viewid];
-	//int candid = m_matched[pid].cand_ids[viewid];
 	my_draw_mask_gray(mask,
 		m_matched[pid].dets[viewid].mask, 255);
-	chamfer = get_dist_trans(mask);
+	inner = get_dist_trans(mask);
+	// outer 
+	cv::Mat mask2;
+	mask2.create(cv::Size(m_imw, m_imh), CV_8UC1);
+	mask2.setTo(cv::Scalar(255));
+	my_draw_mask_gray(mask, m_matched[pid].dets[viewid].mask, 0);
+	outer = get_dist_trans(mask2);
+	// final chamfer as sdf
+	chamfer = inner - outer;
+
 	return; 
 }

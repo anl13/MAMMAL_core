@@ -81,7 +81,11 @@ public:
 
 	// shape solver 
 	vector<ROIdescripter> getROI(int id = 0); 
+	cv::Mat m_undist_mask;
+	vector<cv::Mat> m_backgrounds; 
+	std::vector<cv::Mat> m_foreground;
 
+	void extractFG(); 
 protected:
     // io functions 
     void setCamIds(std::vector<int> _camids); 
@@ -92,8 +96,8 @@ protected:
 
     void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, int colorid);
 	void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
-	void drawMask(); 
-	void getChamferMap(int pid, int viewid, cv::Mat& chamfer, cv::Mat& mask);
+	vector<cv::Mat> drawMask(); 
+	void getChamferMap(int pid, int viewid, cv::Mat& chamfer);
 
 	int m_imh; 
     int m_imw; 
@@ -110,7 +114,6 @@ protected:
 
 	std::vector<cv::Mat>                      m_imgsDetect;
 	std::vector<cv::Mat>                      m_imgsOverlay; 
-	std::vector<cv::Mat>                      m_imgsMask; // draw masks according to pig id
 
     vector<vector<DetInstance> >              m_detUndist; // [camnum, candnum]
     vector<MatchedInstance>                   m_matched; // matched raw data after matching()

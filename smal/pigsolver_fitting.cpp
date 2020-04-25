@@ -434,8 +434,8 @@ void PigSolver::FitShapeToVerticesSameTopo(const int maxIterTime, const double t
 		Eigen::MatrixXd H_reg = DTD;
 		Eigen::VectorXd b_reg = -m_shapeParam;
 		double lambda = 0.001;
-		double w1 = 10000;
-		double w_reg = 0.0;
+		double w1 = 1;
+		double w_reg = 0.01;
 		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
 		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
 

@@ -17,6 +17,7 @@
 #include "../utils/node_graph.h"
 #include "../utils/kdtree.h"
 #include "../render/renderer.h"
+#include "../utils/volume.h"
 
 /*
 Some Functions for nonrigid deformation borrows from 
@@ -58,9 +59,10 @@ public:
 	Eigen::VectorXd getRegressedSkelProj(const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T);
 	void computePivot(); 
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
+	void FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
+	void CalcVertJacobiPose(Eigen::MatrixXd& J);
 
 	// node graph deformation
-	void CalcVertJacobiNode();
 	void NaiveNodeDeformStep(int iter); 
 	Renderer* mp_renderer;
 	void naiveNodeDeform();
@@ -107,7 +109,12 @@ public:
 	void updateIterModel();
 	void solveNonrigidDeform(int maxIterTime, double updateThresh);
 	void totalSolveProcedure(); 
+	void solvePoseAndShape();
 
+	// compute volume 
+	Volume m_V;
+	Model m_V_mesh; 
+	void computeVolume();
 private: 
 	// control info 
 	int m_id; 

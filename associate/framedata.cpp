@@ -77,6 +77,9 @@ void FrameData::fetchData()
     undistMask(); 
     assembleDets(); 
     // detNMS(); 
+
+	// read backgrounds 
+
 }
 
 void FrameData::readKeypoints() // load hrnet keypoints
@@ -236,7 +239,27 @@ void FrameData::readImages()
 			exit(-1); 
 		}
 		m_imgs.emplace_back(img);
+
+		std::stringstream ss_bg; 
+		ss_bg << m_camDir << "/../data/backgrounds/bg" << m_camids[camid] << "_undist.png";
+		cv::Mat img2 = cv::imread(ss_bg.str());
+		if (img2.empty())
+		{
+			std::cout << "can not open background image" << ss_bg.str() << std::endl;
+			exit(-1);
+		}
+		m_backgrounds.push_back(img2);
     }
+
+	std::stringstream ss;
+	ss << m_camDir << "/../data/backgrounds/undist_mask.png";
+	m_undist_mask = cv::imread(ss.str());
+	if (m_undist_mask.empty())
+	{
+		std::cout << "can not open undist mask " << ss.str() << std::endl; 
+		exit(-1);
+	}
+	cv::cvtColor(m_undist_mask, m_undist_mask, cv::COLOR_BGR2GRAY);
 }
 
 void FrameData::readCameras()

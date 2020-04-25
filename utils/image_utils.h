@@ -52,6 +52,7 @@ cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height);
 
 cv::Mat get_dist_trans(cv::Mat input);
 
+/*do not use! deprecated function*/
 cv::Mat vis_float_image(cv::Mat chamfer); 
 
 // This class is used as struct 
@@ -62,6 +63,9 @@ public:
 	inline void setId(const int& _id) { id = _id; }
 	inline void setT(const int& _t) { t = _t; }
 
+	int pid; 
+	int idcode; 
+	cv::Mat undist_mask; 
 	cv::Mat chamfer; // <float>
 	cv::Mat mask; // <uint8> including other body, to check visibility
 	std::vector<std::vector<Eigen::Vector2d> > mask_list;
@@ -71,13 +75,25 @@ public:
 	Eigen::Vector4d box; // (x,y,x+w,y+h)
 	int id;
 	int t; 
+	/*
+	return: -1: outof image
+	0: background
+	1: yes 
+	2: occluded by other pig
+	*/
 	int queryMask(const Eigen::Vector3d& point);
+	/*
+	return:
+	-10000: outof image 
+	other: chamfer value. <0 means outside contour, >0 means inside contour.
+	*/
 	float queryChamfer(const Eigen::Vector3d& point);
 };
 
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam);
 
 cv::Mat reverseChamfer(const cv::Mat& chamfer);
+cv::Mat my_background_substraction(cv::Mat raw, cv::Mat bg);
 
 std::vector<Eigen::Vector2d> computeContourNormal(const std::vector<Eigen::Vector2d>& points);
 std::vector<std::vector<Eigen::Vector2d> >  computeContourNormalsAll(const std::vector<std::vector<Eigen::Vector2d> >&points);

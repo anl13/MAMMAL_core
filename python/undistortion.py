@@ -188,23 +188,23 @@ if __name__ == "__main__":
     '''
     test inverse mapping
     '''
-    img = imgs[0].copy()
+    # img = imgs[0].copy()
+    # img = np.ones([1080,1920,3],np.uint8) * 255
+    img = cv2.imread("bg11.png")
     undist = cv2.remap(img, mapx, mapy, cv2.INTER_LINEAR)
     redist = cv2.remap(undist, inv_mapx, inv_mapy, cv2.INTER_LINEAR) 
      
-    new_points_2 = undist_points_cv2(points, K, coeff, newcameramtx)
-    new_points = undist_points(points, inv_mapx, inv_mapy)
-    draw_markers(undist, new_points)
+    # new_points_2 = undist_points_cv2(points, K, coeff, newcameramtx)
+    # new_points = undist_points(points, inv_mapx, inv_mapy)
+    # draw_markers(undist, new_points)
 
-    
+    # cv2.namedWindow('undist', cv2.WINDOW_NORMAL)
+    # cv2.imshow('undist', undist)
+    # cv2.namedWindow("redist", cv2.WINDOW_NORMAL)
+    # cv2.imshow("redist", redist) 
+    cv2.imwrite('bg11_undist.png', undist)
+    # cv2.imwrite('data/redist.png', redist)
+    # cv2.waitKey() 
+    # cv2.destroyAllWindows()
 
-    cv2.namedWindow('undist', cv2.WINDOW_NORMAL)
-    cv2.imshow('undist', undist)
-    cv2.namedWindow("redist", cv2.WINDOW_NORMAL)
-    cv2.imshow("redist", redist) 
-    cv2.imwrite('data/undist.png', undist)
-    cv2.imwrite('data/redist.png', redist)
-    cv2.waitKey() 
-    cv2.destroyAllWindows()
-
-    from IPython import embed; embed() 
+    # from IPython import embed; embed() 

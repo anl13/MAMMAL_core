@@ -65,11 +65,6 @@ void Volume::computeVolumeFromRoi(
 	std::vector<ROIdescripter>& det
 )
 {
-	//cv::Mat vis = vis_float_image(det[0].chamfer);
-	//cv::imshow("vis chamfer", vis); 
-	//cv::waitKey();
-	//exit(-1);
-
 	Eigen::Vector3f O;
 	O(0) = center(0) - (resX / 2)*dx;
 	O(1) = center(1) - (resY / 2)*dy;
@@ -89,12 +84,12 @@ void Volume::computeVolumeFromRoi(
 				float value = 1; // innner
 				for (int view = 0; view < det.size(); view++)
 				{
-					float f = det[view].queryChamfer(P);
-					if (f < 1)
-					{
-						value = 0; break;
+					int code = det[view].queryMask(P);
+					if (code == 0) {
+						value = 0; 
 					}
 				}
+				//value = value > 5 ? 1 : 0;
 				int index = xyz2index(x, y, z);
 				data[index] = value; 
 			}
