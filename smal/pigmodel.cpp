@@ -247,7 +247,6 @@ PigModel::PigModel(const std::string &_configfile)
 	m_translation = Eigen::Vector3d::Zero(); 
 	m_poseParam = Eigen::VectorXd::Zero(3 * m_jointNum); 
 	if (m_shapeNum > 0) m_shapeParam = Eigen::VectorXd::Zero(m_shapeNum); 
-	m_deform = Eigen::VectorXd::Zero(m_vertexNum);
 	m_scale = 1; 
 
 	m_singleAffine.resize(4, 4 * m_jointNum); 
@@ -288,11 +287,11 @@ void PigModel::UpdateSingleAffine(const int jointCount)
 		matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
 		//matrix.block<3, 3>(0, 0) = EulerToRotRadD(pose);
 		if (jointId == 0)
-			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) + m_translation;
+			matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) + m_translation;
 		else
 		{
 			int p = m_parent(jointId); 
-			matrix.block<3, 1>(0, 3) = m_jointsShaped.col(jointId) - m_jointsShaped.col(p); 
+			matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) - m_jointsDeformed.col(p); 
 		}
 		m_singleAffine.block<4,4>(0, 4 * jointId) = matrix; 
 	}
@@ -330,17 +329,9 @@ void PigModel::UpdateJointsFinal(const int jointCount)
 {
 	for (int jointId = 0; jointId < jointCount; jointId++)
 	{
-		m_jointsFinal.col(jointId) = m_globalAffine.block<3, 1>(0, 4 * jointId + 3);
+		m_jointsFinal.col(jointId) = 
+			m_globalAffine.block<3, 1>(0, 4 * jointId + 3);
 	}
-}
-
-
-void PigModel::UpdateJoints()
-{
-	UpdateJointsShaped();
-	UpdateSingleAffine();
-	UpdateGlobalAffine();
-	UpdateJointsFinal();
 }
 
 
@@ -376,13 +367,20 @@ void PigModel::UpdateVerticesFinal()
 
 void PigModel::UpdateVertices()
 {
-	UpdateJoints();
+	UpdateJointsShaped();
 	UpdateVerticesShaped();
-	//if (mp_nodeGraph)
-	//{
-	//	UpdateModelShapedByKNN();
-	//}
-	UpdateVerticesDeformed(); 
+	if (mp_nodeGraph)
+	{
+		UpdateModelShapedByKNN();
+	}
+	else
+	{
+		m_verticesDeformed = m_verticesShaped;
+	}
+	UpdateJointsDeformed();
+	UpdateSingleAffine();
+	UpdateGlobalAffine();
+	UpdateJointsFinal();
 	UpdateVerticesFinal();
 }
 
@@ -414,7 +412,6 @@ void PigModel::saveState(std::string state_file)
     for(int i = 0; i < 3; i++) os << m_translation(i) << std::endl; 
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) os << m_poseParam(3*i+k) << std::endl; 
     for(int i = 0; i < m_shapeNum; i++) os << m_shapeParam(i) << std::endl; 
-	for (int i = 0; i < m_vertexNum; i++) os << m_deform(i) << std::endl; 
 	os << m_scale;
 	os.close(); 
 }
@@ -430,7 +427,6 @@ void PigModel::readState(std::string state_file)
     for(int i = 0; i < 3; i++) is >> m_translation(i);
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) is >> m_poseParam(3*i+k); 
     for(int i = 0; i < m_shapeNum; i++) is >> m_shapeParam(i); 
-	for (int i = 0; i < m_vertexNum; i++) is >> m_deform(i); 
 	is >> m_scale; 
 	is.close(); 
 }
@@ -458,32 +454,6 @@ void PigModel::readShapeParam(std::string state_file)
 	for (int i = 0; i < m_shapeNum; i++) is >> m_shapeParam(i);
 	is.close();
 }
-
-
-void PigModel::saveDeform(std::string state_file)
-{
-	std::ofstream os(state_file);
-	if (!os.is_open())
-	{
-		std::cout << "cant not open " << state_file << std::endl;
-		return;
-	}
-	for (int i = 0; i < m_vertexNum; i++) os << m_deform(i) << std::endl;
-	os.close();
-}
-
-void PigModel::readDeform(std::string state_file)
-{
-	std::ifstream is(state_file);
-	if (!is.is_open())
-	{
-		std::cout << "cant not open " << state_file << std::endl;
-		return;
-	}
-	for (int i = 0; i < m_vertexNum; i++) is >> m_deform(i);
-	is.close();
-}
-
 
 void PigModel::saveScale(std::string state_file)
 {
@@ -579,17 +549,6 @@ void PigModel::UpdateNormals()
 	UpdateNormalFinal();
 }
 
-void PigModel::UpdateVerticesDeformed()
-{
-	UpdateNormalShaped(); 
-	for (int i = 0; i < m_vertexNum; i++)
-	{
-		m_verticesDeformed.col(i) =
-			m_verticesShaped.col(i) +
-			m_normalShaped.col(i) * m_deform(i); 
-	}
-}
-
 void PigModel::RescaleOriginVertices()
 {
 	if (m_scale == 0) return; 
@@ -618,46 +577,6 @@ void PigModel::readTexImg(std::string filename)
 	{
 		std::cout << filename << "  is empty!" << std::endl;
 		exit(-1); 
-	}
-}
-
-void PigModel::determineBodyPartsByTex()
-{
-	m_bodyParts.resize(m_vertexNum);
-	std::string teximgfile = m_folder + "/body_red.png";
-	m_texImgBody = cv::imread(teximgfile);
-	if (m_texImgBody.empty())
-	{
-		std::cout << "texture img is empty!";
-		exit(-1);
-	}
-
-	if (m_texImgBody.empty() || m_texcoords.cols() == 0)
-	{
-		std::cout << "no valid data!" << std::endl; 
-		exit(-1);
-	}
-	std::cout << "determin body parts: " << std::endl; 
-	int texW = m_texImgBody.cols;
-	int texH = m_texImgBody.rows; 
-
-	std::cout << "img type: " << m_texImgBody.type() << std::endl; 
-	cv::Mat temp(cv::Size(texW, texH), CV_8UC3);
-	for (int i = 0; i < m_texNum; i++)
-	{
-		Eigen::Vector2d t = m_texcoords.col(i); 
-		int vid = m_texToVert[i];
-		int x = int(round(t(0) * texW)); 
-		int y = texH - int(round(t(1) * texH));
-
-		if (m_texImgBody.at<cv::Vec3b>(y, x) == cv::Vec3b(0,0,255))
-		{
-			m_bodyParts[vid] = MAIN_BODY;
-		}
-		else
-		{
-			m_bodyParts[vid] = OTHERS;
-		}
 	}
 }
 
@@ -952,8 +871,18 @@ void PigModel::UpdateModelShapedByKNN()
 			if (ni != -1)
 				T += mp_nodeGraph->weight(i, sIdx) * m_warpField.middleCols(4 * ni, 4);
 		}
-		m_verticesShaped.col(sIdx) = T.topLeftCorner(3, 4) * m_verticesShaped.col(sIdx).homogeneous();
-		m_normalShaped.col(sIdx) = T.topLeftCorner(3, 3) * m_normalShaped.col(sIdx);
+		m_verticesDeformed.col(sIdx) = T.topLeftCorner(3, 4) * m_verticesShaped.col(sIdx).homogeneous();
+	}
+}
+
+void PigModel::UpdateJointsDeformed()
+{
+	if (m_jregressor.cols() > 0 && !mp_nodeGraph)
+	{
+		m_jointsDeformed = m_verticesDeformed * m_jregressor;
+	}
+	else {
+		m_jointsDeformed = m_jointsShaped;
 	}
 }
 

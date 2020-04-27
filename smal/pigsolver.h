@@ -63,9 +63,9 @@ public:
 	void CalcVertJacobiPose(Eigen::MatrixXd& J);
 
 	// node graph deformation
-	void NaiveNodeDeformStep(int iter); 
+	//void NaiveNodeDeformStep(int iter); 
 	Renderer* mp_renderer;
-	void naiveNodeDeform();
+	//void naiveNodeDeform();
 
 	// targets to fit 
 	MatchedInstance m_source;
@@ -80,7 +80,7 @@ public:
 	void feedData(const ROIdescripter& _roi, 
 		const BodyState& _body);
 	void feedRender(const cv::Mat& _render);
-	void iterateStep(int iter); 
+	//void iterateStep(int iter); 
 	void clearData(); 
 
 	void CalcZ();
@@ -96,24 +96,25 @@ public:
 	Eigen::MatrixXd m_deltaTwist;
 	Eigen::VectorXd m_wDeform;
 	Model m_iterModel;
-	double m_wSmth = .1f;
-	double m_wRegular = 1e-3f;
-	double m_maxDist = 0.2f;
+	double m_wSmth = 0.1;
+	double m_wRegular = 1e-3;
+	double m_maxDist = 0.2;
+	double m_wSym = 0.1;
 	double m_maxAngle = double(EIGEN_PI) / 4;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
 	void CalcSmthTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
 	void CalcDeformTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
 	void setTargetModel(std::shared_ptr<Model> m_tarModel);
 	void setSourceModel();
-	void findCorr();
 	void updateWarpField();
 	void updateIterModel();
 	void solveNonrigidDeform(int maxIterTime, double updateThresh);
 	void totalSolveProcedure(); 
-	void solvePoseAndShape();
+	void solvePoseAndShape(int maxIterTime);
+	void findCorr();
 	void CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
 	void CalcShapeTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
-	
+	void CalcSymTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
 	// compute volume 
 	Volume m_V;
 	Model m_V_mesh; 
@@ -126,6 +127,7 @@ private:
 	SkelTopology m_topo;
 	bool tmp_init;
 
+	std::vector<int> m_symIdx;
 	// inferred data
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
 	BodyState m_bodystate; 

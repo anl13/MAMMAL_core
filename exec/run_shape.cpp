@@ -31,8 +31,8 @@ using std::vector;
 int run_shape()
 {
 	std::string folder = "D:/Projects/animal_calib/data/pig_model_noeye/";
-	//std::string pig_config = "D:/Projects/animal_calib/smal/smal2_config.json";
-	std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
+	std::string pig_config = "D:/Projects/animal_calib/smal/smal2_config.json";
+	//std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
 
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 
@@ -135,17 +135,12 @@ int run_shape()
 		shapesolver.mp_renderer = &m_renderer; 
 		shapesolver.m_rois = m_rois;
 
-		//shapesolver.m_poseToOptimize = {
-		//	0,1,2,5,6,7,8,9,10,
-		//	11,12,13,14,15,16,17,18,19,20,21,22,23
-		//};
 		shapesolver.InitNodeAndWarpField();
 		std::shared_ptr<Model> targetModel = std::make_shared<Model>();
 		targetModel->Load("E:/debug_pig2/visualhull/0/000000.obj");
 		shapesolver.setTargetModel(targetModel);
 		shapesolver.setSourceModel();
-		shapesolver.solvePoseAndShape();
-		//shapesolver.totalSolveProcedure();
+		shapesolver.totalSolveProcedure();
 		
 		//OBJReader target_reader; 
 		//target_reader.read("E:/debug_pig2/final_smal.obj");
@@ -166,12 +161,24 @@ int run_shape()
 		pig_render->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
 		m_renderer.colorObjs.push_back(pig_render);
 
-	/*	RenderObjectColor* pig_render_target = new RenderObjectColor();
-		Eigen::MatrixXf vs_t = target_reader.vertices_eigen.cast<float>();
+		Eigen::VectorXd pose = shapesolver.GetPose();
+		pose.setZero();
+		shapesolver.SetPose(pose);
+		shapesolver.UpdateVertices();
+		RenderObjectColor* pig_render_target = new RenderObjectColor();
+		Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
 		pig_render_target->SetFaces(faces);
 		pig_render_target->SetVertices(vs_t);
 		pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
-		m_renderer.colorObjs.push_back(pig_render_target);*/
+		m_renderer.colorObjs.push_back(pig_render_target);
+
+		RenderObjectColor* pig_render2 = new RenderObjectColor();
+		Eigen::MatrixXf vs2 = targetModel->vertices.cast<float>();
+		Eigen::MatrixXu faces2 = targetModel->faces;
+		pig_render2->SetFaces(faces2);
+		pig_render2->SetVertices(vs2);
+		pig_render2->SetColor(Eigen::Vector3f(0.0, 0.1, 0.8));
+		m_renderer.colorObjs.push_back(pig_render2);
 
 		while (!glfwWindowShouldClose(windowPtr))
 		{

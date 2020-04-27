@@ -64,7 +64,6 @@ void FrameData::solve_parametric_model()
 		if (mp_bodysolver[i] == nullptr)
 		{
 			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
-			std::string folder = mp_bodysolver[i]->GetFolder();
 			//mp_bodysolver[i]->readShapeParam(folder + "pigshape.txt");
 			//mp_bodysolver[i]->RescaleOriginVertices();
 			mp_bodysolver[i]->UpdateNormalOrigin();

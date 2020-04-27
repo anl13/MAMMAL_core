@@ -17,6 +17,7 @@ void PigSolver::feedRender(
 	m_renders.push_back(_render);
 }
 
+#if 0
 void PigSolver::iterateStep(int iter)
 {
 	double D = 0.001; // 1 mm per iter 
@@ -135,6 +136,8 @@ void PigSolver::NaiveNodeDeformStep(int iter)
 	}
 }
 
+#endif 
+
 void PigSolver::clearData()
 {
 	m_bodies.clear(); 
@@ -190,7 +193,7 @@ void PigSolver::optimizeShapeToBoneLength(int maxIter, double terminal)
 			break;
 	}
 }
-
+#if 0
 void PigSolver::naiveNodeDeform()
 {
 	GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
@@ -246,6 +249,7 @@ void PigSolver::naiveNodeDeform()
 		glfwPollEvents();
 	}
 }
+#endif 
 void PigSolver::CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
 {
 	Eigen::MatrixXd J;
@@ -311,33 +315,123 @@ void PigSolver::CalcDeformTerm(
 
 	std::vector<Eigen::Triplet<double>> triplets;
 	Eigen::VectorXd b = Eigen::VectorXd::Zero(m_srcModel->vertices.cols());
-
-	for (int sIdx = 0; sIdx < m_srcModel->vertices.cols(); sIdx++) {
+	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> globalAffineNormalized = m_globalAffine;
+	for (int jointId = 0; jointId < m_jointNum; jointId++)
+	{
+		globalAffineNormalized.block<3, 1>(0, jointId * 4 + 3) -= (m_globalAffine.block<3, 3>(0, jointId * 4)*m_jointsShaped.col(jointId));
+	}
+	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++) {
 		const int tIdx = m_corr[sIdx];
 		const double wd = m_wDeform[sIdx];
 		if (tIdx == -1 || wd < DBL_EPSILON)
 			continue;
 
 		const auto tn = m_tarModel->normals.col(tIdx);
-		const auto iv = m_iterModel.vertices.col(sIdx);
+		const auto iv = m_verticesFinal.col(sIdx);
 		const auto tv = m_tarModel->vertices.col(tIdx);
-		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++) {
+		Eigen::Matrix<double, 4, 4, Eigen::ColMajor> globalAffineAverage;
+		Eigen::Map<Eigen::VectorXd>(globalAffineAverage.data(), 16)
+			= Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>
+			(globalAffineNormalized.data(), 16, m_jointNum) * (m_lbsweights.col(sIdx));
+
+		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++) 
+		{
 			const int ni = mp_nodeGraph->knn(i, sIdx);
 			const double w = mp_nodeGraph->weight(i, sIdx) * wd;
 			if (w < DBL_EPSILON || ni == -1)
 				continue;
-
+			
 			const int col = 6 * ni;
-			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col, w * (tn.z()*iv.y() - tn.y()*iv.z()))); // alpha_ni
-			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 1, w * (tn.x()*iv.z() - tn.z()*iv.x()))); // beta_ni
-			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 2, w * (tn.y()*iv.x() - tn.x()*iv.y()))); // gamma_ni
-			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 3, w * tn.x())); // tx_ni
-			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 4, w * tn.y())); // ty_ni
-			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 5, w * tn.z())); // tz_ni
+			Eigen::MatrixXd dv0 = Eigen::MatrixXd::Zero(3, 6);
+			dv0(0, 1) = iv.z();
+			dv0(0, 2) = -iv.y();
+			dv0(1, 0) = -iv.z();
+			dv0(1, 2) = iv.x();
+			dv0(2, 0) = iv.y();
+			dv0(2, 1) = -iv.x();
+			dv0.middleCols(3, 3) = Eigen::Matrix3d::Identity();
+			dv0 = globalAffineAverage.block<3, 3>(0, 0) * dv0;
+
+			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col, w * (tn.x()*dv0(0, 0) + tn.y()*dv0(1, 0) + tn.z()*dv0(2, 0) ))); // alpha_ni
+			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 1, w * (tn.x()*dv0(0,1) +tn.y()*dv0(1,1) + tn.z()*dv0(2,1) ))); // beta_ni
+			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 2, w * (tn.x()*dv0(0, 2) + tn.y()*dv0(1, 2) + tn.z()*dv0(2, 2)))); // gamma_ni
+			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 3, w * (tn.x()*dv0(0, 3) + tn.y()*dv0(1, 3) + tn.z()*dv0(2, 3)) )); // tx_ni
+			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 4, w * (tn.x()*dv0(0, 4) + tn.y()*dv0(1, 4) + tn.z()*dv0(2, 4)) )); // ty_ni
+			triplets.emplace_back(Eigen::Triplet<double>(sIdx, col + 5, w * (tn.x()*dv0(0, 5) + tn.y()*dv0(1, 5) + tn.z()*dv0(2, 5)) )); // tz_ni
 		}
 		b[sIdx] = wd * (tn.dot(tv - iv));
 	}
 	Eigen::SparseMatrix<double> A(m_srcModel->vertices.cols(), mp_nodeGraph->nodeIdx.size() * 6);
+	A.setFromTriplets(triplets.begin(), triplets.end());
+	const auto AT = A.transpose();
+	ATA = AT * A;
+	ATb = AT * b;
+}
+
+void PigSolver::CalcSymTerm(
+	Eigen::SparseMatrix<double>& ATA,
+	Eigen::VectorXd& ATb
+)
+{
+	std::vector<Eigen::Triplet<double>> triplets;
+	Eigen::VectorXd b = Eigen::VectorXd::Zero(3 * m_vertexNum);
+	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++) 
+	{
+		const int tIdx = m_symIdx[sIdx];
+		if (tIdx == sIdx)
+		{
+			// do something 
+			continue;
+		}
+		// else 
+		const auto iv = m_verticesDeformed.col(sIdx);
+		const auto tv = m_verticesDeformed.col(tIdx);
+
+		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++)
+		{
+			const int ni = mp_nodeGraph->knn(i, sIdx);
+			const double wi = mp_nodeGraph->weight(i, sIdx);
+			if (wi < DBL_EPSILON || ni == -1)
+				continue;
+			
+			int coli = 6 * ni;
+			int row = 3 * sIdx;
+			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 1, iv.z()));
+			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 2, -iv.y()));
+			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 3, 1));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 0, -iv.z()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 2, iv.x()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 0, iv.y()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 1, -iv.x()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, 1));
+		}
+
+		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++)
+		{
+			const int ni = mp_nodeGraph->knn(i, tIdx);
+			const double wi = mp_nodeGraph->weight(i, tIdx);
+			if (wi < DBL_EPSILON || ni < 0) continue;
+			int coli = 6 * ni;
+			int row = 3 * sIdx;
+			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 1, -tv.z()));
+			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 2, tv.y()));
+			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 3, -1));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 0, -tv.z()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 2, tv.x()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 0, -tv.y()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 1, tv.x()));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, -1));
+		}
+		
+		Eigen::Vector3d r;
+		r(0) = iv(0) - tv(0);
+		r(1) = iv(1) + tv(1);
+		r(2) = iv(2) - tv(2);
+		b.segment<3>(3 * sIdx) = -r; 
+	}
+	Eigen::SparseMatrix<double> A(m_vertexNum * 3, mp_nodeGraph->nodeIdx.size() * 6);
 	A.setFromTriplets(triplets.begin(), triplets.end());
 	const auto AT = A.transpose();
 	ATA = AT * A;
@@ -357,8 +451,8 @@ void PigSolver::CalcSmthTerm(
 			const int nj = mp_nodeGraph->nodeNet(j, ni);
 			if (nj == -1)
 				continue;
-
-			const auto sv = m_srcModel->vertices.col(mp_nodeGraph->nodeIdx[nj]);
+			// sv: node position 
+			const auto sv = m_verticesShaped.col(mp_nodeGraph->nodeIdx[nj]);
 			const auto Tj = m_warpField.block<3, 4>(0, 4 * nj);
 			const Eigen::Vector3d r = Ti * sv.homogeneous();
 			const Eigen::Vector3d s = Tj * sv.homogeneous();
@@ -369,26 +463,26 @@ void PigSolver::CalcSmthTerm(
 			// 1st row
 			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 1, r.z()));
 			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 2, -r.y()));
-			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 3, 1.f));
+			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 3, 1));
 			triplets.emplace_back(Eigen::Triplet<double>(row, colj + 1, -s.z()));
 			triplets.emplace_back(Eigen::Triplet<double>(row, colj + 2, s.y()));
-			triplets.emplace_back(Eigen::Triplet<double>(row, colj + 3, -1.f));
+			triplets.emplace_back(Eigen::Triplet<double>(row, colj + 3, -1));
 
 			// 2nd row
 			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 0, -r.z()));
 			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 2, r.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1.f));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1));
 			triplets.emplace_back(Eigen::Triplet<double>(row + 1, colj + 0, s.z()));
 			triplets.emplace_back(Eigen::Triplet<double>(row + 1, colj + 2, -s.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, colj + 4, -1.f));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 1, colj + 4, -1));
 
 			// 3rd row
 			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 0, r.y()));
 			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 1, -r.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, 1.f));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, 1));
 			triplets.emplace_back(Eigen::Triplet<double>(row + 2, colj + 0, -s.y()));
 			triplets.emplace_back(Eigen::Triplet<double>(row + 2, colj + 1, s.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, colj + 5, -1.f));
+			triplets.emplace_back(Eigen::Triplet<double>(row + 2, colj + 5, -1));
 
 			// bs
 			b.segment<3>(row) = s - r;
@@ -453,20 +547,27 @@ void PigSolver::updateWarpField()
 
 void PigSolver::solveNonrigidDeform(int maxIterTime, double updateThresh)
 {
-	Eigen::SparseMatrix<double> ATA, ATAs;
-	Eigen::VectorXd ATb, ATbs;
+	Eigen::SparseMatrix<double> ATA, ATAs, ATAsym;
+	Eigen::VectorXd ATb, ATbs, ATbsym;
 	Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> solver;
 
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++) 
 	{
+		UpdateVertices(); 
+		m_iterModel.vertices = m_verticesFinal;
+		m_iterModel.CalcNormal();
 		findCorr();
 		CalcDeformTerm(ATA, ATb);
 		CalcSmthTerm(ATAs, ATbs);
+		CalcSymTerm(ATAsym, ATbsym);
 		Eigen::SparseMatrix<double> ATAr(6 * mp_nodeGraph->nodeIdx.size(), 6 * mp_nodeGraph->nodeIdx.size());
 		ATAr.setIdentity();
 		ATAr *= m_wRegular;
-		ATA += ATAs + ATAr;
-		ATb += ATbs;
+		ATA += ATAr;
+		ATA += ATAs * m_wSmth;
+		ATb += ATbs * m_wSmth;
+		ATA += ATAsym * m_wSym;
+		ATb += ATbsym * m_wSym;
 
 		Eigen::Map<Eigen::VectorXd>(m_deltaTwist.data(), m_deltaTwist.size()) = solver.compute(ATA).solve(ATb);
 		assert(solver.info() == 0);
@@ -504,22 +605,34 @@ void PigSolver::updateIterModel()
 
 void PigSolver::totalSolveProcedure()
 {
-	// step1: 
-	m_wSmth = 1.0;
-	m_wRegular = 0.1;
-	solveNonrigidDeform(40, 1e-5);
+	for (int i = 0; i < 5; i++)
+	{
+		solvePoseAndShape(1);
+		// step1: 
+		m_wSmth = 1.0;
+		m_wRegular = 0.1;
+		solveNonrigidDeform(1, 1e-5);
+	}
 
-	// step2:
-	m_wSmth = 0.1;
-	m_wRegular = 0.1;
-	m_maxDist = 0.05;
-	solveNonrigidDeform(20, 1e-5);
+	for (int i = 0; i < 2; i++)
+	{
+		solvePoseAndShape(1);
+		// step1: 
+		m_wSmth = 0.1;
+		m_wRegular = 0.1;
+		m_maxDist = 0.05;
+		solveNonrigidDeform(3, 1e-5);
+	}
 
-	// step3:
-	m_wSmth = 0.01;
-	m_wRegular = 0.01;
-	m_maxDist = 0.01;
-	solveNonrigidDeform(20, 1e-5);
+	//for (int i = 0; i < 3; i++)
+	//{
+	//	solvePoseAndShape(1);
+	//	m_wSmth = 0.01;
+	//	m_wRegular = 0.01;
+	//	m_maxDist = 0.01;
+	//	solveNonrigidDeform(3, 1e-5);
+	//}
+
 }
 
 
@@ -598,9 +711,8 @@ void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double te
 
 // solve pose and shape 
 // to fit visualhull model
-void PigSolver::solvePoseAndShape()
+void PigSolver::solvePoseAndShape(int maxIterTime)
 {
-	int maxIterTime = 10; 
 	double terminal = 0.01;
 
 	int M = m_poseToOptimize.size();

@@ -45,6 +45,17 @@ PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile)
 	m_scale = 1;
 	m_frameid = 0.0;
 	tmp_init = false;
+
+	std::string sym_file = m_folder + "/sym.txt";
+	std::ifstream is(sym_file);
+	if (is.is_open())
+	{
+		m_symIdx.resize(m_vertexNum);
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			is >> m_symIdx[i];
+		}
+	}
 }
 
 void PigSolver::setCameras(const vector<Camera>& _cameras)

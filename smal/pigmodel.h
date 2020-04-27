@@ -37,8 +37,6 @@ public:
     void readState(std::string state_file="state.txt");
 	void saveShapeParam(std::string state_file = "shape.txt");
 	void readShapeParam(std::string state_file = "shape.txt");
-	void saveDeform(std::string state_file = "deform.txt");
-	void readDeform(std::string state_file = "deform.txt");
 	void saveScale(std::string state_file = "scale.txt");
 	void readScale(std::string state_file = "scale.txt");
 
@@ -72,7 +70,6 @@ public:
 	std::vector<std::vector<int> > GetWeightsNoneZero() { return m_weightsNoneZero; }
 	std::vector<std::vector<int> > GetRegressorNoneZero() { return m_regressorNoneZero; }
 	std::vector<BODY_PART> GetBodyPart() { return m_bodyParts; }
-	void UpdateJoints();
 	void UpdateVertices();
 	void UpdateNormals();
 
@@ -89,7 +86,6 @@ public:
 	void readTexImg(std::string filename);
 
 	/// only used for standalone processing
-	void determineBodyPartsByTex();
 	void determineBodyPartsByWeight(); 
 	
 	// for debug:stitching
@@ -122,11 +118,10 @@ protected:
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalOrigin; 
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalShaped;
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalFinal;
-	Eigen::VectorXd m_deform; // deformation distance 
-	
 
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsOrigin;
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsShaped;
+	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsDeformed;
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsFinal;
 
 	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesOrigin;
@@ -166,8 +161,7 @@ protected:
 	void UpdateVerticesFinal();
 
 	void UpdateJointsShaped();
+	void UpdateJointsDeformed();
 	inline void UpdateJointsFinal() { UpdateJointsFinal(m_jointNum); }
 	void UpdateJointsFinal(const int jointCount);
-
-	void UpdateVerticesDeformed(); 
 };
