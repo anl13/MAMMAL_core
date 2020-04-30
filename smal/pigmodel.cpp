@@ -920,7 +920,7 @@ void PigModel::LoadWarpField()
 			m_warpField.resize(4, 4 * mp_nodeGraph->nodeIdx.size());
 		}
 
-		for (int j = 0; j < mp_nodeGraph->nodeIdx.size(); j++)
+		for (int j = 0; j < 4*mp_nodeGraph->nodeIdx.size(); j++)
 		{
 			for (int i = 0; i < 4; i++)
 			{

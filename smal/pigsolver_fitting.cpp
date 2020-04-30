@@ -8,6 +8,8 @@
 #include <json/json.h>
 //#define DEBUG_SOLVER
 
+#define OPTIM_BY_PAIR
+
 PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile) 
 {
 	Json::Value root;
@@ -331,7 +333,7 @@ Eigen::VectorXd PigSolver::getRegressedSkelProj(
 	return proj_vec;
 }
 
-//#define OPTIM_BY_PAIR
+
 
 void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance)
 {

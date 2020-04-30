@@ -561,6 +561,9 @@ void PigSolver::solveNonrigidDeform(int maxIterTime, double updateThresh)
 		CalcDeformTerm(ATA, ATb);
 		CalcSmthTerm(ATAs, ATbs);
 
+		std::cout << "deform term b: " << ATb.norm() << std::endl;
+		std::cout << "smooth term b: " << ATbs.norm() << std::endl;
+
 		Eigen::SparseMatrix<double> ATAr(6 * mp_nodeGraph->nodeIdx.size(), 6 * mp_nodeGraph->nodeIdx.size());
 		ATAr.setIdentity();
 		ATAr *= m_wRegular;
@@ -572,6 +575,7 @@ void PigSolver::solveNonrigidDeform(int maxIterTime, double updateThresh)
 			CalcSymTerm(ATAsym, ATbsym);
 			ATA += ATAsym * m_wSym;
 			ATb += ATbsym * m_wSym;
+			std::cout << "symm   term b: " << ATbsym.norm() << std::endl;
 		}
 
 		Eigen::Map<Eigen::VectorXd>(m_deltaTwist.data(), m_deltaTwist.size()) = solver.compute(ATA).solve(ATb);
@@ -610,34 +614,27 @@ void PigSolver::updateIterModel()
 
 void PigSolver::totalSolveProcedure()
 {
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 3; i++)
 	{
+		std::cout << "Frist phase: " << i << std::endl;
 		solvePoseAndShape(1);
 		// step1: 
 		m_wSmth = 1.0;
 		m_wRegular = 0.1;
+		 
 		solveNonrigidDeform(1, 1e-5);
 	}
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 3; i++)
 	{
+		std::cout << "Second phase: " << i << std::endl; 
 		solvePoseAndShape(1);
 		// step1: 
 		m_wSmth = 0.1;
-		m_wRegular = 0.1;
+		m_wRegular = 0.01;
 		m_maxDist = 0.05;
-		solveNonrigidDeform(3, 1e-5);
+		solveNonrigidDeform(1, 1e-5);
 	}
-
-	//for (int i = 0; i < 3; i++)
-	//{
-	//	solvePoseAndShape(1);
-	//	m_wSmth = 0.01;
-	//	m_wRegular = 0.01;
-	//	m_maxDist = 0.01;
-	//	solveNonrigidDeform(3, 1e-5);
-	//}
-
 }
 
 
@@ -740,15 +737,18 @@ void PigSolver::solvePoseAndShape(int maxIterTime)
 			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 		}
 		// solve
-		double lambda = 0.001;
+		double lambda = 0.0005;
 		double w1 = 1;
-		double w_reg = 0.01;
+		double w_reg = 0.001;
 		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXd H_reg = DTD;  // reg term 
 		Eigen::VectorXd b_reg = -theta; // reg term 
 
 		Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg + DTD * lambda;
 		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg;
+
+		std::cout << "pose data b: " << ATb.norm() << std::endl; 
+		std::cout << "pose reg  b: " << b_reg.norm() << std::endl; 
 
 		Eigen::VectorXd delta = H.ldlt().solve(b);
 

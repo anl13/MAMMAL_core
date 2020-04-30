@@ -124,11 +124,13 @@ int run_shape()
 		shapesolver.setId(m_pid);
 		shapesolver.setSource(m_matched[m_pid]);
 		shapesolver.normalizeSource();
-		//shapesolver.InitNodeAndWarpField();
-		//shapesolver.LoadWarpField();
+		shapesolver.InitNodeAndWarpField();
+		shapesolver.LoadWarpField();
+		shapesolver.UpdateVertices();
+		
 		shapesolver.globalAlign();
 
-		shapesolver.optimizePose(100, 0.001);
+		shapesolver.optimizePose(20, 0.001);
 		//shapesolver.UpdateNormalOrigin(); 
 		//shapesolver.UpdateNormalShaped();
 
@@ -141,7 +143,6 @@ int run_shape()
 		//shapesolver.setTargetModel(targetModel);
 		//shapesolver.setSourceModel();
 		//shapesolver.totalSolveProcedure();
-
 		//shapesolver.SaveWarpField();
 		//shapesolver.SaveObj("E:/debug_pig2/warped.obj");
 
@@ -155,30 +156,36 @@ int run_shape()
 		pig_render->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
 		m_renderer.colorObjs.push_back(pig_render);
 
-		//Eigen::VectorXd pose = shapesolver.GetPose();
-		//pose.setZero();
-		//shapesolver.SetPose(pose);
-		//shapesolver.UpdateVertices();
-		//RenderObjectColor* pig_render_target = new RenderObjectColor();
-		//Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
-		//pig_render_target->SetFaces(faces);
-		//pig_render_target->SetVertices(vs_t);
-		//pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
-		//m_renderer.colorObjs.push_back(pig_render_target);
+		Eigen::VectorXd pose = shapesolver.GetPose();
+		Eigen::Vector3d globalR = pose.segment<3>(0);
+		pose.setZero(); 
+		shapesolver.SetPose(pose);
+		Eigen::Vector3d trans = shapesolver.GetTranslation(); 
+		trans.setZero();
+		shapesolver.SetTranslation(trans);
+		shapesolver.UpdateVertices();
+		RenderObjectColor* pig_render_target = new RenderObjectColor();
+		Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
+		pig_render_target->SetFaces(faces);
+		pig_render_target->SetVertices(vs_t);
+		pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
+		m_renderer.colorObjs.push_back(pig_render_target);
+		shapesolver.SaveObj("D:/Projects/animal_calib/data/smal_deform_0.obj");
 
-		///// render target volume 
-		//RenderObjectColor* pig_render2 = new RenderObjectColor();
-		//Eigen::MatrixXf vs2 = targetModel->vertices.cast<float>();
-		//Eigen::MatrixXu faces2 = targetModel->faces;
-		//pig_render2->SetFaces(faces2);
-		//pig_render2->SetVertices(vs2);
-		//pig_render2->SetColor(Eigen::Vector3f(0.0, 0.1, 0.8));
-		//m_renderer.colorObjs.push_back(pig_render2);
+		/// render target volume 
+		RenderObjectColor* pig_render2 = new RenderObjectColor();
+		Eigen::MatrixXf vs2 = targetModel->vertices.cast<float>();
+		Eigen::MatrixXu faces2 = targetModel->faces;
+		pig_render2->SetFaces(faces2);
+		pig_render2->SetVertices(vs2);
+		pig_render2->SetColor(Eigen::Vector3f(0.0, 0.1, 0.8));
+		m_renderer.colorObjs.push_back(pig_render2);
 	
 
 		while (!glfwWindowShouldClose(windowPtr))
 		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 			m_renderer.Draw();
 
 			glfwSwapBuffers(windowPtr);
