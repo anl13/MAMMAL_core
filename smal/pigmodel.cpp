@@ -897,3 +897,36 @@ void PigModel::InitNodeAndWarpField()
 	for (int i = 0; i < mp_nodeGraph->nodeIdx.size(); i++)
 		m_warpField.middleCols(4 * i, 4).setIdentity();	
 }
+
+void PigModel::SaveWarpField()
+{
+	std::string filename = m_folder + "/warpfield.txt";
+	std::ofstream os(filename);
+	if (os.is_open())
+	{
+		os << m_warpField.transpose();
+		os.close();
+	}
+}
+
+void PigModel::LoadWarpField()
+{
+	std::string filename = m_folder + "/warpfield.txt";
+	std::ifstream is(filename);
+	if (is.is_open())
+	{
+		if (m_warpField.cols() == 0)
+		{
+			m_warpField.resize(4, 4 * mp_nodeGraph->nodeIdx.size());
+		}
+
+		for (int j = 0; j < mp_nodeGraph->nodeIdx.size(); j++)
+		{
+			for (int i = 0; i < 4; i++)
+			{
+				is >> m_warpField(i, j);
+			}
+		}
+	}
+	UpdateVertices();
+}

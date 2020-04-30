@@ -30,8 +30,10 @@ int render_smal_test()
     std::string conf_projectFolder = "D:/projects/animal_calib/render";
 	std::string smal_config = "D:/Projects/animal_calib/smal/smal2_config.json";
 	auto CM = getColorMapEigen("anliang_rgb"); 
+	SkelTopology m_topo = getSkelTopoByType("UNIV");
     /// read smal model 
-	PigModel smal(smal_config); 
+	//PigModel smal(smal_config); 
+	PigSolver smal(smal_config);
 	std::string folder = smal.GetFolder();
 	//smal.readShapeParam(folder + "pigshape.txt");
     smal.UpdateVertices();
@@ -73,26 +75,7 @@ int render_smal_test()
     smal_render->SetColor(color); 
     m_renderer.colorObjs.push_back(smal_render); 
 
-	int vertexNum = smal.GetVertexNum();
-    std::vector<Eigen::Vector3f> colors(vertexNum,Eigen::Vector3f(0.,0.8,0.)); 
-	std::vector<float> sizes(vertexNum, 0.006);
-
-	//auto body_parts = smal.GetBodyPart();
-	//for (int i = 0; i < vertexNum; i++)
-	//{
-	//	int b = (int)body_parts[i];
-	//	colors[i] = CM[(int)body_parts[i]];
-	//}
-
-    std::vector<Eigen::Vector3f> balls; 
-    std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks; 
-	Eigen::VectorXi parents;
-
-    GetBallsAndSticks(vsd.cast<float>(), parents, balls, sticks); 
-    BallStickObject* pointcloud = new BallStickObject(ballObj, balls, sizes, colors); 
-    m_renderer.skels.push_back(pointcloud); 
-
-	// // show joints
+	//// // show joints
 	//Eigen::MatrixXf joints = smal.GetJoints().cast<float>(); 
 	//int jointNum = smal.GetJointNum(); 
 	//Eigen::VectorXi parents = smal.GetParents(); 
@@ -102,16 +85,31 @@ int render_smal_test()
 	//std::vector<Eigen::Vector3f> colors(jointNum, Eigen::Vector3f(0.8, 0.8, 0.8));
 	//for (int i = 0; i < jointNum; i++)
 	//{
-	//	colors[i] = CM[i * 5];
+	//	colors[i] = CM[i];
 	//}
-	//colors[24] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
 	//GetBallsAndSticks(joints, parents, balls, sticks);
 	//BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors);
 	//m_renderer.skels.push_back(skelObject); 
 
+	// // show joints
+	Eigen::MatrixXf joints = smal.getRegressedSkelbyPairs().cast<float>();
+	int jointNum = m_topo.joint_num;
+	Eigen::VectorXi parents;
+	std::vector<float> sizes(jointNum, 0.03);
+	std::vector<Eigen::Vector3f> balls;
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+	std::vector<Eigen::Vector3f> colors(jointNum, Eigen::Vector3f(0.8, 0.8, 0.8));
+	for (int i = 0; i < jointNum; i++)
+	{
+		colors[i] = CM[i];
+	}
+	GetBallsAndSticks(joints, parents, balls, sticks);
+	BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors);
+	m_renderer.skels.push_back(skelObject);
+
     while(!glfwWindowShouldClose(windowPtr))
     {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         m_renderer.Draw(); 
         glfwSwapBuffers(windowPtr); 
         glfwPollEvents(); 

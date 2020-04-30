@@ -83,10 +83,9 @@ int run_shape()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		//frame.view_dependent_clean();
-		frame.matching_by_tracking();
-		//frame.load_labeled_data();
+		//frame.matching_by_tracking();
+		frame.load_labeled_data();
 		frame.solve_parametric_model();
-		auto models = frame.get_models(); 
 		auto m_matched = frame.get_matched();
 		
 #ifdef VOLUME
@@ -125,32 +124,27 @@ int run_shape()
 		shapesolver.setId(m_pid);
 		shapesolver.setSource(m_matched[m_pid]);
 		shapesolver.normalizeSource();
-		//shapesolver.readShapeParam("D:/Projects/animal_calib/data/smalr_notail/pigshape.txt");
+		//shapesolver.InitNodeAndWarpField();
+		//shapesolver.LoadWarpField();
 		shapesolver.globalAlign();
-		//shapesolver.optimizeShapeToBoneLength(10, 0.001);
+
 		shapesolver.optimizePose(100, 0.001);
-		shapesolver.UpdateNormalOrigin(); 
-		shapesolver.UpdateNormalShaped();
+		//shapesolver.UpdateNormalOrigin(); 
+		//shapesolver.UpdateNormalShaped();
 
-		shapesolver.mp_renderer = &m_renderer; 
-		shapesolver.m_rois = m_rois;
+		//shapesolver.mp_renderer = &m_renderer; 
+		//shapesolver.m_rois = m_rois;
 
-		shapesolver.InitNodeAndWarpField();
+		
 		std::shared_ptr<Model> targetModel = std::make_shared<Model>();
 		targetModel->Load("E:/debug_pig2/visualhull/0/000000.obj");
-		shapesolver.setTargetModel(targetModel);
-		shapesolver.setSourceModel();
-		shapesolver.totalSolveProcedure();
-		
-		//OBJReader target_reader; 
-		//target_reader.read("E:/debug_pig2/final_smal.obj");
-		//shapesolver.setTargetVSameTopo(target_reader.vertices_eigen);
-		//shapesolver.globalAlignToVerticesSameTopo();
-		//for (int i = 0; i < 5; i++)
-		//{
-		//	shapesolver.FitPoseToVerticesSameTopo(5, 0.00001);
-		//	shapesolver.FitShapeToVerticesSameTopo(5, 0.00001);
-		//}
+		//shapesolver.setTargetModel(targetModel);
+		//shapesolver.setSourceModel();
+		//shapesolver.totalSolveProcedure();
+
+		//shapesolver.SaveWarpField();
+		//shapesolver.SaveObj("E:/debug_pig2/warped.obj");
+
 		
 		RenderObjectColor* pig_render = new RenderObjectColor();
 		Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces
@@ -161,27 +155,30 @@ int run_shape()
 		pig_render->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
 		m_renderer.colorObjs.push_back(pig_render);
 
-		Eigen::VectorXd pose = shapesolver.GetPose();
-		pose.setZero();
-		shapesolver.SetPose(pose);
-		shapesolver.UpdateVertices();
-		RenderObjectColor* pig_render_target = new RenderObjectColor();
-		Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
-		pig_render_target->SetFaces(faces);
-		pig_render_target->SetVertices(vs_t);
-		pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
-		m_renderer.colorObjs.push_back(pig_render_target);
+		//Eigen::VectorXd pose = shapesolver.GetPose();
+		//pose.setZero();
+		//shapesolver.SetPose(pose);
+		//shapesolver.UpdateVertices();
+		//RenderObjectColor* pig_render_target = new RenderObjectColor();
+		//Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
+		//pig_render_target->SetFaces(faces);
+		//pig_render_target->SetVertices(vs_t);
+		//pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
+		//m_renderer.colorObjs.push_back(pig_render_target);
 
-		RenderObjectColor* pig_render2 = new RenderObjectColor();
-		Eigen::MatrixXf vs2 = targetModel->vertices.cast<float>();
-		Eigen::MatrixXu faces2 = targetModel->faces;
-		pig_render2->SetFaces(faces2);
-		pig_render2->SetVertices(vs2);
-		pig_render2->SetColor(Eigen::Vector3f(0.0, 0.1, 0.8));
-		m_renderer.colorObjs.push_back(pig_render2);
+		///// render target volume 
+		//RenderObjectColor* pig_render2 = new RenderObjectColor();
+		//Eigen::MatrixXf vs2 = targetModel->vertices.cast<float>();
+		//Eigen::MatrixXu faces2 = targetModel->faces;
+		//pig_render2->SetFaces(faces2);
+		//pig_render2->SetVertices(vs2);
+		//pig_render2->SetColor(Eigen::Vector3f(0.0, 0.1, 0.8));
+		//m_renderer.colorObjs.push_back(pig_render2);
+	
 
 		while (!glfwWindowShouldClose(windowPtr))
 		{
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			m_renderer.Draw();
 
 			glfwSwapBuffers(windowPtr);

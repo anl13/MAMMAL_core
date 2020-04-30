@@ -146,7 +146,8 @@ void PigSolver::clearData()
 
 void PigSolver::optimizeShapeToBoneLength(int maxIter, double terminal)
 {
-	Eigen::MatrixXd JSkel = CalcShapeJacobiToSkel();
+	Eigen::MatrixXd JSkel;
+	CalcShapeJacobiToSkel(JSkel);
 	std::vector<std::pair<int, int> > rigid_bones =
 	{
 		{ 0,1 },{ 0,2 },{ 1,2 },{ 1,3 },{ 2,4 },{ 3,4 },
@@ -253,7 +254,8 @@ void PigSolver::naiveNodeDeform()
 void PigSolver::CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
 {
 	Eigen::MatrixXd J;
-	CalcVertJacobiPose(J);
+	Eigen::MatrixXd _Jjoint;
+	CalcPoseJacobiPartTheta(_Jjoint, J);
 	int M = J.cols();
 	//Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum);
 	Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum * 3);
@@ -279,9 +281,8 @@ void PigSolver::CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
 
 void PigSolver::CalcShapeTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
 {
-	Eigen::MatrixXd J;
-	CalcShapeJacobi();
-	J = m_vertJacobiShape; // vnum * shapenum
+	Eigen::MatrixXd jointJ, J;
+	CalcShapeJacobi(jointJ, J);
 	int M = J.cols();
 	//Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum);
 	Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum * 3);
@@ -559,15 +560,19 @@ void PigSolver::solveNonrigidDeform(int maxIterTime, double updateThresh)
 		findCorr();
 		CalcDeformTerm(ATA, ATb);
 		CalcSmthTerm(ATAs, ATbs);
-		CalcSymTerm(ATAsym, ATbsym);
+
 		Eigen::SparseMatrix<double> ATAr(6 * mp_nodeGraph->nodeIdx.size(), 6 * mp_nodeGraph->nodeIdx.size());
 		ATAr.setIdentity();
 		ATAr *= m_wRegular;
 		ATA += ATAr;
 		ATA += ATAs * m_wSmth;
 		ATb += ATbs * m_wSmth;
-		ATA += ATAsym * m_wSym;
-		ATb += ATbsym * m_wSym;
+		if (m_symIdx.size() > 0)
+		{
+			CalcSymTerm(ATAsym, ATbsym);
+			ATA += ATAsym * m_wSym;
+			ATb += ATbsym * m_wSym;
+		}
 
 		Eigen::Map<Eigen::VectorXd>(m_deltaTwist.data(), m_deltaTwist.size()) = solver.compute(ATA).solve(ATb);
 		assert(solver.info() == 0);
@@ -681,7 +686,8 @@ void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double te
 		Eigen::MatrixXd H_view;
 		Eigen::VectorXd b_view;
 		Eigen::MatrixXd J; 
-		CalcVertJacobiPose(J);
+		Eigen::MatrixXd J_joint; 
+		CalcPoseJacobiPartTheta(J_joint, J);
 		Eigen::MatrixXd H1 = J.transpose() * J;
 		Eigen::MatrixXd b1 = -J.transpose() * r; 
 			

@@ -99,7 +99,8 @@ public:
 	
 	void InitNodeAndWarpField(); 
 	void UpdateModelShapedByKNN();
-
+	void SaveWarpField();
+	void LoadWarpField();
 protected:
 	int m_jointNum;// 43 / 33
 	int m_vertexNum; // 1879 / 3889

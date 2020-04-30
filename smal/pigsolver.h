@@ -23,6 +23,20 @@
 Some Functions for nonrigid deformation borrows from 
 https://github.com/zhangyux15/cpp_nonrigid_icp
 */
+
+struct CorrPair
+{
+	CorrPair() {
+		target = -1; 
+		type = 0; 
+		index = 0;
+		weight = 0; 
+	}
+	int target;
+	int type; 
+	int index;
+	double weight; 
+};
 class PigSolver : public PigModel
 {
 public:
@@ -52,6 +66,8 @@ public:
 	// Fit functions
 	Eigen::MatrixXd getRegressedSkel(); 
 	Eigen::MatrixXd getRegressedSkelTPose(); 
+	Eigen::MatrixXd getRegressedSkelbyPairs(); 
+
 	void globalAlign(); 
 	void globalAlignToVerticesSameTopo(); 
 	void optimizePose(const int maxIterTime = 100, const double terminal = 0.001);
@@ -60,7 +76,6 @@ public:
 	void computePivot(); 
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
 	void FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
-	void CalcVertJacobiPose(Eigen::MatrixXd& J);
 
 	// node graph deformation
 	//void NaiveNodeDeformStep(int iter); 
@@ -84,7 +99,6 @@ public:
 	void clearData(); 
 
 	void CalcZ();
-	void debug_jacobi();
 
 	std::vector<Eigen::MatrixXd> joints_frames;
 	std::vector<int> m_poseToOptimize;
@@ -124,6 +138,7 @@ private:
 	int m_id; 
 	double m_frameid; 
 	std::vector<std::pair<int, int> > m_mapper;
+	std::vector<CorrPair> m_optimPairs; 
 	SkelTopology m_topo;
 	bool tmp_init;
 
@@ -134,27 +149,26 @@ private:
 	std::vector<Eigen::Vector3d> m_pivot; // head, center, tail.
 
 	
-	void Calc2DJacobi(const int k, const Eigen::MatrixXd& skel,
-		Eigen::MatrixXd& H, Eigen::VectorXd& b);
-	void Calc2DJacobiNumeric(const int k, const Eigen::MatrixXd& skel,
-		Eigen::MatrixXd& H, Eigen::VectorXd& b);
-	void CalcPoseJacobi();
-	void CalcShapeJacobi();
+	// Calculate Terms to solve theta 
+	void CalcPose2DTermByMapper(const int view, const Eigen::MatrixXd& skel2d,
+		const Eigen::MatrixXd& Jacobi3d, 
+		Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
+	void CalcPose2DTermByPairs(const int view, const Eigen::MatrixXd& skel2d,
+		const Eigen::MatrixXd& Jacobi3d,
+		Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
+
+	// Calculate Jacobi Matrix
+	void CalcShapeJacobi(Eigen::MatrixXd& jointJacobiShape, Eigen::MatrixXd& vertJacobiShape);
+
+	void CalcShapeJacobiToSkel(Eigen::MatrixXd& J);
+	void CalcPoseJacobiFullTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert);
+	void CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert);
+	void CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J);
+	void CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J);
+
+	// numeric, only for test
 	void CalcPoseJacobiNumeric();
 	void CalcShapeJacobiNumeric();
-	Eigen::MatrixXd CalcShapeJacobiToSkel();
-
-	// optimization parameters
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_JacobiPose;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_2DJacobi;
-
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiPose;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiPose;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiShape;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiShape;
-
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiPoseNumeric;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiPoseNumeric;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jointJacobiShapeNumeric;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiShapeNumeric;
+	void Calc2DJacobiNumeric(const int k, const Eigen::MatrixXd& skel,
+		Eigen::MatrixXd& H, Eigen::VectorXd& b);
 };
