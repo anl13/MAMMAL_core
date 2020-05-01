@@ -28,14 +28,10 @@
 
 using std::vector;
 
-int run_shape()
+int run_pose()
 {
-	std::string folder = "D:/Projects/animal_calib/data/pig_model_noeye/";
 	std::string pig_config = "D:/Projects/animal_calib/smal/smal2_config.json";
-	//std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
-
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
-
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	FrameData frame;
 	frame.configByJson(conf_projectFolder + "/associate/config.json");
@@ -58,7 +54,7 @@ int run_shape()
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-	
+
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
@@ -74,50 +70,25 @@ int run_shape()
 
 #endif 
 	int framenum = frame.get_frame_num();
-	PigSolver shapesolver(pig_config); 
+	PigSolver shapesolver(pig_config);
 	int m_pid = 0; // pig identity to solve now. 
 
-	for (int frameid = startid; frameid < startid + 1; frameid++)
+	for (int frameid = 0; frameid < 3; frameid++)
 	{
 		std::cout << "processing frame " << frameid << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		//frame.view_dependent_clean();
-		//frame.matching_by_tracking();
-		frame.load_labeled_data();
+		frame.matching_by_tracking();
+		//frame.load_labeled_data();
 		frame.solve_parametric_model();
 		auto m_matched = frame.get_matched();
-		
-#ifdef VOLUME
-		m_renderer.colorObjs.clear();
-		m_renderer.skels.clear();
+		cv::Mat det_img = frame.visualizeIdentity2D();
+		std::stringstream ss1;
+		ss1 << "E:/debug_pig3/assoc/" << std::setw(6) << std::setfill('0')
+			<< frameid << ".jpg";
+		cv::imwrite(ss1.str(), det_img);
 
-		for (int pid = 0; pid < 4; pid++)
-		{
-			//auto m_rois = frame.getROI(pid);
-			//std::cout << "pid: " << pid << std::endl; 
-			Volume V;
-
-			std::stringstream ss;
-			ss << "E:/debug_pig2/visualhull/" << pid << "/" << std::setw(6) << std::setfill('0')
-				<< frameid << ".xyz";
-
-			V.readXYZFileWithNormal(ss.str());
-
-			int p_num = V.point_cloud.size();
-			std::vector<Eigen::Vector3f> colors(p_num, CM[pid]*0.5);
-			std::vector<float> sizes(p_num, 0.006);
-			std::vector<Eigen::Vector3f> balls;
-			std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			Eigen::VectorXi parents;
-			GetBallsAndSticks(V.point_cloud_eigen, parents, balls, sticks);
-			BallStickObject* pointcloud = new BallStickObject(ballObj, balls, sizes, colors);
-			m_renderer.skels.push_back(pointcloud);
-		}
-
-#endif 
-
-#ifdef SHAPE_SOLVER
 		auto m_rois = frame.getROI(m_pid);
 		shapesolver.setCameras(frame.get_cameras());
 		shapesolver.normalizeCamera();
@@ -125,72 +96,57 @@ int run_shape()
 		shapesolver.setSource(m_matched[m_pid]);
 		shapesolver.normalizeSource();
 		shapesolver.InitNodeAndWarpField();
-		//shapesolver.LoadWarpField();
+		shapesolver.LoadWarpField();
 		shapesolver.UpdateVertices();
-		
 		shapesolver.globalAlign();
+		shapesolver.optimizePose(20, 0.001);
 
-		shapesolver.optimizePose(5, 0.001);
-		//shapesolver.UpdateNormalOrigin(); 
-		//shapesolver.UpdateNormalShaped();
+		shapesolver.mp_renderer = &m_renderer; 
+		shapesolver.m_rois = m_rois;
 
-		//shapesolver.mp_renderer = &m_renderer; 
-		//shapesolver.m_rois = m_rois;
+		shapesolver.optimizePoseSilhouette(3);
 
-		
-		std::shared_ptr<Model> targetModel = std::make_shared<Model>();
-		targetModel->Load("E:/debug_pig2/visualhull/0/000000.obj");
-		shapesolver.setTargetModel(targetModel);
-		shapesolver.setSourceModel();
-		shapesolver.totalSolveProcedure();
-		shapesolver.SaveWarpField();
-		shapesolver.SaveObj("E:/debug_pig2/warped.obj");
-
+		m_renderer.colorObjs.clear(); 
 		RenderObjectColor* pig_render = new RenderObjectColor();
 		Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces
 			= shapesolver.GetFacesVert();
 		Eigen::MatrixXf vs = shapesolver.GetVertices().cast<float>();
 		pig_render->SetFaces(faces);
 		pig_render->SetVertices(vs);
-		pig_render->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
+		pig_render->SetColor(CM[0]);
 		m_renderer.colorObjs.push_back(pig_render);
 
-		Eigen::VectorXd pose = shapesolver.GetPose();
-		Eigen::Vector3d globalR = pose.segment<3>(0);
-		pose.setZero(); 
-		shapesolver.SetPose(pose);
-		Eigen::Vector3d trans = shapesolver.GetTranslation(); 
-		trans.setZero();
-		shapesolver.SetTranslation(trans);
-		shapesolver.UpdateVertices();
-		RenderObjectColor* pig_render_target = new RenderObjectColor();
-		Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
-		pig_render_target->SetFaces(faces);
-		pig_render_target->SetVertices(vs_t);
-		pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
-		m_renderer.colorObjs.push_back(pig_render_target);
-		shapesolver.SaveObj("D:/Projects/animal_calib/data/smal_deform_0.obj");
-
-		/// render target volume 
-		RenderObjectColor* pig_render2 = new RenderObjectColor();
-		Eigen::MatrixXf vs2 = targetModel->vertices.cast<float>();
-		Eigen::MatrixXu faces2 = targetModel->faces;
-		pig_render2->SetFaces(faces2);
-		pig_render2->SetVertices(vs2);
-		pig_render2->SetColor(Eigen::Vector3f(0.0, 0.1, 0.8));
-		m_renderer.colorObjs.push_back(pig_render2);
-	
-
-		while (!glfwWindowShouldClose(windowPtr))
-		{
+		//while (!glfwWindowShouldClose(windowPtr))
+		//{
 			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-			m_renderer.Draw();
+			auto cameras = frame.get_cameras();
+			auto rawimgs = frame.get_imgs_undist();
+			cv::Mat rawpack;
+			packImgBlock(rawimgs, rawpack);
+
+			std::vector<cv::Mat> renders;
+			for (int camid = 0; camid < cameras.size(); camid++)
+			{
+				Eigen::Matrix3f R = cameras[camid].R.cast<float>();
+				Eigen::Vector3f T = cameras[camid].T.cast<float>();
+				m_renderer.s_camViewer.SetExtrinsic(R, T);
+				m_renderer.Draw();
+				cv::Mat capture = m_renderer.GetImage();
+				renders.push_back(capture);
+			}
+			cv::Mat pack_render;
+			packImgBlock(renders, pack_render);
+			std::stringstream ss;
+			ss << "E:/debug_pig3/render/" << std::setw(6) << std::setfill('0')
+				<< frameid << ".jpg";
+			cv::Mat blended;
+			blended = blend_images(pack_render, rawpack, 0.5);
+			cv::imwrite(ss.str(), blended);
 
 			glfwSwapBuffers(windowPtr);
 			glfwPollEvents();
-		}
-#endif // SHAPE_SOLVER
+		//}
 	}
 	return 0;
 }

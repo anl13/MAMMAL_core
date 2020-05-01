@@ -458,6 +458,10 @@ cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height)
 	return final_image; 
 }
 
+/*
+ATTENTION: 
+in mask, non-zero value is foreground. 
+*/
 cv::Mat get_dist_trans(cv::Mat input)
 {
 	cv::Mat gray; 
@@ -472,22 +476,7 @@ cv::Mat get_dist_trans(cv::Mat input)
 	return chamfer; 
 }
 
-cv::Mat vis_float_image(cv::Mat chamfer)
-{
-	int w = chamfer.cols; 
-	int h = chamfer.rows; 
-	cv::Mat img(cv::Size(w, h), CV_8UC1);
-	for (int i = 0; i < h; i++)
-	{
-		for (int j = 0; j < w; j++)
-		{
-			if(chamfer.at<float>(i,j)<256)
-				img.at<uchar>(i, j) = uchar(chamfer.at<float>(i, j));
-			else img.at<uchar>(i, j) = 255; 
-		}
-	}
-	return img; 
-}
+
 
 /// ROIDescripter 
 float ROIdescripter::queryChamfer(const Eigen::Vector3d& point)
@@ -583,4 +572,74 @@ cv::Mat my_background_substraction(cv::Mat raw, cv::Mat bg)
 	cv::Mat fg; 
 	pBackSub->apply(raw, fg);
 	return fg; 
+}
+
+// assume: mask is CV_8UC1 image with non-zero foreground
+cv::Mat computeSDF2d(const cv::Mat& mask, int thresh)
+{
+	cv::Mat inner, outer;
+	// innner
+	inner = get_dist_trans(mask);
+	if (thresh > 0)
+	{
+		cv::Mat inner_mask;
+		cv::threshold(inner, inner_mask, thresh, 1, cv::THRESH_BINARY);
+		cv::Mat tmp;
+		cv::multiply(inner, 1 - inner_mask, tmp);
+		inner = tmp + inner_mask * thresh;
+	}
+	// outer 
+	double min, max;
+	cv::minMaxLoc(mask, &min, &max);
+	int forgroundvalue = (int)max;
+	int imw = mask.cols;
+	int imh = mask.rows; 
+	cv::Mat mask2;
+	mask2.create(cv::Size(imw,imh), CV_8UC1);
+	mask2.setTo(cv::Scalar(forgroundvalue));
+	mask2 = mask2 - mask;
+	outer = get_dist_trans(mask2);
+	if (thresh > 0)
+	{
+		cv::Mat outer_mask;
+		cv::threshold(outer, outer_mask, thresh, 1, cv::THRESH_BINARY);
+		cv::Mat tmp; 
+		cv::multiply(outer, 1 - outer_mask, tmp); 
+		outer = tmp + outer_mask * thresh;
+	}
+	// final chamfer as sdf
+	cv::Mat sdf = inner - outer;
+	return sdf;
+}
+
+cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh)
+{
+	std::vector<Eigen::Vector3i> CM;
+	getColorMap("jet", CM);
+	int w = tsdf.cols;
+	int h = tsdf.rows;
+	cv::Mat img(cv::Size(w, h), CV_8UC3);
+	for (int i = 0; i < h; i++)
+	{
+		for (int j = 0; j < w; j++)
+		{
+			float v = tsdf.at<float>(i, j);
+			if (thresh < 0)
+			{
+				int index = 0; 
+				if (v <= -128) index = 0;
+				else if (v >= 127)index = 255; 
+				else { index = (int)(v + 128); }
+				img.at<cv::Vec3b>(i, j) = cv::Vec3b(uchar(CM[index](2)), uchar(CM[index](1)), uchar(CM[index](0)) );
+			}
+			else
+			{
+				int index = (v + thresh) / thresh * 127;
+				if (index > 255) index = 255;
+				if (index < 0) index = 0;
+				img.at<cv::Vec3b>(i, j) = cv::Vec3b(uchar(CM[index](2)), uchar(CM[index](1)), uchar(CM[index](0)));
+			}
+		}
+	}
+	return img;
 }

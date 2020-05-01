@@ -1,22 +1,6 @@
 #include "pigsolver.h"
 #include "../utils/image_utils.h"
 
-void PigSolver::feedData(
-	const ROIdescripter& _roi,
-	const BodyState& _body
-)
-{
-	m_rois.push_back(_roi); 
-	m_bodies.push_back(_body);
-}
-
-void PigSolver::feedRender(
-	const cv::Mat& _render
-)
-{
-	m_renders.push_back(_render);
-}
-
 #if 0
 void PigSolver::iterateStep(int iter)
 {
@@ -138,12 +122,6 @@ void PigSolver::NaiveNodeDeformStep(int iter)
 
 #endif 
 
-void PigSolver::clearData()
-{
-	m_bodies.clear(); 
-	m_renders.clear(); 
-}
-
 void PigSolver::optimizeShapeToBoneLength(int maxIter, double terminal)
 {
 	Eigen::MatrixXd JSkel;
@@ -194,63 +172,8 @@ void PigSolver::optimizeShapeToBoneLength(int maxIter, double terminal)
 			break;
 	}
 }
-#if 0
-void PigSolver::naiveNodeDeform()
-{
-	GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
-	InitNodeAndWarpField();
 
-	int iter = 0;
-	for (; iter < 10; iter++)
-	{
-		UpdateVertices();
-		mp_renderer->colorObjs.clear();
-		mp_renderer->texObjs.clear();
 
-		const auto& faces = m_facesVert;
-		const Eigen::MatrixXf vs = m_verticesFinal.cast<float>();
-
-		RenderObjectColor* pig_render = new RenderObjectColor();
-		pig_render->SetFaces(faces);
-		pig_render->SetVertices(vs);
-		Eigen::Vector3f color(1.0, 1.0, 1.0);
-		pig_render->SetColor(color);
-		mp_renderer->colorObjs.push_back(pig_render);
-
-		const auto& cameras = m_cameras;
-		std::vector<cv::Mat> renders;
-		for (int view = 0; view < m_source.view_ids.size(); view++)
-		{
-			int camid = m_source.view_ids[view];
-			Eigen::Matrix3f R = cameras[camid].R.cast<float>();
-			Eigen::Vector3f T = cameras[camid].T.cast<float>();
-			mp_renderer->s_camViewer.SetExtrinsic(R, T);
-			mp_renderer->Draw();
-			cv::Mat capture = mp_renderer->GetImage();
-			feedRender(capture);
-			renders.push_back(capture);
-		}
-
-		// debug
-		cv::Mat pack_render;
-		packImgBlock(renders, pack_render);
-		std::stringstream ss;
-		ss << "E:/debug_pig2/shapeiter/" << std::setw(6)
-			<< iter << ".jpg";
-		cv::imwrite(ss.str(), pack_render);
-
-		std::cout << RED_TEXT("iter:") << iter << std::endl;
-
-	    iterateStep(iter);
-
-		//NaiveNodeDeformStep(iter);
-		clearData();
-
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
-	}
-}
-#endif 
 void PigSolver::CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
 {
 	Eigen::MatrixXd J;
@@ -614,7 +537,7 @@ void PigSolver::updateIterModel()
 
 void PigSolver::totalSolveProcedure()
 {
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 5; i++)
 	{
 		std::cout << "Frist phase: " << i << std::endl;
 		solvePoseAndShape(1);
@@ -793,5 +716,69 @@ void PigSolver::solvePoseAndShape(int maxIterTime)
 
 	//	if (delta.norm() < terminal) break;
 	//}
+}
+
+#if 0
+void PigSolver::naiveNodeDeform()
+{
+	GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
+	InitNodeAndWarpField();
+
+	int iter = 0;
+	for (; iter < 10; iter++)
+	{
+		UpdateVertices();
+		mp_renderer->colorObjs.clear();
+		mp_renderer->texObjs.clear();
+
+		const auto& faces = m_facesVert;
+		const Eigen::MatrixXf vs = m_verticesFinal.cast<float>();
+
+		RenderObjectColor* pig_render = new RenderObjectColor();
+		pig_render->SetFaces(faces);
+		pig_render->SetVertices(vs);
+		Eigen::Vector3f color(1.0, 1.0, 1.0);
+		pig_render->SetColor(color);
+		mp_renderer->colorObjs.push_back(pig_render);
+
+		const auto& cameras = m_cameras;
+		std::vector<cv::Mat> renders;
+		for (int view = 0; view < m_source.view_ids.size(); view++)
+		{
+			int camid = m_source.view_ids[view];
+			Eigen::Matrix3f R = cameras[camid].R.cast<float>();
+			Eigen::Vector3f T = cameras[camid].T.cast<float>();
+			mp_renderer->s_camViewer.SetExtrinsic(R, T);
+			mp_renderer->Draw();
+			cv::Mat capture = mp_renderer->GetImage();
+			feedRender(capture);
+			renders.push_back(capture);
+		}
+
+		// debug
+		cv::Mat pack_render;
+		packImgBlock(renders, pack_render);
+		std::stringstream ss;
+		ss << "E:/debug_pig2/shapeiter/" << std::setw(6)
+			<< iter << ".jpg";
+		cv::imwrite(ss.str(), pack_render);
+
+		std::cout << RED_TEXT("iter:") << iter << std::endl;
+
+		iterateStep(iter);
+
+		//NaiveNodeDeformStep(iter);
+		clearData();
+
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	}
+}
+#endif 
+
+void PigSolver::optimizePoseSilhouette(int maxIter)
+{
+	// prepare sdf data
+
 }
 

@@ -6,9 +6,9 @@ int run_on_sequence();
 
 // run_shape.cpp
 int run_shape();
+int run_pose(); 
 
 // run_render.cpp
-int render_animal_skels();
 int render_smal_test(); 
 int renderScene(); 
 
@@ -23,3 +23,5 @@ void test_epipolar(std::string folder);
 
 
 void annotate(); 
+
+void testfunc();

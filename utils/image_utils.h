@@ -52,8 +52,7 @@ cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height);
 
 cv::Mat get_dist_trans(cv::Mat input);
 
-/*do not use! deprecated function*/
-cv::Mat vis_float_image(cv::Mat chamfer); 
+
 
 // This class is used as struct 
 class ROIdescripter {
@@ -97,3 +96,6 @@ cv::Mat my_background_substraction(cv::Mat raw, cv::Mat bg);
 
 std::vector<Eigen::Vector2d> computeContourNormal(const std::vector<Eigen::Vector2d>& points);
 std::vector<std::vector<Eigen::Vector2d> >  computeContourNormalsAll(const std::vector<std::vector<Eigen::Vector2d> >&points);
+
+cv::Mat computeSDF2d(const cv::Mat& mask, int thresh=-1);// compute signed distance function from mask image
+cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh=-1);

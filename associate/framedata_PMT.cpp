@@ -71,6 +71,7 @@ void FrameData::solve_parametric_model()
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i); 
+			mp_bodysolver[i]->InitNodeAndWarpField();
 			std::cout << "init model " << i << std::endl; 
 		}
 	}
@@ -82,8 +83,7 @@ void FrameData::solve_parametric_model()
 		mp_bodysolver[i]->setSource(m_matched[i]); 
 		mp_bodysolver[i]->normalizeSource(); 
 		mp_bodysolver[i]->globalAlign(); 
-		//mp_bodysolver[i]->optimizeShapeToBoneLength(10, 0.001);
-		mp_bodysolver[i]->optimizePose(100, 0.001); 
+		mp_bodysolver[i]->optimizePose(20, 0.001); 
 		
 		//mp_bodysolver[i]->computePivot();
 		//std::string savefolder = "E:/pig_results/"; 
@@ -232,9 +232,7 @@ void FrameData::debug_chamfer(int pid)
 			//m_detUndist[camid][candid].mask, 255);
 			m_matched[pid].dets[i].mask, 255);
 		cv::Mat chamfer = get_dist_trans(grays[camid]);
-		cv::Mat chamfer_vis = vis_float_image(chamfer); 
 		cv::namedWindow("mask"); 
-		cv::imshow("mask", chamfer_vis);
 		int key = cv::waitKey(); 
 		if (key == 27)exit(-1); 
 	}

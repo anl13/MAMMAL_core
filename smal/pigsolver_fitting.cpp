@@ -354,7 +354,7 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		theta.segment<3>(0) = m_translation;
 		for (int i = 0; i < M; i++)
 		{
-			int jIdx = m_poseToOptimize[i];
+			int jIdx = m_poseToOptimize[i]; 
 			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 		}
 

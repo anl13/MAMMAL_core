@@ -77,10 +77,7 @@ public:
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
 	void FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
 
-	// node graph deformation
-	//void NaiveNodeDeformStep(int iter); 
-	Renderer* mp_renderer;
-	//void naiveNodeDeform();
+	void CalcZ();
 
 	// targets to fit 
 	MatchedInstance m_source;
@@ -88,19 +85,14 @@ public:
 	std::vector<double> m_weights;
 	Eigen::VectorXd m_weightsEigen;
 	Eigen::MatrixXd m_targetVSameTopo;
-	// 2020-03-11 shape deformation solver
+
+	// fit pose to chamfer map, 20200430
 	vector<ROIdescripter> m_rois;
 	vector<BodyState>     m_bodies;
 	vector<cv::Mat>       m_renders; 
-	void feedData(const ROIdescripter& _roi, 
-		const BodyState& _body);
-	void feedRender(const cv::Mat& _render);
-	//void iterateStep(int iter); 
-	void clearData(); 
+	void optimizePoseSilhouette(int maxIter);
+	Renderer* mp_renderer;
 
-	void CalcZ();
-
-	std::vector<Eigen::MatrixXd> joints_frames;
 	std::vector<int> m_poseToOptimize;
 
 	// nodegraph deformation to point cloud
@@ -133,6 +125,7 @@ public:
 	Volume m_V;
 	Model m_V_mesh; 
 	void computeVolume();
+
 private: 
 	// control info 
 	int m_id; 

@@ -156,6 +156,12 @@
     <ClCompile Include="..\utils\model.cpp">
       <Filter>utils</Filter>
     </ClCompile>
+    <ClCompile Include="..\exec\run_pose.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\testfunc.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">
