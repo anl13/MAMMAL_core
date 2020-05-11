@@ -61,15 +61,18 @@ void main()
     
     // specular
     vec3 view_dir = normalize(view_pos - fs_in.pos);
-    vec3 reflect_dir = reflect(-light_dir, fs_in.normal);  
     vec3 halfway_dir = normalize(light_dir + view_dir);
     float spec = pow(max(dot(fs_in.normal, halfway_dir), 0.0), 32.0/(material_shininess));
     float specular = spec * material_specular;  
 
-    // sum
+    /// color
     out_color =  (ambient + (1.0 - shadow) * (diffuse + specular)) * vec4(object_color,1.0);
+
+    /// render normal 
     // out_color = vec4(fs_in.normal, 1.0); 
 
-    //out_color = vec4(vec3(texture(depth_cube, vec3(fs_in.pos - light_pos)).r),1.0);
+    // out_color = vec4(vec3(fs_in.z), 1.0);
+
+    // out_color = vec4(vec3(texture(depth_cube, vec3(fs_in.pos - light_pos)).r),1.0);
     //out_color = vec4(vec3(shadow),1.0);
 }

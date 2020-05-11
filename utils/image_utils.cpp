@@ -575,9 +575,25 @@ cv::Mat my_background_substraction(cv::Mat raw, cv::Mat bg)
 }
 
 // assume: mask is CV_8UC1 image with non-zero foreground
-cv::Mat computeSDF2d(const cv::Mat& mask, int thresh)
+cv::Mat computeSDF2d(const cv::Mat& render, int thresh)
 {
+	cv::Mat gray; 
+	if (render.channels() > 1)
+	{
+		cv::cvtColor(render, gray, cv::COLOR_BGR2GRAY);
+	}
+	else
+	{
+		gray = render; 
+	}
 	cv::Mat inner, outer;
+	cv::Mat mask;
+	cv::Mat mask_inv;
+	cv::threshold(gray, mask, 1, 255, cv::THRESH_BINARY);
+	cv::threshold(gray, mask_inv, 1, 255, cv::THRESH_BINARY_INV);
+	//cv::imshow("mask", mask);
+	//cv::imshow("mask_inv", mask_inv); 
+	//cv::waitKey();
 	// innner
 	inner = get_dist_trans(mask);
 	if (thresh > 0)
@@ -589,16 +605,7 @@ cv::Mat computeSDF2d(const cv::Mat& mask, int thresh)
 		inner = tmp + inner_mask * thresh;
 	}
 	// outer 
-	double min, max;
-	cv::minMaxLoc(mask, &min, &max);
-	int forgroundvalue = (int)max;
-	int imw = mask.cols;
-	int imh = mask.rows; 
-	cv::Mat mask2;
-	mask2.create(cv::Size(imw,imh), CV_8UC1);
-	mask2.setTo(cv::Scalar(forgroundvalue));
-	mask2 = mask2 - mask;
-	outer = get_dist_trans(mask2);
+	outer = get_dist_trans(mask_inv);
 	if (thresh > 0)
 	{
 		cv::Mat outer_mask;
@@ -615,7 +622,7 @@ cv::Mat computeSDF2d(const cv::Mat& mask, int thresh)
 cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh)
 {
 	std::vector<Eigen::Vector3i> CM;
-	getColorMap("jet", CM);
+	getColorMap("bwr", CM);
 	int w = tsdf.cols;
 	int h = tsdf.rows;
 	cv::Mat img(cv::Size(w, h), CV_8UC3);
@@ -642,4 +649,30 @@ cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh)
 		}
 	}
 	return img;
+}
+
+void computeGradient(cv::Mat input, cv::Mat& outx, cv::Mat& outy)
+{
+	int scale = 1;
+	int delta = 0;
+	cv::Sobel(input, outx, CV_32F, 1, 0, 3, scale, delta, cv::BORDER_DEFAULT);
+	cv::Sobel(input, outy, CV_32F, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT);
+}
+
+// assume render is black background with non-black foreground. 
+cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float a)
+{
+
+	
+	cv::Mat mask_fore;
+	cv::Mat mask_back;
+	cv::threshold(render, mask_fore, 1, 1, cv::THRESH_BINARY);
+	cv::threshold(render, mask_back, 1, 1, cv::THRESH_BINARY_INV);
+	render = render + mask_fore * 255; 
+	cv::Mat alpha, beta; 
+	cv::multiply(mask_fore, render, alpha);
+	cv::multiply(mask_back, rawimg, beta);
+	cv::Mat gamma = alpha + beta; 
+	cv::Mat overlay = a * rawimg + (1-a) * gamma;
+	return overlay;
 }

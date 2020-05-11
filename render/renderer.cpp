@@ -352,7 +352,6 @@ void Renderer::Draw()
 	glViewport(0, 0, SHADOW_WINDOW_WIDTH, SHADOW_WINDOW_HEIGHT);
 
 	// glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-	// glClear(GL_DEPTH_BUFFER_BIT);
 	// depthShader.Use();
 
 	

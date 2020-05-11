@@ -83,8 +83,8 @@ int run_shape()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		//frame.view_dependent_clean();
-		//frame.matching_by_tracking();
-		frame.load_labeled_data();
+		frame.matching_by_tracking();
+		//frame.load_labeled_data();
 		frame.solve_parametric_model();
 		auto m_matched = frame.get_matched();
 		
@@ -125,7 +125,7 @@ int run_shape()
 		shapesolver.setSource(m_matched[m_pid]);
 		shapesolver.normalizeSource();
 		shapesolver.InitNodeAndWarpField();
-		//shapesolver.LoadWarpField();
+		shapesolver.LoadWarpField();
 		shapesolver.UpdateVertices();
 		
 		shapesolver.globalAlign();
@@ -140,11 +140,11 @@ int run_shape()
 		
 		std::shared_ptr<Model> targetModel = std::make_shared<Model>();
 		targetModel->Load("E:/debug_pig2/visualhull/0/000000.obj");
-		shapesolver.setTargetModel(targetModel);
+	/*	shapesolver.setTargetModel(targetModel);
 		shapesolver.setSourceModel();
 		shapesolver.totalSolveProcedure();
 		shapesolver.SaveWarpField();
-		shapesolver.SaveObj("E:/debug_pig2/warped.obj");
+		shapesolver.SaveObj("E:/debug_pig2/warped.obj");*/
 
 		RenderObjectColor* pig_render = new RenderObjectColor();
 		Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces
@@ -155,21 +155,21 @@ int run_shape()
 		pig_render->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
 		m_renderer.colorObjs.push_back(pig_render);
 
-		Eigen::VectorXd pose = shapesolver.GetPose();
-		Eigen::Vector3d globalR = pose.segment<3>(0);
-		pose.setZero(); 
-		shapesolver.SetPose(pose);
-		Eigen::Vector3d trans = shapesolver.GetTranslation(); 
-		trans.setZero();
-		shapesolver.SetTranslation(trans);
-		shapesolver.UpdateVertices();
-		RenderObjectColor* pig_render_target = new RenderObjectColor();
-		Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
-		pig_render_target->SetFaces(faces);
-		pig_render_target->SetVertices(vs_t);
-		pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
-		m_renderer.colorObjs.push_back(pig_render_target);
-		shapesolver.SaveObj("D:/Projects/animal_calib/data/smal_deform_0.obj");
+		//Eigen::VectorXd pose = shapesolver.GetPose();
+		//Eigen::Vector3d globalR = pose.segment<3>(0);
+		//pose.setZero(); 
+		//shapesolver.SetPose(pose);
+		//Eigen::Vector3d trans = shapesolver.GetTranslation(); 
+		//trans.setZero();
+		//shapesolver.SetTranslation(trans);
+		//shapesolver.UpdateVertices();
+		//RenderObjectColor* pig_render_target = new RenderObjectColor();
+		//Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
+		//pig_render_target->SetFaces(faces);
+		//pig_render_target->SetVertices(vs_t);
+		//pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
+		//m_renderer.colorObjs.push_back(pig_render_target);
+		//shapesolver.SaveObj("D:/Projects/animal_calib/data/smal_deform_0.obj");
 
 		/// render target volume 
 		RenderObjectColor* pig_render2 = new RenderObjectColor();
@@ -183,7 +183,7 @@ int run_shape()
 
 		while (!glfwWindowShouldClose(windowPtr))
 		{
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 			m_renderer.Draw();
 

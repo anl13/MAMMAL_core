@@ -1,127 +1,6 @@
 #include "pigsolver.h"
 #include "../utils/image_utils.h"
 
-#if 0
-void PigSolver::iterateStep(int iter)
-{
-	double D = 0.001; // 1 mm per iter 
-	// prepare chamfer 
-	vector<cv::Mat> currentChamfers; 
-	for (int i = 0; i < m_renders.size(); i++)
-	{
-		cv::Mat chamfer = get_dist_trans(m_renders[i]);
-		currentChamfers.push_back(chamfer); 
-	}
-
-	cv::Mat packChamfer;
-	packImgBlock(currentChamfers, packChamfer); 
-	packChamfer = reverseChamfer(packChamfer);
-	cv::Mat visPackChamfer = vis_float_image(packChamfer); 
-	std::stringstream ss;
-	ss << "E:/debug_pig2/chamfer/source_" << iter << ".png";
-	cv::imwrite(ss.str(), visPackChamfer); 
-
-	// currently, assu me only one frame used 
-	//m_poseParam = m_bodies[0].pose;
-	//m_translation = m_bodies[0].trans;
-	//UpdateVertices();
-	// compute gradient
-	Eigen::VectorXd gradient; 
-	gradient.resize(m_vertexNum); 
-	gradient.setZero(); 
-
-	cv::Mat packTargetChamfer; 
-	std::vector<cv::Mat> targets; 
-	for (int oid = 0; oid < m_rois.size(); oid++)
-	{
-		ROIdescripter& roi = m_rois[oid];
-		cv::Mat&       chamfer = currentChamfers[oid];
-		targets.push_back(roi.chamfer);
-		for (int i = 0; i < m_vertexNum; i++)
-		{
-			if (m_bodyParts[i] != MAIN_BODY) {
-				continue; // only optimize main body
-			}
-			double g = 0; 
-			Eigen::Vector3d p = m_verticesFinal.col(i);
-			double f = queryPixel(chamfer, p, roi.cam);
-			double t = roi.queryChamfer(p); 
-			if (t < 1)
-			{
-				g = D; 
-			}
-			else
-			{
-				//if (f < 5 && f < t)
-				//{
-				//	g = -D/2; 
-				//}
-			}
-			gradient(i) += g; 
-		}
-	}
-	packImgBlock(targets, packTargetChamfer); 
-	packTargetChamfer = reverseChamfer(packTargetChamfer); 
-	std::stringstream ss1; 
-	ss1 << "E:/debug_pig/chamfer/target_" << iter << ".png";
-	cv::Mat visTarget = vis_float_image(packTargetChamfer); 
-	cv::imwrite(ss1.str(), visTarget); 
-
-	m_deform -= gradient; 
-
-	double r = gradient.norm(); 
-	double r1 = m_deform.norm();
-
-	std::cout << "r: " << r << std::endl; 
-	std::cout << "d: " << r1 << std::endl;
-}
-
-void PigSolver::NaiveNodeDeformStep(int iter)
-{
-	double D = 0.001; // 1 mm per iter 
-					  // prepare chamfer 
-	vector<cv::Mat> currentChamfers;
-	for (int i = 0; i < m_renders.size(); i++)
-	{
-		cv::Mat chamfer = get_dist_trans(m_renders[i]);
-		currentChamfers.push_back(chamfer);
-	}
-	// compute gradient
-	UpdateNormals(); 
-	std::vector<cv::Mat> targets;
-	for (int oid = 0; oid < m_rois.size(); oid++)
-	{
-		ROIdescripter& roi = m_rois[oid];
-		cv::Mat&       chamfer = currentChamfers[oid];
-		targets.push_back(roi.chamfer);
-		for (int i = 0; i < mp_nodeGraph->nodeIdx.size(); i++)
-		{
-			int vid = mp_nodeGraph->nodeIdx[i];
-			if (m_bodyParts[vid] != MAIN_BODY) {
-				continue; // only optimize main body
-			}
-			double g = 0;
-			Eigen::Vector3d p = m_verticesFinal.col(vid);
-			Eigen::Vector3d n = m_normalShaped.col(vid);
-			double f = queryPixel(chamfer, p, roi.cam);
-			double t = roi.queryChamfer(p);
-			if (t < 1)
-			{
-				m_warpField.block<3, 1>(0, 4 * i + 3) -= n*D;
-			}
-			else
-			{
-				//if (f < 5 && f < t)
-				//{
-				//	g = -D/2; 
-				//}
-			}
-		}
-	}
-}
-
-#endif 
-
 void PigSolver::optimizeShapeToBoneLength(int maxIter, double terminal)
 {
 	Eigen::MatrixXd JSkel;
@@ -778,7 +657,207 @@ void PigSolver::naiveNodeDeform()
 
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
-	// prepare sdf data
+	GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
+	int iter = 0;
+	for (; iter < maxIter; iter++)
+	{
+		std::cout << "ITER: " << iter << std::endl; 
+		// render images 
+		UpdateVertices();
+		mp_renderer->colorObjs.clear();
 
+		const auto& faces = m_facesVert;
+		const Eigen::MatrixXf vs = m_verticesFinal.cast<float>();
+
+		RenderObjectColor* pig_render = new RenderObjectColor();
+		pig_render->SetFaces(faces);
+		pig_render->SetVertices(vs);
+		Eigen::Vector3f color(1.0, 0.0, 0.0);
+		pig_render->SetColor(color);
+		mp_renderer->colorObjs.push_back(pig_render);
+
+		std::vector<cv::Mat> color_mask_dets; 
+
+		const auto& cameras = m_cameras;
+		std::vector<cv::Mat> renders;
+		std::vector<cv::Mat> raw_ims;
+		for (int view = 0; view < m_rois.size(); view++)
+		{
+			auto cam = m_rois[view].cam;
+			Eigen::Matrix3f R = cam.R.cast<float>();
+			Eigen::Vector3f T = cam.T.cast<float>();
+			mp_renderer->s_camViewer.SetExtrinsic(R, T);
+			mp_renderer->Draw();
+			cv::Mat capture = mp_renderer->GetImage();
+			renders.push_back(capture);
+			int camid = m_rois[view].viewid; 
+			raw_ims.push_back(m_rawImgs[camid]);
+			cv::Mat img = m_rawImgs[camid].clone();
+			my_draw_mask(img, m_rois[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
+			color_mask_dets.push_back(img);
+		}
+		// test 
+		cv::Mat pack_render;
+		packImgBlock(renders, pack_render);
+		cv::Mat rawpack;
+		packImgBlock(raw_ims, rawpack);
+		cv::Mat blended;
+		blended = overlay_renders(rawpack, pack_render, 0);
+		cv::Mat pack_det;
+		packImgBlock(color_mask_dets, pack_det);
+		blended = blended * 0.5 + pack_det * 0.5;
+		std::stringstream ss;
+		ss << "E:/debug_pig3/iters/" << std::setw(6) << std::setfill('0')
+			<< iter << ".jpg";
+		cv::imwrite(ss.str(), blended);
+		// compute terms
+		int M = m_poseToOptimize.size(); 
+		Eigen::VectorXd theta(3 + 3 * M);
+		theta.segment<3>(0) = m_translation;
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
+		}
+
+		Eigen::MatrixXd ATA;
+		Eigen::VectorXd ATb; 
+		CalcSilhouettePoseTerm(renders, ATA, ATb,iter);
+		double lambda = 0.0005;
+		double w1 = 1;
+		double w_reg = 0.001;
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXd H_reg = DTD;  // reg term 
+		Eigen::VectorXd b_reg = -theta; // reg term 
+		Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg;
+		Eigen::VectorXd delta = H.ldlt().solve(b);
+
+		std::cout << "data term b: " << ATb.norm() << std::endl;
+		std::cout << "reg  term b: " << b_reg.norm() << std::endl; 
+
+		// update 
+		m_translation += delta.segment<3>(0);
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
+		}
+	}
 }
 
+
+void PigSolver::CalcSilhouettePoseTerm(
+	const std::vector<cv::Mat>& renders,
+	Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb, int iter)
+{
+	int M = 3+3*m_poseToOptimize.size(); 
+	ATA = Eigen::MatrixXd::Zero(M, M);
+	ATb = Eigen::VectorXd::Zero(M);
+	Eigen::MatrixXd J_joint, J_vert; 
+	CalcPoseJacobiPartTheta(J_joint, J_vert);
+
+	// visualize 
+	std::vector<cv::Mat> chamfers_vis; 
+	std::vector<cv::Mat> chamfers_vis_det; 
+	std::vector<cv::Mat> gradx_vis;
+	std::vector<cv::Mat> grady_vis;
+	std::vector<cv::Mat> diff_vis; 
+	std::vector<cv::Mat> diff_xvis; 
+	std::vector<cv::Mat> diff_yvis;
+
+	double total_r = 0; 
+
+	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
+	{
+		Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m_vertexNum, M);
+		Eigen::VectorXd r = Eigen::VectorXd::Zero(m_vertexNum);
+		cv::Mat P = computeSDF2d(renders[roiIdx]);
+		chamfers_vis.emplace_back(visualizeSDF2d(P));
+		chamfers_vis_det.emplace_back(visualizeSDF2d(m_rois[roiIdx].chamfer));
+		diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
+
+		cv::Mat Pdx, Pdy;
+		computeGradient(P, Pdx, Pdy);
+		gradx_vis.emplace_back(visualizeSDF2d(Pdx, 32));
+		grady_vis.emplace_back(visualizeSDF2d(Pdy, 32));
+		diff_xvis.emplace_back(visualizeSDF2d(Pdx - m_rois[roiIdx].gradx, 32));
+		diff_yvis.emplace_back(visualizeSDF2d(Pdy - m_rois[roiIdx].grady, 32));
+		
+		auto cam = m_rois[roiIdx].cam;
+		Eigen::Matrix3d R = cam.R;
+		Eigen::Matrix3d K = cam.K;
+		Eigen::Vector3d T = cam.T;
+
+		double wc = 100.0 / m_rois[roiIdx].area;
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			double w; 
+			if (m_bodyParts[i] == R_F_LEG || m_bodyParts[i] == R_B_LEG ||
+				m_bodyParts[i] == L_F_LEG || m_bodyParts[i] == L_B_LEG) w = 5; 
+			else w = 1; 
+			Eigen::Vector3d x0 = m_verticesFinal.col(i);
+			int m = m_rois[roiIdx].queryMask(x0); 
+			// TODO: 20200501 use mask to check visibility 
+			float d = m_rois[roiIdx].queryChamfer(x0);
+			if (d < -9999) continue;
+			float ddx = queryPixel(m_rois[roiIdx].gradx, x0, m_rois[roiIdx].cam);
+			float ddy = queryPixel(m_rois[roiIdx].grady, x0, m_rois[roiIdx].cam);
+			float p = queryPixel(P, x0, m_rois[roiIdx].cam);
+			float pdx = queryPixel(Pdx, x0, m_rois[roiIdx].cam);
+			float pdy = queryPixel(Pdy, x0, m_rois[roiIdx].cam);
+
+			Eigen::MatrixXd block2d = Eigen::MatrixXd::Zero(2, M);
+			Eigen::Vector3d x_local = K * (R * x0 + T);
+			Eigen::MatrixXd D = Eigen::MatrixXd::Zero(2, 3);
+			D(0, 0) = 1 / x_local(2);
+			D(1, 1) = 1 / x_local(2);
+			D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
+			D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
+			block2d = D * K * R * J_vert.middleRows(3 * i, 3);
+			r(i) = w * (p - d); 
+			A.row(i) = w*(block2d.row(0) * (pdx) + block2d.row(1) * (pdy));
+		}
+		A = wc * A; 
+		r = wc * r; 
+		std::cout << "r.norm() : " << r.norm() << std::endl;
+		total_r += r.norm();
+		ATA += A.transpose() * A;
+		ATb += A.transpose() * r; 
+	}
+
+	std::cout << "total r.norm() : " << total_r << std::endl; 
+	cv::Mat packP;
+	packImgBlock(chamfers_vis, packP);
+	cv::Mat packD;
+	packImgBlock(chamfers_vis_det, packD);
+	std::stringstream ssp;
+	ssp << "E:/debug_pig3/iters_p/" << iter << ".jpg";
+	cv::imwrite(ssp.str(), packP);
+	std::stringstream ssd; 
+	ssd << "E:/debug_pig3/iters_d/" << iter << ".jpg";
+	cv::imwrite(ssd.str(), packD);
+	cv::Mat packX, packY;
+	packImgBlock(gradx_vis, packX);
+	packImgBlock(grady_vis, packY);
+	std::stringstream ssx, ssy;
+	ssx << "E:/debug_pig3/iters_p/gradx_" << iter << ".jpg";
+	ssy << "E:/debug_pig3/iters_p/grady_" << iter << ".jpg";
+	cv::imwrite(ssx.str(), packX);
+	cv::imwrite(ssy.str(), packY);
+
+	cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
+	std::stringstream ssdiff;
+	ssdiff << "E:/debug_pig3/diff/diff_" << iter << ".jpg";
+	cv::imwrite(ssdiff.str(), packdiff);
+
+	cv::Mat packdiffx; packImgBlock(diff_xvis, packdiffx);
+	std::stringstream ssdifx;
+	ssdifx << "E:/debug_pig3/diff/diffx_" << iter << ".jpg";
+	cv::imwrite(ssdifx.str(), packdiffx);
+
+	cv::Mat packdiffy; packImgBlock(diff_yvis, packdiffy);
+	std::stringstream ssdify;
+	ssdify << "E:/debug_pig3/diff/diffy_" << iter << ".jpg";
+	cv::imwrite(ssdify.str(), packdiffy);
+}

@@ -286,7 +286,6 @@ void FrameData::getChamferMap(int pid, int viewid,
 	// innner
 	cv::Mat mask;
 	mask.create(cv::Size(m_imw, m_imh), CV_8UC1); 
-	int camid = m_matched[pid].view_ids[viewid];
 	my_draw_mask_gray(mask,
 		m_matched[pid].dets[viewid].mask, 255);
 	inner = get_dist_trans(mask);

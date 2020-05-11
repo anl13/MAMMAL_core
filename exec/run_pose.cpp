@@ -60,20 +60,20 @@ int run_pose()
 	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
 	const ObjData cubeObj(conf_projectFolder + "/render/data/obj_model/cube.obj");
 	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, true);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ 0.28f, 0.2f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor);
+	//RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	//chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	//chess_floor->SetFaces(squareObj.faces, true);
+	//chess_floor->SetVertices(squareObj.vertices);
+	//chess_floor->SetTexcoords(squareObj.texcoords);
+	//chess_floor->SetTransform({ 0.28f, 0.2f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//m_renderer.texObjs.push_back(chess_floor);
 
 #endif 
 	int framenum = frame.get_frame_num();
 	PigSolver shapesolver(pig_config);
 	int m_pid = 0; // pig identity to solve now. 
 
-	for (int frameid = 0; frameid < 3; frameid++)
+	for (int frameid = 0; frameid < 1; frameid++)
 	{
 		std::cout << "processing frame " << frameid << std::endl;
 		frame.set_frame_id(frameid);
@@ -103,8 +103,9 @@ int run_pose()
 
 		shapesolver.mp_renderer = &m_renderer; 
 		shapesolver.m_rois = m_rois;
+		shapesolver.m_rawImgs = frame.get_imgs_undist();
 
-		shapesolver.optimizePoseSilhouette(3);
+		shapesolver.optimizePoseSilhouette(20);
 
 		m_renderer.colorObjs.clear(); 
 		RenderObjectColor* pig_render = new RenderObjectColor();
@@ -141,12 +142,22 @@ int run_pose()
 			ss << "E:/debug_pig3/render/" << std::setw(6) << std::setfill('0')
 				<< frameid << ".jpg";
 			cv::Mat blended;
-			blended = blend_images(pack_render, rawpack, 0.5);
+			blended = overlay_renders(rawpack, pack_render, 0.2);
 			cv::imwrite(ss.str(), blended);
 
 			glfwSwapBuffers(windowPtr);
 			glfwPollEvents();
 		//}
+			while (!glfwWindowShouldClose(windowPtr))
+			{
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+				m_renderer.Draw();
+
+				glfwSwapBuffers(windowPtr);
+				glfwPollEvents();
+			}
 	}
+	system("pause");
 	return 0;
 }

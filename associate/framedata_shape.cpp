@@ -13,18 +13,26 @@ vector<ROIdescripter> FrameData::getROI(int id)
 		ROIdescripter roi;
 		roi.setId(id);
 		roi.setT(m_frameid);
+		roi.viewid = camid;
 		roi.setCam(m_camsUndist[camid]);
 		roi.mask_list = m_matched[id].dets[view].mask;
 		roi.mask_norm = m_matched[id].dets[view].mask_norm;
-		cv::Mat chamfer; 
-		getChamferMap(id, view, chamfer);
-		roi.chamfer = chamfer; 
+
+		cv::Mat mask;
+		mask.create(cv::Size(m_imw, m_imh), CV_8UC1);
+		my_draw_mask_gray(mask,
+			m_matched[id].dets[view].mask, 255);
+		roi.area = cv::countNonZero(mask);
+
+		roi.chamfer = computeSDF2d(mask); 
 		roi.mask = masks[camid]; 
 		roi.box = m_matched[id].dets[view].box;
 		roi.undist_mask = m_undist_mask;
 		roi.pid = id;
 		roi.idcode = 1 << id; 
+		computeGradient(roi.chamfer, roi.gradx, roi.grady);
 		rois.push_back(roi);
+		
 	}
 	// debug 
 	//cv::Mat mask = masks[0];

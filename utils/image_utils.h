@@ -45,6 +45,7 @@ void my_draw_mask_gray(cv::Mat& img, vector<vector<Eigen::Vector2d> > contour_li
 
 // outimg = img1 * alpha + img2 * (1-alpha)
 cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha);
+cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float alpha=0.5f); 
 
 Eigen::Vector3f rgb2bgr(const Eigen::Vector3f& color); 
 
@@ -64,13 +65,16 @@ public:
 
 	int pid; 
 	int idcode; 
+	double area; 
 	cv::Mat undist_mask; 
 	cv::Mat chamfer; // <float>
 	cv::Mat mask; // <uint8> including other body, to check visibility
 	std::vector<std::vector<Eigen::Vector2d> > mask_list;
 	std::vector<std::vector<Eigen::Vector2d> > mask_norm;
+	cv::Mat gradx, grady;
 
 	Camera cam; 
+	int viewid; 
 	Eigen::Vector4d box; // (x,y,x+w,y+h)
 	int id;
 	int t; 
@@ -99,3 +103,6 @@ std::vector<std::vector<Eigen::Vector2d> >  computeContourNormalsAll(const std::
 
 cv::Mat computeSDF2d(const cv::Mat& mask, int thresh=-1);// compute signed distance function from mask image
 cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh=-1);
+
+// input and output are CV_32F images
+void computeGradient(cv::Mat input, cv::Mat& outx, cv::Mat& outy);

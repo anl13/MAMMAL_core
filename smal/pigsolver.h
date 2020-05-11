@@ -91,6 +91,7 @@ public:
 	vector<BodyState>     m_bodies;
 	vector<cv::Mat>       m_renders; 
 	void optimizePoseSilhouette(int maxIter);
+	void CalcSilhouettePoseTerm(const std::vector<cv::Mat>& renders, Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb, int iter);
 	Renderer* mp_renderer;
 
 	std::vector<int> m_poseToOptimize;
@@ -125,7 +126,7 @@ public:
 	Volume m_V;
 	Model m_V_mesh; 
 	void computeVolume();
-
+	std::vector<cv::Mat> m_rawImgs; 
 private: 
 	// control info 
 	int m_id; 

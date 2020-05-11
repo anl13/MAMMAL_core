@@ -109,7 +109,7 @@ int render_smal_test()
 
     while(!glfwWindowShouldClose(windowPtr))
     {
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         m_renderer.Draw(); 
         glfwSwapBuffers(windowPtr); 
         glfwPollEvents(); 
