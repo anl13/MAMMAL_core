@@ -34,23 +34,7 @@ vec3 grid_sampling_disk[20] = vec3[]
 
 void main()
 {        
-    // calculate shadow
-    float shadow = 0.0;
 
-    // vec3 light_distance = fs_in.pos - light_pos;
-    // float current_depth = (length(light_distance))/far_plane;      
-    // int samples = 20;
-    // float view_distance = length(view_pos - fs_in.pos);
-    // float disk_radius = (1.0+view_distance / far_plane) * 0.01;
-    // float bias = disk_radius
-    // for(int i = 0; i < samples; ++i)
-    // {
-    //     if(current_depth > texture(depth_cube, light_distance + grid_sampling_disk[i] * disk_radius).r + bias)
-    //     {
-    //         shadow += 1.0;
-    //     }
-    // }
-    // shadow /= float(samples);
 
     // ambient
     float ambient = material_ambient;

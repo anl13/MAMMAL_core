@@ -7,7 +7,7 @@
 
 #include "shader.h"
 
-#define RENDER_NEAR_PLANE 0.001f
+#define RENDER_NEAR_PLANE 0.01f
 #define RENDER_FAR_PLANE 50.0f
 
 class CamViewer
@@ -30,12 +30,17 @@ public:
 
 	void ConfigShader(Shader& shader) const;
 
+	void GetRT(Eigen::Matrix3f& R, Eigen::Vector3f& T);
+
 private:
 	Eigen::Vector3f pos;
 	Eigen::Vector3f up;
 	Eigen::Vector3f front;
 	Eigen::Vector3f right;
 	Eigen::Vector3f center;
+	Eigen::Matrix3f R; 
+	Eigen::Matrix3f K;
+	Eigen::Vector3f T;
 
 	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> viewMat;
 	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> projectionMat;

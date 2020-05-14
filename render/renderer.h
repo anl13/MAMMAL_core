@@ -53,20 +53,21 @@ public:
 
 	Shader colorShader; 
 	Shader textureShader; 
-	Shader meshShader; 
 	Shader depthShader; 
+	Shader normalShader;
 
-	GLuint shadowFBO;
-	GLuint shadowTexture;
-
+	//GLuint shadowFBO;
+	//GLuint shadowTexture;
 	
 	std::vector<RenderObjectColor*> colorObjs; 
 	std::vector<RenderObjectMesh*> meshObjs; 
 	std::vector<RenderObjectTexture*> texObjs; 
 	std::vector<BallStickObject*> skels; 
 
-	void Draw(); 
+	void Draw(std::string type="color"); 
 	cv::Mat GetImage(); 
+	cv::Mat GetFloatImage();
+
 	void SetBackgroundColor(const Eigen::Vector4f& _color) {
 		m_backgroundColor = _color;
 	}

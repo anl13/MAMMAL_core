@@ -30,6 +30,7 @@ void CamViewer::SetExtrinsic(const Eigen::Vector3f& _pos, const Eigen::Vector3f&
 	// std::cout << "right:   " << right.transpose() << std::endl; 
 	// std::cout << "front:   " << front.transpose() << std::endl; 
 	// std::cout << "up   :   " << up.transpose() << std::endl; 
+
 }
 
 
@@ -54,8 +55,10 @@ void CamViewer::SetIntrinsic(const Eigen::Matrix3f& K, const int width, const in
 }
 
 // ATTENTION: transform coordinate system to opencv image system
-void CamViewer::SetExtrinsic(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
+void CamViewer::SetExtrinsic(const Eigen::Matrix3f& _R, const Eigen::Vector3f& _T)
 {
+	R = _R;
+	T = _T;
 	front = -R.row(2).transpose();
 	up = -R.row(1).transpose();
 	pos = -R.transpose() * T;
@@ -74,3 +77,8 @@ void CamViewer::ConfigShader(Shader& shader) const
 	shader.SetVec3("view_pos", pos);
 }
 
+void CamViewer::GetRT(Eigen::Matrix3f& _R, Eigen::Vector3f& _T)
+{
+	_R = R;
+	_T = T; 
+}

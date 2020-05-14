@@ -66,7 +66,7 @@ void Renderer::s_InitGLAD()
 	// configure global opengl state
 	glEnable(GL_DEPTH_TEST);
 	
-	glEnable(GL_CULL_FACE);
+	//glEnable(GL_CULL_FACE);
 
 }
 
@@ -295,9 +295,6 @@ Renderer::Renderer(const std::string &shaderFolder):m_shaderFolder(shaderFolder)
 
 Renderer::~Renderer()
 {
-	glDeleteTextures(1, &shadowTexture);
-	glDeleteFramebuffers(1, &shadowFBO);
-
 	glfwTerminate();
 }
 
@@ -305,86 +302,30 @@ Renderer::~Renderer()
 void Renderer::InitShader()
 {
 	colorShader = Shader(m_shaderFolder + "/basic_color_v.shader", m_shaderFolder + "/basic_color_f.shader", m_shaderFolder + "/basic_color_g.shader");
+	std::cout << "init color shader" << std::endl; 
 	textureShader = Shader(m_shaderFolder + "/basic_texture_v.shader", m_shaderFolder + "/basic_texture_f.shader", m_shaderFolder + "/basic_texture_g.shader");
-	depthShader = Shader(m_shaderFolder + "/depth_v.shader", m_shaderFolder + "/depth_f.shader", m_shaderFolder + "/depth_g.shader");
-
-	glGenFramebuffers(1, &shadowFBO);	
-	glGenTextures(1, &shadowTexture);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
-
-	for (int i = 0; i < 6; i++)
-	{
-		glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_DEPTH_COMPONENT, SHADOW_WINDOW_WIDTH, SHADOW_WINDOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-	}
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-	// attach depth texture as FBO's depth buffer
-	glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-	glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, shadowTexture, 0);
-	glDrawBuffer(GL_NONE);
-	glReadBuffer(GL_NONE);
+	std::cout << "init texture shader" << std::endl; 
+	normalShader = Shader(m_shaderFolder + "/basic_color_v.shader",
+		m_shaderFolder + "/fs_normal.shader",
+		m_shaderFolder + "/basic_color_g.shader");
+	std::cout << "init normal shader" << std::endl;
+	depthShader = Shader(m_shaderFolder + "/depth_vs.shader",
+		m_shaderFolder + "/depth_fs.shader", 
+		m_shaderFolder+"/depth_gs.shader");
+	std::cout << "init depth shader" << std::endl; 
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	// glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	// basicShader.Use();
-	// basicShader.SetInt("object_texture", 0);
-	// basicShader.SetInt("depth_cube", 1);
 }
 
-void Renderer::Draw()
+void Renderer::Draw(std::string type)
 {
 	// set background
-	//glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 	glClearColor(m_backgroundColor(0),
 		m_backgroundColor(1),
 		m_backgroundColor(2),
 		m_backgroundColor(3));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
-	
-
-	// 1. render depth of scene to texture (from light's perspective)
-	// --------------------------------------------------------------
-	glViewport(0, 0, SHADOW_WINDOW_WIDTH, SHADOW_WINDOW_HEIGHT);
-
-	// glBindFramebuffer(GL_FRAMEBUFFER, shadowFBO);
-	// depthShader.Use();
-
-	
-	// depthShader.SetVec3("light_pos", lightPos);
-	// depthShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-	// {
-	// 	Eigen::Matrix<float, 4, 4, Eigen::ColMajor> perspective = EigenUtil::Perspective(0.5f*EIGEN_PI, 1.0f, RENDER_NEAR_PLANE, RENDER_FAR_PLANE);
-
-	// 	std::vector<Eigen::Vector3f> frontList = { 
-	// 		{1.0f, 0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
-	// 		{0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, -1.0f} };
-
-	// 	std::vector<Eigen::Vector3f> upList = {
-	// 		{0.0f, -1.0f, 0.0f}, {0.0f, -1.0f, 0.0f },{0.0f, 0.0f, 1.0f},
-	// 		{0.0f, 0.0f, -1.0f },{ 0.0f, -1.0f, 0.0f },{ 0.0f, -1.0f, 0.0f} };
-
-	// 	for (int i = 0; i < 6; i++)
-	// 	{
-	// 		const Eigen::Matrix<float, 4, 4, Eigen::ColMajor> shadowTransform = perspective * EigenUtil::LookAt(lightPos, lightPos + frontList[i], upList[i]);
-	// 		depthShader.SetMat4("shadow_matrices[" + std::to_string(i) + "]", shadowTransform);
-	// 	}
-	// }
-
-	// for (auto iter = renderObjects.begin(); iter != renderObjects.end(); iter++)
-	// {
-	// 	iter->second->DrawDepth(depthShader);
-	// }
-	// for(int i = 0; i < skels.size(); i++)
-	// {
-	// 	skels[i]->Draw(depthShader); 
-	// }
-	// glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 
 	// 2. render scene as normal using the generated depth/shadow map  
 	// --------------------------------------------------------------
@@ -393,53 +334,72 @@ void Renderer::Draw()
 
 	for(int i = 0; i < colorObjs.size(); i++)
 	{
-		colorShader.Use();
-		s_camViewer.ConfigShader(colorShader);
-		colorShader.SetVec3("light_pos", lightPos);
-		colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+		if (type == "color")
+		{
+			colorShader.Use();
+			s_camViewer.ConfigShader(colorShader);
+			colorShader.SetVec3("light_pos", lightPos);
+			colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			colorObjs[i]->DrawWhole(colorShader);
+		}
 
-		colorShader.SetInt("depth_cube", 1);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
+		if (type == "normal")
+		{
+			normalShader.Use(); 
+			normalShader.SetVec3("light_pos", lightPos);
+			normalShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			s_camViewer.ConfigShader(normalShader);
+			colorObjs[i]->DrawWhole(normalShader);
+		}
 
-		colorObjs[i]->DrawWhole(colorShader);
+		if (type == "depth")
+		{
+			depthShader.Use();
+			depthShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			depthShader.SetVec3("light_pos", lightPos);
+			depthShader.SetFloat("near_plane", RENDER_NEAR_PLANE);
+			s_camViewer.ConfigShader(depthShader);
+			//colorObjs[i]->DrawWhole(depthShader);
+			colorObjs[i]->DrawDepth(depthShader);
+		}
 	}
 	
 	for(int i = 0; i < texObjs.size(); i++)
 	{
-		textureShader.Use();
-		s_camViewer.ConfigShader(textureShader);
-		textureShader.SetVec3("light_pos", lightPos);
-		textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-		textureShader.SetInt("depth_cube", 1);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture);
-
-		textureShader.SetInt("object_texture", 2);
-		glActiveTexture(GL_TEXTURE2);
-
-		texObjs[i]->DrawWhole(textureShader);
+		if (type == "color")
+		{
+			textureShader.Use();
+			s_camViewer.ConfigShader(textureShader);
+			textureShader.SetVec3("light_pos", lightPos);
+			textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			textureShader.SetInt("object_texture", 2);
+			glActiveTexture(GL_TEXTURE2);
+			texObjs[i]->DrawWhole(textureShader);
+		}
 	}
 
 	for(int i = 0; i < meshObjs.size(); i++)
 	{
-		colorShader.Use(); 
-		s_camViewer.ConfigShader(colorShader); 
-		meshObjs[i]->DrawWhole(colorShader); 
+		if (type == "color")
+		{
+			colorShader.Use();
+			s_camViewer.ConfigShader(colorShader);
+			meshObjs[i]->DrawWhole(colorShader);
+		}
 	}
 
 	for(int i = 0; i < skels.size(); i++)
 	{
-		colorShader.Use(); 
-		s_camViewer.ConfigShader(colorShader); 
+		if (type == "color")
+		{
+			colorShader.Use();
+			s_camViewer.ConfigShader(colorShader);
 
-		colorShader.SetVec3("light_pos", lightPos); 
-		colorShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
-		colorShader.SetInt("depth_cube", 1); 
-		glActiveTexture(GL_TEXTURE1); 
-		glBindTexture(GL_TEXTURE_CUBE_MAP, shadowTexture); 
-		
-		skels[i]->Draw(colorShader); 
+			colorShader.SetVec3("light_pos", lightPos);
+			colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+
+			skels[i]->Draw(colorShader);
+		}
 	}
 }
 
@@ -449,4 +409,12 @@ cv::Mat Renderer::GetImage()
 	glReadPixels(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_BGR, GL_UNSIGNED_BYTE, image.data);
 	cv::flip(image, image, 0);
 	return image;
+}
+
+cv::Mat Renderer::GetFloatImage()
+{
+	cv::Mat image(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_32FC1);
+	glReadPixels(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT, GL_RED, GL_FLOAT, image.data);
+	cv::flip(image, image, 0);
+	return image; 
 }

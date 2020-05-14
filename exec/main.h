@@ -11,6 +11,7 @@ int run_pose();
 // run_render.cpp
 int render_smal_test(); 
 int renderScene(); 
+int test_depth();
 
 // saml_fitting.cpp
 int TestVerticesAlign();

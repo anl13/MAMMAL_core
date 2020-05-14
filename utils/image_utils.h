@@ -94,6 +94,7 @@ public:
 };
 
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam);
+float queryDepth(const cv::Mat& img, float x, float y);
 
 cv::Mat reverseChamfer(const cv::Mat& chamfer);
 cv::Mat my_background_substraction(cv::Mat raw, cv::Mat bg);
@@ -103,6 +104,8 @@ std::vector<std::vector<Eigen::Vector2d> >  computeContourNormalsAll(const std::
 
 cv::Mat computeSDF2d(const cv::Mat& mask, int thresh=-1);// compute signed distance function from mask image
 cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh=-1);
+
+cv::Mat pseudoColor(cv::Mat depth);
 
 // input and output are CV_32F images
 void computeGradient(cv::Mat input, cv::Mat& outx, cv::Mat& outy);

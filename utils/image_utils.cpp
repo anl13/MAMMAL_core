@@ -508,6 +508,7 @@ int ROIdescripter::queryMask(const Eigen::Vector3d& point)
 	return 2; 
 }	
 
+
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam)
 {
 	Eigen::Vector3d proj = project(cam, point);
@@ -525,6 +526,46 @@ float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera&
 		return img.at<float>(p_int(1), p_int(0));
 	}
 }
+
+
+float queryDepth(const cv::Mat& img, float x, float y)
+{
+	Eigen::Vector2i p_int; 
+	p_int(0) = int(round(x));
+	p_int(1) = int(round(y));
+	Eigen::Vector4i box(0, 0, img.cols, img.rows);
+	bool is_in_box = in_box_test(p_int, box);
+	if (!is_in_box)
+	{
+		return -1;
+	}
+	int x1 = int(x); int x2 = x1 + 1;
+	int y1 = int(y); int y2 = y1 + 1; 
+	float dx = x - x1;
+	float dy = y - y1; 
+	float d_tl = img.at<float>(y1, x1);
+	float d_tr = img.at<float>(y1, x2);
+	float d_bl = img.at<float>(y2, x1);
+	float d_br = img.at<float>(y2, x2);
+	if (d_tl == 0 || d_tr == 0 || d_bl == 0 || d_br == 0)
+	{
+		float max_d;
+		max_d = 0 > d_tl ? 0 : d_tl;
+		max_d = max_d > d_tr ? max_d : d_tr;
+		max_d = max_d > d_bl ? max_d : d_bl;
+		max_d = max_d > d_br ? max_d : d_br; 
+		if (max_d == 0) return -1; 
+		else return max_d; 
+	}
+	else
+	{
+		float d;
+		d = d_tl * (1 - dx) * (1 - dy) + d_tr * (dx) * (1 - dy)
+			+ d_bl * (1 - dx) *dy + d_br * dx * dy;
+		return d; 
+	}
+}
+
 
 
 cv::Mat reverseChamfer(const cv::Mat& chamfer)
@@ -649,6 +690,33 @@ cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh)
 		}
 	}
 	return img;
+}
+
+cv::Mat pseudoColor(cv::Mat depth)
+{
+	std::vector<Eigen::Vector3i> CM;
+	getColorMap("jet", CM);
+	int w = depth.cols;
+	int h = depth.rows;
+	cv::Mat img(cv::Size(w, h), CV_8UC3);
+	img.setTo(0);
+	double minv, maxv;
+	cv::minMaxLoc(depth, &minv, &maxv);
+	for (int i = 0; i < h; i++)
+	{
+		for (int j = 0; j < w; j++)
+		{
+			int index; 
+			float v = depth.at<float>(i, j);
+			if (v < 0 || v > 1) index = 0; 
+			index = int(v / maxv * 255);
+			Eigen::Vector3i c = CM[index];
+			img.at<cv::Vec3b>(i, j) = cv::Vec3b(
+				uchar(c(2)), uchar(c(1)), uchar(c(0))
+			);
+		}
+	}
+	return img; 
 }
 
 void computeGradient(cv::Mat input, cv::Mat& outx, cv::Mat& outy)

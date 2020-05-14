@@ -107,6 +107,7 @@ public:
 
 	virtual RENDER_OBJECT_TYPE GetType() const { return RENDER_OBJECT_COLOR; }
 	virtual void DrawWhole(Shader& shader) const;
+	
 
 	void SetColor(const Eigen::Vector3f& _color) { color = _color; }
 private:

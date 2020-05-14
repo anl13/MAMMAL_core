@@ -157,6 +157,7 @@ RenderObject::~RenderObject()
 void RenderObject::DrawDepth(Shader& shader) const
 {
 	shader.SetMat4("model", model);
+
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 3 * faceNum, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
