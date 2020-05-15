@@ -67,7 +67,7 @@ int test_nanogui()
 	
 	// create a renderImage using cv::Mat, then we are ready to render this image on the screen
 	renderer.CreateRenderImage("Camera0", Vector2i(200, 200), Vector2i(5, 460));
-	cv::Mat img = cv::imread("D:/Projects/animal_calib/render/data/awesomeface.png", cv::IMREAD_UNCHANGED);
+	cv::Mat img = cv::imread("D:/Projects/animal_calib/nanorender/data/awesomeface.png", cv::IMREAD_UNCHANGED);
 	//cv::cvtColor(img, img, cv::COLOR_BGRA2RGBA);
 	renderer.SetRenderImage("Camera0", img);
 
@@ -100,19 +100,19 @@ int test_nanogui()
 	human_model->SetBuffer("normals", model.normals);
 	human_model->SetModelRT(nanogui::Matrix4f::translate(nanogui::Vector3f(-0.5,-0.5,0.2)));
 
-	//// create offscreen render object, you can render this object to a cuda texture or a cv::Mat
-	//// In this example code, I render this object to a cv::Mat and then use cv::imshow to demonstrate the rendering results
-	//// See interfaces of OffScreenRenderObject for more details
-	//auto human_offscreen = renderer.CreateOffscreenRenderObject(
-	//	"box3", vs_vertex_position, fs_vertex_position, 400, 400, 200, 200, 1, true);
-	//human_offscreen->SetIndices(human_model);
-	//human_offscreen->SetBuffer("positions", human_model);
-	//human_offscreen->SetBuffer("normals", human_model);
-	//human_offscreen->SetModelRT(nanogui::Matrix4f::translate(nanogui::Vector3f(-0.5, -0.5, 0.2)));
+	// create offscreen render object, you can render this object to a cuda texture or a cv::Mat
+	// In this example code, I render this object to a cv::Mat and then use cv::imshow to demonstrate the rendering results
+	// See interfaces of OffScreenRenderObject for more details
+	auto human_offscreen = renderer.CreateOffscreenRenderObject(
+		"box3", vs_vertex_position, fs_vertex_position, 400, 400, 512, 384, 1, true);
+	human_offscreen->SetIndices(human_model);
+	human_offscreen->SetBuffer("positions", human_model);
+	human_offscreen->SetBuffer("normals", human_model);
+	human_offscreen->SetModelRT(nanogui::Matrix4f::translate(nanogui::Vector3f(-0.5, -0.5, 0.2)));
 
-	//cv::Mat rendered_img(800, 800, CV_32FC4);
-	//std::vector<cv::Mat> rendered_imgs;
-	//rendered_imgs.push_back(rendered_img);
+	cv::Mat rendered_img(800, 800, CV_32FC4);
+	std::vector<cv::Mat> rendered_imgs;
+	rendered_imgs.push_back(rendered_img);
 
 	int frameIdx = 0;
 	while (!renderer.ShouldClose())
@@ -128,11 +128,11 @@ int test_nanogui()
 			renderer.Draw();
 		}
 
-		//// render box3_offscreen to a cv::Mat (offscreen rendering)
-		//human_offscreen->DrawOffscreen();
-		//human_offscreen->DownloadRenderingResults(rendered_imgs);
-		//cv::imshow("rendered img", rendered_imgs[0]);
-		//cv::waitKey(1);
+		// render box3_offscreen to a cv::Mat (offscreen rendering)
+		human_offscreen->DrawOffscreen();
+		human_offscreen->DownloadRenderingResults(rendered_imgs);
+		cv::imshow("rendered img", rendered_imgs[0]);
+		cv::waitKey(1);
 
 		++frameIdx;
 	}

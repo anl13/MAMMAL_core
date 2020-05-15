@@ -130,6 +130,65 @@ public:
 		set_uniform(name, value);
 	}
 
+	inline Eigen::Matrix4f _LookAt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _target, const Eigen::Vector3f& _up)
+	{
+		const Eigen::Vector3f direct = (_pos - _target).normalized();
+		const Eigen::Vector3f right = (_up.cross(direct)).normalized();
+		const Eigen::Vector3f up = (direct.cross(right)).normalized();
+
+		Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
+		Eigen::Matrix3f R = mat.block<3, 3>(0, 0);
+		R.row(0) = right.transpose();
+		R.row(1) = up.transpose();
+		R.row(2) = direct.transpose();
+		mat.block<3, 3>(0, 0) = R;
+		mat.block<3, 1>(0, 3) = R * (-_pos);
+
+		return mat;
+	}
+
+	Eigen::Matrix4f _calcRenderExt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _up, const Eigen::Vector3f& _center)
+	{
+		Eigen::Vector3f pos = _pos;
+		Eigen::Vector3f up = _up;
+		Eigen::Vector3f center = _center;
+
+		Eigen::Vector3f front = (pos - center).normalized();
+		Eigen::Vector3f right = (front.cross(up)).normalized();
+		up = (right.cross(front)).normalized();
+
+		Eigen::Matrix4f viewMat = _LookAt(pos, center, up);
+		return viewMat;
+	}
+
+	Eigen::Matrix4f _calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
+	{
+		Eigen::Vector3f front = -R.row(2).transpose();
+		Eigen::Vector3f up = -R.row(1).transpose();
+		Eigen::Vector3f pos = -R.transpose() * T;
+		Eigen::Vector3f center = pos - 1.0f*front;
+		return _calcRenderExt(pos, up, center);
+	}
+
+	nanogui::Matrix4f _eigen2nanoM4f(const Eigen::Matrix4f& mat)
+	{
+		nanogui::Matrix4f M;
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < 4; j++)
+			{
+				M.m[j][i] = mat(i, j);
+			}
+		}
+		return M;
+	}
+
+	void _SetViewByCameraRT(const Eigen::Matrix3d& R, const Eigen::Vector3d& T)
+	{
+		Eigen::Matrix4f view_eigen = _calcRenderExt(R.cast<float>(), T.cast<float>());
+		nanogui::Matrix4f view_nano = _eigen2nanoM4f(view_eigen);
+		SetView(view_nano);
+	}
 
 	void SetView(const Matrix4f& view)
 	{
@@ -196,7 +255,6 @@ public:
 		UploadViewRT();
 
 		begin();
-
 		if (m_buffers["indices"].shape[0] == 0)
 		{
 			draw_array(Shader::PrimitiveType::Point, 0, m_buffers["positions"].shape[0], false);
@@ -255,11 +313,15 @@ public:
 		m_width = width;
 		m_height = height;
 		m_proj = CalcGLProjectionMatrix(width, height, fx, fy, cx, cy);
-		m_view = Matrix4f::look_at(Vector3f(0, 0, 0), Vector3f(0, 0, -1), Vector3f(0, 1, 0));
+		
 		m_model = Matrix4f::identity();
 		// convert default GL viewport to default pinhole camera viewport (for pinhole camera only)
-		Matrix4f cam2gl = Matrix4f::rotate(Vector3f(1, 0, 0), M_PI);
-		m_view = m_view * cam2gl;
+		//m_view = Matrix4f::look_at(Vector3f(0, 0, 0), Vector3f(0, 0, -1), Vector3f(0, 1, 0));
+		//Matrix4f cam2gl = Matrix4f::rotate(Vector3f(1, 0, 0), M_PI);
+		//m_view = m_view * cam2gl;
+
+		// anliang:20200515
+		m_view = Matrix4f::identity();
 
 		m_render_texture_num = render_tex_num;
 		m_render_float_values = render_float_values;

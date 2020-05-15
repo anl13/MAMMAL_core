@@ -75,12 +75,6 @@ int render_smal_test()
 		// rotate box1 along z axis
 		//human_model->SetModelRT(Matrix4f::translate(Vector3f(-0.1, 0, 0.1)) * Matrix4f::rotate(Vector3f(0, 0, 1), glfwGetTime()));
 		renderer.Draw();
-
-		//// render box3_offscreen to a cv::Mat (offscreen rendering)
-		//human_offscreen->DrawOffscreen();
-		//human_offscreen->DownloadRenderingResults(rendered_imgs);
-		//cv::imshow("rendered img", rendered_imgs[0]);
-		//cv::waitKey(1);
 		++frameIdx;
 	}
 
@@ -162,7 +156,6 @@ int test_depth()
 	//PigModel smal(smal_config); 
 	PigSolver smal(smal_config);
 	std::string folder = smal.GetFolder();
-	//smal.readShapeParam(folder + "pigshape.txt");
 	smal.UpdateVertices();
 
 	// init render
@@ -177,9 +170,59 @@ int test_depth()
 	frame.set_frame_id(0); 
 	frame.fetchData();
 	auto cams = frame.get_cameras();
+	Camera cam = cams[0]; 
+	Model m3c;
+	m3c.vertices = smal.GetVertices();
+	m3c.faces = smal.GetFacesVert();
+	m3c.CalcNormal();
+	ObjModel m4c;
+	convert3CTo4C(m3c, m4c);
 
+	NanoRenderer renderer;
+	renderer.Init(1920, 1080, float(cam.K(0, 0)), float(cam.K(1, 1)), float(cam.K(0, 2)), float(cam.K(1, 2)));
 
-	
+	auto human_model = renderer.CreateRenderObject("human_model", vs_phong_geometry, fs_phong_geometry);
+	human_model->SetIndices(m4c.indices);
+	human_model->SetBuffer("positions", m4c.vertices);
+	human_model->SetBuffer("normals", m4c.normals);
+
+	Eigen::Matrix4f view_eigen = calcRenderExt(cam.R.cast<float>(), cam.T.cast<float>());
+	nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
+	renderer.UpdateCanvasView(view_eigen);
+
+	// create offscreen render object, you can render this object to a cuda texture or a cv::Mat
+	// In this example code, I render this object to a cv::Mat and then use cv::imshow to demonstrate the rendering results
+	// See interfaces of OffScreenRenderObject for more details
+	auto human_offscreen = renderer.CreateOffscreenRenderObject(
+		"box3", vs_vertex_position, fs_vertex_position, 1920,1080, cam.K(0,0), cam.K(1,1), cam.K(0,2), cam.K(1,2), 1, true);
+	human_offscreen->SetIndices(human_model);
+	human_offscreen->SetBuffer("positions", human_model);
+	human_offscreen->SetBuffer("normals", human_model);
+	human_offscreen->_SetViewByCameraRT(cam.R, cam.T);
+
+	cv::Mat rendered_img(1920, 1080, CV_32FC4);
+	std::vector<cv::Mat> rendered_imgs;
+	rendered_imgs.push_back(rendered_img);
+
+	int frameIdx = 0;
+	while (!renderer.ShouldClose())
+	{
+		renderer.Draw();
+		++frameIdx;
+		// box3_offscreen to a cv::Mat (offscreen rendering)
+		human_offscreen->DrawOffscreen();
+		human_offscreen->DownloadRenderingResults(rendered_imgs);
+		cv::imshow("rendered img", rendered_imgs[0]);
+		std::cout << "img: " << rendered_imgs[0].cols << "," << rendered_imgs[0].rows << std::endl; 
+
+		std::vector<cv::Mat> channels(4);
+		cv::split(rendered_imgs[0], channels);
+		cv::Mat vis = pseudoColor(channels[2]);
+		cv::imshow("depth", vis); 
+
+		cv::waitKey(1);
+	}
+
 	//cv::Mat capture = m_renderer.GetFloatImage();
 	//cv::Mat depth_vis = pseudoColor(capture); 
 	//cv::namedWindow("depth", cv::WINDOW_NORMAL);

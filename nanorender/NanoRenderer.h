@@ -322,7 +322,7 @@ public:
 	ref<OffscreenRenderObject> CreateOffscreenRenderObject(
 		const std::string& name, const std::string& vs, const std::string& fs, 
 		const int& width = 400, const int& height = 400, const float& fx = 400, const float& fy = 400,
-		const float& cx = 400, const float& cy = 400, const int& tex_num = 1, const int& render_float_values = false) {
+		const float& cx = 400, const float& cy = 400, const int& tex_num = 1, const int& render_float_values = true) {
 		ref<OffscreenRenderObject> render_object 
 			= new OffscreenRenderObject(name, vs, fs, width, height, fx, fy, cx, cy, tex_num, render_float_values);
 		m_offscreen_render_objects.emplace(std::make_pair(name, render_object));
