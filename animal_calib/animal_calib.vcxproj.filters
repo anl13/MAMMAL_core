@@ -19,9 +19,6 @@
     <Filter Include="associate\mce">
       <UniqueIdentifier>{0ba8c2f1-cdb7-4b96-88db-c707de187fd9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="render">
-      <UniqueIdentifier>{eb5f9722-17dd-4e41-aee9-d4598ec4a98b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="smal">
       <UniqueIdentifier>{79a208ca-a076-444e-91f6-ed564d41b8c7}</UniqueIdentifier>
     </Filter>
@@ -33,6 +30,9 @@
     </Filter>
     <Filter Include="bundle">
       <UniqueIdentifier>{4c08a9b2-c969-4199-a8a4-68c8bfa3b084}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="nanorender">
+      <UniqueIdentifier>{eb5f9722-17dd-4e41-aee9-d4598ec4a98b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -66,24 +66,6 @@
     <ClCompile Include="..\associate\mce\Tools.cpp">
       <Filter>associate\mce</Filter>
     </ClCompile>
-    <ClCompile Include="..\render\camviewer.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\glad.c">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\render_object.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\render_utils.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\renderer.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\shader.cpp">
-      <Filter>render</Filter>
-    </ClCompile>
     <ClCompile Include="..\smal\pigmodel.cpp">
       <Filter>smal</Filter>
     </ClCompile>
@@ -108,26 +90,11 @@
     <ClCompile Include="..\smal\pigsolver_fitting.cpp">
       <Filter>smal</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\custom_pig.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\main.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
     <ClCompile Include="..\smal\pigsolver_shape.cpp">
       <Filter>smal</Filter>
     </ClCompile>
     <ClCompile Include="..\associate\framedata_shape.cpp">
       <Filter>associate</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\run_shape.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\run_render.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\smal_fitting.cpp">
-      <Filter>exec</Filter>
     </ClCompile>
     <ClCompile Include="..\smal\pigsolver_jacobi.cpp">
       <Filter>smal</Filter>
@@ -138,9 +105,6 @@
     <ClCompile Include="..\utils\volume.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\calib_bundle.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
     <ClCompile Include="..\bundle\BASolver.cpp">
       <Filter>bundle</Filter>
     </ClCompile>
@@ -150,16 +114,34 @@
     <ClCompile Include="..\bundle\annotator.cpp">
       <Filter>bundle</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\annotate.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\model.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\run_pose.cpp">
+    <ClCompile Include="..\utils\objloader.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\main.cpp">
       <Filter>exec</Filter>
     </ClCompile>
     <ClCompile Include="..\exec\testfunc.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\run_render.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\dataconverter.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nanorender\NanoRenderer.cpp">
+      <Filter>nanorender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nanorender\RenderObject.cpp">
+      <Filter>nanorender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\nanorender\shader_file.cpp">
+      <Filter>nanorender</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\Source.cpp">
       <Filter>exec</Filter>
     </ClCompile>
   </ItemGroup>
@@ -191,27 +173,6 @@
     <ClInclude Include="..\associate\mce\Tools.h">
       <Filter>associate\mce</Filter>
     </ClInclude>
-    <ClInclude Include="..\render\camviewer.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\eigen_util.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\render_object.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\render_utils.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\renderer.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\shader.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\stb_image.h">
-      <Filter>render</Filter>
-    </ClInclude>
     <ClInclude Include="..\smal\pigmodel.h">
       <Filter>smal</Filter>
     </ClInclude>
@@ -242,9 +203,6 @@
     <ClInclude Include="..\utils\timer_util.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\exec\main.h">
-      <Filter>exec</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\kdtree.h">
       <Filter>utils</Filter>
     </ClInclude>
@@ -268,6 +226,30 @@
     </ClInclude>
     <ClInclude Include="..\bundle\annotator.h">
       <Filter>bundle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\objloader.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\safe_call.hpp">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\timer.hpp">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\exec\main.h">
+      <Filter>exec</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\dataconverter.h">
+      <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nanorender\NanoRenderer.h">
+      <Filter>nanorender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nanorender\RenderObject.h">
+      <Filter>nanorender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\nanorender\shader_file.h">
+      <Filter>nanorender</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

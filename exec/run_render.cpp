@@ -1,5 +1,3 @@
-#include "../render/renderer.h" 
-#include "../render/render_object.h" 
 #include <iostream> 
 #include <fstream> 
 #include <sstream> 
@@ -16,12 +14,15 @@
 #include "../utils/image_utils.h"
 #include "../associate/framedata.h" 
 #include "../utils/math_utils.h"
-#include "../render/eigen_util.h"
-#include "../render/render_utils.h" 
 #include "../utils/colorterminal.h" 
 #include "../smal/pigmodel.h"
 #include "../utils/node_graph.h"
 #include "../utils/model.h"
+#include "../utils/dataconverter.h" 
+#include "../nanorender/NanoRenderer.h"
+#include <vector_functions.hpp>
+#include "../utils/timer.hpp" 
+#include "main.h"
 
 int render_smal_test()
 {
@@ -29,103 +30,64 @@ int render_smal_test()
 
     std::string conf_projectFolder = "D:/projects/animal_calib/render";
 	std::string smal_config = "D:/Projects/animal_calib/smal/smal2_config.json";
-	auto CM = getColorMapEigen("anliang_rgb"); 
 	SkelTopology m_topo = getSkelTopoByType("UNIV");
     /// read smal model 
-	//PigModel smal(smal_config); 
 	PigSolver smal(smal_config);
 	std::string folder = smal.GetFolder();
-	//smal.readShapeParam(folder + "pigshape.txt");
     smal.UpdateVertices();
 
-	// init render
-	Eigen::Matrix3f K;
-	K << 0.698, 0, 0.502,
-		0, 1.243, 0.483,
-		0, 0, 1;
-	std::cout << K << std::endl;
+	FrameData framedata; 
+	framedata.configByJson("D:/Projects/animal_calib/associate/config.json");
+	framedata.set_frame_id(0);
+	framedata.fetchData();
+	auto cams = framedata.get_cameras();
 
 	Eigen::Vector3f up; up << 0, 0, -1;
 	Eigen::Vector3f pos; pos << -1, 1.5, -0.8;
 	Eigen::Vector3f center = Eigen::Vector3f::Zero();
 
-	// init renderer 
-	Renderer::s_Init();
-	Renderer m_renderer(conf_projectFolder + "/shader/");
-	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+	Model m3c;
+	m3c.vertices = smal.GetVertices(); 
+	m3c.faces = smal.GetFacesVert();
+	m3c.CalcNormal();
+	ObjModel m4c;
+	convert3CTo4C(m3c, m4c);
 
-	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj");
+	Camera cam = cams[0];
+	NanoRenderer renderer; 
+	renderer.Init(1920, 1080, float(cam.K(0, 0)), float(cam.K(1, 1)), float(cam.K(0, 2)), float(cam.K(1, 2)));
+	std::cout << "cam.K: " << cam.K << std::endl;
 
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.2f, 0.8f, 0.2f, 1.0f));
-
-	//RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	//chess_floor->SetTexture(conf_projectFolder + "/data/chessboard.png");
-	//chess_floor->SetFaces(squareObj.faces, true);
-	//chess_floor->SetVertices(squareObj.vertices);
-	//chess_floor->SetTexcoords(squareObj.texcoords);
-	//chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	//m_renderer.texObjs.push_back(chess_floor);
-
-    Eigen::Matrix<unsigned int,-1,-1, Eigen::ColMajor> faces = smal.GetFacesVert(); 
-    Eigen::MatrixXf vs    = smal.GetVertices().cast<float>(); 
-	Eigen::MatrixXd vsd = smal.GetVertices(); 
-
-	RenderObjectColor* smal_render = new RenderObjectColor();
-    smal_render->SetFaces(faces); 
-    smal_render->SetVertices(vs);
-    Eigen::Vector3f color; 
-    color << 0.8f, 0.8f, 0.8f; 
-    smal_render->SetColor(color); 
-    m_renderer.colorObjs.push_back(smal_render); 
-
-	//// // show joints
-	//Eigen::MatrixXf joints = smal.GetJoints().cast<float>(); 
-	//int jointNum = smal.GetJointNum(); 
-	//Eigen::VectorXi parents = smal.GetParents(); 
-	//std::vector<float> sizes(jointNum, 0.03);
-	//std::vector<Eigen::Vector3f> balls;
-	//std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-	//std::vector<Eigen::Vector3f> colors(jointNum, Eigen::Vector3f(0.8, 0.8, 0.8));
-	//for (int i = 0; i < jointNum; i++)
-	//{
-	//	colors[i] = CM[i];
-	//}
-	//GetBallsAndSticks(joints, parents, balls, sticks);
-	//BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors);
-	//m_renderer.skels.push_back(skelObject); 
-
-	//// // show joints
-	//Eigen::MatrixXf joints = smal.getRegressedSkelbyPairs().cast<float>();
-	//int jointNum = m_topo.joint_num;
-	//Eigen::VectorXi parents;
-	//std::vector<float> sizes(jointNum, 0.03);
-	//std::vector<Eigen::Vector3f> balls;
-	//std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-	//std::vector<Eigen::Vector3f> colors(jointNum, Eigen::Vector3f(0.8, 0.8, 0.8));
-	//for (int i = 0; i < jointNum; i++)
-	//{
-	//	colors[i] = CM[i];
-	//}
-	//GetBallsAndSticks(joints, parents, balls, sticks);
-	//BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors);
-	//m_renderer.skels.push_back(skelObject);
-
-    while(!glfwWindowShouldClose(windowPtr))
-    {
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        m_renderer.Draw(); 
-        glfwSwapBuffers(windowPtr); 
-        glfwPollEvents(); 
-    };
+	auto human_model = renderer.CreateRenderObject("human_model", vs_phong_geometry, fs_phong_geometry);
+	human_model->SetIndices(m4c.indices);
+	human_model->SetBuffer("positions", m4c.vertices);
+	human_model->SetBuffer("normals", m4c.normals);
 	
+	Eigen::Matrix4f view_eigen = calcRenderExt(cam.R.cast<float>(), cam.T.cast<float>());
+	nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
+	//human_model->SetView(view_nano);
+	
+	renderer.UpdateCanvasView(view_eigen);
+
+	int frameIdx = 0;
+	while (!renderer.ShouldClose())
+	{
+		// rotate box1 along z axis
+		//human_model->SetModelRT(Matrix4f::translate(Vector3f(-0.1, 0, 0.1)) * Matrix4f::rotate(Vector3f(0, 0, 1), glfwGetTime()));
+		renderer.Draw();
+
+		//// render box3_offscreen to a cv::Mat (offscreen rendering)
+		//human_offscreen->DrawOffscreen();
+		//human_offscreen->DownloadRenderingResults(rendered_imgs);
+		//cv::imshow("rendered img", rendered_imgs[0]);
+		//cv::waitKey(1);
+		++frameIdx;
+	}
+
     return 0; 
 }
 
+/*
 void renderScene()
 {
 	const float kFloorDx = 0.28;
@@ -189,13 +151,12 @@ void renderScene()
         glfwPollEvents(); 
     };
 }
-
+*/
 
 int test_depth()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/render";
 	std::string smal_config = "D:/Projects/animal_calib/smal/smal2_config.json";
-	auto CM = getColorMapEigen("anliang_rgb");
 	SkelTopology m_topo = getSkelTopoByType("UNIV");
 	/// read smal model 
 	//PigModel smal(smal_config); 
@@ -211,99 +172,38 @@ int test_depth()
 		0, 0, 1;
 	std::cout << K << std::endl;
 
-	Eigen::Vector3f up; up << 0, 0, -1;
-	Eigen::Vector3f pos; pos << -1, 1.5, -0.8;
-	Eigen::Vector3f center = Eigen::Vector3f::Zero();
-
-	// init renderer 
-	Renderer::s_Init();
-	Renderer m_renderer(conf_projectFolder + "/shader/");
-	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-
-	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj");
-
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.f, 0.f, 0.f, 1.0f));
-
-	//RenderObjectColor* floor = new RenderObjectColor();
-	//floor->SetFaces(squareObj.faces);
-	//floor->SetVertices(squareObj.vertices);
-	//Eigen::Vector3f c(0.8f, 0.8f, 0.8f);
-	//floor->SetColor(c);
-	//m_renderer.colorObjs.push_back(floor);
-
-	Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces = smal.GetFacesVert();
-	Eigen::MatrixXf vs = smal.GetVertices().cast<float>();
-	Eigen::MatrixXd vsd = smal.GetVertices();
-
-	RenderObjectColor* smal_render = new RenderObjectColor();
-	smal_render->SetFaces(faces);
-	smal_render->SetVertices(vs);
-	Eigen::Vector3f color;
-	color << 0.8f, 0.8f, 0.8f;
-	smal_render->SetColor(color);
-	m_renderer.colorObjs.push_back(smal_render);
-
-	//while (!glfwWindowShouldClose(windowPtr))
-	//{
-	//	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	//	m_renderer.Draw();
-	//	glfwSwapBuffers(windowPtr);
-	//	glfwPollEvents();
-	//};
 	FrameData frame;
 	frame.configByJson("D:/Projects/animal_calib/associate/config.json");
 	frame.set_frame_id(0); 
 	frame.fetchData();
 	auto cams = frame.get_cameras();
-	m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[0].T.cast<float>());
-	m_renderer.Draw("depth");
+
+
 	
-	cv::Mat capture = m_renderer.GetFloatImage();
-	cv::Mat depth_vis = pseudoColor(capture); 
-	cv::namedWindow("depth", cv::WINDOW_NORMAL);
-	cv::imshow("depth", depth_vis);
-	cv::waitKey();
-	cv::destroyAllWindows();
+	//cv::Mat capture = m_renderer.GetFloatImage();
+	//cv::Mat depth_vis = pseudoColor(capture); 
+	//cv::namedWindow("depth", cv::WINDOW_NORMAL);
+	//cv::imshow("depth", depth_vis);
+	//cv::waitKey();
+	//cv::destroyAllWindows();
 
-	int vertexNum = vs.cols();
-	std::vector<Eigen::Vector3f> colors(vertexNum, Eigen::Vector3f(1.0f, 1.0f, 1.0f));
-	std::vector<float> sizes(vertexNum, 0.006);
-	std::vector<Eigen::Vector3f> balls;
-	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-	Eigen::VectorXi parents;
-	GetBallsAndSticks(vs, parents, balls, sticks);
 
-	for (int i = 0; i < vs.cols(); i++)
-	{
-		Eigen::Vector3d v = vs.col(i).cast<double>();
-		Eigen::Vector3d uv = project(cams[0], v);
-		double d = queryDepth(capture, uv(0), uv(1)) * RENDER_FAR_PLANE;
-		v = cams[0].R * v + cams[0].T; 
-		std::cout << "d: " << d << "  gt: " << v(2) << std::endl;
-		if (d > 0 && abs(d - v(2)) < 0.1)
-		{
-			colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
-		}
-		else
-		{
-			colors[i] = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
-		}
-	}
-	BallStickObject* pc = new BallStickObject(ballObj, balls, sizes, colors);
-	m_renderer.skels.push_back(pc);
-
-	while (!glfwWindowShouldClose(windowPtr))
-	{
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		m_renderer.Draw();
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
-	};
+	//for (int i = 0; i < vs.cols(); i++)
+	//{
+	//	Eigen::Vector3d v = vs.col(i).cast<double>();
+	//	Eigen::Vector3d uv = project(cams[0], v);
+	//	double d = queryDepth(capture, uv(0), uv(1)) * RENDER_FAR_PLANE;
+	//	v = cams[0].R * v + cams[0].T; 
+	//	std::cout << "d: " << d << "  gt: " << v(2) << std::endl;
+	//	if (d > 0 && abs(d - v(2)) < 0.1)
+	//	{
+	//		colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
+	//	}
+	//	else
+	//	{
+	//		colors[i] = Eigen::Vector3f(1.0f, 1.0f, 1.0f);
+	//	}
+	//}
 
 	return 0;
 }

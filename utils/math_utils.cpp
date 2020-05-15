@@ -413,3 +413,25 @@ double vec2angle(const Eigen::Vector2d& vec)
 	// -180 ~ 180
 }
 
+Eigen::Matrix4f calcRenderExt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _up, const Eigen::Vector3f& _center)
+{
+	Eigen::Vector3f pos = _pos;
+	Eigen::Vector3f up = _up;
+	Eigen::Vector3f center = _center;
+
+	Eigen::Vector3f front = (pos - center).normalized();
+	Eigen::Vector3f right = (front.cross(up)).normalized();
+	up = (right.cross(front)).normalized();
+
+	Eigen::Matrix4f viewMat = EigenUtil::LookAt(pos, center, up);
+	return viewMat; 
+}
+
+Eigen::Matrix4f calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
+{
+	Eigen::Vector3f front = -R.row(2).transpose();
+	Eigen::Vector3f up = -R.row(1).transpose();
+	Eigen::Vector3f pos = -R.transpose() * T;
+	Eigen::Vector3f center = pos - 1.0f*front;
+	return calcRenderExt(pos, up, center);
+}

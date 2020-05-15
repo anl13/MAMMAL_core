@@ -33,32 +33,26 @@
     <ClCompile Include="..\bundle\annotator.cpp" />
     <ClCompile Include="..\bundle\BASolver.cpp" />
     <ClCompile Include="..\bundle\calibration.cpp" />
-    <ClCompile Include="..\exec\annotate.cpp" />
-    <ClCompile Include="..\exec\calib_bundle.cpp" />
-    <ClCompile Include="..\exec\custom_pig.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
-    <ClCompile Include="..\exec\run_pose.cpp" />
     <ClCompile Include="..\exec\run_render.cpp" />
-    <ClCompile Include="..\exec\run_shape.cpp" />
-    <ClCompile Include="..\exec\smal_fitting.cpp" />
+    <ClCompile Include="..\exec\Source.cpp" />
     <ClCompile Include="..\exec\testfunc.cpp" />
-    <ClCompile Include="..\render\camviewer.cpp" />
-    <ClCompile Include="..\render\glad.c" />
-    <ClCompile Include="..\render\renderer.cpp" />
-    <ClCompile Include="..\render\render_object.cpp" />
-    <ClCompile Include="..\render\render_utils.cpp" />
-    <ClCompile Include="..\render\shader.cpp" />
+    <ClCompile Include="..\nanorender\NanoRenderer.cpp" />
+    <ClCompile Include="..\nanorender\RenderObject.cpp" />
+    <ClCompile Include="..\nanorender\shader_file.cpp" />
     <ClCompile Include="..\smal\pigmodel.cpp" />
     <ClCompile Include="..\smal\pigsolver_fitting.cpp" />
     <ClCompile Include="..\smal\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\smal\pigsolver_shape.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
+    <ClCompile Include="..\utils\dataconverter.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
     <ClCompile Include="..\utils\model.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
+    <ClCompile Include="..\utils\objloader.cpp" />
     <ClCompile Include="..\utils\obj_reader.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
   </ItemGroup>
@@ -76,17 +70,14 @@
     <ClInclude Include="..\bundle\BASolver.h" />
     <ClInclude Include="..\bundle\calibration.h" />
     <ClInclude Include="..\exec\main.h" />
-    <ClInclude Include="..\render\camviewer.h" />
-    <ClInclude Include="..\render\eigen_util.h" />
-    <ClInclude Include="..\render\renderer.h" />
-    <ClInclude Include="..\render\render_object.h" />
-    <ClInclude Include="..\render\render_utils.h" />
-    <ClInclude Include="..\render\shader.h" />
-    <ClInclude Include="..\render\stb_image.h" />
+    <ClInclude Include="..\nanorender\NanoRenderer.h" />
+    <ClInclude Include="..\nanorender\RenderObject.h" />
+    <ClInclude Include="..\nanorender\shader_file.h" />
     <ClInclude Include="..\smal\pigmodel.h" />
     <ClInclude Include="..\smal\pigsolver.h" />
     <ClInclude Include="..\utils\camera.h" />
     <ClInclude Include="..\utils\colorterminal.h" />
+    <ClInclude Include="..\utils\dataconverter.h" />
     <ClInclude Include="..\utils\geometry.h" />
     <ClInclude Include="..\utils\Hungarian.h" />
     <ClInclude Include="..\utils\image_utils.h" />
@@ -95,7 +86,10 @@
     <ClInclude Include="..\utils\model.h" />
     <ClInclude Include="..\utils\nanoflann.hpp" />
     <ClInclude Include="..\utils\node_graph.h" />
+    <ClInclude Include="..\utils\objloader.h" />
     <ClInclude Include="..\utils\obj_reader.h" />
+    <ClInclude Include="..\utils\safe_call.hpp" />
+    <ClInclude Include="..\utils\timer.hpp" />
     <ClInclude Include="..\utils\timer_util.h" />
     <ClInclude Include="..\utils\volume.h" />
   </ItemGroup>
@@ -140,6 +134,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -157,7 +152,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>../3rdparty/eigen;../3rdparty/ceres/include;../3rdparty/opencv/include;../3rdparty/json/include;../3rdparty/opengl/include;../3rdparty/boost/include;$(IncludePath)</IncludePath>
+    <IncludePath>../3rdparty/eigen;../3rdparty/ceres/include;../3rdparty/opencv/include;../3rdparty/json/include;../3rdparty/opengl/include;../3rdparty/boost-1.65.1;../3rdparty/PCL-vs2017-10.0-1.9.1\include\pcl-1.9;../3rdparty/nanogui/ext/nanovg/src;../3rdparty/nanogui/include;$(IncludePath)</IncludePath>
+    <LibraryPath>../3rdparty/PCL-vs2017-10.0-1.9.1/lib;../3rdparty/boost-1.65.1/lib64-msvc-14.1;../3rdparty/nanogui;../3rdparty/opencv/lib/;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -193,16 +189,22 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLOG_NO_ABBREVIATED_SEVERITIES;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLOG_NO_ABBREVIATED_SEVERITIES;WIN64;WIN32;_WINDOWS;NDEBUG;_CONSOLE;_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS;NANOGUI_USE_OPENGL;NANOGUI_SHARED;NVG_SHARED;GLAD_GLAPI_EXPORT;NANOGUI_GLAD;_MBCS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\3rdparty\boost\lib\*.lib;..\3rdparty\ceres\lib\*.lib;..\3rdparty\opengl\lib\*.lib;..\3rdparty\json\lib\*.lib;..\3rdparty\opencv\lib\*.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\3rdparty\ceres\lib\*.lib;..\3rdparty\opengl\lib\*.lib;..\3rdparty\json\lib\*.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;opencv_aruco410.lib;opencv_bgsegm410.lib;opencv_bioinspired410.lib;opencv_calib3d410.lib;opencv_ccalib410.lib;opencv_core410.lib;opencv_cudaarithm410.lib;opencv_cudacodec410.lib;opencv_cudafeatures2d410.lib;opencv_cudafilters410.lib;opencv_cudaimgproc410.lib;opencv_cudalegacy410.lib;opencv_cudaobjdetect410.lib;opencv_cudaoptflow410.lib;opencv_cudastereo410.lib;opencv_cudawarping410.lib;opencv_cudev410.lib;opencv_datasets410.lib;opencv_dnn410.lib;opencv_dnn_objdetect410.lib;opencv_dpm410.lib;opencv_face410.lib;opencv_features2d410.lib;opencv_flann410.lib;opencv_fuzzy410.lib;opencv_gapi410.lib;opencv_hdf410.lib;opencv_hfs410.lib;opencv_highgui410.lib;opencv_imgcodecs410.lib;opencv_imgproc410.lib;opencv_img_hash410.lib;opencv_line_descriptor410.lib;opencv_ml410.lib;opencv_objdetect410.lib;opencv_optflow410.lib;opencv_phase_unwrapping410.lib;opencv_photo410.lib;opencv_plot410.lib;opencv_quality410.lib;opencv_reg410.lib;opencv_rgbd410.lib;opencv_saliency410.lib;opencv_shape410.lib;opencv_stereo410.lib;opencv_structured_light410.lib;opencv_superres410.lib;opencv_surface_matching410.lib;opencv_text410.lib;opencv_tracking410.lib;opencv_video410.lib;opencv_videoio410.lib;opencv_videostab410.lib;opencv_xfeatures2d410.lib;opencv_ximgproc410.lib;opencv_xobjdetect410.lib;opencv_xphoto410.lib;libboost_chrono-vc141-mt-1_65_1.lib;libboost_date_time-vc141-mt-1_65_1.lib;libboost_filesystem-vc141-mt-1_65_1.lib;libboost_iostreams-vc141-mt-1_65_1.lib;libboost_system-vc141-mt-1_65_1.lib;libboost_thread-vc141-mt-1_65_1.lib;pcl_common_release.lib;pcl_cuda_features_release.lib;pcl_cuda_sample_consensus_release.lib;pcl_cuda_segmentation_release.lib;pcl_features_release.lib;pcl_filters_release.lib;pcl_gpu_containers_release.lib;pcl_gpu_features_release.lib;pcl_gpu_octree_release.lib;pcl_gpu_segmentation_release.lib;pcl_gpu_utils_release.lib;pcl_io_ply_release.lib;pcl_io_release.lib;pcl_kdtree_release.lib;pcl_keypoints_release.lib;pcl_ml_release.lib;pcl_octree_release.lib;pcl_outofcore_release.lib;pcl_people_release.lib;pcl_recognition_release.lib;pcl_registration_release.lib;pcl_sample_consensus_release.lib;pcl_search_release.lib;pcl_segmentation_release.lib;pcl_stereo_release.lib;pcl_surface_release.lib;pcl_tracking_release.lib;pcl_visualization_release.lib;nanogui.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <CudaCompile>
+      <CodeGeneration>compute_52,sm_52</CodeGeneration>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
 </Project>

@@ -657,24 +657,24 @@ void PigSolver::naiveNodeDeform()
 
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
-	GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
+	//GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
 	int iter = 0;
 	for (; iter < maxIter; iter++)
 	{
 		std::cout << "ITER: " << iter << std::endl; 
 		// render images 
 		UpdateVertices();
-		mp_renderer->colorObjs.clear();
+		//mp_renderer->colorObjs.clear();
 
 		const auto& faces = m_facesVert;
 		const Eigen::MatrixXf vs = m_verticesFinal.cast<float>();
 
-		RenderObjectColor* pig_render = new RenderObjectColor();
-		pig_render->SetFaces(faces);
-		pig_render->SetVertices(vs);
-		Eigen::Vector3f color(1.0, 0.0, 0.0);
-		pig_render->SetColor(color);
-		mp_renderer->colorObjs.push_back(pig_render);
+		//RenderObjectColor* pig_render = new RenderObjectColor();
+		//pig_render->SetFaces(faces);
+		//pig_render->SetVertices(vs);
+		//Eigen::Vector3f color(1.0, 0.0, 0.0);
+		//pig_render->SetColor(color);
+		//mp_renderer->colorObjs.push_back(pig_render);
 
 		std::vector<cv::Mat> color_mask_dets; 
 
@@ -686,10 +686,10 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			auto cam = m_rois[view].cam;
 			Eigen::Matrix3f R = cam.R.cast<float>();
 			Eigen::Vector3f T = cam.T.cast<float>();
-			mp_renderer->s_camViewer.SetExtrinsic(R, T);
-			mp_renderer->Draw();
-			cv::Mat capture = mp_renderer->GetImage();
-			renders.push_back(capture);
+			//mp_renderer->s_camViewer.SetExtrinsic(R, T);
+			//mp_renderer->Draw();
+			//cv::Mat capture = mp_renderer->GetImage();
+			//renders.push_back(capture);
 			int camid = m_rois[view].viewid; 
 			raw_ims.push_back(m_rawImgs[camid]);
 			cv::Mat img = m_rawImgs[camid].clone();

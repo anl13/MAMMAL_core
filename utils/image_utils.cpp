@@ -266,7 +266,7 @@ std::vector<Eigen::Vector3d> read_points(std::string filename)
     std::ifstream infile(filename); 
     if(!infile.is_open())
     {
-        std::cout << RED_TEXT("can not open file ") << filename << std::endl; 
+        std::cout << ("can not open file ") << filename << std::endl; 
         exit(-1); 
     }
     std::vector<Eigen::Vector3d> points; 

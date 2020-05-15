@@ -12,6 +12,7 @@ int run_pose();
 int render_smal_test(); 
 int renderScene(); 
 int test_depth();
+int test_nanogui();
 
 // saml_fitting.cpp
 int TestVerticesAlign();

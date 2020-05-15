@@ -16,7 +16,6 @@
 #include "../utils/model.h"
 #include "../utils/node_graph.h"
 #include "../utils/kdtree.h"
-#include "../render/renderer.h"
 #include "../utils/volume.h"
 
 /*
@@ -92,7 +91,7 @@ public:
 	vector<cv::Mat>       m_renders; 
 	void optimizePoseSilhouette(int maxIter);
 	void CalcSilhouettePoseTerm(const std::vector<cv::Mat>& renders, Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb, int iter);
-	Renderer* mp_renderer;
+	//Renderer* mp_renderer;
 
 	std::vector<int> m_poseToOptimize;
 
