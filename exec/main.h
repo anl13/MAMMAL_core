@@ -19,6 +19,8 @@ int TestVerticesAlign();
 int removeSmalTail();
 int ComputeSymmetry();
 
+int ComputePigModelSym();
+
 // calibration 
 void test_calib(std::string folder); 
 void test_epipolar(std::string folder); 
@@ -27,3 +29,5 @@ void test_epipolar(std::string folder);
 void annotate(); 
 
 void testfunc();
+
+int modify_model(); 

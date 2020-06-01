@@ -43,6 +43,7 @@ PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile)
 		a_map_pair.second = c[1].asInt(); 
 		m_mapper.push_back(a_map_pair); 
 	}
+	m_symNum = root["sym_num"].asInt(); 
 
 	m_scale = 1;
 	m_frameid = 0.0;
@@ -55,9 +56,26 @@ PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile)
 		m_symIdx.resize(m_vertexNum);
 		for (int i = 0; i < m_vertexNum; i++)
 		{
-			is >> m_symIdx[i];
+			m_symIdx[i].resize(m_symNum);
+			for(int k = 0;  k < m_symNum; k++)
+			is >> m_symIdx[i][k];
 		}
 	}
+	is.close();
+
+	std::string symweight_file = m_folder + "/symweights.txt";
+	std::ifstream is_symweight(symweight_file);
+	if (is_symweight.is_open())
+	{
+		m_symweights.resize(m_vertexNum);
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			m_symweights[i].resize(m_symNum);
+			for (int k = 0; k < m_symNum; k++)
+				is_symweight >> m_symweights[i][k];
+		}
+	}
+	is_symweight.close(); 
 
 	// read optim pair;
 	m_optimPairs.clear(); 
@@ -375,7 +393,7 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		}
 		double lambda = 0.0005;
 		double w1 = 1;
-		double w_reg = 0.001; 
+		double w_reg = 0.01; 
 		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXd H_reg = DTD;  // reg term 
 		Eigen::VectorXd b_reg = -theta; // reg term 

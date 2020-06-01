@@ -304,6 +304,7 @@ void PigSolver::CalcPose2DTermByPairs(
 
 	for (int i = 0; i < N; i++)
 	{
+		
 		CorrPair P = m_optimPairs[i];
 		int t = P.target; 
 		if (det.keypoints[t](2) < m_topo.kpt_conf_thresh[t]) continue;
@@ -314,16 +315,18 @@ void PigSolver::CalcPose2DTermByPairs(
 		D(1, 1) = 1 / x_local(2);
 		D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
 		D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
-		J.middleRows(2 * i, 2) = D * K * R * Jacobi3d.middleRows(3 * i, 3);
+		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3);
 		Eigen::Vector2d u;
 		u(0) = x_local(0) / x_local(2);
 		u(1) = x_local(1) / x_local(2);
 
-		r.segment<2>(2 * i) = u - det.keypoints[t].segment<2>(0);
+		r.segment<2>(2 * i) = P.weight * (u - det.keypoints[t].segment<2>(0));
 	}
 
 	ATb = -J.transpose() * r;
 	ATA = J.transpose() * J;
+
+	//std::cout << "pose r: " << r.norm() << std::endl; 
 }
 
 void PigSolver::CalcPoseJacobiNumeric()

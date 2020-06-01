@@ -63,6 +63,25 @@ void my_undistort_points(const std::vector<Eigen::Vector3d>& points,
     }
 }
 
+void my_undistort_points(const std::vector<Eigen::Vector2d>& points,
+	std::vector<Eigen::Vector2d>& out, const Camera &cam, const Camera &newcam)
+{
+	std::vector<Eigen::Vector3d> points_in;
+	std::vector<Eigen::Vector3d> points_out; 
+	points_in.resize(points.size());
+	for (int i = 0; i < points.size(); i++)
+	{
+		points_in[i].segment<2>(0) = points[i];
+		points_in[i](2);
+	}
+	my_undistort_points(points_in, points_out, cam, newcam);
+	out.resize(points_out.size());
+	for (int i = 0; i < points_out.size(); i++)
+	{
+		out[i] = points_out[i].segment<2>(0);
+	}
+}
+
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points)
 {
     size_t pnum = points.size(); 
@@ -195,6 +214,45 @@ void getColorMap(std::string cm_type, std::vector<Eigen::Vector3i> &colormap)
         color << a ,b, c;  
         colormap.push_back(color);   
     }
+}
+
+std::vector<float4> getColorMapFloat4(std::string cm_type)
+{
+	std::vector<Eigen::Vector3i> CM; 
+	getColorMap(cm_type, CM);
+	std::vector<float4> CM4; 
+	if (CM.size() > 0)
+	{
+		CM4.resize(CM.size());
+		for (int i = 0; i < CM.size(); i++)
+		{
+			CM4[i] = make_float4(
+				CM[i](0)/255.f, CM[i](1)/255.f, CM[i](2)/255.f, 1.0f);
+		}
+	}
+	return CM4; 
+}
+std::vector<Eigen::Vector3i> getColorMapEigen(std::string cm_type)
+{
+	std::vector<Eigen::Vector3i> CM;
+	getColorMap(cm_type, CM); 
+	return CM;
+}
+
+std::vector<nanogui::Vector4f> getColorMapNano(std::string cm_type)
+{
+	std::vector<Eigen::Vector3i> CM;
+	getColorMap(cm_type, CM); 
+	std::vector<nanogui::Vector4f> nano; 
+	nano.resize(CM.size());
+	for (int i = 0; i < CM.size(); i++)
+	{
+		nano[i][0] = CM[i](0) / 255.f; 
+		nano[i][1] = CM[i](1) / 255.f;
+		nano[i][2] = CM[i](2) / 255.f;
+		nano[i][3] = 1.f; 
+	}
+	return nano;
 }
 
 void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Vector3i c)
@@ -539,31 +597,32 @@ float queryDepth(const cv::Mat& img, float x, float y)
 	{
 		return -1;
 	}
-	int x1 = int(x); int x2 = x1 + 1;
-	int y1 = int(y); int y2 = y1 + 1; 
-	float dx = x - x1;
-	float dy = y - y1; 
-	float d_tl = img.at<float>(y1, x1);
-	float d_tr = img.at<float>(y1, x2);
-	float d_bl = img.at<float>(y2, x1);
-	float d_br = img.at<float>(y2, x2);
-	if (d_tl == 0 || d_tr == 0 || d_bl == 0 || d_br == 0)
-	{
-		float max_d;
-		max_d = 0 > d_tl ? 0 : d_tl;
-		max_d = max_d > d_tr ? max_d : d_tr;
-		max_d = max_d > d_bl ? max_d : d_bl;
-		max_d = max_d > d_br ? max_d : d_br; 
-		if (max_d == 0) return -1; 
-		else return max_d; 
-	}
-	else
-	{
-		float d;
-		d = d_tl * (1 - dx) * (1 - dy) + d_tr * (dx) * (1 - dy)
-			+ d_bl * (1 - dx) *dy + d_br * dx * dy;
-		return d; 
-	}
+	return img.at<float>(p_int(1), p_int(0));
+	//int x1 = int(x); int x2 = x1 + 1;
+	//int y1 = int(y); int y2 = y1 + 1; 
+	//float dx = x - x1;
+	//float dy = y - y1; 
+	//float d_tl = img.at<float>(y1, x1);
+	//float d_tr = img.at<float>(y1, x2);
+	//float d_bl = img.at<float>(y2, x1);
+	//float d_br = img.at<float>(y2, x2);
+	//if (d_tl == 0 || d_tr == 0 || d_bl == 0 || d_br == 0)
+	//{
+	//	float max_d;
+	//	max_d = 0 > d_tl ? 0 : d_tl;
+	//	max_d = max_d > d_tr ? max_d : d_tr;
+	//	max_d = max_d > d_bl ? max_d : d_bl;
+	//	max_d = max_d > d_br ? max_d : d_br; 
+	//	if (max_d == 0) return -1; 
+	//	else return max_d; 
+	//}
+	//else
+	//{
+	//	float d;
+	//	d = d_tl * (1 - dx) * (1 - dy) + d_tr * (dx) * (1 - dy)
+	//		+ d_bl * (1 - dx) *dy + d_br * dx * dy;
+	//	return d; 
+	//}
 }
 
 
@@ -660,6 +719,36 @@ cv::Mat computeSDF2d(const cv::Mat& render, int thresh)
 	return sdf;
 }
 
+cv::Mat computeSDF2dFromDepthf(const cv::Mat& depth, int thresh)
+{
+	cv::Mat mask(depth.size(), CV_8UC1);
+#pragma omp parallel for
+	for (int x = 0; x < mask.cols; x++)
+	{
+		for (int y = 0; y < mask.rows; y++)
+		{
+			if (depth.at<float>(y, x) > 0) mask.at<uchar>(y, x) = 255; 
+			else mask.at<uchar>(y, x) = 0;
+		}
+	}
+	return computeSDF2d(mask, thresh); 
+}
+
+cv::Mat fromDeptyToColorMask(cv::Mat depth)
+{
+	cv::Mat img(depth.size(), CV_8UC3);
+#pragma omp parallel for 
+	for (int x = 0; x < img.cols; x++)
+	{
+		for (int y = 0; y < img.rows; y++)
+		{
+			if (depth.at<float>(y, x) > 0) img.at<cv::Vec3b>(y, x) = cv::Vec3b(0,0,255);
+			else img.at<cv::Vec3b>(y, x) = cv::Vec3b(255, 255, 255);
+		}
+	}
+	return img; 
+}
+
 cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh)
 {
 	std::vector<Eigen::Vector3i> CM;
@@ -709,7 +798,7 @@ cv::Mat pseudoColor(cv::Mat depth)
 			int index; 
 			float v = depth.at<float>(i, j);
 			if (v < 0 || v > 1) index = 0; 
-			index = int(v / maxv * 255);
+			index = int((v - minv) / (maxv-minv+0.0001) * 255);
 			Eigen::Vector3i c = CM[index];
 			img.at<cv::Vec3b>(i, j) = cv::Vec3b(
 				uchar(c(2)), uchar(c(1)), uchar(c(0))
@@ -743,4 +832,30 @@ cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float a)
 	cv::Mat gamma = alpha + beta; 
 	cv::Mat overlay = a * rawimg + (1-a) * gamma;
 	return overlay;
+}
+
+cv::Mat drawCVDepth(Eigen::MatrixXd vertices, Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces, Camera cam)
+{
+	cv::Mat image(cv::Size(1920, 1080), CV_8UC3);
+	for (int i = 0; i < faces.cols(); i++)
+	{
+		int index1 = faces(0, i);
+		int index2 = faces(1, i);
+		int index3 = faces(2, i);
+		Eigen::Vector3d v1d = vertices.col(index1);
+		Eigen::Vector3d v2d = vertices.col(index2);
+		Eigen::Vector3d v3d = vertices.col(index3);
+		Eigen::Vector3d v1 = project(cam, v1d);
+		Eigen::Vector3d v2 = project(cam, v2d);
+		Eigen::Vector3d v3 = project(cam, v3d);
+		std::vector<std::vector<cv::Point2i> > points; 
+		points.resize(1);
+		points[0].resize(3); 
+		int deviation = -0; 
+		points[0][0] = cv::Point2i(int(v1(0)+0.5) + deviation, int(v1(1)+0.5));
+		points[0][1] = cv::Point2i(int(v2(0)+0.5) + deviation, int(v2(1)+0.5));
+		points[0][2] = cv::Point2i(int(v3(0)+0.5) + deviation, int(v3(1)+0.5));
+		cv::fillPoly(image, points, cv::Scalar(255,255,255));
+	}
+	return image; 
 }

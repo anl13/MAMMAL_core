@@ -16,4 +16,5 @@ bool loadOBJ(
 	std::vector<float4> & out_normals,
 	std::vector<unsigned int> &out_indices);
 
+
 #endif

@@ -10,30 +10,53 @@
   "shape_num": 0,
   "topo": "UNIV",
   "texture_img": "body_red.png",
+  "sym_num" :  3,
   "mapper": [
     [ 1, 193 ], // nose
     [ 1, 108 ], // left eye
     [ 1, 295 ], // right eye
     [ 1, 1318 ], // left ear
     [ 1, 1329 ], // right ear
-    [ 0, 21 ],
-    [ 0, 6 ],
-    [ 0, 22 ],
-    [ 0, 7 ],
-    [ 0, 23 ],
-    [ 0, 8 ],
-    [ 0, 39 ],
-    [ 0, 27 ],
-    [ 0, 40 ],
-    [ 0, 28 ],
-    [ 0, 41 ],
-    [ 0, 29 ],
-    [ -1, -1 ],
-    [ 0, 31 ],
-    [ -1, -1 ],
-    [ 0, 2 ],
-    [ -1, -1 ],
-    [ -1, -1 ]
+    [ 0, 21 ],// left shouder
+    [ 0, 6 ], // right shoulder
+    [ 0, 22 ], // left elbow
+    [ 0, 7 ], // right elbow
+    [ 0, 23 ], // left paw
+    [ 0, 8 ], // right paw
+    [ 0, 39 ], // left hip 
+    [ 0, 27 ], // right hip 
+    [ 0, 40 ], // left knee
+    [ 0, 28 ], // right knee
+    [ 0, 41 ], // left foot
+    [ 0, 29 ], // right foot 
+    [ -1, -1 ], // neck 
+    [ 0, 31 ], // tail 
+    [ -1, -1 ], // wither 
+    [ 0, 2 ], // cneter
+    [ -1, -1 ], // tail middle
+    [ -1, -1 ] // tail end
   ],
-  "pose_to_solve": [ 0, 4, 5, 6, 7, 8, 20, 21, 22, 23, 26, 27, 28, 38, 39, 40, 11, 14 ]
+  "pose_to_solve": [ 0,1,2, 4, 5, 6, 7, 8, 20, 21, 22, 23, 26, 27, 28, 38, 39, 40, 11, 14 ],
+  "optimize_pair": [
+    // [target joint, type, source index, weight]
+    [0, 1, 193, 1], // nose
+    [1, 1, 108, 1], // left eye
+    [2, 1, 295, 1], // right eye
+    [3, 1, 1318, 1], // left ear
+    [4, 1, 1329, 1], // right ear
+    [5,  0, 21, 1 ], // left shouder
+    [6, 0, 6, 1 ], // right shoulder
+    [7, 0, 22, 1 ], // left elbow
+    [8, 0, 7, 1 ], // right elbow
+    [9, 0, 23, 1 ], // left paw
+    [10, 0, 8, 1 ], // right paw
+    [11, 0, 39, 1 ], // left hip
+    [12, 0, 27, 1 ], // right hip
+    [13, 0, 40, 1 ], // left knee
+    [14, 0, 28, 1 ], // right knee
+    [15, 0, 41, 1 ], // left foot
+    [16, 0, 29, 1 ], // right foot
+    [18, 0, 31, 1 ], // tail
+    [20, 0, 2, 1 ] // cneter
+  ]
 }

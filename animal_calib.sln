@@ -5,6 +5,8 @@ VisualStudioVersion = 15.0.27428.2037
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "animal_calib", "animal_calib\animal_calib.vcxproj", "{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "nano_renderer", "nano_renderer\nano_renderer.vcxproj", "{730CE3B9-034F-4E45-9996-B0D02A56710E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}.Release|x64.Build.0 = Release|x64
 		{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}.Release|x86.ActiveCfg = Release|Win32
 		{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}.Release|x86.Build.0 = Release|Win32
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Debug|x64.ActiveCfg = Debug|x64
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Debug|x64.Build.0 = Debug|x64
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Debug|x86.ActiveCfg = Debug|Win32
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Debug|x86.Build.0 = Debug|Win32
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Release|x64.ActiveCfg = Release|x64
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Release|x64.Build.0 = Release|x64
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Release|x86.ActiveCfg = Release|Win32
+		{730CE3B9-034F-4E45-9996-B0D02A56710E}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

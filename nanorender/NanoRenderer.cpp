@@ -4,6 +4,9 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include "../utils/timer.hpp"
+#include "../utils/objloader.h"
+#include "../utils/model.h"
+#include "../utils/dataconverter.h"
 
 NanoRenderer::NanoRenderer()
 {
@@ -14,10 +17,11 @@ NanoRenderer::~NanoRenderer()
 }
 
 void NanoRenderer::Init(const int& window_width, const int& window_height, 
-	float fx, float fy, float cx, float cy, const float arcball_depth /*= 2.0f*/)
+	float fx, float fy, float cx, float cy, float arcball_depth /*= 2.0f*/, bool is_pinhole)
 {
 	m_window_width = window_width;
 	m_window_height = window_height;
+	std::cout << "Is pinhole: " << is_pinhole << std::endl;
 	if (cx < 0 || cy < 0)
 	{
 		cx = window_width / 2; 
@@ -121,7 +125,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	//////////////////////////////////////
 	// create canvas for rendering results
 	//m_canvas = new ArcballCanvas(screen, window_width, window_height, fx, fy);
-	m_canvas = new ArcballCanvas(screen, width, height, fx, fy, cx, cy);
+	m_canvas = new ArcballCanvas(screen, width, height, fx, fy, cx, cy, is_pinhole);
 	m_canvas->SetRotCenter(Eigen::Vector3f(0, 0, arcball_depth));
 	m_canvas->set_background_color({ 100, 100, 100, 255 });
 	m_canvas->set_draw_border(true);
@@ -269,4 +273,72 @@ void NanoRenderer::Draw()
 void NanoRenderer::Stop()
 {
 	glfwTerminate();
+}
+
+void NanoRenderer::ClearRenderObjects()
+{
+	m_render_objects.clear(); 
+	m_canvas->clear_objects();
+}
+
+/*
+2020 05 22 anliang: still have critical bug 
+*/
+void NanoRenderer::CreatePointCloudObjects(const std::vector<Eigen::Vector3f>& points, const std::vector<float>& sizes,
+	const std::vector<Eigen::Vector3i>& colors)
+{
+	std::string vs = vs_phong_color;
+	std::string fs = fs_phong_color;
+	Model m3c;
+	m3c.Load("D:/Projects/animal_calib/nanorender/data/obj_model/ball.obj");
+	m3c.CalcNormal();
+	ObjModel ballobj;
+
+	Model objeigen;
+	objeigen.vertices = m3c.vertices;
+	objeigen.vertices = objeigen.vertices;
+	objeigen.normals = m3c.normals;
+	objeigen.faces = m3c.faces;
+	convert3CTo4C(objeigen, ballobj);
+	
+	ref<RenderObject> render_object = new RenderObject("ball_0", vs, fs, Shader::BlendMode::None);
+	render_object->SetBuffer("positions", ballobj.vertices);
+	render_object->SetBuffer("normals", ballobj.normals);
+	render_object->SetIndices(ballobj.indices);
+	nanogui::Matrix4f T = nanogui::Matrix4f::translate(nanogui::Vector3f(
+		float(points[0](0)), float(points[0](1)), float(points[0](2))));
+	T.m[0][0] = sizes[0];
+	T.m[1][1] = sizes[0];
+	T.m[2][2] = sizes[0];
+	render_object->SetModelRT(T);
+	nanogui::Vector4f color;
+	color[0] = colors[0](0) / 255.0f; color[1] = colors[0](1) / 255.0f; color[2] = colors[0](2) / 255.0f; color[3] = 1.f;
+	render_object->SetUniform("incolor", color);
+	
+
+	for (int i = 0; i < points.size(); i++)
+	{
+		if (i == 0)
+		{
+			m_render_objects.emplace(std::make_pair("ball_0", render_object));
+		}
+		else {
+			std::string name = "ball_" + std::to_string(i);
+			ref<RenderObject> another_object = new RenderObject(name, vs, fs, Shader::BlendMode::None);
+			color[0] = colors[i](0) / 255.0f; color[1] = colors[i](1) / 255.0f; color[2] = colors[i](2) / 255.0f; color[3] = 1.f;
+			another_object->SetUniform("incolor", color);
+			another_object->SetIndices(render_object);
+			another_object->SetBuffer("positions", render_object);
+			another_object->SetBuffer("normals", render_object);
+			T = nanogui::Matrix4f::translate(nanogui::Vector3f(
+				float(points[0](0)), float(points[0](1)), float(points[0](2))));
+			T.m[0][0] = sizes[0];
+			T.m[1][1] = sizes[0];
+			T.m[2][2] = sizes[0];
+			render_object->SetModelRT(T);
+
+			m_render_objects.emplace(std::make_pair(name, another_object));
+			m_canvas->AddRenderObject(another_object);
+		}
+	}
 }

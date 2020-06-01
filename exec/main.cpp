@@ -7,9 +7,9 @@ int main(int argc, char** argv)
 	//test_nanogui();
 
 	//render_smal_test(); 
-	test_depth();
+	//test_depth();
 	//run_shape();
-	//run_pose();
+	run_pose();
 	//run_on_sequence();
 
 	//removeSmalTail();
@@ -24,4 +24,6 @@ int main(int argc, char** argv)
 
 
 	//testfunc(); 
+	
+	//modify_model();
 }

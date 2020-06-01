@@ -9,15 +9,18 @@
 #include "../utils/colorterminal.h" 
 #include "../utils/obj_reader.h"
 #include "../utils/timer_util.h"
-#include "../render/render_object.h"
-#include "../render/render_utils.h"
-#include "../render/renderer.h"
 
 #include "../smal/pigmodel.h"
 #include "../smal/pigsolver.h"
 
 #include "../associate/framedata.h"
 #include "../utils/volume.h"
+
+#include "../utils/model.h"
+#include "../utils/dataconverter.h" 
+#include "../nanorender/NanoRenderer.h" 
+#include <vector_functions.hpp> 
+#include "main.h"
 
 #define RUN_SEQ
 #define VIS 
@@ -30,9 +33,9 @@ using std::vector;
 
 int run_shape()
 {
-	std::string folder = "D:/Projects/animal_calib/data/pig_model_noeye/";
-	std::string pig_config = "D:/Projects/animal_calib/smal/smal2_config.json";
 	//std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
+	std::string pig_config = "D:/Projects/animal_calib/smal/smal2_config.json";
+	std::string type = "shapeiter_smal"; 
 
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 
@@ -41,38 +44,12 @@ int run_shape()
 	frame.configByJson(conf_projectFolder + "/associate/config.json");
 	int startid = frame.get_start_id();
 
-#ifdef VIS
+
 	//// rendering pipeline. 
 	auto CM = getColorMapEigen("anliang_rgb");
-	// init a camera 
-	Eigen::Matrix3f K;
-	K << 0.698, 0, 0.502,
-		0, 1.243, 0.483,
-		0, 0, 1;
-	Eigen::Vector3f up; up << 0, 0, -1;
-	Eigen::Vector3f pos; pos << -1, 1.5, -0.8;
-	Eigen::Vector3f center = Eigen::Vector3f::Zero();
-	Renderer::s_Init();
-	Renderer m_renderer(conf_projectFolder + "/render/shader/");
-	//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
-	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-	
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	const ObjData cubeObj(conf_projectFolder + "/render/data/obj_model/cube.obj");
-	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, true);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ 0.28f, 0.2f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor);
+	auto CM_float4 = getColorMapFloat4("anliang_rgb"); 
 
-#endif 
+
 	int framenum = frame.get_frame_num();
 	PigSolver shapesolver(pig_config); 
 	int m_pid = 0; // pig identity to solve now. 
@@ -83,41 +60,16 @@ int run_shape()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		//frame.view_dependent_clean();
-		frame.matching_by_tracking();
-		//frame.load_labeled_data();
+		//frame.matching_by_tracking();
+		frame.load_labeled_data();
 		frame.solve_parametric_model();
 		auto m_matched = frame.get_matched();
-		
-#ifdef VOLUME
-		m_renderer.colorObjs.clear();
-		m_renderer.skels.clear();
+		auto cameras = frame.get_cameras();
+		auto cam = cameras[0];
 
-		for (int pid = 0; pid < 4; pid++)
-		{
-			//auto m_rois = frame.getROI(pid);
-			//std::cout << "pid: " << pid << std::endl; 
-			Volume V;
+		cv::Mat check = frame.visualizeIdentity2D();
+		cv::imwrite("E:/debug_pig3/"+type+"/identity.png", check); 
 
-			std::stringstream ss;
-			ss << "E:/debug_pig2/visualhull/" << pid << "/" << std::setw(6) << std::setfill('0')
-				<< frameid << ".xyz";
-
-			V.readXYZFileWithNormal(ss.str());
-
-			int p_num = V.point_cloud.size();
-			std::vector<Eigen::Vector3f> colors(p_num, CM[pid]*0.5);
-			std::vector<float> sizes(p_num, 0.006);
-			std::vector<Eigen::Vector3f> balls;
-			std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			Eigen::VectorXi parents;
-			GetBallsAndSticks(V.point_cloud_eigen, parents, balls, sticks);
-			BallStickObject* pointcloud = new BallStickObject(ballObj, balls, sizes, colors);
-			m_renderer.skels.push_back(pointcloud);
-		}
-
-#endif 
-
-#ifdef SHAPE_SOLVER
 		auto m_rois = frame.getROI(m_pid);
 		shapesolver.setCameras(frame.get_cameras());
 		shapesolver.normalizeCamera();
@@ -125,72 +77,97 @@ int run_shape()
 		shapesolver.setSource(m_matched[m_pid]);
 		shapesolver.normalizeSource();
 		shapesolver.InitNodeAndWarpField();
-		shapesolver.LoadWarpField();
+		//shapesolver.LoadWarpField();
 		shapesolver.UpdateVertices();
 		
 		shapesolver.globalAlign();
 
+		shapesolver.SaveObj("E:/debug_pig3/"+type+"/global_align.obj");
+		shapesolver.SetTranslation(Eigen::Vector3d::Zero());
+		auto pose0 = shapesolver.GetPose();
+		pose0.setZero();
+		shapesolver.SetPose(pose0);
+		shapesolver.UpdateVertices();
+		shapesolver.SaveObj("E:/debug_pig3/"+type+"/scaled.obj");
+		std::cout << "scale: " << shapesolver.GetScale() << std::endl; 
 		shapesolver.optimizePose(5, 0.001);
-		//shapesolver.UpdateNormalOrigin(); 
-		//shapesolver.UpdateNormalShaped();
 
-		//shapesolver.mp_renderer = &m_renderer; 
-		//shapesolver.m_rois = m_rois;
-
+		shapesolver.SaveObj("E:/debug_pig3/"+type+"/init.obj");
 		
+		system("pause");
+		return 0;
+		shapesolver.m_rois = m_rois;
+
+		//Volume V; 
+		//Eigen::MatrixXd joints = shapesolver.getZ();
+		//std::cout << joints.transpose() << std::endl;
+		//V.center = joints.col(20).cast<float>();
+		//V.computeVolumeFromRoi(m_rois);
+		//std::cout << "compute volume now. " << std::endl;
+		//V.getSurface();
+		//std::stringstream ss; 
+		//ss << "E:/debug_pig3/gthull.xyz";
+		//V.saveXYZFileWithNormal(ss.str());
+		//std::stringstream cmd;
+		//cmd << "D:/Projects/animal_calib/PoissonRecon.x64.exe --in " << ss.str() << " --out " << ss.str() << ".ply";
+		//const std::string cmd_str = cmd.str();
+		//const char* cmd_cstr = cmd_str.c_str();
+		//system(cmd_cstr);
+		//return 0; 
+
 		std::shared_ptr<Model> targetModel = std::make_shared<Model>();
-		targetModel->Load("E:/debug_pig2/visualhull/0/000000.obj");
-	/*	shapesolver.setTargetModel(targetModel);
-		shapesolver.setSourceModel();
+		targetModel->Load("E:/debug_pig3/gthull.obj");
+		shapesolver.setTargetModel(targetModel);
+
 		shapesolver.totalSolveProcedure();
 		shapesolver.SaveWarpField();
-		shapesolver.SaveObj("E:/debug_pig2/warped.obj");*/
+		shapesolver.SaveObj("E:/debug_pig3/"+type+"/warped.obj");
 
-		RenderObjectColor* pig_render = new RenderObjectColor();
-		Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces
-			= shapesolver.GetFacesVert();
-		Eigen::MatrixXf vs = shapesolver.GetVertices().cast<float>();
-		pig_render->SetFaces(faces);
-		pig_render->SetVertices(vs);
-		pig_render->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
-		m_renderer.colorObjs.push_back(pig_render);
+		Eigen::VectorXd pose = shapesolver.GetPose();
+		pose.setConstant(0);
+		shapesolver.SetPose(pose);
+		shapesolver.SetTranslation(Eigen::Vector3d::Zero());
+		shapesolver.UpdateVertices();
+		shapesolver.SaveObj("E:/debug_pig3/"+type+"/meanpose.obj");
 
-		//Eigen::VectorXd pose = shapesolver.GetPose();
-		//Eigen::Vector3d globalR = pose.segment<3>(0);
-		//pose.setZero(); 
-		//shapesolver.SetPose(pose);
-		//Eigen::Vector3d trans = shapesolver.GetTranslation(); 
-		//trans.setZero();
-		//shapesolver.SetTranslation(trans);
-		//shapesolver.UpdateVertices();
-		//RenderObjectColor* pig_render_target = new RenderObjectColor();
-		//Eigen::MatrixXf vs_t = shapesolver.GetVertices().cast<float>();
-		//pig_render_target->SetFaces(faces);
-		//pig_render_target->SetVertices(vs_t);
-		//pig_render_target->SetColor(Eigen::Vector3f(0.0, 0.8, 0.1));
-		//m_renderer.colorObjs.push_back(pig_render_target);
-		//shapesolver.SaveObj("D:/Projects/animal_calib/data/smal_deform_0.obj");
+		// visualize correspondances 
+		shapesolver.findCorr();
+		Eigen::VectorXi corr = shapesolver.m_corr;
+		
+		NanoRenderer renderer; 
+		renderer.Init(1920, 1080, float(cam.K(0, 0)), float(cam.K(1, 1)), float(cam.K(0, 2)), float(cam.K(1, 2)), -2.f, false);
+		
+		ObjModel m4c; 
+		convert3CTo4C(*targetModel, m4c);
 
-		/// render target volume 
-		RenderObjectColor* pig_render2 = new RenderObjectColor();
-		Eigen::MatrixXf vs2 = targetModel->vertices.cast<float>();
-		Eigen::MatrixXu faces2 = targetModel->faces;
-		pig_render2->SetFaces(faces2);
-		pig_render2->SetVertices(vs2);
-		pig_render2->SetColor(Eigen::Vector3f(0.0, 0.1, 0.8));
-		m_renderer.colorObjs.push_back(pig_render2);
-	
-
-		while (!glfwWindowShouldClose(windowPtr))
+		std::vector<float4> colors_float4; 
+		colors_float4.resize(m4c.vertices.size(), make_float4(1, 1, 1, 0));
+		auto parts = shapesolver.GetBodyPart();
+		for (int i = 0; i < corr.size(); i++)
 		{
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-			m_renderer.Draw();
-
-			glfwSwapBuffers(windowPtr);
-			glfwPollEvents();
+			if (parts[i] != L_F_LEG)continue;
+			if (corr(i) >= 0)
+			{
+				int id = corr(i);
+				colors_float4[id] = CM_float4[0];
+			}
 		}
-#endif // SHAPE_SOLVER
+		
+		renderer.ClearRenderObjects();
+		auto smal_model = renderer.CreateRenderObject("smal_model", vs_phong_vertex_color, fs_phong_vertex_color);
+		smal_model->SetIndices(m4c.indices);
+		smal_model->SetBuffer("positions", m4c.vertices);
+		smal_model->SetBuffer("normals", m4c.normals);
+		smal_model->SetBuffer("incolor", colors_float4);
+
+		Eigen::Matrix4f view_eigen = calcRenderExt(cam.R.cast<float>(), cam.T.cast<float>());
+		nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
+		renderer.UpdateCanvasView(view_eigen);
+
+		while (!renderer.ShouldClose())
+		{
+			renderer.Draw();
+		}
 	}
 	return 0;
 }

@@ -9,6 +9,9 @@
 #include <opencv2/opencv.hpp> 
 #include <opencv2/core/eigen.hpp> 
 
+#include <vector_functions.h>
+#include <nanogui/vector.h>
+
 #include "camera.h" 
 #include "colorterminal.h"
 
@@ -17,6 +20,8 @@ using std::vector;
 void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, const Camera &newcam);
 void my_undistort_points(const std::vector<Eigen::Vector3d>& points, 
     std::vector<Eigen::Vector3d>& out, const Camera &cam, const Camera &newcam); 
+void my_undistort_points(const std::vector<Eigen::Vector2d>& points,
+	std::vector<Eigen::Vector2d>& out, const Camera &cam, const Camera &newcam);
 
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points);
 void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, const Eigen::Vector3i &color);
@@ -27,6 +32,10 @@ void draw_line(cv::Mat &img, Eigen::Vector3d ep, Eigen::Vector3i color_bgr);
 void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output); 
 
 void getColorMap(std::string cm_type, std::vector<Eigen::Vector3i> &colormap); 
+std::vector<float4> getColorMapFloat4(std::string cm_type); 
+std::vector<Eigen::Vector3i> getColorMapEigen(std::string cm_type);
+std::vector<nanogui::Vector4f> getColorMapNano(std::string cm_type);
+
 void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Vector3i color); 
 void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Vector3i color, int linewidth, int pointRadius=20); 
 
@@ -53,7 +62,7 @@ cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height);
 
 cv::Mat get_dist_trans(cv::Mat input);
 
-
+cv::Mat drawCVDepth(Eigen::MatrixXd vertices, Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> faces, Camera cam);
 
 // This class is used as struct 
 class ROIdescripter {
@@ -104,8 +113,9 @@ std::vector<std::vector<Eigen::Vector2d> >  computeContourNormalsAll(const std::
 
 cv::Mat computeSDF2d(const cv::Mat& mask, int thresh=-1);// compute signed distance function from mask image
 cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh=-1);
-
+cv::Mat computeSDF2dFromDepthf(const cv::Mat& depth, int thresh = -1);
 cv::Mat pseudoColor(cv::Mat depth);
+cv::Mat fromDeptyToColorMask(cv::Mat depth);
 
 // input and output are CV_32F images
 void computeGradient(cv::Mat input, cv::Mat& outx, cv::Mat& outy);

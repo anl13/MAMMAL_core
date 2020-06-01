@@ -8,6 +8,7 @@
 #include "../utils/math_utils.h"
 #include "../utils/colorterminal.h"
 #include "../utils/obj_reader.h"
+#include "../utils/model.h"
 #include <json/json.h>
 
 PigModel::PigModel(const std::string &_configfile)
@@ -411,7 +412,6 @@ void PigModel::saveState(std::string state_file)
     }
     for(int i = 0; i < 3; i++) os << m_translation(i) << std::endl; 
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) os << m_poseParam(3*i+k) << std::endl; 
-    for(int i = 0; i < m_shapeNum; i++) os << m_shapeParam(i) << std::endl; 
 	os << m_scale;
 	os.close(); 
 }
@@ -426,7 +426,6 @@ void PigModel::readState(std::string state_file)
     }
     for(int i = 0; i < 3; i++) is >> m_translation(i);
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) is >> m_poseParam(3*i+k); 
-    for(int i = 0; i < m_shapeNum; i++) is >> m_shapeParam(i); 
 	is >> m_scale; 
 	is.close(); 
 }
@@ -684,122 +683,8 @@ void PigModel::debugStitchModel()
 	os_skinweight.close();
 }
 
+#endif 
 
-
-void PigModel::debugRemoveEye()
-{
-	OBJReader reader;
-	reader.read("D:/Projects/animal_calib/data/pig_model_noeye/pig_noeye.obj");
-	int vnum = reader.vertices.size(); 
-	std::cout << "vnum: " << vnum << std::endl;
-
-	std::vector<int> mapping;
-	mapping.resize(vnum);
-	std::vector<int> reverse(m_vertexNum, -1);
-	for (int i = 0; i < vnum; i++)
-	{
-		Eigen::Vector3d x = reader.vertices[i].cast<double>();
-		for (int j = 0; j < m_vertexNum; j++)
-		{
-			Eigen::Vector3d y = m_verticesOrigin.col(j);
-			double dist = (x - y).norm(); 
-			if (dist < 0.00001)
-			{
-				mapping[i] = j;
-				reverse[j] = i;
-			}
-		}
-	}
-	// check which points are removed 
-	for (int i = 0; i < m_vertexNum; i++)
-	{
-		if (reverse[i] < 0) std::cout << i << " ";
-	}
-	std::cout << std::endl; 
-	// save 
-	std::string folder = "D:/Projects/animal_calib/data/pig_model_noeye/";
-	std::ofstream os_v(folder + "vertices_stitched.txt");
-	for (int i = 0; i < vnum; i++)
-	{
-		os_v << reader.vertices[i].transpose() << "\n";
-	}
-	os_v.close(); 
-
-	std::ofstream os_fv(folder + "faces_vert.txt");
-	for (int i = 0; i < m_faceNum; i++)
-	{
-		int v1 = m_facesVert(0, i);
-		int v2 = m_facesVert(1, i);
-		int v3 = m_facesVert(2, i);
-		if (reverse[v1] < 0 || reverse[v2] < 0 || reverse[v3] < 0)continue;
-		os_fv << reverse[v1] << " " << reverse[v2] << " " << reverse[v3] << "\n";
-	}
-	os_fv.close(); 
-
-	std::vector<int> t_to_v; 
-	std::vector<int> t_map;
-	std::vector<int> t_rev(m_texNum, -1);
-	for (int i = 0; i < m_texNum; i++)
-	{
-		int left = m_texToVert[i];
-		if (reverse[left] < 0) continue;
-		t_rev[i] = t_map.size();
-		t_map.push_back(i);
-	}
-	int tnum = t_map.size();
-	t_to_v.resize(tnum, -1);
-	int count = vnum;
-	for (int i = 0; i < tnum; i++)
-	{
-		int t1 = t_map[i];
-		int v1 = m_texToVert[t1];
-		int n1 = reverse[v1];
-		t_to_v[i] = n1;
-	}
-	std::ofstream os_t_to_v(folder + "tex_to_vert.txt");
-	for (int i = 0; i < tnum; i++)os_t_to_v << t_to_v[i] << "\n";
-	os_t_to_v.close();
-	std::ofstream os_tex(folder + "textures.txt");
-	for (int i = 0; i < tnum; i++)
-	{
-		int tn = t_map[i];
-		Eigen::Vector2d tex = m_texcoords.col(tn);
-		os_tex << tex(0) << " " << tex(1) << "\n";
-	}
-	os_tex.close();
-	std::ofstream os_ft(folder + "faces_tex.txt");
-	for (int i = 0; i < m_faceNum; i++)
-	{
-		int t1 = m_facesTex(0, i);
-		int t2 = m_facesTex(1, i);
-		int t3 = m_facesTex(2, i);
-		if (t_rev[t1] < 0 || t_rev[t2] < 0 || t_rev[t3] < 0)continue;
-		os_ft << t_rev[t1] << " " << t_rev[t2] << " " << t_rev[t3] << "\n";
-	}
-	os_ft.close();
-	std::ofstream os_skin(folder + "skinning_weights_stitched.txt");
-	for (int i = 0; i < m_jointNum; i++)
-	{
-		for (int j = 0; j < m_vertexNum; j++)
-		{
-			if (reverse[j] < 0)continue;
-			if (m_lbsweights(i, j) == 0)continue;
-			int vid = reverse[j];
-			
-			os_skin << i << " " << vid << " " << m_lbsweights(i, j) << "\n";
-		}
-	}
-	os_skin.close();
-	for (int i = 0; i < m_vertexNum; i++)
-	{
-		if (reverse[i] < 0)continue;
-		Eigen::VectorXd x = m_lbsweights.col(i);
-		double w = x.sum();
-		if (w > 0)std::cout << w << std::endl; 
-	}
-}
-
-#endif  
 
 void PigModel::determineBodyPartsByWeight()
 {
@@ -816,6 +701,8 @@ void PigModel::determineBodyPartsByWeight()
 	//std::vector<int> r_ear = { 17 };
 	//std::vector<int> jaw = { 15 };
 	//std::vector<int> neck = { 11 };
+
+	// smal model 
 	std::vector<int> head = { 16 };
 	std::vector<int> l_f_leg = { 9,10 };
 	std::vector<int> r_f_leg = { 13,14 };

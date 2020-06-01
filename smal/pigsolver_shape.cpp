@@ -79,6 +79,8 @@ void PigSolver::CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
 	Eigen::MatrixXd AT = A.transpose(); 
 	ATA = AT * A;
 	ATb = AT * b;
+
+	std::cout << "pose r: " << b.norm() << std::endl;
 }
 
 void PigSolver::CalcShapeTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb)
@@ -113,11 +115,11 @@ void PigSolver::CalcDeformTerm(
 	Eigen::VectorXd& ATb
 )
 {
-	if (m_wDeform.size() != m_srcModel->vertices.cols())
-		m_wDeform = Eigen::VectorXd::Ones(m_srcModel->vertices.cols());
+	if (m_wDeform.size() != m_vertexNum)
+		m_wDeform = Eigen::VectorXd::Ones(m_vertexNum);
 
 	std::vector<Eigen::Triplet<double>> triplets;
-	Eigen::VectorXd b = Eigen::VectorXd::Zero(m_srcModel->vertices.cols());
+	Eigen::VectorXd b = Eigen::VectorXd::Zero(m_vertexNum);
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> globalAffineNormalized = m_globalAffine;
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
@@ -164,11 +166,12 @@ void PigSolver::CalcDeformTerm(
 		}
 		b[sIdx] = wd * (tn.dot(tv - iv));
 	}
-	Eigen::SparseMatrix<double> A(m_srcModel->vertices.cols(), mp_nodeGraph->nodeIdx.size() * 6);
+	Eigen::SparseMatrix<double> A(m_vertexNum, mp_nodeGraph->nodeIdx.size() * 6);
 	A.setFromTriplets(triplets.begin(), triplets.end());
 	const auto AT = A.transpose();
 	ATA = AT * A;
 	ATb = AT * b;
+	std::cout << "deform r: " << b.norm() << std::endl;
 }
 
 void PigSolver::CalcSymTerm(
@@ -176,69 +179,96 @@ void PigSolver::CalcSymTerm(
 	Eigen::VectorXd& ATb
 )
 {
-	std::vector<Eigen::Triplet<double>> triplets;
-	Eigen::VectorXd b = Eigen::VectorXd::Zero(3 * m_vertexNum);
+	int symNum = m_symNum;
+	/*symNum = 1; */
+	std::vector< std::vector<Eigen::Triplet<double>> > triplets;
+	triplets.resize(symNum); 
+	std::vector<Eigen::VectorXd> bs;
+	bs.resize(symNum, Eigen::VectorXd::Zero(3 * m_vertexNum));
+
 	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++) 
 	{
-		const int tIdx = m_symIdx[sIdx];
-		if (tIdx == sIdx)
+		for (int k = 0; k < symNum; k++)
 		{
-			// do something 
-			continue;
-		}
-		// else 
-		const auto iv = m_verticesDeformed.col(sIdx);
-		const auto tv = m_verticesDeformed.col(tIdx);
+			const int tIdx = m_symIdx[sIdx][k];
+			double tW = m_symweights[sIdx][k];
 
-		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++)
-		{
-			const int ni = mp_nodeGraph->knn(i, sIdx);
-			const double wi = mp_nodeGraph->weight(i, sIdx);
-			if (wi < DBL_EPSILON || ni == -1)
+			if (tIdx < 0 || tW < 0) continue;
+			if (tIdx == sIdx)
+			{
+				// do something 
 				continue;
-			
-			int coli = 6 * ni;
-			int row = 3 * sIdx;
-			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 1, iv.z()));
-			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 2, -iv.y()));
-			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 3, 1));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 0, -iv.z()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 2, iv.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 0, iv.y()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 1, -iv.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, 1));
-		}
+			}
+			// else 
+			const auto iv = m_verticesDeformed.col(sIdx);
+			const auto tv = m_verticesDeformed.col(tIdx);
 
-		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++)
-		{
-			const int ni = mp_nodeGraph->knn(i, tIdx);
-			const double wi = mp_nodeGraph->weight(i, tIdx);
-			if (wi < DBL_EPSILON || ni < 0) continue;
-			int coli = 6 * ni;
-			int row = 3 * sIdx;
-			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 1, -tv.z()));
-			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 2, tv.y()));
-			triplets.emplace_back(Eigen::Triplet<double>(row, coli + 3, -1));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 0, -tv.z()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 2, tv.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 0, -tv.y()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 1, tv.x()));
-			triplets.emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, -1));
+			for (int i = 0; i < mp_nodeGraph->knn.rows(); i++)
+			{
+				const int ni = mp_nodeGraph->knn(i, sIdx);
+				const double wi = mp_nodeGraph->weight(i, sIdx);
+				if (wi < DBL_EPSILON || ni == -1)
+					continue;
+
+				int coli = 6 * ni;
+				int row = 3 * sIdx;
+				triplets[k].emplace_back(Eigen::Triplet<double>(row, coli + 1, iv.z() * tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row, coli + 2, -iv.y()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row, coli + 3, 1 * tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 1, coli + 0, -iv.z()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 1, coli + 2, iv.x()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1 * tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 2, coli + 0, iv.y()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 2, coli + 1, -iv.x()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, 1 * tW));
+			}
+
+			for (int i = 0; i < mp_nodeGraph->knn.rows(); i++)
+			{
+				const int ni = mp_nodeGraph->knn(i, tIdx);
+				const double wi = mp_nodeGraph->weight(i, tIdx);
+				if (wi < DBL_EPSILON || ni < 0) continue;
+				int coli = 6 * ni;
+				int row = 3 * sIdx;
+				triplets[k].emplace_back(Eigen::Triplet<double>(row, coli + 1, -tv.z()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row, coli + 2, tv.y()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row, coli + 3, -1 * tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 1, coli + 0, -tv.z()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 1, coli + 2, tv.x()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 1, coli + 4, 1 * tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 2, coli + 0, -tv.y()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 2, coli + 1, tv.x()* tW));
+				triplets[k].emplace_back(Eigen::Triplet<double>(row + 2, coli + 5, -1 * tW));
+			}
+
+			// note that, smal model is symmetric to y axis
+			// but my own model is symmetric to x axis
+			Eigen::Vector3d r = Eigen::Vector3d::Zero();
+			r(0) = iv(0) + tv(0);
+			//r(1) = iv(1) - tv(1);
+			//r(2) = iv(2) - tv(2);
+			bs[k].segment<3>(3 * sIdx) = -r * tW;
 		}
-		
-		Eigen::Vector3d r;
-		r(0) = iv(0) - tv(0);
-		r(1) = iv(1) + tv(1);
-		r(2) = iv(2) - tv(2);
-		b.segment<3>(3 * sIdx) = -r; 
 	}
-	Eigen::SparseMatrix<double> A(m_vertexNum * 3, mp_nodeGraph->nodeIdx.size() * 6);
-	A.setFromTriplets(triplets.begin(), triplets.end());
-	const auto AT = A.transpose();
-	ATA = AT * A;
-	ATb = AT * b;
+	ATA.resize(mp_nodeGraph->nodeIdx.size() * 6, mp_nodeGraph->nodeIdx.size() * 6);
+	ATA.setZero();
+	ATb.resize(mp_nodeGraph->nodeIdx.size() * 6);
+	ATb.setZero(); 
+	for (int k = 0; k < symNum; k++)
+	{
+		Eigen::SparseMatrix<double> A(m_vertexNum * 3, mp_nodeGraph->nodeIdx.size() * 6);
+		A.setFromTriplets(triplets[k].begin(), triplets[k].end());
+		const auto AT = A.transpose();
+		ATA += AT * A;
+		ATb += AT * bs[k];
+	}
+
+	double r = 0; 
+	for (int k = 0; k < symNum; k++)
+	{
+		r += bs[k].norm();
+	}
+	std::cout << "total sym r: " << r << std::endl;
 }
 
 void PigSolver::CalcSmthTerm(
@@ -307,19 +337,18 @@ void PigSolver::setTargetModel(std::shared_ptr<Model> _targetModel)
 	m_corr = Eigen::VectorXi::Constant(m_vertexNum, -1); 
 	m_wDeform = Eigen::VectorXd::Ones(m_vertexNum);
 	m_deltaTwist.resize(6, mp_nodeGraph->nodeIdx.size()); 
-}
 
-void PigSolver::setSourceModel()
-{
 	m_srcModel = std::make_shared<Model>();
-	m_srcModel->faces = m_facesVert;
 	m_srcModel->vertices = m_verticesFinal;
+	m_srcModel->faces = m_facesVert;
 	m_srcModel->CalcNormal();
-	m_iterModel = *m_srcModel;
 }
 
 void PigSolver::findCorr()
 {
+	m_iterModel.faces = m_facesVert;
+	m_iterModel.vertices = m_verticesFinal;
+	m_iterModel.CalcNormal();
 	const double cosine = std::cosf(m_maxAngle);
 	m_corr.setConstant(-1);
 #pragma omp parallel for
@@ -327,7 +356,7 @@ void PigSolver::findCorr()
 		if (m_wDeform[sIdx] < FLT_EPSILON)
 			continue;
 		const Eigen::Vector3d v = m_iterModel.vertices.col(sIdx);
-		const std::vector<std::pair<double, size_t>> nbors = m_tarTree->KNNSearch(v, 4);
+		const std::vector<std::pair<double, size_t>> nbors = m_tarTree->KNNSearch(v, 256);
 		for (const auto& nbor : nbors) {
 			if (nbor.first < m_maxDist) {
 				if (m_iterModel.normals.col(sIdx).dot(m_tarModel->normals.col(nbor.second)) > cosine) {
@@ -363,9 +392,6 @@ void PigSolver::solveNonrigidDeform(int maxIterTime, double updateThresh)
 		CalcDeformTerm(ATA, ATb);
 		CalcSmthTerm(ATAs, ATbs);
 
-		std::cout << "deform term b: " << ATb.norm() << std::endl;
-		std::cout << "smooth term b: " << ATbs.norm() << std::endl;
-
 		Eigen::SparseMatrix<double> ATAr(6 * mp_nodeGraph->nodeIdx.size(), 6 * mp_nodeGraph->nodeIdx.size());
 		ATAr.setIdentity();
 		ATAr *= m_wRegular;
@@ -377,7 +403,6 @@ void PigSolver::solveNonrigidDeform(int maxIterTime, double updateThresh)
 			CalcSymTerm(ATAsym, ATbsym);
 			ATA += ATAsym * m_wSym;
 			ATb += ATbsym * m_wSym;
-			std::cout << "symm   term b: " << ATbsym.norm() << std::endl;
 		}
 
 		Eigen::Map<Eigen::VectorXd>(m_deltaTwist.data(), m_deltaTwist.size()) = solver.compute(ATA).solve(ATb);
@@ -390,17 +415,12 @@ void PigSolver::solveNonrigidDeform(int maxIterTime, double updateThresh)
 		std::cout << "delta twist: " << m_deltaTwist.norm() << std::endl;
 		updateWarpField();
 		updateIterModel();
-
-		//if (debugPath != "") {
-		//	static int cnt = 0;
-		//	m_iterModel.Save(debugPath + "/" + std::to_string(cnt++) + ".obj");
-		//}
 	}
 }
 
 void PigSolver::updateIterModel()
 {
-	for (int sIdx = 0; sIdx < m_srcModel->vertices.cols(); sIdx++) {
+	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++) {
 		Eigen::Matrix4d T = Eigen::Matrix4d::Zero();
 
 		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++) {
@@ -418,24 +438,35 @@ void PigSolver::totalSolveProcedure()
 {
 	for (int i = 0; i < 5; i++)
 	{
-		std::cout << "Frist phase: " << i << std::endl;
-		solvePoseAndShape(1);
 		// step1: 
 		m_wSmth = 1.0;
 		m_wRegular = 0.1;
-		 
+		m_maxDist = 0.35;
+		m_wSym = 0.01;
 		solveNonrigidDeform(1, 1e-5);
+
+		std::stringstream ss; 
+		ss << "E:/debug_pig3/shapeiter/shape_" << i << ".obj";
+		SaveObj(ss.str());
 	}
 
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		std::cout << "Second phase: " << i << std::endl; 
-		solvePoseAndShape(1);
 		// step1: 
-		m_wSmth = 0.1;
-		m_wRegular = 0.01;
-		m_maxDist = 0.05;
+		m_wSmth = 1.0;
+		m_wRegular = 0.05;
+		m_maxDist = 0.35;
+		m_wSym = 0.7;
 		solveNonrigidDeform(1, 1e-5);
+		std::stringstream ss;
+		ss << "E:/debug_pig3/shapeiter/shape_2_" << i << ".obj";
+		SaveObj(ss.str());
+
+		solvePoseAndShape(1);
+		std::stringstream ss1;
+		ss1 << "E:/debug_pig3/shapeiter/pose_" << i << ".obj";
+		SaveObj(ss1.str());
 	}
 }
 
@@ -468,7 +499,7 @@ void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double te
 	{
 		UpdateVertices();
 		std::stringstream ss; 
-		ss << "E:/debug_pig2/shape/pose_" << iterTime << ".obj";
+		ss << "E:/debug_pig3/shapeiter/pose_" << iterTime << ".obj";
 		SaveObj(ss.str());
 
 		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
@@ -538,6 +569,21 @@ void PigSolver::solvePoseAndShape(int maxIterTime)
 			int jIdx = m_poseToOptimize[i];
 			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 		}
+
+		Eigen::MatrixXd poseJ3d;
+		CalcSkelJacobiPartThetaByPairs(poseJ3d);
+		Eigen::MatrixXd skel = getRegressedSkelbyPairs();
+		Eigen::MatrixXd Hjoint = Eigen::MatrixXd::Zero(3 + 3 * M, 3 + 3 * M); // data term 
+		Eigen::VectorXd bjoint = Eigen::VectorXd::Zero(3 + 3 * M);
+		for (int k = 0; k < m_source.view_ids.size(); k++)
+		{
+			Eigen::MatrixXd H_view;
+			Eigen::VectorXd b_view;
+			CalcPose2DTermByPairs(k, skel, poseJ3d, H_view, b_view);
+		    Hjoint += H_view;
+			bjoint += b_view;
+		}
+
 		// solve
 		double lambda = 0.0005;
 		double w1 = 1;
@@ -546,11 +592,10 @@ void PigSolver::solvePoseAndShape(int maxIterTime)
 		Eigen::MatrixXd H_reg = DTD;  // reg term 
 		Eigen::VectorXd b_reg = -theta; // reg term 
 
-		Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg;
-
-		std::cout << "pose data b: " << ATb.norm() << std::endl; 
-		std::cout << "pose reg  b: " << b_reg.norm() << std::endl; 
+		Eigen::MatrixXd H = 
+			Hjoint + ATA * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = 
+			bjoint + ATb * w1 + b_reg * w_reg;
 
 		Eigen::VectorXd delta = H.ldlt().solve(b);
 
@@ -561,12 +606,7 @@ void PigSolver::solvePoseAndShape(int maxIterTime)
 			int jIdx = m_poseToOptimize[i];
 			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
 		}
-		// if(iterTime == 1) break; 
 		if (delta.norm() < terminal) break;
-
-		std::stringstream ss; 
-		ss << "E:/debug_pig2/shape/pose_" << iterTime << ".obj";
-		SaveObj(ss.str());
 	}
 
 	//
@@ -597,119 +637,74 @@ void PigSolver::solvePoseAndShape(int maxIterTime)
 	//}
 }
 
-#if 0
-void PigSolver::naiveNodeDeform()
-{
-	GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
-	InitNodeAndWarpField();
-
-	int iter = 0;
-	for (; iter < 10; iter++)
-	{
-		UpdateVertices();
-		mp_renderer->colorObjs.clear();
-		mp_renderer->texObjs.clear();
-
-		const auto& faces = m_facesVert;
-		const Eigen::MatrixXf vs = m_verticesFinal.cast<float>();
-
-		RenderObjectColor* pig_render = new RenderObjectColor();
-		pig_render->SetFaces(faces);
-		pig_render->SetVertices(vs);
-		Eigen::Vector3f color(1.0, 1.0, 1.0);
-		pig_render->SetColor(color);
-		mp_renderer->colorObjs.push_back(pig_render);
-
-		const auto& cameras = m_cameras;
-		std::vector<cv::Mat> renders;
-		for (int view = 0; view < m_source.view_ids.size(); view++)
-		{
-			int camid = m_source.view_ids[view];
-			Eigen::Matrix3f R = cameras[camid].R.cast<float>();
-			Eigen::Vector3f T = cameras[camid].T.cast<float>();
-			mp_renderer->s_camViewer.SetExtrinsic(R, T);
-			mp_renderer->Draw();
-			cv::Mat capture = mp_renderer->GetImage();
-			feedRender(capture);
-			renders.push_back(capture);
-		}
-
-		// debug
-		cv::Mat pack_render;
-		packImgBlock(renders, pack_render);
-		std::stringstream ss;
-		ss << "E:/debug_pig2/shapeiter/" << std::setw(6)
-			<< iter << ".jpg";
-		cv::imwrite(ss.str(), pack_render);
-
-		std::cout << RED_TEXT("iter:") << iter << std::endl;
-
-		iterateStep(iter);
-
-		//NaiveNodeDeformStep(iter);
-		clearData();
-
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
-	}
-}
-#endif 
-
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
-	//GLFWwindow* windowPtr = mp_renderer->s_windowPtr;
 	int iter = 0;
+	std::vector<cv::Mat> color_mask_dets;
+	std::vector<cv::Mat> raw_ims; 
+	for (int view = 0; view < m_rois.size(); view++)
+	{
+		int camid = m_rois[view].viewid;
+		raw_ims.push_back(m_rawImgs[camid]);
+		//cv::Mat img = m_rawImgs[camid].clone();
+		cv::Mat img(cv::Size(1920, 1080), CV_8UC3); img.setTo(255);
+		my_draw_mask(img, m_rois[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
+		color_mask_dets.push_back(img);
+	}
 	for (; iter < maxIter; iter++)
 	{
 		std::cout << "ITER: " << iter << std::endl; 
 		// render images 
 		UpdateVertices();
-		//mp_renderer->colorObjs.clear();
+		Model m3c;
+		m3c.vertices = m_verticesFinal; 
+		m3c.faces = m_facesVert;
+		ObjModel m4c;
+		convert3CTo4C(m3c, m4c);
 
-		const auto& faces = m_facesVert;
-		const Eigen::MatrixXf vs = m_verticesFinal.cast<float>();
+		animal_offscreen->SetIndices(m4c.indices);
+		animal_offscreen->SetBuffer("positions", m4c.vertices);
 
-		//RenderObjectColor* pig_render = new RenderObjectColor();
-		//pig_render->SetFaces(faces);
-		//pig_render->SetVertices(vs);
-		//Eigen::Vector3f color(1.0, 0.0, 0.0);
-		//pig_render->SetColor(color);
-		//mp_renderer->colorObjs.push_back(pig_render);
-
-		std::vector<cv::Mat> color_mask_dets; 
-
+		cv::Mat rendered_img(1920, 1080, CV_32FC4);
+		std::vector<cv::Mat> rendered_imgs;
+		rendered_imgs.push_back(rendered_img);
 		const auto& cameras = m_cameras;
 		std::vector<cv::Mat> renders;
-		std::vector<cv::Mat> raw_ims;
+		std::vector<cv::Mat> rend_bgr; 
 		for (int view = 0; view < m_rois.size(); view++)
 		{
 			auto cam = m_rois[view].cam;
 			Eigen::Matrix3f R = cam.R.cast<float>();
 			Eigen::Vector3f T = cam.T.cast<float>();
-			//mp_renderer->s_camViewer.SetExtrinsic(R, T);
-			//mp_renderer->Draw();
-			//cv::Mat capture = mp_renderer->GetImage();
-			//renders.push_back(capture);
-			int camid = m_rois[view].viewid; 
-			raw_ims.push_back(m_rawImgs[camid]);
-			cv::Mat img = m_rawImgs[camid].clone();
-			my_draw_mask(img, m_rois[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
-			color_mask_dets.push_back(img);
+			
+			animal_offscreen->_SetViewByCameraRT(cam.R, cam.T);
+			Eigen::Matrix4f camview = Eigen::Matrix4f::Identity();
+			camview.block<3, 3>(0, 0) = cam.R.cast<float>();
+			camview.block<3, 1>(0, 3) = cam.T.cast<float>();
+			nanogui::Matrix4f camview_nano = eigen2nanoM4f(camview);
+			animal_offscreen->SetUniform("view", camview_nano);
+			animal_offscreen->DrawOffscreen();
+			animal_offscreen->DownloadRenderingResults(rendered_imgs);
+			std::vector<cv::Mat> channels(4);
+			cv::split(rendered_imgs[0], channels);
+			cv::Mat depth = -channels[2];
+			renders.push_back(depth); 
+			rend_bgr.emplace_back(fromDeptyToColorMask(depth));
 		}
-		// test 
-		cv::Mat pack_render;
-		packImgBlock(renders, pack_render);
-		cv::Mat rawpack;
-		packImgBlock(raw_ims, rawpack);
-		cv::Mat blended;
-		blended = overlay_renders(rawpack, pack_render, 0);
-		cv::Mat pack_det;
-		packImgBlock(color_mask_dets, pack_det);
-		blended = blended * 0.5 + pack_det * 0.5;
-		std::stringstream ss;
-		ss << "E:/debug_pig3/iters/" << std::setw(6) << std::setfill('0')
-			<< iter << ".jpg";
-		cv::imwrite(ss.str(), blended);
+		//// test 
+		//cv::Mat pack_render;
+		//packImgBlock(rend_bgr, pack_render);
+		//cv::Mat rawpack;
+		//packImgBlock(raw_ims, rawpack);
+		//cv::Mat blended;
+		////blended = overlay_renders(rawpack, pack_render, 0);
+		//cv::Mat pack_det;
+		//packImgBlock(color_mask_dets, pack_det);
+		//blended = pack_render * 0.5 + pack_det * 0.5;
+		//std::stringstream ss;
+		//ss << "E:/debug_pig3/iters_new/" << std::setw(6) << std::setfill('0')
+		//	<< iter << ".jpg";
+		//cv::imwrite(ss.str(), blended);
 		// compute terms
 		int M = m_poseToOptimize.size(); 
 		Eigen::VectorXd theta(3 + 3 * M);
@@ -733,8 +728,8 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg;
 		Eigen::VectorXd delta = H.ldlt().solve(b);
 
-		std::cout << "data term b: " << ATb.norm() << std::endl;
-		std::cout << "reg  term b: " << b_reg.norm() << std::endl; 
+/*		std::cout << "data term b: " << ATb.norm() << std::endl;
+		std::cout << "reg  term b: " << b_reg.norm() << std::endl;*/ 
 
 		// update 
 		m_translation += delta.segment<3>(0);
@@ -748,7 +743,7 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 
 
 void PigSolver::CalcSilhouettePoseTerm(
-	const std::vector<cv::Mat>& renders,
+	const std::vector<cv::Mat>& depths,
 	Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb, int iter)
 {
 	int M = 3+3*m_poseToOptimize.size(); 
@@ -757,14 +752,14 @@ void PigSolver::CalcSilhouettePoseTerm(
 	Eigen::MatrixXd J_joint, J_vert; 
 	CalcPoseJacobiPartTheta(J_joint, J_vert);
 
-	// visualize 
-	std::vector<cv::Mat> chamfers_vis; 
-	std::vector<cv::Mat> chamfers_vis_det; 
-	std::vector<cv::Mat> gradx_vis;
-	std::vector<cv::Mat> grady_vis;
-	std::vector<cv::Mat> diff_vis; 
-	std::vector<cv::Mat> diff_xvis; 
-	std::vector<cv::Mat> diff_yvis;
+	//// visualize 
+	//std::vector<cv::Mat> chamfers_vis; 
+	//std::vector<cv::Mat> chamfers_vis_det; 
+	//std::vector<cv::Mat> gradx_vis;
+	//std::vector<cv::Mat> grady_vis;
+	//std::vector<cv::Mat> diff_vis; 
+	//std::vector<cv::Mat> diff_xvis; 
+	//std::vector<cv::Mat> diff_yvis;
 
 	double total_r = 0; 
 
@@ -772,17 +767,17 @@ void PigSolver::CalcSilhouettePoseTerm(
 	{
 		Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m_vertexNum, M);
 		Eigen::VectorXd r = Eigen::VectorXd::Zero(m_vertexNum);
-		cv::Mat P = computeSDF2d(renders[roiIdx]);
-		chamfers_vis.emplace_back(visualizeSDF2d(P));
-		chamfers_vis_det.emplace_back(visualizeSDF2d(m_rois[roiIdx].chamfer));
-		diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
+		cv::Mat P = computeSDF2dFromDepthf(depths[roiIdx]);
+		//chamfers_vis.emplace_back(visualizeSDF2d(P));
+		//chamfers_vis_det.emplace_back(visualizeSDF2d(m_rois[roiIdx].chamfer));
+		//diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
 
 		cv::Mat Pdx, Pdy;
 		computeGradient(P, Pdx, Pdy);
-		gradx_vis.emplace_back(visualizeSDF2d(Pdx, 32));
-		grady_vis.emplace_back(visualizeSDF2d(Pdy, 32));
-		diff_xvis.emplace_back(visualizeSDF2d(Pdx - m_rois[roiIdx].gradx, 32));
-		diff_yvis.emplace_back(visualizeSDF2d(Pdy - m_rois[roiIdx].grady, 32));
+		//gradx_vis.emplace_back(visualizeSDF2d(Pdx, 32));
+		//grady_vis.emplace_back(visualizeSDF2d(Pdy, 32));
+		//diff_xvis.emplace_back(visualizeSDF2d(Pdx - m_rois[roiIdx].gradx, 32));
+		//diff_yvis.emplace_back(visualizeSDF2d(Pdy - m_rois[roiIdx].grady, 32));
 		
 		auto cam = m_rois[roiIdx].cam;
 		Eigen::Matrix3d R = cam.R;
@@ -797,6 +792,15 @@ void PigSolver::CalcSilhouettePoseTerm(
 				m_bodyParts[i] == L_F_LEG || m_bodyParts[i] == L_B_LEG) w = 5; 
 			else w = 1; 
 			Eigen::Vector3d x0 = m_verticesFinal.col(i);
+			// check visibiltiy 
+			Camera & cam = m_rois[roiIdx].cam; 
+			float depth_value = queryPixel(depths[roiIdx], x0, cam);
+			Eigen::Vector3d x0_local = cam.R * x0 + cam.T;
+			bool visible;
+			if (abs(x0_local(2) - depth_value) < 0.02) visible = true;
+			else visible = false; 
+			if (!visible) continue;
+
 			int m = m_rois[roiIdx].queryMask(x0); 
 			// TODO: 20200501 use mask to check visibility 
 			float d = m_rois[roiIdx].queryChamfer(x0);
@@ -806,6 +810,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 			float p = queryPixel(P, x0, m_rois[roiIdx].cam);
 			float pdx = queryPixel(Pdx, x0, m_rois[roiIdx].cam);
 			float pdy = queryPixel(Pdy, x0, m_rois[roiIdx].cam);
+			if (p > 10) continue; 
 
 			Eigen::MatrixXd block2d = Eigen::MatrixXd::Zero(2, M);
 			Eigen::Vector3d x_local = K * (R * x0 + T);
@@ -820,44 +825,44 @@ void PigSolver::CalcSilhouettePoseTerm(
 		}
 		A = wc * A; 
 		r = wc * r; 
-		std::cout << "r.norm() : " << r.norm() << std::endl;
+		//std::cout << "r.norm() : " << r.norm() << std::endl;
 		total_r += r.norm();
 		ATA += A.transpose() * A;
 		ATb += A.transpose() * r; 
 	}
 
-	std::cout << "total r.norm() : " << total_r << std::endl; 
-	cv::Mat packP;
-	packImgBlock(chamfers_vis, packP);
-	cv::Mat packD;
-	packImgBlock(chamfers_vis_det, packD);
-	std::stringstream ssp;
-	ssp << "E:/debug_pig3/iters_p/" << iter << ".jpg";
-	cv::imwrite(ssp.str(), packP);
-	std::stringstream ssd; 
-	ssd << "E:/debug_pig3/iters_d/" << iter << ".jpg";
-	cv::imwrite(ssd.str(), packD);
-	cv::Mat packX, packY;
-	packImgBlock(gradx_vis, packX);
-	packImgBlock(grady_vis, packY);
-	std::stringstream ssx, ssy;
-	ssx << "E:/debug_pig3/iters_p/gradx_" << iter << ".jpg";
-	ssy << "E:/debug_pig3/iters_p/grady_" << iter << ".jpg";
-	cv::imwrite(ssx.str(), packX);
-	cv::imwrite(ssy.str(), packY);
+	//std::cout << "total r.norm() : " << total_r << std::endl; 
+	//cv::Mat packP;
+	//packImgBlock(chamfers_vis, packP);
+	//cv::Mat packD;
+	//packImgBlock(chamfers_vis_det, packD);
+	//std::stringstream ssp;
+	//ssp << "E:/debug_pig3/iters_p/" << iter << ".jpg";
+	//cv::imwrite(ssp.str(), packP);
+	//std::stringstream ssd; 
+	//ssd << "E:/debug_pig3/iters_d/" << iter << ".jpg";
+	//cv::imwrite(ssd.str(), packD);
+	//cv::Mat packX, packY;
+	//packImgBlock(gradx_vis, packX);
+	//packImgBlock(grady_vis, packY);
+	//std::stringstream ssx, ssy;
+	//ssx << "E:/debug_pig3/iters_p/gradx_" << iter << ".jpg";
+	//ssy << "E:/debug_pig3/iters_p/grady_" << iter << ".jpg";
+	//cv::imwrite(ssx.str(), packX);
+	//cv::imwrite(ssy.str(), packY);
 
-	cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
-	std::stringstream ssdiff;
-	ssdiff << "E:/debug_pig3/diff/diff_" << iter << ".jpg";
-	cv::imwrite(ssdiff.str(), packdiff);
+	//cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
+	//std::stringstream ssdiff;
+	//ssdiff << "E:/debug_pig3/diff/diff_" << iter << ".jpg";
+	//cv::imwrite(ssdiff.str(), packdiff);
 
-	cv::Mat packdiffx; packImgBlock(diff_xvis, packdiffx);
-	std::stringstream ssdifx;
-	ssdifx << "E:/debug_pig3/diff/diffx_" << iter << ".jpg";
-	cv::imwrite(ssdifx.str(), packdiffx);
+	//cv::Mat packdiffx; packImgBlock(diff_xvis, packdiffx);
+	//std::stringstream ssdifx;
+	//ssdifx << "E:/debug_pig3/diff/diffx_" << iter << ".jpg";
+	//cv::imwrite(ssdifx.str(), packdiffx);
 
-	cv::Mat packdiffy; packImgBlock(diff_yvis, packdiffy);
-	std::stringstream ssdify;
-	ssdify << "E:/debug_pig3/diff/diffy_" << iter << ".jpg";
-	cv::imwrite(ssdify.str(), packdiffy);
+	//cv::Mat packdiffy; packImgBlock(diff_yvis, packdiffy);
+	//std::stringstream ssdify;
+	//ssdify << "E:/debug_pig3/diff/diffy_" << iter << ".jpg";
+	//cv::imwrite(ssdify.str(), packdiffy);
 }

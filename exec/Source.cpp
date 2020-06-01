@@ -107,7 +107,6 @@ int test_nanogui()
 		"box3", vs_vertex_position, fs_vertex_position, 400, 400, 512, 384, 1, true);
 	human_offscreen->SetIndices(human_model);
 	human_offscreen->SetBuffer("positions", human_model);
-	human_offscreen->SetBuffer("normals", human_model);
 	human_offscreen->SetModelRT(nanogui::Matrix4f::translate(nanogui::Vector3f(-0.5, -0.5, 0.2)));
 
 	cv::Mat rendered_img(800, 800, CV_32FC4);

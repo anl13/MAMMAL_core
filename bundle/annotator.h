@@ -53,6 +53,7 @@ public:
 	void setInitData(const vector<MatchedInstance>& matched);
 	void getMatchedData(vector<MatchedInstance>& matched);
 	int m_camNum;
+	std::vector<Camera> m_rawCams;
 	std::vector<Camera> m_cams; 
 	std::vector<cv::Mat> m_imgs; //[camnum]
 	vector<vector<DetInstance> >              m_data; // [pigid,viewid]
@@ -67,7 +68,6 @@ public:
 	void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
 	void update_image_labeled(const SingleClickLabeledData& input, const std::vector<int>& status);
 	void update_data(const SingleClickLabeledData& input, const std::vector<int>& status);
-
 private:
 	void construct_panel_attr();
 	void update_panel(const std::vector<int>& status);

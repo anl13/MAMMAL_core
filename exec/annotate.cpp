@@ -19,7 +19,8 @@ void annotate()
 	
 	frame.set_frame_id(frameid);
 	frame.fetchData();
-	frame.matching_by_tracking();
+	//frame.matching_by_tracking();
+	frame.load_labeled_data();
 
 	std::string result_folder = "E:/my_labels/";
 	Annotator A;

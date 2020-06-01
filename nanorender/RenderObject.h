@@ -294,10 +294,11 @@ public:
 		const float cx = 100, const float cy = 100,
 		const int render_tex_num = 1,
 		const bool render_float_values = false,
+		const bool is_pinhole = false, 
 		BlendMode blend_mode = BlendMode::None)
 		: RenderObject(name, vertex_shader, fragment_shader)
 	{
-		Init(width, height, fx, fy, cx, cy, render_tex_num, render_float_values);
+		Init(width, height, fx, fy, cx, cy, render_tex_num, render_float_values,is_pinhole);
 	}
 
 	~OffscreenRenderObject() {
@@ -309,19 +310,23 @@ public:
 		const int& width, const int& height, 
 		const float& fx, const float& fy, 
 		const float& cx, const float& cy,
-		const int& render_tex_num, const bool& render_float_values) {
+		const int& render_tex_num, const bool& render_float_values, const bool is_pinhole=false) {
 		m_width = width;
 		m_height = height;
 		m_proj = CalcGLProjectionMatrix(width, height, fx, fy, cx, cy);
 		
 		m_model = Matrix4f::identity();
 		// convert default GL viewport to default pinhole camera viewport (for pinhole camera only)
-		//m_view = Matrix4f::look_at(Vector3f(0, 0, 0), Vector3f(0, 0, -1), Vector3f(0, 1, 0));
-		//Matrix4f cam2gl = Matrix4f::rotate(Vector3f(1, 0, 0), M_PI);
-		//m_view = m_view * cam2gl;
-
-		// anliang:20200515
-		m_view = Matrix4f::identity();
+		if (is_pinhole)
+		{
+			m_view = Matrix4f::look_at(Vector3f(0, 0, 0), Vector3f(0, 0, -1), Vector3f(0, 1, 0));
+			Matrix4f cam2gl = Matrix4f::rotate(Vector3f(1, 0, 0), M_PI);
+			m_view = m_view * cam2gl;
+		}
+		else {
+			// anliang:20200515
+			m_view = Matrix4f::identity();
+		}
 
 		m_render_texture_num = render_tex_num;
 		m_render_float_values = render_float_values;
@@ -388,10 +393,14 @@ public:
 		float f = 10.f;
 
 		Matrix4f projMat(0);
-		projMat.m[0][0] = 2 * fx / width;
-		projMat.m[1][1] = 2 * fy / height;
-		projMat.m[2][0] = 2 * cx / width - 1;
-		projMat.m[2][1] = 2 * cy / height - 1;
+		//projMat.m[0][0] = fx / cx; 
+		//projMat.m[1][1] = fy / cy; 
+		int w = width ;
+		int h = height ; 
+		projMat.m[0][0] = 2 * fx / w;
+		projMat.m[1][1] = 2 * fy / h;
+		projMat.m[2][0] = -(2 * cx / w - 1);
+		projMat.m[2][1] = (2 * cy / h - 1);
 		projMat.m[2][2] = (-(f + n)) / (f - n);
 		projMat.m[3][2] = (-2 * f * n) / (f - n);
 		projMat.m[2][3] = -1.f;
@@ -453,7 +462,9 @@ public:
 			if (cvimg.cols != m_width || cvimg.rows != m_height)
 			{
 				cv::resize(cvimg, cvimg, cv::Size(m_width, m_height));
-				cvimg.setTo(cv::Vec4d(0, 0, 0, 0));
+				if(m_render_float_values)
+					cvimg.setTo(cv::Vec4d(0, 0, 0, 0));
+				else cvimg.setTo(cv::Vec4b(0, 0, 0, 0));
 			}
 
 			cudaSafeCall(cudaMemcpy2DFromArray(

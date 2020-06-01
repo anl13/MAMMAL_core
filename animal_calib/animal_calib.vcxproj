@@ -33,8 +33,14 @@
     <ClCompile Include="..\bundle\annotator.cpp" />
     <ClCompile Include="..\bundle\BASolver.cpp" />
     <ClCompile Include="..\bundle\calibration.cpp" />
+    <ClCompile Include="..\exec\annotate.cpp" />
+    <ClCompile Include="..\exec\computeVisualhull.cpp" />
+    <ClCompile Include="..\exec\compute_sym.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
+    <ClCompile Include="..\exec\modify_model.cpp" />
+    <ClCompile Include="..\exec\run_pose.cpp" />
     <ClCompile Include="..\exec\run_render.cpp" />
+    <ClCompile Include="..\exec\run_shape.cpp" />
     <ClCompile Include="..\exec\Source.cpp" />
     <ClCompile Include="..\exec\testfunc.cpp" />
     <ClCompile Include="..\nanorender\NanoRenderer.cpp" />
@@ -149,6 +155,8 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="animal_calib.props" />
+    <Import Project="nanorenderer.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

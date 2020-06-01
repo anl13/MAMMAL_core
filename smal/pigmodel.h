@@ -96,6 +96,7 @@ public:
 	std::vector<int> m_vertToTex;
 	void debugRemoveEye();
 #endif 
+	void remapmodel();
 	
 	void InitNodeAndWarpField(); 
 	void UpdateModelShapedByKNN();

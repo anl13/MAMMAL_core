@@ -481,7 +481,17 @@ void Annotator::read_label_result(std::string filename)
 							k++;
 						}
 					}
-					m_data[pid][camid].mask.push_back(amask);
+					// undist 
+					//if (pid == 0)
+					//{
+					//	std::vector<Eigen::Vector2d> undist_mask;
+					//	my_undistort_points(amask, undist_mask, m_rawCams[0], m_cams[0]);
+
+					//	m_data[pid][camid].mask.push_back(undist_mask);
+					//}
+					//else {
+						m_data[pid][camid].mask.push_back(amask);
+					//}
 				}
 				m_data[pid][camid].valid = true;
 			}

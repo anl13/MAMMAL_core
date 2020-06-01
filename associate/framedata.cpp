@@ -872,7 +872,8 @@ void FrameData::load_labeled_data()
 	Annotator A;
 	A.result_folder = "E:/my_labels/";
 	A.frameid = m_frameid;
-	A.m_cams = get_cameras();
+	A.m_cams = m_camsUndist;
+	A.m_rawCams = m_cams;
 	A.m_camNum = m_camNum;
 	A.read_label_result();
 	A.getMatchedData(m_matched);

@@ -144,6 +144,24 @@
     <ClCompile Include="..\exec\Source.cpp">
       <Filter>exec</Filter>
     </ClCompile>
+    <ClCompile Include="..\exec\run_pose.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\compute_sym.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\run_shape.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\computeVisualhull.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\annotate.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\modify_model.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">

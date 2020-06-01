@@ -17,6 +17,11 @@
 #include "../utils/node_graph.h"
 #include "../utils/kdtree.h"
 #include "../utils/volume.h"
+#include "../nanorender/NanoRenderer.h"
+#include "../nanorender/RenderObject.h"
+#include "../utils/model.h" 
+#include "../utils/dataconverter.h"
+#include "../utils/objloader.h"
 
 /*
 Some Functions for nonrigid deformation borrows from 
@@ -91,7 +96,7 @@ public:
 	vector<cv::Mat>       m_renders; 
 	void optimizePoseSilhouette(int maxIter);
 	void CalcSilhouettePoseTerm(const std::vector<cv::Mat>& renders, Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb, int iter);
-	//Renderer* mp_renderer;
+	nanogui::ref<OffscreenRenderObject> animal_offscreen; 
 
 	std::vector<int> m_poseToOptimize;
 
@@ -104,14 +109,13 @@ public:
 	Model m_iterModel;
 	double m_wSmth = 0.1;
 	double m_wRegular = 1e-3;
-	double m_maxDist = 0.2;
-	double m_wSym = 0.1;
-	double m_maxAngle = double(EIGEN_PI) / 4;
+	double m_maxDist = 0.35;
+	double m_wSym = 0.01;
+	double m_maxAngle = double(EIGEN_PI) / 6;
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
 	void CalcSmthTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
 	void CalcDeformTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
 	void setTargetModel(std::shared_ptr<Model> m_tarModel);
-	void setSourceModel();
 	void updateWarpField();
 	void updateIterModel();
 	void solveNonrigidDeform(int maxIterTime, double updateThresh);
@@ -135,7 +139,10 @@ private:
 	SkelTopology m_topo;
 	bool tmp_init;
 
-	std::vector<int> m_symIdx;
+	int m_symNum; 
+	std::vector<std::vector<int> > m_symIdx;
+	std::vector<std::vector<double> > m_symweights; 
+
 	// inferred data
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
 	BodyState m_bodystate; 

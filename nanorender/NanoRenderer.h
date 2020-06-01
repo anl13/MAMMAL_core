@@ -71,17 +71,22 @@ public:
 	StaticCanvas(Widget *parent, const int& width, const int& height, 
 		const float& fx, const float& fy, 
 		const float& cx, const float& cy,
+		const bool is_pinhole = false,
 		const int samples = 1, const bool has_depth = true, const bool has_stencil = false, const bool clear = true) 
 		: Canvas(parent, samples, has_depth, has_stencil, clear) {
 		set_size(Vector2i(width, height));
 		m_proj = CalcGLProjectionMatrix(width, height, fx, fy, cx, cy);
 		//// convert default GL viewport to default pinhole camera viewport (for pinhole camera only)
-		//m_view = Matrix4f::look_at(Vector3f(0, 0, 0), Vector3f(0, 0, -1), Vector3f(0, 1, 0));
-		//Matrix4f cam2gl = Matrix4f::rotate(Vector3f(1, 0, 0), M_PI); 
-		//m_view = m_view * cam2gl;
-
-		// anliang; 20200515: use default I matrix. 
-		m_view = Matrix4f::identity();
+		if (is_pinhole)
+		{
+			m_view = Matrix4f::look_at(Vector3f(0, 0, 0), Vector3f(0, 0, -1), Vector3f(0, 1, 0));
+			Matrix4f cam2gl = Matrix4f::rotate(Vector3f(1, 0, 0), M_PI); 
+			m_view = m_view * cam2gl;
+		}
+		else {
+			// anliang; 20200515: use default I matrix. 
+			m_view = Matrix4f::identity();
+		}
 	}
 
 	Matrix4f CalcGLProjectionMatrix(const int& width, const int& height, const float& fx, const float& fy, const float& cx, const float& cy)
@@ -91,10 +96,14 @@ public:
 		float f = 10.f;
 
 		Matrix4f projMat(0);
-		projMat.m[0][0] = 2 * fx / width;
-		projMat.m[1][1] = 2 * fy / height;
-		projMat.m[2][0] = 2 * cx / width - 1; 
-		projMat.m[2][1] = 2 * cy / height - 1; 
+		//projMat.m[0][0] = fx / cx;
+		//projMat.m[1][1] = fy / cy;
+		int w = width ;
+		int h = height ;
+		projMat.m[0][0] = 2 * fx / w;
+		projMat.m[1][1] = 2 * fy / h;
+		projMat.m[2][0] = -(2 * cx / w - 1);
+		projMat.m[2][1] = (2 * cy / h - 1);
 		projMat.m[2][2] = (-(f + n)) / (f - n);
 		projMat.m[3][2] = (-2 * f * n) / (f - n);
 		projMat.m[2][3] = -1.f;
@@ -128,6 +137,9 @@ public:
 		}
 	}
 
+	void clear_objects() {
+		m_render_objects.clear(); 
+	}
 protected:
 	std::vector<ref<RenderObject>> m_render_objects;
 	Matrix4f m_proj, m_view;
@@ -136,8 +148,8 @@ protected:
 
 class ArcballCanvas : public StaticCanvas {
 public:
-	ArcballCanvas(Widget *parent, const int& width, const int& height, const float& fx, const float& fy, const float& cx, const float& cy) : 
-		StaticCanvas(parent, width, height, fx, fy, cx, cy) {
+	ArcballCanvas(Widget *parent, const int& width, const int& height, const float& fx, const float& fy, const float& cx, const float& cy, const bool is_pinhole=false) : 
+		StaticCanvas(parent, width, height, fx, fy, cx, cy,is_pinhole) {
 		m_rot_center = Eigen::Vector3f(0, 0, 1);
 	}
 
@@ -251,10 +263,15 @@ public:
 	virtual bool mouse_drag_event(const Vector2i &p, const Vector2i &rel, int button, int modifiers) override {
 
 		if (button == GLFW_MOUSE_BUTTON_LEFT + 1){
-			RotateViewport(p, rel);
+			Vector2i newrel = rel;
+			if (m_rot_center[2] < 0) newrel[0] *= -1;
+			RotateViewport(p, newrel);
 		}
 		if (button == GLFW_MOUSE_BUTTON_RIGHT + 1){
-			TranslateViewport(p, rel);
+			Vector2i newrel = rel;
+			newrel[0] *= 1; 
+			newrel[1] *= -1; 
+			TranslateViewport(p, newrel);
 		}
 		return true;
 	}
@@ -291,12 +308,17 @@ public:
 	~NanoRenderer();
 
 	void Init(const int& window_width, const int& window_height, 
-		float fx = 400.f, float fy = 400.f, float cx = -1.f, float cy = -1.f, const float arcball_depth = 2.0f);
+		float fx = 400.f, float fy = 400.f, float cx = -1.f, float cy = -1.f, float arcball_depth = 2.0f, bool is_pinhole=false);
 	void Draw();
 	bool Pause() { return m_pause; }
 	void Stop();
 	bool ShouldClose() {
 		return glfwWindowShouldClose(window); }
+
+	void ClearRenderObjects(); 
+
+	void CreatePointCloudObjects(const std::vector<Eigen::Vector3f>& points, const std::vector<float>& sizes,
+		const std::vector<Eigen::Vector3i>& colors);
 
 	ref<RenderObject> CreateRenderObject(const std::string& name, const std::string& vs, const std::string& fs) {
 		ref<RenderObject> render_object = new RenderObject(name, vs, fs, Shader::BlendMode::None);
@@ -322,9 +344,9 @@ public:
 	ref<OffscreenRenderObject> CreateOffscreenRenderObject(
 		const std::string& name, const std::string& vs, const std::string& fs, 
 		const int& width = 400, const int& height = 400, const float& fx = 400, const float& fy = 400,
-		const float& cx = 400, const float& cy = 400, const int& tex_num = 1, const int& render_float_values = true) {
+		const float& cx = 400, const float& cy = 400, const int& tex_num = 1, const int& render_float_values = true, const bool is_pinhole=false) {
 		ref<OffscreenRenderObject> render_object 
-			= new OffscreenRenderObject(name, vs, fs, width, height, fx, fy, cx, cy, tex_num, render_float_values);
+			= new OffscreenRenderObject(name, vs, fs, width, height, fx, fy, cx, cy, tex_num, render_float_values, is_pinhole);
 		m_offscreen_render_objects.emplace(std::make_pair(name, render_object));
 		return render_object;
 	}
@@ -338,6 +360,11 @@ public:
 	void UpdateCanvasView(const Eigen::Matrix4f& view)
 	{
 		m_canvas->UpdateViewport(view);
+	}
+
+	void ApplyCanvasView()
+	{
+		m_canvas->UpdateViewport(Eigen::Matrix4f::Identity());
 	}
 
 	bool m_save_screen = false;

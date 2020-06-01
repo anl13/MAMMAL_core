@@ -23,3 +23,11 @@ extern const std::string fs_vertex_normal;
 //
 extern const std::string vs_phong_geometry;
 extern const std::string fs_phong_geometry;
+
+// 
+extern const std::string vs_phong_color;
+extern const std::string fs_phong_color; 
+
+// 
+extern const std::string vs_phong_vertex_color;
+extern const std::string fs_phong_vertex_color;
