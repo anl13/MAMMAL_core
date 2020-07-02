@@ -548,15 +548,15 @@ void PigModel::UpdateNormals()
 	UpdateNormalFinal();
 }
 
-void PigModel::RescaleOriginVertices()
+void PigModel::RescaleOriginVertices(double alpha)
 {
-	if (m_scale == 0) return; 
-	m_verticesOrigin = m_verticesOrigin * m_scale;
-	m_jointsOrigin = m_jointsOrigin * m_scale; 
+	if (alpha == 0 || alpha == 1) return; 
+	m_verticesOrigin = m_verticesOrigin * alpha;
+	m_jointsOrigin = m_jointsOrigin * alpha; 
 	if (m_shapeNum > 0)
 	{
-		m_shapeBlendJ = m_shapeBlendJ * m_scale;
-		m_shapeBlendV = m_shapeBlendV * m_scale;
+		m_shapeBlendJ = m_shapeBlendJ * alpha;
+		m_shapeBlendV = m_shapeBlendV * alpha;
 	}
 }
 

@@ -77,7 +77,7 @@ public:
 	void UpdateNormalShaped();
 	void UpdateNormalFinal();
 
-	void RescaleOriginVertices();
+	void RescaleOriginVertices(double alpha);
 	void UpdateVerticesTex(); 
 
 	void SaveObj(const std::string& filename) const;

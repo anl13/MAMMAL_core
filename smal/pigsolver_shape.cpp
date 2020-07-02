@@ -640,6 +640,8 @@ void PigSolver::solvePoseAndShape(int maxIterTime)
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
 	int iter = 0;
+
+#ifdef DEBUG_SIL
 	std::vector<cv::Mat> color_mask_dets;
 	std::vector<cv::Mat> raw_ims; 
 	for (int view = 0; view < m_rois.size(); view++)
@@ -651,11 +653,36 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		my_draw_mask(img, m_rois[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
 		color_mask_dets.push_back(img);
 	}
+#endif 
+
+	int M = m_poseToOptimize.size();
 	for (; iter < maxIter; iter++)
 	{
 		std::cout << "ITER: " << iter << std::endl; 
-		// render images 
+		
 		UpdateVertices();
+#ifdef DEBUG_SIL
+		std::stringstream ss_obj; 
+		ss_obj << "E:/pig_results/debug/sil_" << iter << ".obj"; 
+		SaveObj(ss_obj.str());
+#endif 
+
+		// calc joint term 
+		Eigen::MatrixXd poseJ3d; 
+		CalcSkelJacobiPartThetaByPairs(poseJ3d);
+		Eigen::MatrixXd skel = getRegressedSkelbyPairs();
+		Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(3 + 3 * M, 3 + 3 * M); // data term 
+		Eigen::VectorXd b1 = Eigen::VectorXd::Zero(3 + 3 * M);  // data term 
+		for (int k = 0; k < m_source.view_ids.size(); k++)
+		{
+			Eigen::MatrixXd H_view;
+			Eigen::VectorXd b_view;
+			CalcPose2DTermByPairs(k, skel, poseJ3d, H_view, b_view);
+			H1 += H_view;
+			b1 += b_view;
+		}
+
+		// render images 
 		Model m3c;
 		m3c.vertices = m_verticesFinal; 
 		m3c.faces = m_facesVert;
@@ -691,22 +718,24 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			renders.push_back(depth); 
 			rend_bgr.emplace_back(fromDeptyToColorMask(depth));
 		}
-		//// test 
-		//cv::Mat pack_render;
-		//packImgBlock(rend_bgr, pack_render);
-		//cv::Mat rawpack;
-		//packImgBlock(raw_ims, rawpack);
-		//cv::Mat blended;
-		////blended = overlay_renders(rawpack, pack_render, 0);
-		//cv::Mat pack_det;
-		//packImgBlock(color_mask_dets, pack_det);
-		//blended = pack_render * 0.5 + pack_det * 0.5;
-		//std::stringstream ss;
-		//ss << "E:/debug_pig3/iters_new/" << std::setw(6) << std::setfill('0')
-		//	<< iter << ".jpg";
-		//cv::imwrite(ss.str(), blended);
+
+#ifdef DEBUG_SIL
+		// test 
+		cv::Mat pack_render;
+		packImgBlock(rend_bgr, pack_render);
+		cv::Mat rawpack;
+		packImgBlock(raw_ims, rawpack);
+		cv::Mat blended;
+		//blended = overlay_renders(rawpack, pack_render, 0);
+		cv::Mat pack_det;
+		packImgBlock(color_mask_dets, pack_det);
+		blended = pack_render * 0.5 + pack_det * 0.5;
+		std::stringstream ss;
+		ss << "E:/pig_results/debug/" << std::setw(6) << std::setfill('0')
+			<< iter << ".jpg";
+		cv::imwrite(ss.str(), blended);
+#endif 
 		// compute terms
-		int M = m_poseToOptimize.size(); 
 		Eigen::VectorXd theta(3 + 3 * M);
 		theta.segment<3>(0) = m_translation;
 		for (int i = 0; i < M; i++)
@@ -718,19 +747,26 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		Eigen::MatrixXd ATA;
 		Eigen::VectorXd ATb; 
 		CalcSilhouettePoseTerm(renders, ATA, ATb,iter);
-		double lambda = 0.0005;
+		double lambda = 0.005;
+		double w_joint = 0.01; 
 		double w1 = 1;
-		double w_reg = 0.001;
+		double w_reg = 1;
+		double w_temp = 0; 
 		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXd H_reg = DTD;  // reg term 
 		Eigen::VectorXd b_reg = -theta; // reg term 
-		Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg;
+		Eigen::MatrixXd H_temp = DTD;
+		Eigen::VectorXd b_temp = theta_last - theta; 
+		Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg 
+			+ DTD * lambda + H_temp * w_temp
+			+ H1 * w_joint;
+		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg 
+			+ b_temp * w_temp
+			+ b1 * w_joint;
 		Eigen::VectorXd delta = H.ldlt().solve(b);
 
-/*		std::cout << "data term b: " << ATb.norm() << std::endl;
-		std::cout << "reg  term b: " << b_reg.norm() << std::endl;*/ 
-
+		std::cout << "reg  term b: " << b_reg.norm() << std::endl; 
+		std::cout << "temp term b: " << b_temp.norm() << std::endl; 
 		// update 
 		m_translation += delta.segment<3>(0);
 		for (int i = 0; i < M; i++)
@@ -738,6 +774,13 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			int jIdx = m_poseToOptimize[i];
 			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
 		}
+	}
+
+	theta_last.segment<3>(0) = m_translation;
+	for (int i = 0; i < M; i++)
+	{
+		int jIdx = m_poseToOptimize[i];
+		theta_last.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 	}
 }
 
@@ -765,6 +808,10 @@ void PigSolver::CalcSilhouettePoseTerm(
 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
+		if (m_rois[roiIdx].valid < 0.6) {
+			std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl; 
+			continue;
+		}
 		Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m_vertexNum, M);
 		Eigen::VectorXd r = Eigen::VectorXd::Zero(m_vertexNum);
 		cv::Mat P = computeSDF2dFromDepthf(depths[roiIdx]);
@@ -784,7 +831,8 @@ void PigSolver::CalcSilhouettePoseTerm(
 		Eigen::Matrix3d K = cam.K;
 		Eigen::Vector3d T = cam.T;
 
-		double wc = 100.0 / m_rois[roiIdx].area;
+		double wc = 200.0 / m_rois[roiIdx].area;
+		//std::cout << "wc " << roiIdx << " : " << wc << std::endl; 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
 			double w; 
@@ -802,6 +850,8 @@ void PigSolver::CalcSilhouettePoseTerm(
 			if (!visible) continue;
 
 			int m = m_rois[roiIdx].queryMask(x0); 
+			// TODO: 20200602 check occlusion
+			if (m == 2 || m == 3) continue; 
 			// TODO: 20200501 use mask to check visibility 
 			float d = m_rois[roiIdx].queryChamfer(x0);
 			if (d < -9999) continue;
@@ -810,7 +860,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 			float p = queryPixel(P, x0, m_rois[roiIdx].cam);
 			float pdx = queryPixel(Pdx, x0, m_rois[roiIdx].cam);
 			float pdy = queryPixel(Pdy, x0, m_rois[roiIdx].cam);
-			if (p > 10) continue; 
+			if (p > 10) continue; // only consider contours for loss 
 
 			Eigen::MatrixXd block2d = Eigen::MatrixXd::Zero(2, M);
 			Eigen::Vector3d x_local = K * (R * x0 + T);
@@ -821,7 +871,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 			D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
 			block2d = D * K * R * J_vert.middleRows(3 * i, 3);
 			r(i) = w * (p - d); 
-			A.row(i) = w*(block2d.row(0) * (pdx) + block2d.row(1) * (pdy));
+			A.row(i) = w*(block2d.row(0) * (ddx) + block2d.row(1) * (ddy));
 		}
 		A = wc * A; 
 		r = wc * r; 
@@ -831,7 +881,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 		ATb += A.transpose() * r; 
 	}
 
-	//std::cout << "total r.norm() : " << total_r << std::endl; 
+	std::cout << "sil  term b: " << total_r << std::endl; 
 	//cv::Mat packP;
 	//packImgBlock(chamfers_vis, packP);
 	//cv::Mat packD;

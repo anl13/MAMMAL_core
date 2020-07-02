@@ -46,14 +46,19 @@ void FrameData::tracking() // naive 3d 2 3d tracking
 
     vector<int> map = m_tracker.get_map(); 
     vector<MatchedInstance> rematch;
+	vector<vector<int>> recluster(4); 
     rematch.resize(m_matched.size()); 
     for(int i = 0; i < map.size(); i++)
     {
         int id = map[i];
-        if(id>-1)
-        rematch[i] = m_matched[id]; 
+		if (id > -1)
+		{
+			rematch[i] = m_matched[id];
+			recluster[i] = m_clusters[id];
+		}
     }
     m_matched = rematch;
+	m_clusters = recluster;
 }
 
 void FrameData::solve_parametric_model()
@@ -64,10 +69,6 @@ void FrameData::solve_parametric_model()
 		if (mp_bodysolver[i] == nullptr)
 		{
 			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
-			//mp_bodysolver[i]->readShapeParam(folder + "pigshape.txt");
-			//mp_bodysolver[i]->RescaleOriginVertices();
-			mp_bodysolver[i]->UpdateNormalOrigin();
-			mp_bodysolver[i]->UpdateNormalShaped();
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i); 
@@ -77,25 +78,28 @@ void FrameData::solve_parametric_model()
 	}
 
 	m_skels3d.resize(4); 
+#pragma omp parallel for 
 	for (int i = 0; i < 4; i++)
 	{
-		std::cout << "solving ... " << i << std::endl; 
 		mp_bodysolver[i]->setSource(m_matched[i]); 
 		mp_bodysolver[i]->normalizeSource(); 
 		mp_bodysolver[i]->globalAlign(); 
-		mp_bodysolver[i]->optimizePose(20, 0.001); 
-		
-		//mp_bodysolver[i]->computePivot();
-		//std::string savefolder = "E:/pig_results/"; 
-		//std::stringstream ss; 
-		//ss << savefolder << "state_" << i << "_" <<
-		//	std::setw(6) << std::setfill('0') << m_frameid
-		//	<< ".pig";
-		//auto body = mp_bodysolver[i]->getBodyState(); 
-		//body.saveState(ss.str()); 
-
+		mp_bodysolver[i]->optimizePose(10, 0.001); 
 		auto skels = mp_bodysolver[i]->getRegressedSkel();
 		m_skels3d[i] = convertMatToVec(skels); 
+	}
+}
+
+void FrameData::save_parametric_data()
+{
+	for (int i = 0; i < 4; i++)
+	{
+		std::string savefolder = "E:/pig_results/cluster_states/";
+		std::stringstream ss;
+		ss << savefolder << "state_" << i << "_" <<
+			std::setw(6) << std::setfill('0') << m_frameid
+			<< ".txt";
+		mp_bodysolver[i]->saveState(ss.str()); 
 	}
 }
 
@@ -116,14 +120,14 @@ void FrameData::read_parametric_data()
 
 	for (int i = 0; i < 4; i++)
 	{
-		std::string savefolder = "E:/pig_results/";
+		std::string savefolder = "E:/pig_results/cluster_states/";
 		std::stringstream ss;
 		ss << savefolder << "state_" << i << "_" <<
 			std::setw(6) << std::setfill('0') << m_frameid
-			<< ".pig";
-		mp_bodysolver[i]->readBodyState(ss.str()); 
+			<< ".txt";
+		mp_bodysolver[i]->readState(ss.str()); 
+		mp_bodysolver[i]->UpdateVertices();
 	}
-
 }
 
 void FrameData::matching_by_tracking()
@@ -165,7 +169,6 @@ void FrameData::matching_by_tracking()
 			if (candid < 0) continue;
 			be_matched[camid][candid] = true;
 			m_matched[i].view_ids.push_back(camid);
-			//m_matched[i].cand_ids.push_back(candid);
 			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
 		}
 	}
@@ -189,6 +192,82 @@ void FrameData::matching_by_tracking()
 	}
 }
 
+void FrameData::save_clusters()
+{
+	std::stringstream ss; 
+	ss << "E:/pig_results/clusters/" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+	std::ofstream stream(ss.str());
+	if (!stream.is_open())
+	{
+		std::cout << "cluster saving stream not open. " << std::endl;
+		return; 
+	}
+	for (int i = 0; i < m_clusters.size(); i++)
+	{
+		for (int k = 0; k < m_clusters[i].size(); k++)
+		{
+			stream << m_clusters[i][k] << " ";
+		}
+		stream << std::endl; 
+	}
+	stream.close(); 
+}
+
+void FrameData::load_clusters()
+{
+	std::stringstream ss;
+	ss << "E:/pig_results/clusters/" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+	std::ifstream stream(ss.str());
+	if (!stream.is_open())
+	{
+		std::cout << "cluster saving stream not open. " << std::endl;
+		return;
+	}
+	m_clusters.resize(4); 
+	for(int i = 0; i < 4; i++)
+	{
+		m_clusters[i].resize(m_camNum);
+		for (int k = 0; k < m_camNum; k++)
+		{
+			stream >> m_clusters[i][k];
+		}
+	}
+	stream.close(); 
+
+	m_matched.clear();
+	m_matched.resize(m_clusters.size());
+	vector<vector<bool> > be_matched;
+	be_matched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		be_matched[camid].resize(m_detUndist[camid].size(), false);
+	}
+	for (int i = 0; i < m_clusters.size(); i++)
+	{
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			int candid = m_clusters[i][camid];
+			if (candid < 0) continue;
+			be_matched[camid][candid] = true;
+			m_matched[i].view_ids.push_back(camid);
+			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
+		}
+	}
+
+	m_unmatched.clear();
+	m_unmatched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int candid = 0; candid < be_matched[camid].size(); candid++)
+		{
+			if (!be_matched[camid][candid])
+			{
+				m_unmatched[camid].push_back(m_detUndist[camid][candid]);
+			}
+		}
+	}
+}
+
 void FrameData::debug_fitting(int pig_id)
 {
 	visualizeDebug(pig_id); 
@@ -206,7 +285,7 @@ void FrameData::debug_fitting(int pig_id)
 	cv::Mat output; 
 	packImgBlock(crop_list, output);
 	std::stringstream ss; 
-	ss << "E:/debug_pig2/fitting/output" << m_frameid << "_" << pig_id << ".png";
+	ss << "E:/pig_results/fitting/output" << m_frameid << "_" << pig_id << ".png";
 	cv::imwrite(ss.str(), output); 
 	//cv::imshow("test", output); 
 	//cv::waitKey(); 

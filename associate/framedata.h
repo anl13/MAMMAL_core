@@ -68,8 +68,11 @@ public:
     void reproject_skels(); 
 	void solve_parametric_model(); 
 	void read_parametric_data(); 
+	void save_parametric_data(); 
 
 	void load_labeled_data();
+	void save_clusters();
+	void load_clusters(); 
 
     // visualization function  
     cv::Mat visualizeSkels2D(); 
@@ -81,10 +84,12 @@ public:
 
 	// shape solver 
 	vector<ROIdescripter> getROI(int id = 0); 
-	cv::Mat m_undist_mask;
+	cv::Mat m_undist_mask; // mask for image undistortion valid area 
+	std::vector<cv::Mat> m_scene_masks; // mask for scene
 	vector<cv::Mat> m_backgrounds; 
 	std::vector<cv::Mat> m_foreground;
 
+	void readSceneMask(); 
 	void extractFG(); 
 protected:
     // io functions 

@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\associate\associator.cpp" />
     <ClCompile Include="..\associate\clusterclique.cpp" />
     <ClCompile Include="..\associate\framedata.cpp" />
     <ClCompile Include="..\associate\framedata_PMT.cpp" />
@@ -34,18 +35,26 @@
     <ClCompile Include="..\bundle\BASolver.cpp" />
     <ClCompile Include="..\bundle\calibration.cpp" />
     <ClCompile Include="..\exec\annotate.cpp" />
+    <ClCompile Include="..\exec\calib_bundle.cpp" />
     <ClCompile Include="..\exec\computeVisualhull.cpp" />
     <ClCompile Include="..\exec\compute_sym.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
     <ClCompile Include="..\exec\modify_model.cpp" />
     <ClCompile Include="..\exec\run_pose.cpp" />
     <ClCompile Include="..\exec\run_render.cpp" />
+    <ClCompile Include="..\exec\run_render2.cpp" />
     <ClCompile Include="..\exec\run_shape.cpp" />
     <ClCompile Include="..\exec\Source.cpp" />
     <ClCompile Include="..\exec\testfunc.cpp" />
+    <ClCompile Include="..\exec\write_video.cpp" />
     <ClCompile Include="..\nanorender\NanoRenderer.cpp" />
     <ClCompile Include="..\nanorender\RenderObject.cpp" />
     <ClCompile Include="..\nanorender\shader_file.cpp" />
+    <ClCompile Include="..\render\camviewer.cpp" />
+    <ClCompile Include="..\render\renderer.cpp" />
+    <ClCompile Include="..\render\render_object.cpp" />
+    <ClCompile Include="..\render\render_utils.cpp" />
+    <ClCompile Include="..\render\shader.cpp" />
     <ClCompile Include="..\smal\pigmodel.cpp" />
     <ClCompile Include="..\smal\pigsolver_fitting.cpp" />
     <ClCompile Include="..\smal\pigsolver_jacobi.cpp" />
@@ -63,6 +72,7 @@
     <ClCompile Include="..\utils\volume.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\associate\associator.h" />
     <ClInclude Include="..\associate\clusterclique.h" />
     <ClInclude Include="..\associate\framedata.h" />
     <ClInclude Include="..\associate\matching.h" />
@@ -79,6 +89,12 @@
     <ClInclude Include="..\nanorender\NanoRenderer.h" />
     <ClInclude Include="..\nanorender\RenderObject.h" />
     <ClInclude Include="..\nanorender\shader_file.h" />
+    <ClInclude Include="..\render\camviewer.h" />
+    <ClInclude Include="..\render\renderer.h" />
+    <ClInclude Include="..\render\render_object.h" />
+    <ClInclude Include="..\render\render_utils.h" />
+    <ClInclude Include="..\render\shader.h" />
+    <ClInclude Include="..\render\stb_image.h" />
     <ClInclude Include="..\smal\pigmodel.h" />
     <ClInclude Include="..\smal\pigsolver.h" />
     <ClInclude Include="..\utils\camera.h" />
@@ -193,7 +209,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>
@@ -215,4 +231,9 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties __JSONSchema="https://json.schemastore.org/container-structure-test" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

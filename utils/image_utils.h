@@ -35,6 +35,7 @@ void getColorMap(std::string cm_type, std::vector<Eigen::Vector3i> &colormap);
 std::vector<float4> getColorMapFloat4(std::string cm_type); 
 std::vector<Eigen::Vector3i> getColorMapEigen(std::string cm_type);
 std::vector<nanogui::Vector4f> getColorMapNano(std::string cm_type);
+std::vector<Eigen::Vector3f> getColorMapEigenF(std::string cm_type); 
 
 void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Vector3i color); 
 void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Vector3i color, int linewidth, int pointRadius=20); 
@@ -76,6 +77,8 @@ public:
 	int idcode; 
 	double area; 
 	cv::Mat undist_mask; 
+	std::vector<Eigen::Vector3d> keypoints; 
+	cv::Mat scene_mask; 
 	cv::Mat chamfer; // <float>
 	cv::Mat mask; // <uint8> including other body, to check visibility
 	std::vector<std::vector<Eigen::Vector2d> > mask_list;
@@ -92,6 +95,7 @@ public:
 	0: background
 	1: yes 
 	2: occluded by other pig
+	3: occluded by scene 
 	*/
 	int queryMask(const Eigen::Vector3d& point);
 	/*
@@ -100,6 +104,8 @@ public:
 	other: chamfer value. <0 means outside contour, >0 means inside contour.
 	*/
 	float queryChamfer(const Eigen::Vector3d& point);
+	double keypointsMaskOverlay(); 
+	double valid; 
 };
 
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam);

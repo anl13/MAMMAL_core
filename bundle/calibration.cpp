@@ -16,6 +16,7 @@ Calibrator::Calibrator(std::string _folder)
         auto undist_cam = getDefaultCameraUndist(); 
         m_camsUndist.push_back(undist_cam); 
     }
+	m_K = m_camsUndist[0].K;
     readImgs(); 
     getColorMap("anliang_rgb", m_CM); 
 }
@@ -54,29 +55,6 @@ void Calibrator::readAllMarkers(std::string folder)
 		allPoints.push_back(points); 
 	}
 	m_markers = allPoints; 
-	return; 
-}
-
-void Calibrator::readK(std::string filename)
-{
-	Eigen::Matrix3d K; 
-	std::ifstream is;
-	is.open(filename);
-	if (!is.is_open())
-	{
-		cout << "can not open file " << filename << endl; 
-		exit(-1); 
-	}
-	for (int i = 0; i < 9; i++)
-	{
-		double v;
-		is >> v; 
-		int r = i / 3; 
-		int c = i % 3; 
-		K(r, c) = v; 
-	}
-	is.close();
-    m_K = K;  
 	return; 
 }
 
@@ -169,14 +147,6 @@ void Calibrator::save_results(std::string result_folder)
 
 void Calibrator::evaluate()
 {
-	std::vector<Camera> cams; 
-	for(int view = 0; view < m_camNum; view++)
-	{
-		Camera cam = getDefaultCameraUndist(); 
-		cam.SetRT(out_rvecs[view], out_tvecs[view]); 
-		cams.push_back(cam); 
-	}
-
     // project initial markers 
 	vector<vector<Vec3> > projs; 
 	projs.resize(m_camNum); 
@@ -184,7 +154,7 @@ void Calibrator::evaluate()
 	for(int v = 0; v < m_camNum; v++)
 	{
 		vector<Vec3> proj;
-		project(cams[v], out_points, proj); 
+		project(m_camsUndist[v], out_points, proj); 
 		projs[v] = proj; 
 	}
 
@@ -248,7 +218,7 @@ void Calibrator::draw_points()
             points.push_back(p); 
         }
         my_draw_points(m_imgsDraw[v], points, m_CM[1], 10); 
-        my_draw_points(m_imgsDraw[v], m_projs_markers[v], m_CM[2], 5);
+        my_draw_points(m_imgsDraw[v], m_projs_markers[v], m_CM[2], 8);
     
         std::vector<Vec3> points2d_gt_added;
         std::vector<Vec3> points2d_est_added; 
@@ -271,11 +241,11 @@ void Calibrator::draw_points()
 
 void Calibrator::readImgs()
 {
-    std::string m_imgDir = folder + "/data/calib_1_color/";
+    std::string m_imgDir = folder + "/data/backgrounds/bg";
     for(int camid = 0; camid < m_camNum; camid++)
     {
         std::stringstream ss; 
-        ss << m_imgDir << std::setw(2) << std::setfill('0') << m_camids[camid] << ".jpg";
+        ss << m_imgDir << m_camids[camid] << ".png";
         cv::Mat img = cv::imread(ss.str()); 
         if(img.empty())
         {
@@ -335,7 +305,7 @@ void CallBackFunc(int event, int x, int y, int flags, void* userdata)
 
 void Calibrator::save_added()
 {
-    std::string path = folder+"/data/add_marker/";
+    std::string path = folder+"/data/calibdata/add_marker/";
     for(int v = 0; v < m_camNum; v++)
     {
         int camid = m_camids[v];
@@ -359,7 +329,7 @@ void Calibrator::save_added()
 
 void Calibrator::reload_added()
 {
-    std::string path = folder+"/data/add_marker/";
+    std::string path = folder+"/data/calibdata/add_marker/";
     m_added.clear(); 
     vector<vector<Vec3> > tmp; 
     tmp.resize(m_camNum); 
@@ -497,18 +467,18 @@ void Calibrator::interactive_mark()
 
 int Calibrator::calib_pipeline()
 {
-	std::string marker_folder = folder+"/python/markers";
-	std::string K_file = folder+"/python/data/newK.txt"; 
-	readK(K_file); 
+	std::string marker_folder = folder+"/data/calibdata/markers";
+	
 	readAllMarkers(marker_folder); 
 	unprojectMarkers(); 
 
 	std::cout << "data prepared. " << std::endl; 
+	std::cout << "m_K: " << m_K << std::endl;
 
 	ba.initMarkers(m_camids, 42); 
 	ba.readInit(folder); 
-	ba.setObs(m_i_markers); 
-	ba.solve_init_calib(true); 
+	//ba.setObs(m_i_markers); 
+	//ba.solve_init_calib(true); 
 	std::cout << "initial calibration done. " << std::endl; 
 
 	out_points = ba.getPoints(); 
@@ -528,9 +498,21 @@ int Calibrator::calib_pipeline()
         m_cams[camid].SetRT(out_rvecs[camid], out_tvecs[camid]); 
     }
 
+	//read_results_rt(folder + "./results/");
+
     // evalute 
     evaluate(); 
     draw_points(); 
+
+	cv::Mat output;
+	packImgBlock(m_imgsDraw, output); 
+	cv::namedWindow("raw", cv::WINDOW_NORMAL); 
+	cv::imshow("raw", output); 
+	int key = cv::waitKey(); 
+
+	save_results("D:/Projects/animal_calib/data/calibdata/tmp/"); 
+
+	return 0; 
 
     // re-calib with addtional data 
     reload_added(); 
@@ -599,8 +581,7 @@ void Calibrator::read_results_rt(std::string result_folder)
 void Calibrator::test_epipolar()
 {
     std::string marker_folder = folder+"/python/markers";
-	std::string K_file = folder+"/python/data/newK.txt"; 
-	readK(K_file); 
+	
 	readAllMarkers(marker_folder); 
     read_results_rt("results"); 
 

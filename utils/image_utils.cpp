@@ -239,6 +239,21 @@ std::vector<Eigen::Vector3i> getColorMapEigen(std::string cm_type)
 	return CM;
 }
 
+std::vector<Eigen::Vector3f> getColorMapEigenF(std::string cm_type)
+{
+	std::vector<Eigen::Vector3f> CM_out; 
+	std::vector<Eigen::Vector3i> CM_in;
+	getColorMap(cm_type, CM_in); 
+	CM_out.resize(CM_in.size());
+	for (int i = 0; i < CM_in.size(); i++)
+	{
+		CM_out[i](0) = CM_in[i](0) / 255.f;
+		CM_out[i](1) = CM_in[i](1) / 255.f;
+		CM_out[i](2) = CM_in[i](2) / 255.f;
+	}
+	return CM_out; 
+}
+
 std::vector<nanogui::Vector4f> getColorMapNano(std::string cm_type)
 {
 	std::vector<Eigen::Vector3i> CM;
@@ -558,13 +573,34 @@ int ROIdescripter::queryMask(const Eigen::Vector3d& point)
 	p_int(1) = int(round(proj(1)));
 	if (p_int(0) < 0 || p_int(0) >= 1920 || p_int(1) < 0 || p_int(1) >= 1080)
 		return -1; 
-	if (undist_mask.at<uchar>(p_int(1), p_int(0)) == 0)return -1; 
+	if (undist_mask.at<uchar>(p_int(1), p_int(0)) == 0)return -1; // outof image
 	int code = mask.at<uchar>(p_int(1), p_int(0));
-	if (code == idcode) return 1;
-	if (code == 0) return 0; 
-	if (code > 0 && in_list(code, list)) return 0;
-	return 2; 
+	if (code == idcode) return 1; // true mask 
+	
+	if (code > 0 && in_list(code, list)) return 2; // occluded by others
+	if (code == 0) {
+		if (scene_mask.at<uchar>(p_int(1), p_int(0)) > 0) return 3; 
+		else 
+			return 0; // background  
+	}
+	return 4; // unknown error  
 }	
+
+double ROIdescripter::keypointsMaskOverlay()
+{
+	int total = 0;
+	int valid = 0; 
+	for (int i = 0; i < keypoints.size(); i++)
+	{
+		if (keypoints[i](2) < 0.5) continue;
+		total += 1; 
+		int y = keypoints[i](1); 
+		int x = keypoints[i](0); 
+		if (mask.at<uchar>(y, x) == idcode) valid += 1;
+	}
+	if (total == 0) return 0; 
+	return (double)valid / (double)total;
+}
 
 
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam)

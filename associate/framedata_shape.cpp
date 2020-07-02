@@ -17,7 +17,7 @@ vector<ROIdescripter> FrameData::getROI(int id)
 		roi.setCam(m_camsUndist[camid]);
 		roi.mask_list = m_matched[id].dets[view].mask;
 		roi.mask_norm = m_matched[id].dets[view].mask_norm;
-
+		roi.keypoints = m_matched[id].dets[view].keypoints;
 		cv::Mat mask;
 		mask.create(cv::Size(m_imw, m_imh), CV_8UC1);
 		my_draw_mask_gray(mask,
@@ -27,9 +27,11 @@ vector<ROIdescripter> FrameData::getROI(int id)
 		roi.chamfer = computeSDF2d(mask); 
 		roi.mask = masks[camid]; 
 		roi.box = m_matched[id].dets[view].box;
-		roi.undist_mask = m_undist_mask;
+		roi.undist_mask = m_undist_mask; // valid area for image distortion 
+		roi.scene_mask = m_scene_masks[camid];
 		roi.pid = id;
 		roi.idcode = 1 << id; 
+		roi.valid = roi.keypointsMaskOverlay(); 
 		computeGradient(roi.chamfer, roi.gradx, roi.grady);
 		rois.push_back(roi);
 		

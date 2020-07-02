@@ -25,7 +25,6 @@ public:
 	void setFolder(std::string _folder) { folder = _folder; }
     
     void readAllMarkers(std::string folder); 
-    void readK(std::string filename);
     void unprojectMarkers(); 
 
     // calibration for pig data1
@@ -69,5 +68,4 @@ private:
 
     vector<Eigen::Vector2d> readMarkers(std::string filename); 
     void readImgs(); 
-    void readCams(); 
 };

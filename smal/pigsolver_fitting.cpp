@@ -282,8 +282,8 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 		b += source_bone_lens[i] * source_bone_lens[i];
 	}
 	double alpha = a / b;
-	m_scale = alpha;
-	RescaleOriginVertices();
+	m_scale = alpha * m_scale;
+	RescaleOriginVertices(alpha);
 
 	UpdateVertices();
 	if (m_frameid > 0) return; 
@@ -293,7 +293,7 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	Eigen::Vector3d barycenter_target = Z.col(20);
 	int center_id = m_mapper[20].second; 
 	Eigen::Vector3d barycenter_source = m_jointsDeformed.col(center_id);
-	m_translation = barycenter_target - barycenter_source;
+	m_translation += barycenter_target - barycenter_source;
 
 	// STEP 3 : compute global rotation 
 	Eigen::MatrixXd A, B;
@@ -329,7 +329,8 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	Eigen::MatrixXd U = svd.matrixU();
 	Eigen::MatrixXd V = svd.matrixV();
 	Eigen::Matrix3d R = V * U.transpose();
-	Eigen::AngleAxisd ax(R);
+	Eigen::Matrix3d R0 = GetRodrigues(m_poseParam.segment<3>(0));
+	Eigen::AngleAxisd ax(R * R0);
 	m_poseParam.segment<3>(0) = ax.axis() * ax.angle();
 #ifdef DEBUG_SOLVER
 	std::cout << BLUE_TEXT("m_translation: ") << m_translation.transpose() << std::endl;
@@ -356,17 +357,22 @@ Eigen::VectorXd PigSolver::getRegressedSkelProj(
 void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance)
 {
 	int M = m_poseToOptimize.size();
+	if (theta_last.size() == 0)
+	{
+		theta_last.resize(3 + 3 * M);
+		theta_last.setZero(); 
+	}
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
+
+		std::stringstream ss;
+		//ss << "E:/pig_results/debug/fitting_" << iterTime << ".obj";
+		//SaveObj(ss.str()); 
+
 		Eigen::MatrixXd poseJ3d;
-#ifndef OPTIM_BY_PAIR
-		CalcSkelJacobiPartThetaByMapper(poseJ3d);
-		Eigen::MatrixXd skel = getRegressedSkel();
-#else
 		CalcSkelJacobiPartThetaByPairs(poseJ3d);
 		Eigen::MatrixXd skel = getRegressedSkelbyPairs();
-#endif 
 
 		Eigen::VectorXd theta(3 + 3 * M);
 		theta.segment<3>(0) = m_translation;
@@ -383,23 +389,29 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		{
 			Eigen::MatrixXd H_view;
 			Eigen::VectorXd b_view;
-#ifndef OPTIM_BY_PAIR
-			CalcPose2DTermByMapper(k, skel, poseJ3d, H_view, b_view);
-#else 
 			CalcPose2DTermByPairs(k, skel, poseJ3d, H_view, b_view);
-#endif 
 			H1 += H_view;
 			b1 += b_view;
 		}
 		double lambda = 0.0005;
 		double w1 = 1;
 		double w_reg = 0.01; 
+		double w_temp = 0.0; 
 		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXd H_reg = DTD;  // reg term 
 		Eigen::VectorXd b_reg = -theta; // reg term 
 
+
 		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
 		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+
+		if (m_frameid >= 0)
+		{
+			Eigen::MatrixXd H_temp = DTD; 
+			Eigen::VectorXd b_temp = theta_last - theta; 
+			H += DTD * w_temp; 
+			b += b_temp * w_temp; 
+		}
 
 		Eigen::VectorXd delta = H.ldlt().solve(b);
 		//std::cout << "data term b: " << b1.norm() << std::endl;
@@ -420,6 +432,7 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		//std::cout << "delta.norm() : " << delta.norm() << std::endl;
 #endif 
 		// if(iterTime == 1) break; 
+		//std::cout << "pose delta.norm(): " << delta.norm() << std::endl; 
 		if (delta.norm() < updateTolerance) break;
 	}
 }

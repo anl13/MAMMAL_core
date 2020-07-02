@@ -23,6 +23,8 @@
 #include "../utils/dataconverter.h"
 #include "../utils/objloader.h"
 
+//#define DEBUG_SIL
+
 /*
 Some Functions for nonrigid deformation borrows from 
 https://github.com/zhangyux15/cpp_nonrigid_icp
@@ -130,6 +132,8 @@ public:
 	Model m_V_mesh; 
 	void computeVolume();
 	std::vector<cv::Mat> m_rawImgs; 
+
+	Eigen::VectorXd theta_last; 
 private: 
 	// control info 
 	int m_id; 

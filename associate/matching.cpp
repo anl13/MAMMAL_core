@@ -73,15 +73,19 @@ void EpipolarMatching::epipolarWholeBody(const Camera& cam1, const Camera& cam2,
             continue; 
         }
         double epi_dist = distfunc(cam1, cam2, v1, v2); 
-        total_loss += epi_dist;
-        valid += 1; 
+		if (i == 20)
+		{
+			total_loss += epi_dist * 1; 
+			valid += 1; 
+		}
+		else
+		{
+			total_loss += epi_dist;
+			valid += 1;
+		}
         if(epi_dist < dist_thres) 
         {matched_num +=1;}
-        else {
-#ifdef DEBUG_MATCH
-            std::cout << "epipolar dist: " << epi_dist << std::endl; 
-#endif 
-        } 
+
     }
     if(valid == 0) 
     {

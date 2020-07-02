@@ -3,7 +3,8 @@
 
 int main(int argc, char** argv)
 {
-	std::string projFolder = "D:/Projects/animal_calib/";
+
+	//write_video();
 	//test_nanogui();
 
 	//render_smal_test(); 
@@ -18,7 +19,8 @@ int main(int argc, char** argv)
 
 
 	/// calibration and annotation
-	//test_calib(projFolder); 
+	//test_calib("D:/Projects/animal_calib/");
+	//renderScene(); 
 
 	//annotate(); 
 

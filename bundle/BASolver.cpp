@@ -107,7 +107,7 @@ void BASolver::readInit(std::string _folder)
 {
 	m_folder = _folder;
 	vector<int> camids = m_camids; 
-	std::string file_folder = m_folder + "/python/results/";
+	std::string file_folder = m_folder + "/data/calibdata/init/";
 	for(int i = 0; i < m_camNum; i++)
 	{
 		std::stringstream ss; 
@@ -190,7 +190,8 @@ void BASolver::solve_init_calib(bool optim_points)
 
 	Solver::Options options; 
 	options.minimizer_progress_to_stdout = true; 
-	options.minimizer_type = ceres::TRUST_REGION; 
+	//options.minimizer_type = ceres::TRUST_REGION; 
+	options.minimizer_type = ceres::LINE_SEARCH;
 	options.max_num_iterations = 200; 
 	options.eta = 0.00001; 
 	Solver::Summary summary; 

@@ -10,7 +10,7 @@ int run_pose();
 
 // run_render.cpp
 int render_smal_test(); 
-int renderScene(); 
+void renderScene(); 
 int test_depth();
 int test_nanogui();
 
@@ -31,3 +31,5 @@ void annotate();
 void testfunc();
 
 int modify_model(); 
+
+int write_video();

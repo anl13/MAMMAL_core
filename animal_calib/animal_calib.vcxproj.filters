@@ -34,6 +34,9 @@
     <Filter Include="nanorender">
       <UniqueIdentifier>{eb5f9722-17dd-4e41-aee9-d4598ec4a98b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="render">
+      <UniqueIdentifier>{09d719a1-ccfa-44ff-9493-52f9420c26de}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\associate\clusterclique.cpp">
@@ -162,6 +165,33 @@
     <ClCompile Include="..\exec\modify_model.cpp">
       <Filter>exec</Filter>
     </ClCompile>
+    <ClCompile Include="..\exec\write_video.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\associate\associator.cpp">
+      <Filter>associate</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\calib_bundle.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\camviewer.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_object.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_utils.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\renderer.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\shader.cpp">
+      <Filter>render</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\run_render2.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">
@@ -268,6 +298,27 @@
     </ClInclude>
     <ClInclude Include="..\nanorender\shader_file.h">
       <Filter>nanorender</Filter>
+    </ClInclude>
+    <ClInclude Include="..\associate\associator.h">
+      <Filter>associate</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\camviewer.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\render_object.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\render_utils.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\renderer.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\shader.h">
+      <Filter>render</Filter>
+    </ClInclude>
+    <ClInclude Include="..\render\stb_image.h">
+      <Filter>render</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
