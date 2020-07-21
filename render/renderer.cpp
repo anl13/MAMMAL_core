@@ -97,6 +97,9 @@ void Renderer::s_MouseButtonCallBack(GLFWwindow* _windowPtr, int button, int act
 				Eigen::Vector3f newCamPos = camPos - camCenter; 
 				Eigen::Vector3f newCenter = Eigen::Vector3f::Zero(); 
 				s_camViewer.SetExtrinsic(newCamPos, camUp, newCenter);
+				std::cout << "newCamPos:" << newCamPos.transpose() << std::endl;
+				std::cout << "camUp: " << camUp.transpose() << std::endl;
+				std::cout << "newCenter: " << newCenter.transpose() << std::endl; 
 			}
 			s_leftClickTimeSeconds = seconds; 
 
@@ -359,7 +362,6 @@ void Renderer::Draw(std::string type)
 			depthShader.SetVec3("light_pos", lightPos);
 			depthShader.SetFloat("near_plane", RENDER_NEAR_PLANE);
 			s_camViewer.ConfigShader(depthShader);
-			//colorObjs[i]->DrawWhole(depthShader);
 			colorObjs[i]->DrawDepth(depthShader);
 		}
 	}

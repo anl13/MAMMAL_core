@@ -602,6 +602,16 @@ double ROIdescripter::keypointsMaskOverlay()
 	return (double)valid / (double)total;
 }
 
+void ROIdescripter::clean_keypoints()
+{
+	for (int i = 0; i < keypoints.size(); i++) {
+		Eigen::Vector3d p = keypoints[i];
+		int x = round(p(0));
+		int y = round(p(1));
+		
+	}
+}
+
 
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam)
 {

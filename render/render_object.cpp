@@ -442,20 +442,7 @@ BallStickObject::BallStickObject(
 		ObjData ballObjCopy(ballObj);
 		float current_size = ballSize; 
 		Eigen::Vector3f color = colors[i];
-		if (i == 0)
-		{
-			current_size *= 3.5; 
-		}
-		else if (i == 1)
-		{
-			current_size *= 1.5;
-		}
-		else if (i == 2)
-		{
-			current_size *= 0.8;
-		}
 		ballObjCopy.Deform(Eigen::Vector3f(current_size, current_size, current_size));
-
 		RenderObjectColor* ballObject = new RenderObjectColor();
 		ballObject->SetFaces(ballObjCopy.faces);
 		ballObject->SetVertices(ballObjCopy.vertices);

@@ -577,3 +577,45 @@ Eigen::MatrixXd PigSolver::getRegressedSkelTPose()
 	}
 	return skel;
 }
+
+std::vector<Eigen::Vector4d> PigSolver::projectBoxes()
+{
+	std::vector<Eigen::Vector4d> boxes; 
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		double minx, miny, maxx, maxy;
+		Eigen::MatrixXd points = m_cameras[camid].R * m_verticesFinal;
+		points = points.colwise() + m_cameras[camid].T;
+		points = m_cameras[camid].K * points; 
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			double x = points(0, i) / points(2, i) * 1920;
+			double y = points(1, i) / points(2, i) * 1080;
+			if (i == 0)
+			{
+				minx = maxx = x; 
+				miny = maxy = y;
+			}
+			else
+			{
+				minx = minx < x ? minx : x;
+				maxx = maxx > x ? maxx : x;
+				miny = miny < y ? miny : y;
+				maxy = maxy > y ? maxy : y;
+			}
+		}
+		if (maxx < 0 || maxy < 0 || minx >= 1920 || miny >= 1080)
+		{
+			boxes.emplace_back(Eigen::Vector4d::Zero()); 
+		}
+		else
+		{
+			minx = minx > 0 ? minx : 0;
+			miny = miny > 0 ? miny : 0;
+			maxx = maxx < 1920 ? maxx : 1920;
+			maxy = maxy < 1080 ? maxy : 1080;
+			boxes.emplace_back(Eigen::Vector4d(minx, miny, maxx, maxy));
+		}
+	}
+	return boxes; 
+}

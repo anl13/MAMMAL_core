@@ -19,6 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\articulation\pigmodel.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_shape.cpp" />
     <ClCompile Include="..\associate\associator.cpp" />
     <ClCompile Include="..\associate\clusterclique.cpp" />
     <ClCompile Include="..\associate\framedata.cpp" />
@@ -31,20 +35,17 @@
     <ClCompile Include="..\associate\mce\Tools.cpp" />
     <ClCompile Include="..\associate\skel.cpp" />
     <ClCompile Include="..\associate\tracking.cpp" />
-    <ClCompile Include="..\bundle\annotator.cpp" />
-    <ClCompile Include="..\bundle\BASolver.cpp" />
-    <ClCompile Include="..\bundle\calibration.cpp" />
+    <ClCompile Include="..\calibration\annotator.cpp" />
+    <ClCompile Include="..\calibration\BASolver.cpp" />
+    <ClCompile Include="..\calibration\calibration.cpp" />
     <ClCompile Include="..\exec\annotate.cpp" />
-    <ClCompile Include="..\exec\calib_bundle.cpp" />
-    <ClCompile Include="..\exec\computeVisualhull.cpp" />
     <ClCompile Include="..\exec\compute_sym.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
     <ClCompile Include="..\exec\modify_model.cpp" />
     <ClCompile Include="..\exec\run_pose.cpp" />
+    <ClCompile Include="..\exec\run_pose_render.cpp" />
     <ClCompile Include="..\exec\run_render.cpp" />
-    <ClCompile Include="..\exec\run_render2.cpp" />
     <ClCompile Include="..\exec\run_shape.cpp" />
-    <ClCompile Include="..\exec\Source.cpp" />
     <ClCompile Include="..\exec\testfunc.cpp" />
     <ClCompile Include="..\exec\write_video.cpp" />
     <ClCompile Include="..\nanorender\NanoRenderer.cpp" />
@@ -55,10 +56,6 @@
     <ClCompile Include="..\render\render_object.cpp" />
     <ClCompile Include="..\render\render_utils.cpp" />
     <ClCompile Include="..\render\shader.cpp" />
-    <ClCompile Include="..\smal\pigmodel.cpp" />
-    <ClCompile Include="..\smal\pigsolver_fitting.cpp" />
-    <ClCompile Include="..\smal\pigsolver_jacobi.cpp" />
-    <ClCompile Include="..\smal\pigsolver_shape.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
     <ClCompile Include="..\utils\dataconverter.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
@@ -72,6 +69,8 @@
     <ClCompile Include="..\utils\volume.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\articulation\pigmodel.h" />
+    <ClInclude Include="..\articulation\pigsolver.h" />
     <ClInclude Include="..\associate\associator.h" />
     <ClInclude Include="..\associate\clusterclique.h" />
     <ClInclude Include="..\associate\framedata.h" />
@@ -82,9 +81,9 @@
     <ClInclude Include="..\associate\mce\Tools.h" />
     <ClInclude Include="..\associate\skel.h" />
     <ClInclude Include="..\associate\tracking.h" />
-    <ClInclude Include="..\bundle\annotator.h" />
-    <ClInclude Include="..\bundle\BASolver.h" />
-    <ClInclude Include="..\bundle\calibration.h" />
+    <ClInclude Include="..\calibration\annotator.h" />
+    <ClInclude Include="..\calibration\BASolver.h" />
+    <ClInclude Include="..\calibration\calibration.h" />
     <ClInclude Include="..\exec\main.h" />
     <ClInclude Include="..\nanorender\NanoRenderer.h" />
     <ClInclude Include="..\nanorender\RenderObject.h" />
@@ -95,8 +94,6 @@
     <ClInclude Include="..\render\render_utils.h" />
     <ClInclude Include="..\render\shader.h" />
     <ClInclude Include="..\render\stb_image.h" />
-    <ClInclude Include="..\smal\pigmodel.h" />
-    <ClInclude Include="..\smal\pigsolver.h" />
     <ClInclude Include="..\utils\camera.h" />
     <ClInclude Include="..\utils\colorterminal.h" />
     <ClInclude Include="..\utils\dataconverter.h" />
@@ -117,10 +114,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />
+    <None Include="..\articulation\artist_config.json" />
+    <None Include="..\articulation\pigmodel_config.json" />
+    <None Include="..\articulation\smal2_config.json" />
+    <None Include="..\articulation\smal_config.json" />
     <None Include="..\associate\config.json" />
-    <None Include="..\smal\pigmodel_config.json" />
-    <None Include="..\smal\smal2_config.json" />
-    <None Include="..\smal\smal_config.json" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}</ProjectGuid>
@@ -209,7 +207,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>

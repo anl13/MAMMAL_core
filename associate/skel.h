@@ -16,7 +16,6 @@ public:
     std::vector<double> kpt_conf_thresh; 
 };
 SkelTopology getSkelTopoByType(std::string type); 
-vector<std::pair<int, int>> getPigMapper();
 
 struct DetInstance // class storing data of an instance 
 {

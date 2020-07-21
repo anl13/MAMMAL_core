@@ -85,6 +85,8 @@ public:
 
 	void CalcZ();
 
+	std::vector<Eigen::Vector4d> projectBoxes();
+
 	// targets to fit 
 	MatchedInstance m_source;
 	vector<Camera> m_cameras;

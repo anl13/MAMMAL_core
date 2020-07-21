@@ -72,12 +72,14 @@ void FrameData::solve_parametric_model()
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i); 
-			mp_bodysolver[i]->InitNodeAndWarpField();
+			//mp_bodysolver[i]->InitNodeAndWarpField();
+			//mp_bodysolver[i]->animal_offscreen = m_animal_render;
 			std::cout << "init model " << i << std::endl; 
 		}
 	}
 
 	m_skels3d.resize(4); 
+	//m_projectedBoxesLast.resize(4); 
 #pragma omp parallel for 
 	for (int i = 0; i < 4; i++)
 	{
@@ -85,6 +87,15 @@ void FrameData::solve_parametric_model()
 		mp_bodysolver[i]->normalizeSource(); 
 		mp_bodysolver[i]->globalAlign(); 
 		mp_bodysolver[i]->optimizePose(10, 0.001); 
+
+		//if (i < 2) {
+		//	mp_bodysolver[i]->m_rois = getROI(i);
+		//	mp_bodysolver[i]->m_rawImgs = m_imgsUndist;
+		//	mp_bodysolver[i]->optimizePoseSilhouette(18);
+		//}
+
+		//m_projectedBoxesLast[i] = mp_bodysolver[i]->projectBoxes();
+
 		auto skels = mp_bodysolver[i]->getRegressedSkel();
 		m_skels3d[i] = convertMatToVec(skels); 
 	}
@@ -94,9 +105,10 @@ void FrameData::save_parametric_data()
 {
 	for (int i = 0; i < 4; i++)
 	{
-		std::string savefolder = "E:/pig_results/cluster_states/";
+		std::string savefolder = result_folder + "/state";
+		if (is_smth) savefolder = savefolder + "_smth";
 		std::stringstream ss;
-		ss << savefolder << "state_" << i << "_" <<
+		ss << savefolder << "/pig_" << i << "_frame_" <<
 			std::setw(6) << std::setfill('0') << m_frameid
 			<< ".txt";
 		mp_bodysolver[i]->saveState(ss.str()); 
@@ -120,9 +132,10 @@ void FrameData::read_parametric_data()
 
 	for (int i = 0; i < 4; i++)
 	{
-		std::string savefolder = "E:/pig_results/cluster_states/";
+		std::string savefolder = result_folder + "/state";
+		if (is_smth) savefolder = savefolder + "_smth";
 		std::stringstream ss;
-		ss << savefolder << "state_" << i << "_" <<
+		ss << savefolder << "/pig_" << i << "_frame_" <<
 			std::setw(6) << std::setfill('0') << m_frameid
 			<< ".txt";
 		mp_bodysolver[i]->readState(ss.str()); 
@@ -134,6 +147,7 @@ void FrameData::matching_by_tracking()
 {
 	m_skels3d_last = m_skels3d;
 
+	// get m_clusters
 	EpipolarMatching matcher;
 	matcher.set_cams(m_camsUndist);
 	matcher.set_dets(m_detUndist);
@@ -153,6 +167,7 @@ void FrameData::matching_by_tracking()
 	matcher.get_clusters(m_clusters);
 	matcher.get_skels3d(m_skels3d);
 
+	// post processing to get matched data
 	m_matched.clear();
 	m_matched.resize(m_clusters.size());
 	vector<vector<bool> > be_matched;
@@ -186,16 +201,89 @@ void FrameData::matching_by_tracking()
 		}
 	}
 
+	// match between frames
 	if (m_match_alg == "match")
 	{
 		tracking(); 
 	}
 }
 
+void FrameData::pureTracking()
+{
+	m_skels3d_last = m_skels3d;
+	m_clusters.resize(4);
+	for (int pid = 0; pid < 4; pid++)m_clusters[pid].resize(m_camNum, -1); 
+
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		Eigen::MatrixXd sim; 
+		int boxnum = m_boxes_processed[camid].size();
+		sim.resize(4, boxnum);
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < boxnum; j++)
+			{
+				double center_conf = m_keypoints_undist[camid][j][20](2);
+				if (center_conf < 0.3)
+				{
+					sim(i, j) = 10; continue; 
+				}
+				double iou = IoU_xyxy(m_projectedBoxesLast[i][camid], m_boxes_processed[camid][j]);
+				if (iou < 0.5) sim(i, j) = 10;
+				else sim(i, j) = 1 / iou;
+			}
+		}
+		std::vector<int> mm = solveHungarian(sim);
+		for (int i = 0; i < 4; i++)
+		{
+			if (mm[i] >= 0)
+			{
+				int candid = mm[i];
+				if (sim(i, candid) == 10)continue; 
+				m_clusters[i][camid] = candid;
+			}
+		}
+	}
+
+	// post processing to get matched data
+	m_matched.clear();
+	m_matched.resize(m_clusters.size());
+	vector<vector<bool> > be_matched;
+	be_matched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		be_matched[camid].resize(m_detUndist[camid].size(), false);
+	}
+	for (int i = 0; i < m_clusters.size(); i++)
+	{
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			int candid = m_clusters[i][camid];
+			if (candid < 0) continue;
+			be_matched[camid][candid] = true;
+			m_matched[i].view_ids.push_back(camid);
+			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
+		}
+	}
+
+	m_unmatched.clear();
+	m_unmatched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int candid = 0; candid < be_matched[camid].size(); candid++)
+		{
+			if (!be_matched[camid][candid])
+			{
+				m_unmatched[camid].push_back(m_detUndist[camid][candid]);
+			}
+		}
+	}
+}
+
 void FrameData::save_clusters()
 {
 	std::stringstream ss; 
-	ss << "E:/pig_results/clusters/" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+	ss << result_folder << "/clusters/" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
 	std::ofstream stream(ss.str());
 	if (!stream.is_open())
 	{
@@ -216,11 +304,11 @@ void FrameData::save_clusters()
 void FrameData::load_clusters()
 {
 	std::stringstream ss;
-	ss << "E:/pig_results/clusters/" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+	ss << result_folder << "/clusters/" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
 	std::ifstream stream(ss.str());
 	if (!stream.is_open())
 	{
-		std::cout << "cluster saving stream not open. " << std::endl;
+		std::cout << "cluster loading stream not open. " << std::endl;
 		return;
 	}
 	m_clusters.resize(4); 
@@ -285,7 +373,7 @@ void FrameData::debug_fitting(int pig_id)
 	cv::Mat output; 
 	packImgBlock(crop_list, output);
 	std::stringstream ss; 
-	ss << "E:/pig_results/fitting/output" << m_frameid << "_" << pig_id << ".png";
+	ss << result_folder << "/fitting/" << pig_id << "/output" << m_frameid << "_" << pig_id << ".png";
 	cv::imwrite(ss.str(), output); 
 	//cv::imshow("test", output); 
 	//cv::waitKey(); 
@@ -356,6 +444,24 @@ vector<cv::Mat> FrameData::drawMask()
 		}
 	}
 	return m_imgsMask;
+}
+
+void FrameData::drawRawMaskImgs()
+{
+	m_rawMaskImgs.resize(m_camNum);
+	for (int i = 0; i < m_camNum; i++)
+	{
+		m_rawMaskImgs[i].create(cv::Size(m_imw, m_imh), CV_8UC1);
+	}
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		cv::Mat temp(cv::Size(m_imw, m_imh), CV_8UC1);
+		for (int k = 0; k < m_detUndist[camid].size(); k++)
+		{
+			my_draw_mask_gray(temp, m_detUndist[camid][k].mask, 1 << k);
+			m_rawMaskImgs[camid] = temp + m_rawMaskImgs[camid];
+		}
+	}
 }
 
 void FrameData::getChamferMap(int pid, int viewid,

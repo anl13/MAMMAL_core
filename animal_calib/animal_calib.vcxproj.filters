@@ -19,23 +19,23 @@
     <Filter Include="associate\mce">
       <UniqueIdentifier>{0ba8c2f1-cdb7-4b96-88db-c707de187fd9}</UniqueIdentifier>
     </Filter>
-    <Filter Include="smal">
-      <UniqueIdentifier>{79a208ca-a076-444e-91f6-ed564d41b8c7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="utils">
       <UniqueIdentifier>{91701ef2-797d-46d1-8f09-e94f5f7d76ce}</UniqueIdentifier>
     </Filter>
     <Filter Include="exec">
       <UniqueIdentifier>{07d708d4-d665-42f0-af08-d8df9e911d67}</UniqueIdentifier>
     </Filter>
-    <Filter Include="bundle">
-      <UniqueIdentifier>{4c08a9b2-c969-4199-a8a4-68c8bfa3b084}</UniqueIdentifier>
-    </Filter>
     <Filter Include="nanorender">
       <UniqueIdentifier>{eb5f9722-17dd-4e41-aee9-d4598ec4a98b}</UniqueIdentifier>
     </Filter>
     <Filter Include="render">
       <UniqueIdentifier>{09d719a1-ccfa-44ff-9493-52f9420c26de}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="articulation">
+      <UniqueIdentifier>{38965ab8-4187-418f-af33-c8c611331a87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="calibration">
+      <UniqueIdentifier>{730e39a9-bd77-4a3b-809b-3c4bf6b9882e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -69,9 +69,6 @@
     <ClCompile Include="..\associate\mce\Tools.cpp">
       <Filter>associate\mce</Filter>
     </ClCompile>
-    <ClCompile Include="..\smal\pigmodel.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\camera.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -90,32 +87,14 @@
     <ClCompile Include="..\utils\obj_reader.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\smal\pigsolver_fitting.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
-    <ClCompile Include="..\smal\pigsolver_shape.cpp">
-      <Filter>smal</Filter>
-    </ClCompile>
     <ClCompile Include="..\associate\framedata_shape.cpp">
       <Filter>associate</Filter>
-    </ClCompile>
-    <ClCompile Include="..\smal\pigsolver_jacobi.cpp">
-      <Filter>smal</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\node_graph.cpp">
       <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\volume.cpp">
       <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\bundle\BASolver.cpp">
-      <Filter>bundle</Filter>
-    </ClCompile>
-    <ClCompile Include="..\bundle\calibration.cpp">
-      <Filter>bundle</Filter>
-    </ClCompile>
-    <ClCompile Include="..\bundle\annotator.cpp">
-      <Filter>bundle</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\model.cpp">
       <Filter>utils</Filter>
@@ -144,9 +123,6 @@
     <ClCompile Include="..\nanorender\shader_file.cpp">
       <Filter>nanorender</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\Source.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
     <ClCompile Include="..\exec\run_pose.cpp">
       <Filter>exec</Filter>
     </ClCompile>
@@ -154,9 +130,6 @@
       <Filter>exec</Filter>
     </ClCompile>
     <ClCompile Include="..\exec\run_shape.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\computeVisualhull.cpp">
       <Filter>exec</Filter>
     </ClCompile>
     <ClCompile Include="..\exec\annotate.cpp">
@@ -170,9 +143,6 @@
     </ClCompile>
     <ClCompile Include="..\associate\associator.cpp">
       <Filter>associate</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\calib_bundle.cpp">
-      <Filter>exec</Filter>
     </ClCompile>
     <ClCompile Include="..\render\camviewer.cpp">
       <Filter>render</Filter>
@@ -189,7 +159,28 @@
     <ClCompile Include="..\render\shader.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\run_render2.cpp">
+    <ClCompile Include="..\articulation\pigmodel.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_shape.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\calibration\annotator.cpp">
+      <Filter>calibration</Filter>
+    </ClCompile>
+    <ClCompile Include="..\calibration\BASolver.cpp">
+      <Filter>calibration</Filter>
+    </ClCompile>
+    <ClCompile Include="..\calibration\calibration.cpp">
+      <Filter>calibration</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\run_pose_render.cpp">
       <Filter>exec</Filter>
     </ClCompile>
   </ItemGroup>
@@ -221,9 +212,6 @@
     <ClInclude Include="..\associate\mce\Tools.h">
       <Filter>associate\mce</Filter>
     </ClInclude>
-    <ClInclude Include="..\smal\pigmodel.h">
-      <Filter>smal</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\camera.h">
       <Filter>utils</Filter>
     </ClInclude>
@@ -245,9 +233,6 @@
     <ClInclude Include="..\utils\obj_reader.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\smal\pigsolver.h">
-      <Filter>smal</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\timer_util.h">
       <Filter>utils</Filter>
     </ClInclude>
@@ -265,15 +250,6 @@
     </ClInclude>
     <ClInclude Include="..\utils\volume.h">
       <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\bundle\BASolver.h">
-      <Filter>bundle</Filter>
-    </ClInclude>
-    <ClInclude Include="..\bundle\calibration.h">
-      <Filter>bundle</Filter>
-    </ClInclude>
-    <ClInclude Include="..\bundle\annotator.h">
-      <Filter>bundle</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\objloader.h">
       <Filter>utils</Filter>
@@ -320,20 +296,38 @@
     <ClInclude Include="..\render\stb_image.h">
       <Filter>render</Filter>
     </ClInclude>
+    <ClInclude Include="..\articulation\pigmodel.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolver.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\calibration\annotator.h">
+      <Filter>calibration</Filter>
+    </ClInclude>
+    <ClInclude Include="..\calibration\BASolver.h">
+      <Filter>calibration</Filter>
+    </ClInclude>
+    <ClInclude Include="..\calibration\calibration.h">
+      <Filter>calibration</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\associate\config.json">
       <Filter>associate</Filter>
     </None>
     <None Include="..\.gitignore" />
-    <None Include="..\smal\pigmodel_config.json">
-      <Filter>smal</Filter>
+    <None Include="..\articulation\pigmodel_config.json">
+      <Filter>articulation</Filter>
     </None>
-    <None Include="..\smal\smal_config.json">
-      <Filter>smal</Filter>
+    <None Include="..\articulation\smal_config.json">
+      <Filter>articulation</Filter>
     </None>
-    <None Include="..\smal\smal2_config.json">
-      <Filter>smal</Filter>
+    <None Include="..\articulation\smal2_config.json">
+      <Filter>articulation</Filter>
+    </None>
+    <None Include="..\articulation\artist_config.json">
+      <Filter>articulation</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -1,6 +1,8 @@
 #pragma once
 #include <string> 
 
+void run_pose_render(); 
+
 // custom_pig.cpp
 int run_on_sequence();
 
@@ -10,7 +12,6 @@ int run_pose();
 
 // run_render.cpp
 int render_smal_test(); 
-void renderScene(); 
 int test_depth();
 int test_nanogui();
 
@@ -20,10 +21,6 @@ int removeSmalTail();
 int ComputeSymmetry();
 
 int ComputePigModelSym();
-
-// calibration 
-void test_calib(std::string folder); 
-void test_epipolar(std::string folder); 
 
 
 void annotate(); 

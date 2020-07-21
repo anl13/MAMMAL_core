@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{730CE3B9-034F-4E45-9996-B0D02A56710E}</ProjectGuid>
-    <RootNamespace>nanorenderer</RootNamespace>
+    <ProjectGuid>{DD6DE44E-AF9B-42F7-8918-836976618535}</ProjectGuid>
+    <RootNamespace>nanorender</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -53,6 +53,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -67,6 +68,12 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\props\nanorenderer.props" />
+    <Import Project="..\props\OpenCV4.1.props" />
+    <Import Project="..\props\eigen.props" />
+    <Import Project="..\props\json.props" />
+    <Import Project="..\props\boost1.65.props" />
+    <Import Project="..\props\ceres.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -115,8 +122,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\utils\dataconverter.cpp" />
+    <ClCompile Include="..\utils\model.cpp" />
+    <ClCompile Include="..\utils\objloader.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="NanoRenderer.cpp" />
+    <ClCompile Include="RenderObject.cpp" />
+    <ClCompile Include="shader_file.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="NanoRenderer.h" />
+    <ClInclude Include="RenderObject.h" />
+    <ClInclude Include="shader_file.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
 </Project>

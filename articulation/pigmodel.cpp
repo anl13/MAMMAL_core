@@ -76,10 +76,11 @@ PigModel::PigModel(const std::string &_configfile)
 		if (!ttvfile.is_open())
 		{
 			std::cout << "ttv file is not opened" << std::endl;
-			exit(-1);
 		}
-		for (int i = 0; i < m_texNum; i++) ttvfile >> m_texToVert[i];
-		ttvfile.close();
+		else {
+			for (int i = 0; i < m_texNum; i++) ttvfile >> m_texToVert[i];
+			ttvfile.close();
+		}
 	}
 
 	// read faces tex
@@ -231,6 +232,7 @@ PigModel::PigModel(const std::string &_configfile)
 	if (!partFile.is_open())
 	{
 		std::cout << "no body parts file! Please run determineBodyPartsByWeight()" << std::endl;
+		//determineBodyPartsByWeight();
 	}
 	else
 	{
@@ -816,4 +818,26 @@ void PigModel::LoadWarpField()
 		}
 	}
 	UpdateVertices();
+}
+
+void PigModel::testReadJoint(std::string filename)
+{
+	std::ifstream jfile(filename);
+	if (!jfile.is_open())
+	{
+		std::cout << "can not open jfile " << std::endl;
+		exit(-1);
+	}
+	for (int i = 0; i < m_jointNum; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			jfile >> m_jointsOrigin(j, i);
+		}
+	}
+	jfile.close();
+
+	m_jointsFinal = m_jointsOrigin; 
+	m_jointsDeformed = m_jointsOrigin;
+	m_jointsShaped = m_jointsOrigin; 
 }

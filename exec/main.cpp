@@ -10,7 +10,8 @@ int main(int argc, char** argv)
 	//render_smal_test(); 
 	//test_depth();
 	//run_shape();
-	run_pose();
+	run_pose_render();	
+	//run_pose();
 	//run_on_sequence();
 
 	//removeSmalTail();
@@ -20,7 +21,6 @@ int main(int argc, char** argv)
 
 	/// calibration and annotation
 	//test_calib("D:/Projects/animal_calib/");
-	//renderScene(); 
 
 	//annotate(); 
 

@@ -319,6 +319,7 @@ double welsch(double x, double c)
 
 double IoU_xyxy(Eigen::Vector4d b1, Eigen::Vector4d b2)
 {
+	if (b1.norm() == 0 || b2.norm() == 0) return 0; 
     double xA = my_max(b1(0), b2(0));
     double yA = my_max(b1(1), b2(1)); 
     double xB = my_min(b1(2), b2(2)); 

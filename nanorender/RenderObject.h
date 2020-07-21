@@ -21,7 +21,6 @@
 
 using namespace nanogui;
 
-
 #include <cuda_runtime_api.h>
 #include <cuda_gl_interop.h>
 #include <pcl/gpu/containers/device_array.h>

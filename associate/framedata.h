@@ -12,10 +12,12 @@
 #include "../utils/image_utils.h"
 #include "../utils/geometry.h" 
 #include "../utils/Hungarian.h"
-#include "../smal/pigsolver.h"
+#include "../articulation/pigsolver.h"
 #include "clusterclique.h"
 #include "skel.h" 
-#include "../bundle/annotator.h"
+#include "../calibration/annotator.h"
+#include "../nanorender/NanoRenderer.h"
+
 
 using std::vector; 
 
@@ -59,7 +61,8 @@ public:
 	void debug_chamfer(int pid = 0); 
 	void view_dependent_clean();
 	void top_view_clean(DetInstance& det);
-	void side_view_clean(DetInstance& det); 
+	void side_view_clean(DetInstance& det);
+	void clean_step1();
 
     // top-down matching
     void matching(); 
@@ -91,6 +94,16 @@ public:
 
 	void readSceneMask(); 
 	void extractFG(); 
+
+	void pureTracking(); 
+	nanogui::ref<OffscreenRenderObject> m_animal_render; 
+
+	vector<std::shared_ptr<PigSolver> >       mp_bodysolver;
+	vector<vector<Eigen::Vector4d> > m_projectedBoxesLast; // pigid, camid
+	std::vector<cv::Mat> m_rawMaskImgs;
+	void drawRawMaskImgs();
+	std::string result_folder; 
+	bool is_smth;
 protected:
     // io functions 
     void setCamIds(std::vector<int> _camids); 
@@ -101,7 +114,7 @@ protected:
 
     void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, int colorid);
 	void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
-	vector<cv::Mat> drawMask(); 
+	vector<cv::Mat> drawMask();  // can only be used after association 
 	void getChamferMap(int pid, int viewid, cv::Mat& chamfer);
 
 	int m_imh; 
@@ -123,10 +136,10 @@ protected:
     vector<vector<DetInstance> >              m_detUndist; // [camnum, candnum]
     vector<MatchedInstance>                   m_matched; // matched raw data after matching()
 	vector<vector<DetInstance> >              m_unmatched; // [camnum, candnum]
-	vector<std::shared_ptr<PigSolver> >       mp_bodysolver; 
+	
 
     // matching & 3d data 
-    vector<vector<int> > m_clusters; 
+    vector<vector<int> > m_clusters; // pigid, camid [candid]
     vector<vector<Eigen::Vector3d> > m_skels3d; 
     vector<vector<Eigen::Vector3d> > m_skels3d_last;
 
@@ -145,7 +158,7 @@ protected:
     vector<vector<Eigen::Vector4d> >          m_boxes_raw; // xyxy
     vector<vector<vector<vector<Eigen::Vector2d> > > > m_masks; // mask in contours 
     vector<vector<vector<Eigen::Vector3d> > > m_keypoints_undist; 
-    vector<vector<Eigen::Vector4d> >          m_boxes_processed; 
+    vector<vector<Eigen::Vector4d> >          m_boxes_processed; // camid, candid
     vector<vector<vector<vector<Eigen::Vector2d> > > > m_masksUndist; 
     std::string m_boxDir; 
     std::string m_maskDir;  

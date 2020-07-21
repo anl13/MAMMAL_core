@@ -59,7 +59,7 @@ void FrameData::configByJson(std::string jsonfile)
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss_bg;
-		ss_bg << m_camDir << "/../data/backgrounds/bg" << m_camids[camid] << "_undist.png";
+		ss_bg << m_camDir << "../backgrounds/bg" << m_camids[camid] << "_undist.png";
 		cv::Mat img2 = cv::imread(ss_bg.str());
 		if (img2.empty())
 		{
@@ -70,7 +70,7 @@ void FrameData::configByJson(std::string jsonfile)
 	}
 
 	std::stringstream ss;
-	ss << m_camDir << "/../data/backgrounds/undist_mask.png";
+	ss << m_camDir << "../backgrounds/undist_mask.png";
 	m_undist_mask = cv::imread(ss.str());
 	if (m_undist_mask.empty())
 	{
@@ -151,7 +151,9 @@ void FrameData::fetchData()
     readMask(); 
     undistMask(); 
     assembleDets(); 
-    // detNMS(); 
+
+
+    //detNMS(); 
 
 	// read backgrounds 
 
@@ -411,11 +413,25 @@ cv::Mat FrameData::visualizeIdentity2D(int viewid, int vid)
             int camid = m_matched[id].view_ids[i];
             //int candid = m_matched[id].cand_ids[i];
             //if(candid < 0) continue; 
-            drawSkel(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, id);
+			if(m_matched[id].dets[i].keypoints.size() > 0)
+				drawSkel(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, id);
             my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, m_CM[id]);
+
+			if (m_matched[id].dets[i].mask.size() > 0)
             my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, m_CM[id], 0.5);
         }
     }
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int i = 0; i < m_unmatched[camid].size(); i++)
+		{
+			if(m_unmatched[camid][i].keypoints.size()>0)
+			drawSkel(m_imgsDetect[camid], m_unmatched[camid][i].keypoints, 5);
+			my_draw_box(m_imgsDetect[camid], m_unmatched[camid][i].box, m_CM[5]);
+			if (m_unmatched[camid][i].mask.size()>0)
+			my_draw_mask(m_imgsDetect[camid], m_unmatched[camid][i].mask, m_CM[5], 0.5);
+		}
+	}
 	if (viewid < 0)
 	{
 		cv::Mat packed;
@@ -541,7 +557,7 @@ void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, i
         cv::Point2d p(_skel2d[i](0), _skel2d[i](1)); 
         double conf = _skel2d[i](2); 
         if(conf < m_topo.kpt_conf_thresh[i]) continue; 
-        cv::circle(img, p, 9, cv_color, -1); 
+        cv::circle(img, p, 8, cv_color, -1); 
     }
     for(int k = 0; k < m_topo.bone_num; k++)
     {
@@ -583,6 +599,7 @@ void FrameData::detNMS()
     // cornor case
     if(m_detUndist.size()==0) return; 
     
+	// discard some ones with large overlap 
     for(int camid = 0; camid < m_camNum; camid++)
     {
         // do nms on each view 
@@ -600,10 +617,10 @@ void FrameData::detNMS()
                 double iou, iou1, iou2;
                 IoU_xyxy_ratio(m_detUndist[camid][i].box,m_detUndist[camid][j].box,
                     iou, iou1, iou2); 
-                if(overlay >= 3 && (iou1 > 0.6 || iou2>0.6) )
+                if(overlay >= 3 && (iou1 > 0.8 || iou2>0.8) )
                 {
-                    if(validi > validj && iou2 > 0.6) is_discard[j] = 1; 
-                    else if (validi<validj && iou1 > 0.6) is_discard[i] = 1; 
+                    if(validi > validj && iou2 > 0.8) is_discard[j] = 1; 
+                    else if (validi<validj && iou1 > 0.8) is_discard[i] = 1; 
                 }
             }
         }
@@ -615,6 +632,67 @@ void FrameData::detNMS()
         }
         m_detUndist[camid] = clean_dets; 
     }
+
+	// clean leg joints 
+	drawRawMaskImgs();
+	std::vector<std::pair<int, int> > legs = {
+		{7,9},{5,7},
+	{8,10},{6,8},
+	{13,15},{11,13},
+	{14,16},{12,14}
+	};
+	std::vector<int> leg_up = { 5,6,11,12 };
+	std::vector<int> leg_middle = { 7,8,13,14 };
+	std::vector<int> leg_down = { 9,10,15,16 };
+	std::vector<int> all_legs = { 5,6,11,12 ,7,8,13,14,9,10,15,16 };
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int candid = 0; candid < m_detUndist[camid].size(); candid++)
+		{
+			// remove those out of box 
+			for (int i = 0; i < all_legs.size(); i++)
+			{
+				DetInstance& det = m_detUndist[camid][candid];
+				Eigen::Vector3d& point = det.keypoints[all_legs[i]];
+				Eigen::Vector2d uv = point.segment<2>(0);
+				if (!in_box_test(uv, det.box))
+				{
+					point(2) = 0; continue; 
+				}
+				int idcode = 1 << candid; 
+				int x = int(round(uv(0)));
+				int y = int(round(uv(1)));
+				if (m_rawMaskImgs[camid].at<uchar>(y, x) != idcode) {
+					point(2) = 0; continue; 
+				}
+			}
+			// remove those bones that cross over background. 
+			for (int i = 0; i < legs.size(); i++)
+			{
+				int p1_index = legs[i].first;
+				int p2_index = legs[i].second;
+				Eigen::Vector3d& p1 = m_detUndist[camid][candid].keypoints[p1_index];
+				Eigen::Vector3d& p2 = m_detUndist[camid][candid].keypoints[p2_index];
+				if (p1(2) > m_topo.kpt_conf_thresh[p1_index] &&
+					p2(2) > m_topo.kpt_conf_thresh[p2_index])
+				{
+					int n = 20;
+					double dx = (p2(0) - p1(0)) / 20;
+					double dy = (p2(1) - p1(1)) / 20;
+					for (int k = 1; k < 20; k++)
+					{
+						int x = int(round(p1(0) + dx * k));
+						int y = int(round(p1(1) + dy * k));
+						if (m_rawMaskImgs[camid].at<uchar>(y, x) == 0)
+						{
+							p2(2) = 0; break;
+						}
+					}
+				}
+			}
+		}
+	}
+
 }
 
 void FrameData::readMask()
@@ -726,7 +804,7 @@ void FrameData::drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel
 		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
 		double conf = _skel2d[i](2);
 		if (conf < m_topo.kpt_conf_thresh[i]) continue;
-		cv::circle(img, p, 9, cv_color, -1);
+		cv::circle(img, p, int(12*conf), cv_color, -1);
 	}
 	for (int k = 0; k < m_topo.bone_num; k++)
 	{

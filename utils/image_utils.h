@@ -89,7 +89,7 @@ public:
 	int viewid; 
 	Eigen::Vector4d box; // (x,y,x+w,y+h)
 	int id;
-	int t; 
+	int t; // timestamp
 	/*
 	return: -1: outof image
 	0: background
@@ -106,6 +106,7 @@ public:
 	float queryChamfer(const Eigen::Vector3d& point);
 	double keypointsMaskOverlay(); 
 	double valid; 
+	void clean_keypoints(); 
 };
 
 float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam);

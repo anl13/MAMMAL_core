@@ -151,25 +151,50 @@ SkelTopology getSkelTopoByType(std::string type)
             0.5, // eye right   2 
             0.5, // ear root left 3
             0.5, // ear root right 4
-            0.5, // left shoulder 5
-            0.5, // right shoulder 6
-            0.5, // left elbow 7
-            0.5, // right elbow 8
-            0.5, // left paw 9
-            0.5, // right paw 10
-            0.5, // hip left 11
-            0.5, // hip right  12
-            0.5, // knee left  13
-            0.5, // knee right  14
-            0.5, // foot left 15
-            0.5, // foot right 16
+            0.8, // left shoulder 5
+            0.8, // right shoulder 6
+            0.8, // left elbow 7
+            0.8, // right elbow 8
+            0.9, // left paw 9
+            0.9, // right paw 10
+            0.8, // hip left 11
+            0.8, // hip right  12
+            0.8, // knee left  13
+            0.8, // knee right  14
+            0.85, // foot left 15
+            0.85, // foot right 16
             0.5, // neck 17
             0.5, // tail root 18
             0.5, // withers    19
-            0.5, // center 20
+            0.3, // center 20
             0.5, // tail middle  21
             0.5  // tail end 22
         }; 
+		//A.kpt_conf_thresh = {
+		//	0.5, // nose 0
+		//	0.5, // eye left  1
+		//	0.5, // eye right   2 
+		//	0.5, // ear root left 3
+		//	0.5, // ear root right 4
+		//	0.5, // left shoulder 5
+		//	0.5, // right shoulder 6
+		//	0.5, // left elbow 7
+		//	0.5, // right elbow 8
+		//	0.5, // left paw 9
+		//	0.5, // right paw 10
+		//	0.5, // hip left 11
+		//	0.5, // hip right  12
+		//	0.5, // knee left  13
+		//	0.5, // knee right  14
+		//	0.5, // foot left 15
+		//	0.5, // foot right 16
+		//	0.5, // neck 17
+		//	0.5, // tail root 18
+		//	0.5, // withers    19
+		//	0.5, // center 20
+		//	0.5, // tail middle  21
+		//	0.5  // tail end 22
+		//};
     }
     else 
     {
@@ -178,36 +203,6 @@ SkelTopology getSkelTopoByType(std::string type)
     }
     
     return A; 
-}
-
-vector<std::pair<int, int> > getPigMapper()
-{
-	std::vector<std::pair<int, int> > Mapper = {
-		{ 1, 239 }, // nose
-	{ 1, 50 }, // left eye
-	{ 1, 353 }, // right eye
-	{ 1, 1551 }, // left ear 
-	{ 1, 1571 }, // right ear 
-	{ 0, 21 },
-	{ 0, 6 },
-	{ 0, 22 },
-	{ 0, 7 },
-	{ 0, 23 },
-	{ 0,8 },
-	{ 0, 39 },
-	{ 0, 27 },
-	{ 0,40 },
-	{ 0,28 },
-	{ 0,41 },
-	{ 0,29 },
-	{ -1, -1 },
-	{ 0, 31 },
-	{ -1, -1 },
-	{ 0, 2 },
-	{ -1, -1 },
-	{ -1,-1 }
-	};
-	return Mapper; 
 }
 
 void BodyState::saveState(std::string filename)

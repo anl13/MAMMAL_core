@@ -5,7 +5,7 @@ vector<ROIdescripter> FrameData::getROI(int id)
 	// assert(id >= 0 && id <= 3);
 	// This function is run after solving single
 	// frame pose 
-	vector<cv::Mat> masks = drawMask();
+	std::vector<cv::Mat> masks = drawMask();
 	vector<ROIdescripter> rois; 
 	for (int view = 0; view < m_matched[id].view_ids.size(); view++)
 	{
@@ -54,5 +54,17 @@ void FrameData::extractFG()
 		cv::Mat& full = m_imgsUndist[camid];
 
 		m_foreground[camid] = my_background_substraction(full,bg);
+	}
+}
+
+
+void FrameData::clean_step1()
+{
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int i = 0; i < m_boxes_processed[camid].size(); i++)
+		{
+
+		}
 	}
 }

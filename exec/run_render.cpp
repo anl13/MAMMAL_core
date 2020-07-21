@@ -15,7 +15,7 @@
 #include "../associate/framedata.h" 
 #include "../utils/math_utils.h"
 #include "../utils/colorterminal.h" 
-#include "../smal/pigmodel.h"
+#include "../articulation/pigmodel.h"
 #include "../utils/node_graph.h"
 #include "../utils/model.h"
 #include "../utils/dataconverter.h" 
@@ -29,7 +29,7 @@ int render_smal_test()
     std::cout << "In smal render now!" << std::endl; 
 
     std::string conf_projectFolder = "D:/projects/animal_calib/render";
-	std::string smal_config = "D:/Projects/animal_calib/smal/smal2_config.json";
+	std::string smal_config = "D:/Projects/animal_calib/articulation/smal2_config.json";
 	SkelTopology m_topo = getSkelTopoByType("UNIV");
     /// read smal model 
 	PigSolver smal(smal_config);

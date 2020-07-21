@@ -102,6 +102,9 @@ public:
 	void UpdateModelShapedByKNN();
 	void SaveWarpField();
 	void LoadWarpField();
+
+	void testReadJoint(std::string filename);
+
 protected:
 	int m_jointNum;// 43 / 33
 	int m_vertexNum; // 1879 / 3889

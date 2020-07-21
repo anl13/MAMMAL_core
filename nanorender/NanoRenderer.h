@@ -31,6 +31,7 @@
 #include <GLFW/glfw3.h>
 #include <nanogui/nanogui.h>
 #include <iostream>
+#include <algorithm>
 
 using namespace nanogui;
 
@@ -64,6 +65,11 @@ using namespace nanogui;
 #    undef APIENTRY
 #  endif
 #  include <windows.h>
+#endif
+
+#ifdef WIN32
+#undef min
+#undef max
 #endif
 
 class StaticCanvas : public Canvas {
@@ -228,7 +234,9 @@ public:
 	{
 		const int canvas_width = size()[0];
 		const int canvas_height = size()[1];
+		//const float pixel_radius = std::min(canvas_height, canvas_width) / 2;
 		const float pixel_radius = std::min(canvas_height, canvas_width) / 2;
+
 		Vector2i pe = p + rel;
 		Eigen::Vector2f pBegin((p[0] - canvas_width / 2) / pixel_radius, (p[1] - canvas_height / 2) / pixel_radius);
 		Eigen::Vector2f pEnd((pe[0] - canvas_width / 2) / pixel_radius, (pe[1] - canvas_height / 2) / pixel_radius);

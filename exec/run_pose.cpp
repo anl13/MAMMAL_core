@@ -10,8 +10,8 @@
 #include "../utils/colorterminal.h" 
 #include "../utils/obj_reader.h"
 #include "../utils/timer_util.h"
-#include "../smal/pigmodel.h"
-#include "../smal/pigsolver.h"
+#include "../articulation/pigmodel.h"
+#include "../articulation/pigsolver.h"
 #include "../associate/framedata.h"
 #include "../utils/volume.h"
 #include "../utils/model.h"
@@ -28,7 +28,7 @@ using std::vector;
 
 int run_pose()
 {
-	std::string pig_config = "D:/Projects/animal_calib/smal/pigmodel_config.json";
+	//std::string pig_config = "D:/Projects/animal_calib/articulation/pigmodel_config.json";
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 
@@ -36,7 +36,7 @@ int run_pose()
 	frame.configByJson(conf_projectFolder + "/associate/config.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
-	PigSolver shapesolver(pig_config);
+	//PigSolver shapesolver(pig_config);
 
 	int m_pid = 0; // pig identity to solve now. 
 	frame.set_frame_id(0);
@@ -48,7 +48,9 @@ int run_pose()
 	renderer.Init(1920, 1080, float(cam.K(0, 0)), float(cam.K(1, 1)), float(cam.K(0, 2)), float(cam.K(1, 2)), -3.f);
 	auto animal_model = renderer.CreateOffscreenRenderObject(
 		"animal", vs_vertex_position, fs_vertex_position, 1920, 1080, cam.K(0, 0), cam.K(1, 1), cam.K(0, 2), cam.K(1, 2), 1, true);
-	shapesolver.animal_offscreen = animal_model; 
+	frame.m_animal_render = animal_model; 
+
+	//shapesolver.animal_offscreen = animal_model; 
 	Eigen::Matrix4f view_eigen = calcRenderExt(cam.R.cast<float>(), cam.T.cast<float>());
 	nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
 	renderer.UpdateCanvasView(view_eigen);
@@ -58,6 +60,8 @@ int run_pose()
 	animal_model_render->_SetViewByCameraRT(cam.R, cam.T);
 
 
+	frame.result_folder = "G:/pig_results/";
+	frame.is_smth = false; 
 	int start = frame.get_start_id();
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
@@ -68,11 +72,12 @@ int run_pose()
 
 #ifdef READ_SMOOTH 
 		frame.load_clusters();
-		std::stringstream state_file;
-		state_file << "E:/pig_results/state_smth/pig_" << m_pid << "_frame_" <<
-			std::setw(6) << std::setfill('0') << frameid << ".txt";
-		shapesolver.readState(state_file.str());
-		shapesolver.UpdateVertices();
+		frame.read_parametric_data(); 
+		//std::stringstream state_file;
+		//state_file << "G:/pig_results_level1_nosil/state_smth/pig_" << m_pid << "_frame_" <<
+		//	std::setw(6) << std::setfill('0') << frameid << ".txt";
+		//shapesolver.readState(state_file.str());
+		//shapesolver.UpdateVertices();
 #else 
 		if(frameid == start) // load state 
 		{
@@ -84,7 +89,7 @@ int run_pose()
 #else 
 			frame.load_clusters();
 			//frame.solve_parametric_model(); 
-			frame.load_parametric_data();
+			frame.read_parametric_data();
 			std::stringstream init_state_file;
 			init_state_file << "E:/pig_results/state/pig_" << m_pid << "_frame_" <<
 				std::setw(6) << std::setfill('0') << frameid << ".txt";
@@ -95,56 +100,61 @@ int run_pose()
 		}
 		else {
 			frame.matching_by_tracking();
+			//frame.pureTracking();
 			frame.solve_parametric_model();
 			frame.save_clusters();
 			frame.save_parametric_data();
 		}
 
-
-		auto m_matched = frame.get_matched();
-		cv::Mat det_img = frame.visualizeIdentity2D(-1);
-		std::stringstream ss1;
-		ss1 << "E:/pig_results/assoc/" << std::setw(6) << std::setfill('0')
-			<< frameid << ".jpg";
-		cv::imwrite(ss1.str(), det_img);
-		frame.debug_fitting(0);
+		//auto m_matched = frame.get_matched();
+		//cv::Mat det_img = frame.visualizeIdentity2D(-1);
+		//std::stringstream ss1;
+		//ss1 << "E:/pig_results/assoc/" << std::setw(6) << std::setfill('0')
+		//	<< frameid << ".jpg";
+		//cv::imwrite(ss1.str(), det_img);
+		//frame.debug_fitting(0);
+		//frame.debug_fitting(1);
+		//frame.debug_fitting(2);
+		//frame.debug_fitting(3);
 		
-		auto m_rois = frame.getROI(m_pid);
-		shapesolver.setFrameId(frameid - start);
-		shapesolver.setCameras(frame.get_cameras());
-		shapesolver.normalizeCamera();
-		shapesolver.setId(m_pid);
-		shapesolver.setSource(m_matched[m_pid]);
-		shapesolver.normalizeSource();
-		shapesolver.InitNodeAndWarpField();
-		//shapesolver.LoadWarpField();
-		shapesolver.UpdateVertices();
-		shapesolver.globalAlign();
-		shapesolver.optimizePose(10, 0.001);
-		shapesolver.m_rois = m_rois;
-		shapesolver.m_rawImgs = frame.get_imgs_undist();
-		shapesolver.optimizePoseSilhouette(18);
+		//auto m_rois = frame.getROI(m_pid);
+		//shapesolver.setFrameId(frameid - start);
+		//shapesolver.setCameras(frame.get_cameras());
+		//shapesolver.normalizeCamera();
+		//shapesolver.setId(m_pid);
+		//shapesolver.setSource(m_matched[m_pid]);
+		//shapesolver.normalizeSource();
+		//shapesolver.InitNodeAndWarpField();
+		////shapesolver.LoadWarpField();
+		//shapesolver.UpdateVertices();
+		//shapesolver.globalAlign();
+		//shapesolver.optimizePose(10, 0.001);
+		//shapesolver.m_rois = m_rois;
+		//shapesolver.m_rawImgs = frame.get_imgs_undist();
+		//shapesolver.optimizePoseSilhouette(18);
 
 
-#ifndef DEBUG_SIL
-		std::stringstream state_file;
-		state_file << "E:/pig_results/state/pig_" << m_pid << "_frame_" <<
-			std::setw(6) << std::setfill('0') << frameid << ".txt";
-		shapesolver.saveState(state_file.str());
-#endif // DEBUG_SIL
+//#ifndef DEBUG_SIL
+//		std::stringstream state_file;
+//		state_file << "E:/pig_results/state/pig_" << m_pid << "_frame_" <<
+//			std::setw(6) << std::setfill('0') << frameid << ".txt";
+//		shapesolver.saveState(state_file.str());
+//#endif // DEBUG_SIL
 
 #endif // READ_SMOOTH
+		auto solvers = frame.mp_bodysolver;
+
 		Model m3c;
-		m3c.vertices = shapesolver.GetVertices();
-		m3c.faces = shapesolver.GetFacesVert();
+		m3c.vertices = solvers[0]->GetVertices();
+		m3c.faces = solvers[0]->GetFacesVert();
 		m3c.CalcNormal();
 		ObjModel m4c;
 		convert3CTo4C(m3c, m4c);
 
-		auto human_model = renderer.CreateRenderObject("human_model", vs_phong_geometry, fs_phong_geometry);
-		human_model->SetIndices(m4c.indices);
-		human_model->SetBuffer("positions", m4c.vertices);
-		human_model->SetBuffer("normals", m4c.normals);
+		//auto human_model = renderer.CreateRenderObject("human_model", vs_phong_geometry, fs_phong_geometry);
+		//human_model->SetIndices(m4c.indices);
+		//human_model->SetBuffer("positions", m4c.vertices);
+		//human_model->SetBuffer("normals", m4c.normals);
 		renderer.ApplyCanvasView();
 
 		animal_model_render->SetBuffer("positions", m4c.vertices);
@@ -171,10 +181,10 @@ int run_pose()
 		packImgBlock(all_renders, packed_render);
 		std::stringstream all_render_file; 
 #ifndef READ_SMOOTH
-		all_render_file << "E:/pig_results/render_all/" << std::setw(6) << std::setfill('0')
+		all_render_file << "G:/pig_results/render_all/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
 #else 
-		all_render_file << "E:/pig_results/render_all_smth/" << std::setw(6) << std::setfill('0')
+		all_render_file << "G:/pig_results_level1_nosil/render_all_smth/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
 #endif // READ_SMOOTH
 		cv::imwrite(all_render_file.str(), packed_render); 

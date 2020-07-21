@@ -1,25 +1,28 @@
-#include "../nanorender/NanoRenderer.h"
 #include <fstream>
+#include <string>
+#include <vector>
+#include <iostream> 
 #include <vector_functions.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <nanogui/nanogui.h>
 #include "../utils/timer.hpp"
 #include "../utils/objloader.h"
-#include "main.h"
+#include "NanoRenderer.h"
 
-int test_nanogui() 
+int main()
 {
 	
 	std::vector<float4> vertices;
-	vertices.push_back(make_float4(-1.f, 1.f,  6.f, 1.f));
-	vertices.push_back(make_float4(-1.f, -1.f,  6.f, 1.f));
-	vertices.push_back(make_float4( 1.f, -1.f,  6.f, 1.f));
-	vertices.push_back(make_float4( 1.f, 1.f,  6.f, 1.f));
-	vertices.push_back(make_float4(-1.f, 1.f,  4.f, 1.f));
-	vertices.push_back(make_float4(-1.f, -1.f,  4.f, 1.f));
-	vertices.push_back(make_float4( 1.f, -1.f,  4.f, 1.f));
-	vertices.push_back(make_float4( 1.f, 1.f,  4.f, 1.f));
+	vertices.push_back(make_float4(-1.f, 1.f, 6.f, 1.f));
+	vertices.push_back(make_float4(-1.f, -1.f, 6.f, 1.f));
+	vertices.push_back(make_float4(1.f, -1.f, 6.f, 1.f));
+	vertices.push_back(make_float4(1.f, 1.f, 6.f, 1.f));
+	vertices.push_back(make_float4(-1.f, 1.f, 4.f, 1.f));
+	vertices.push_back(make_float4(-1.f, -1.f, 4.f, 1.f));
+	vertices.push_back(make_float4(1.f, -1.f, 4.f, 1.f));
+	vertices.push_back(make_float4(1.f, 1.f, 4.f, 1.f));
 	for (int i = 0; i < vertices.size(); ++i)
 	{
 		vertices[i].x *= 0.05f;
@@ -64,7 +67,7 @@ int test_nanogui()
 	// The default Arcball rotation center is set to 2.0m
 	NanoRenderer renderer;
 	renderer.Init(1024, 768, 400, 400, 0.7);
-	
+
 	// create a renderImage using cv::Mat, then we are ready to render this image on the screen
 	renderer.CreateRenderImage("Camera0", Vector2i(200, 200), Vector2i(5, 460));
 	cv::Mat img = cv::imread("D:/Projects/animal_calib/nanorender/data/awesomeface.png", cv::IMREAD_UNCHANGED);
@@ -76,7 +79,7 @@ int test_nanogui()
 	ref<RenderObject> box1 = renderer.CreateRenderObject("box1", vs_texture_object, fs_texture_object);
 	box1->SetIndices(indices);
 	// SetBuffer Option1: set vertices from host std::vector
-	box1->SetBuffer("positions", vertices); 
+	box1->SetBuffer("positions", vertices);
 	//// SetBuffer Option2: set vertices from pcl::DeviceArray, will call map and unmap to eliminate host-device mem copies
 	//box1->SetBuffer("positions", vertices_device); 
 	// SetBuffer Option3: you can use the buffer of a previously defined renderObject
@@ -87,9 +90,9 @@ int test_nanogui()
 	cv::Mat tex0Image = cv::imread("D:/Projects/animal_calib/nanorender/data/football-icon.png", cv::IMREAD_UNCHANGED);
 	cv::cvtColor(tex0Image, tex0Image, cv::COLOR_BGRA2RGBA);
 	box1->SetTexture(
-		"tex0", 
-		nanogui::Texture::PixelFormat::RGBA, 
-		nanogui::Texture::ComponentFormat::UInt8, 
+		"tex0",
+		nanogui::Texture::PixelFormat::RGBA,
+		nanogui::Texture::ComponentFormat::UInt8,
 		nanogui::Vector2i(tex0Image.cols, tex0Image.rows), tex0Image.data);
 
 	ObjModel model;
@@ -98,7 +101,7 @@ int test_nanogui()
 	human_model->SetIndices(model.indices);
 	human_model->SetBuffer("positions", model.vertices);
 	human_model->SetBuffer("normals", model.normals);
-	human_model->SetModelRT(nanogui::Matrix4f::translate(nanogui::Vector3f(-0.5,-0.5,0.2)));
+	human_model->SetModelRT(nanogui::Matrix4f::translate(nanogui::Vector3f(-0.5, -0.5, 0.2)));
 
 	// create offscreen render object, you can render this object to a cuda texture or a cv::Mat
 	// In this example code, I render this object to a cv::Mat and then use cv::imshow to demonstrate the rendering results
