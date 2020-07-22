@@ -38,11 +38,6 @@ void LinearLayer::load_params(std::string filew, std::string fileb)
 
 void LinearLayer::forward()
 {
-#ifdef INFO
-	std::cout << "W: " << W.rows() << ", " << W.cols() << std::endl; 
-	std::cout << "b: " << b.rows() << std::endl; 
-#endif 
-
 	output = W * input + b; 
 }
 
@@ -53,52 +48,39 @@ void LinearLayer::backward()
 
 void LeakyReLU::forward()
 {
-#ifdef INFO
-	std::cout << "intput.rows: " << input.rows() << ", cols:" << input.cols() << std::endl; 
-#endif 
 	output = input; 
 	for (int i = 0; i < output.rows(); i++)
 	{
-		for (int j = 0; j < output.cols(); j++)
-		{
-			if (output(i,j) < 0)
-				output(i,j) = output(i,j) * m_r; 
-		}
+		if (output(i) < 0)
+			output(i) = output(i) * m_r; 
 	}
 }
 
 void LeakyReLU::backward()
 {
-	J = input; 
+	int rows = input.rows(); 
+	J = Eigen::MatrixXd::Zero(rows, rows);
 	for (int i = 0; i < input.rows(); i++)
 	{
-		for (int j = 0; j < input.cols(); j++)
-		{
-			if (J(j, i) > 0) J(j, i) = 1; 
-			else J(j, i) = m_r; 
-		}
+		if (input(i) > 0) J(i,i) = 1; 
+		else J(i,i) = m_r; 
 	}
 }
 
 void Tanh::forward()
 {
-#ifdef INFO 
-	std::cout << "input.rows: " << input.rows() << ", cols: " << input.cols() << std::endl; 
-#endif 
 	output = input; 
 	for (int i = 0; i < input.rows(); i++)
 	{
-		for (int j = 0; j < input.cols(); j++)
-		{
-			output(i,j) = tanh(input(i,j)); 
-		}
+		output(i) = tanh(input(i)); 
 	}
 }
 
 void Tanh::backward()
 {
-	int col = output.cols();
-	int row = output.rows(); 
-	Eigen::MatrixXd ones = Eigen::MatrixXd::Ones(row, col);
-	J = ones - (output.array() * output.array()).matrix();
+	J = Eigen::MatrixXd::Identity(558, 558);
+	for (int i = 0; i < 558; i++)
+	{
+		J(i, i) = 1 - output(i)*output(i); 
+	}
 }

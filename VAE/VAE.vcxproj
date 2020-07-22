@@ -119,10 +119,12 @@
     <ClCompile Include="decoder.cpp" />
     <ClCompile Include="layers.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="unittest.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="decoder.h" />
     <ClInclude Include="layers.h" />
+    <ClInclude Include="unittest.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

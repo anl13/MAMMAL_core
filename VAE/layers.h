@@ -14,7 +14,7 @@ public:
 
 	Eigen::MatrixXd W;
 	Eigen::VectorXd b;
-	Eigen::VectorXd J;
+	Eigen::MatrixXd J;
 
 	Eigen::VectorXd input;
 	Eigen::VectorXd output;
@@ -34,8 +34,8 @@ public:
 		m_r = r; 
 	}
 
-	Eigen::MatrixXd input;
-	Eigen::MatrixXd output;
+	Eigen::VectorXd input;
+	Eigen::VectorXd output;
 	Eigen::MatrixXd J;
 
 	void forward();
@@ -50,8 +50,8 @@ class Tanh
 public:
 	Tanh() {};
 
-	Eigen::MatrixXd input;
-	Eigen::MatrixXd output;
+	Eigen::VectorXd input;
+	Eigen::VectorXd output;
 	Eigen::MatrixXd J;
 
 	void forward();

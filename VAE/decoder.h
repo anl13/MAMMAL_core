@@ -18,16 +18,14 @@ public:
 
 	Eigen::VectorXd latent; // [32] latent code 
 	Eigen::VectorXd output; // [62*9] output rotation matrix in vector 
-	Eigen::VectorXd gt;     // [62*9] ground truth 
-
-	Eigen::VectorXd lrelu1_out; 
-	Eigen::VectorXd lrelu2_out; 
 
 	void forward(); 
-	void backward();
+	void computeJacobi();
 
-	Eigen::MatrixXd grad;
 	Eigen::MatrixXd J; 
-	Eigen::MatrixXd outrotmats; // [3, 3*62]
+
+	Eigen::VectorXd end_grad; // gradient on output, to backpropagate
+	Eigen::MatrixXd grad;     // grad = J.transpose() * end_grad 
+	//Eigen::MatrixXd outrotmats; // [3, 3*62]
 
 };
