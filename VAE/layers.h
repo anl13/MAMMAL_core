@@ -14,7 +14,7 @@ public:
 
 	Eigen::MatrixXd W;
 	Eigen::VectorXd b;
-	Eigen::VectorXd grad;
+	Eigen::VectorXd J;
 
 	Eigen::VectorXd input;
 	Eigen::VectorXd output;
@@ -36,7 +36,7 @@ public:
 
 	Eigen::MatrixXd input;
 	Eigen::MatrixXd output;
-	Eigen::MatrixXd grad;
+	Eigen::MatrixXd J;
 
 	void forward();
 	void backward();
@@ -52,7 +52,7 @@ public:
 
 	Eigen::MatrixXd input;
 	Eigen::MatrixXd output;
-	Eigen::MatrixXd grad;
+	Eigen::MatrixXd J;
 
 	void forward();
 	void backward();

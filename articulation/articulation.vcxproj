@@ -136,8 +136,6 @@
     <ClCompile Include="..\utils\model.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
-    <ClCompile Include="decoder.cpp" />
-    <ClCompile Include="layers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pigmodel.cpp" />
     <ClCompile Include="pigsolver_fitting.cpp" />
@@ -146,8 +144,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp" />
-    <ClInclude Include="decoder.h" />
-    <ClInclude Include="layers.h" />
     <ClInclude Include="pigmodel.h" />
     <ClInclude Include="pigsolver.h" />
   </ItemGroup>

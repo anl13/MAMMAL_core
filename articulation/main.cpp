@@ -289,7 +289,7 @@ int test_write_video()
 	{
 		m_renderer.colorObjs.clear(); 
 		std::stringstream ss;
-		ss << tmp_folder << "demo_lie/demo" << k << ".obj";
+		ss << tmp_folder << "demo2_lie/demo" << k << ".obj";
 		Eigen::MatrixXu faces_u;
 		Eigen::MatrixXf vertices_f;
 		read_obj(ss.str(), vertices_f, faces_u);
@@ -307,7 +307,7 @@ int test_write_video()
 		cv::Mat img = m_renderer.GetImage();
 		//images.push_back(img); 
 		std::stringstream ss_out;
-		ss_out << tmp_folder << "demo_lie/img" << k << ".png";
+		ss_out << tmp_folder << "demo2_lie/img" << k << ".png";
 		cv::imwrite(ss_out.str(), img);
 	}
 	//cv::Mat packed; 

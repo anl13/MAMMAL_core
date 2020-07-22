@@ -118,6 +118,7 @@
   <ItemGroup>
     <ClCompile Include="decoder.cpp" />
     <ClCompile Include="layers.cpp" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="decoder.h" />

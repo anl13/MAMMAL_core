@@ -75,12 +75,6 @@
     <ClCompile Include="..\associate\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="decoder.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="layers.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pigmodel.h">
@@ -91,12 +85,6 @@
     </ClInclude>
     <ClInclude Include="..\utils\nanoflann.hpp">
       <Filter>other</Filter>
-    </ClInclude>
-    <ClInclude Include="decoder.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="layers.h">
-      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
