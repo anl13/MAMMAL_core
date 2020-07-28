@@ -36,6 +36,7 @@ PigModel::PigModel(const std::string &_configfile)
 	m_shapeNum = root["shape_num"].asInt();
 	m_faceNum = root["face_num"].asInt();
 	m_texNum = root["tex_num"].asInt(); 
+	m_isLatent = root["latent"].asBool(); 
 	instream.close();
 	/*
 	necessary: vertices, parents, faces_vert, t_pose_joints, skinning_weights
@@ -268,6 +269,7 @@ PigModel::PigModel(const std::string &_configfile)
 
 	m_verticesTex.resize(3, m_texNum); 
 	m_verticesTex.setZero(); 
+	m_latentCode = Eigen::VectorXd::Zero(32); 
 
 	UpdateVertices();
 }
@@ -278,33 +280,67 @@ PigModel::~PigModel()
 }
 
 
-void PigModel::UpdateSingleAffine(const int jointCount)
+void PigModel::UpdateSingleAffine()
 {
 	m_singleAffine.setZero(); 
-	for (int jointId = 0; jointId < jointCount; jointId++)
+	if (m_isLatent) // use latent code to get local rotation 
 	{
-		const Eigen::Vector3d& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
-		Eigen::Matrix4d matrix;
-		matrix.setIdentity();
-
-		matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
-		//matrix.block<3, 3>(0, 0) = EulerToRotRadD(pose);
-		if (jointId == 0)
-			matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) + m_translation;
-		else
+		m_decoder.latent = m_latentCode;
+		m_decoder.forward(); 
+		for (int jointid = 0; jointid < m_jointNum; jointid++)
 		{
-			int p = m_parent(jointId); 
-			matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) - m_jointsDeformed.col(p); 
+			Eigen::Matrix4d matrix; 
+			matrix.setIdentity();
+			for (int i = 0; i < 9; i++)
+			{
+				int row = i % 3; 
+				int col = i / 3; 
+				matrix(col, row) = m_decoder.output(9*jointid + i);
+			}
+			if (jointid == 0)
+			{
+				matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointid) + m_translation;
+			}
+			else
+			{
+				int p = m_parent(jointid);
+				matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointid) - m_jointsDeformed.col(p);
+			}
+			m_singleAffine.block<4, 4>(0, 4 * jointid) = matrix;
+			if (jointid == 0)
+			{
+				Eigen::Vector3d pose = m_poseParam.segment<3>(0); // global rotation 
+				m_singleAffine.block<3, 3>(0, 0) = GetRodrigues(pose); 
+			}
 		}
-		m_singleAffine.block<4,4>(0, 4 * jointId) = matrix; 
+	}
+	else 
+	{ // use axis-angle to get local rotation 
+		for (int jointId = 0; jointId < m_jointNum; jointId++)
+		{
+			const Eigen::Vector3d& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
+			Eigen::Matrix4d matrix;
+			matrix.setIdentity();
+
+			matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+			//matrix.block<3, 3>(0, 0) = EulerToRotRadD(pose);
+			if (jointId == 0)
+				matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) + m_translation;
+			else
+			{
+				int p = m_parent(jointId);
+				matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) - m_jointsDeformed.col(p);
+			}
+			m_singleAffine.block<4, 4>(0, 4 * jointId) = matrix;
+		}
 	}
 }
 
 
-void PigModel::UpdateGlobalAffine(const int jointCount)
+void PigModel::UpdateGlobalAffine()
 {
 	m_globalAffine.setZero(); 
-	for (int jointId = 0; jointId < jointCount; jointId++)
+	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
 		if (jointId == 0)
 			m_globalAffine.block<4, 4>(0, 4 * jointId) = m_singleAffine.block<4, 4>(0, 4 * jointId);

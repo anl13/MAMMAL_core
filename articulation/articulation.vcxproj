@@ -136,6 +136,8 @@
     <ClCompile Include="..\utils\model.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
+    <ClCompile Include="..\VAE\decoder.cpp" />
+    <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pigmodel.cpp" />
     <ClCompile Include="pigsolver_fitting.cpp" />

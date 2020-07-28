@@ -5,8 +5,9 @@
   "shape_num": 41,
   "face_num": 7774,
   "tex_num": 6085,
-  "topo": "UNIV", 
-  "texture_img":  "body_red.png", 
+  "topo": "UNIV",
+  "texture_img": "body_red.png", 
+  "latent":  false, 
   "mapper": [
     [ 1, 1863 ],
     [ 1, 1089 ],

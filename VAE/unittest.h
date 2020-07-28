@@ -10,3 +10,5 @@
 int unittest_forward(); 
 
 int unittest_backward(); 
+
+int unittest_cr();

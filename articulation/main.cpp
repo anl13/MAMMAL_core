@@ -327,7 +327,75 @@ int test_write_video()
 	return 0; 
 }
 
+int test_vae()
+{
+	// render config 
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
+	std::vector<Camera> cams = readCameras();
+
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698, 0, 0.502,
+		0, 1.243, 0.483,
+		0, 0, 1;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f pos = Eigen::Vector3f(0.873302, -0.961363, 0.444287);
+	Eigen::Vector3f up = Eigen::Vector3f(-0.220837, 0.236654, 0.946164);
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+	// init renderer 
+	Renderer::s_Init();
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+	//m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
+
+	// init element obj
+	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
+	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
+
+	RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	chess_floor->SetFaces(squareObj.faces, false);
+	chess_floor->SetVertices(squareObj.vertices);
+	chess_floor->SetTexcoords(squareObj.texcoords);
+	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	m_renderer.texObjs.push_back(chess_floor);
+
+	std::string pig_config = "D:/Projects/animal_calib/articulation/artist_config.json";
+
+	PigSolver pig(pig_config); 
+	Eigen::VectorXd code = Eigen::VectorXd::Random(32); 
+	std::cout << code << std::endl;
+
+	pig.setLatent(code); 
+	pig.UpdateVertices(); 
+
+	RenderObjectColor* animal_model = new RenderObjectColor();
+	Eigen::MatrixXf vertices_f = pig.GetVertices().cast<float>();
+	vertices_f = vertices_f.colwise() + Eigen::Vector3f(0, 0, 0.21f);
+
+	Eigen::MatrixXu faces_u = pig.GetFacesVert();
+	animal_model->SetFaces(faces_u);
+	animal_model->SetVertices(vertices_f);
+	animal_model->SetColor(Eigen::Vector3f(0.5, 0.5, 0.1));
+	
+	m_renderer.colorObjs.push_back(animal_model);
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		m_renderer.Draw();
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
+
+	return 0; 
+}
 void main()
 {
-	test_write_video(); 
+	test_vae(); 
 }

@@ -7,6 +7,7 @@
   "tex_num": 0,
   "topo": "UNIV",
   "texture_img": "body_red.png",
+  "latent":  false,
   "sym_num": 1, 
   "mapper": [
     [ 1, 1790 ], // nose

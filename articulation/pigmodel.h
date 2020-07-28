@@ -5,7 +5,7 @@
 #include <Eigen/Core>
 #include <opencv2/opencv.hpp>
 #include "../utils/node_graph.h"
-
+#include "../VAE/decoder.h"
 
 enum BODY_PART
 {
@@ -105,7 +105,17 @@ public:
 
 	void testReadJoint(std::string filename);
 
+	// public methods for latent code
+	void setLatent(Eigen::VectorXd _l) { m_latentCode = _l; }
+	void setIsLatent(bool _is_latent) { m_isLatent = _is_latent;  }
+
 protected:
+	Eigen::VectorXd m_latentCode; 
+	Decoder m_decoder; 
+	bool m_isLatent; 
+
+
+	// traditional articulation model 
 	int m_jointNum;// 43 / 33
 	int m_vertexNum; // 1879 / 3889
 	int m_shapeNum; // 0 / 41
@@ -157,10 +167,8 @@ protected:
 	std::string m_folder; 
 
 
-	void UpdateSingleAffine() {UpdateSingleAffine(m_jointNum); }
-	void UpdateSingleAffine(const int jointCount);
-	void UpdateGlobalAffine() { UpdateGlobalAffine(m_jointNum); }
-	void UpdateGlobalAffine(const int jointCount);
+	void UpdateSingleAffine();
+	void UpdateGlobalAffine();
 
 	void UpdateVerticesShaped();
 	void UpdateVerticesFinal();

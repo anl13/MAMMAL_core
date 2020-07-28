@@ -75,6 +75,12 @@
     <ClCompile Include="..\associate\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="..\VAE\decoder.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VAE\layers.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pigmodel.h">

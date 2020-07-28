@@ -67,6 +67,16 @@ void readrelu(Eigen::VectorXd& r1, Eigen::VectorXd& r2)
 	stream2.close();
 }
 
+void readmiddleoutput(Eigen::VectorXd& out)
+{
+	out.resize(372);
+	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
+	std::string relu1file = folder + "middle_out.txt";
+	std::ifstream stream(relu1file);
+	for (int i = 0; i < 372; i++)stream >> out(i);
+	stream.close(); 
+}
+
 bool compare_output(Eigen::MatrixXd pred, Eigen::MatrixXd gt)
 {
 	//std::cout << "gt   cols: " << gt.cols() << " rows: " << gt.rows() << std::endl;
@@ -84,7 +94,10 @@ bool compare_output(Eigen::MatrixXd pred, Eigen::MatrixXd gt)
 		}
 	}
 
-	if (max_err < 1e-6) return true; 
+	if (max_err < 1e-5) return true; 
+	else {
+		std::cout << "max error: " << max_err << std::endl; 
+	}
 	return false;
 }
 
@@ -107,13 +120,17 @@ int unittest_forward()
 	{
 		Eigen::VectorXd input = readinput(sample_id);
 		Eigen::MatrixXd output_gt = readoutput(sample_id);
-		Eigen::VectorXd relu1_gt;
-		Eigen::VectorXd relu2_gt;
-		readrelu(relu1_gt, relu2_gt);
 
 		dec.latent = input;
 		dec.forward();
-		Eigen::MatrixXd output = dec.output;
+		Eigen::VectorXd output = dec.output;
+	
+		//Eigen::Matrix<double, 9, 62, Eigen::ColMajor> output_mat =
+		//	Eigen::Map < Eigen::Matrix<double, 9, 62, Eigen::ColMajor> >(output.data()); 
+		////std::cout << "prediction: " << std::endl; 
+		//std::cout << output_mat.transpose() << std::endl; 
+		//std::cout << "gt: " << std::endl;
+		//std::cout << output_gt << std::endl; 
 
 		bool state = compare_output(output, output_gt);
 		if (state) std::cout << "PASS. case " << sample_id << std::endl; 
@@ -121,6 +138,11 @@ int unittest_forward()
 		{
 			std::cout << "FAIL. case " << sample_id << std::endl; 
 		}
+
+		//Eigen::VectorXd middleout;
+		//readmiddleoutput(middleout);
+		//Eigen::VectorXd diff = middleout - dec.p_dec_out->output; 
+		//std::cout << "middle out error: " << diff.norm() << std::endl; 
 	}
 
 	return 0;
@@ -173,14 +195,53 @@ int unittest_backward()
 		Eigen::MatrixXd output = dec.output;
 
 		dec.end_grad = compute_endgrad(output);
-		dec.backward(); 
-
-		//std::cout << dec.grad.transpose() << std::endl; 
-
-		Eigen::VectorXd diff = dec.grad - grad; 
+		dec.computeJacobi(); 
+		Eigen::VectorXd grad_est = dec.J.transpose() * dec.end_grad; 
+		Eigen::VectorXd diff = grad_est - grad; 
 		std::cout << "err: " << diff.norm() << std::endl;
-
 	}
+
+	return 0; 
+}
+
+
+int unittest_cr()
+{
+	Eigen::VectorXd input = Eigen::VectorXd::Zero(6); 
+	Eigen::VectorXd output_gt = Eigen::VectorXd::Zero(9); 
+	Eigen::VectorXd grad_gt = Eigen::VectorXd::Zero(6); 
+	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
+	std::ifstream inputstream(folder + "/rotinput.txt");
+	for (int i = 0; i < 6; i++)inputstream >> input(i); 
+	inputstream.close();
+	std::ifstream outputstream(folder + "/rotoutput.txt");
+	for (int i = 0; i < 9; i++)outputstream >> output_gt(i); 
+	outputstream.close(); 
+	std::ifstream gradstream(folder + "/rotgrad.txt"); 
+	for (int i = 0; i < 6; i++)gradstream >> grad_gt(i); 
+	gradstream.close(); 
+
+
+	ContinousRotation CR; 
+	CR.jointnum = 1; 
+	CR.input = input.transpose(); 
+
+	CR.forward(); 
+	
+	std::cout << "est: " << std::endl; 
+	std::cout << CR.output.transpose() << std::endl; 
+	std::cout << "gt: " << std::endl; 
+	std::cout << output_gt.transpose() << std::endl; 
+
+	CR.backward(); 
+	Eigen::VectorXd diff = compute_endgrad(CR.output); 
+	Eigen::VectorXd grad = CR.J.transpose() * diff; 
+
+	std::cout << std::endl; 
+	std::cout << "grad est: " << std::endl
+		<< grad.transpose() << std::endl; 
+	std::cout << "grad gt: " << std::endl
+		<< grad_gt.transpose() << std::endl; 
 
 	return 0; 
 }

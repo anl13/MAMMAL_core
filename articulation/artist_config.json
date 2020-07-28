@@ -8,6 +8,7 @@
   "shape_num": 0,
   "topo": "UNIV",
   "texture_img": "body_red.png",
+  "latent":  true,
   "sym_num": 0,
   "mapper": [
     [ 1, 10895 ], // nose
