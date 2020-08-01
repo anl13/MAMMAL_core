@@ -281,6 +281,8 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 		a += target_bone_lens[i] * source_bone_lens[i];
 		b += source_bone_lens[i] * source_bone_lens[i];
 	}
+
+	/*std::cout << "a: " << a << "  b: " << b << std::endl; */
 	double alpha = a / b;
 	m_scale = alpha * m_scale;
 	RescaleOriginVertices(alpha);
@@ -290,8 +292,8 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	m_frameid += 1;
 
 	// STEP 2: compute translation 
-	Eigen::Vector3d barycenter_target = Z.col(20);
-	int center_id = m_mapper[20].second; 
+	Eigen::Vector3d barycenter_target = Z.col(18);
+	int center_id = m_mapper[18].second; 
 	Eigen::Vector3d barycenter_source = m_jointsDeformed.col(center_id);
 	m_translation += barycenter_target - barycenter_source;
 
@@ -357,34 +359,47 @@ Eigen::VectorXd PigSolver::getRegressedSkelProj(
 void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance)
 {
 	int M = m_poseToOptimize.size();
+	int paramNum = m_isLatent? 38: (3+3*M);
 	if (theta_last.size() == 0)
 	{
-		theta_last.resize(3 + 3 * M);
+		theta_last.resize(paramNum);
 		theta_last.setZero(); 
+		theta_last.segment<3>(0) = m_translation; 
+		theta_last.segment<3>(3) = m_poseParam.segment<3>(0); 
 	}
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
 
-		std::stringstream ss;
-		//ss << "E:/pig_results/debug/fitting_" << iterTime << ".obj";
+		//std::stringstream ss;
+		//ss << "G:/pig_results/debug/fitting_" << iterTime << ".obj";
 		//SaveObj(ss.str()); 
 
 		Eigen::MatrixXd poseJ3d;
-		CalcSkelJacobiPartThetaByPairs(poseJ3d);
+		if (m_isLatent) CalcSkelJacobiByPairsLatent(poseJ3d); 
+		else CalcSkelJacobiPartThetaByPairs(poseJ3d);
 		Eigen::MatrixXd skel = getRegressedSkelbyPairs();
 
-		Eigen::VectorXd theta(3 + 3 * M);
-		theta.segment<3>(0) = m_translation;
-		for (int i = 0; i < M; i++)
+		Eigen::VectorXd theta(paramNum);
+		if (m_isLatent)
 		{
-			int jIdx = m_poseToOptimize[i]; 
-			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
+			theta.segment<3>(0) = m_translation;
+			theta.segment<3>(3) = m_poseParam.segment<3>(0); 
+			theta.segment<32>(6) = m_latentCode;
+		}
+		else
+		{
+			theta.segment<3>(0) = m_translation;
+			for (int i = 0; i < M; i++)
+			{
+				int jIdx = m_poseToOptimize[i]; 
+				theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
+			}
 		}
 
 		// solve
-		Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(3 + 3 * M, 3 + 3 * M); // data term 
-		Eigen::VectorXd b1 = Eigen::VectorXd::Zero(3 + 3 * M);  // data term 
+		Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(paramNum, paramNum); // data term 
+		Eigen::VectorXd b1 = Eigen::VectorXd::Zero(paramNum);  // data term 
 		for (int k = 0; k < m_source.view_ids.size(); k++)
 		{
 			Eigen::MatrixXd H_view;
@@ -397,10 +412,9 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		double w1 = 1;
 		double w_reg = 0.01; 
 		double w_temp = 0.0; 
-		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(paramNum, paramNum);
 		Eigen::MatrixXd H_reg = DTD;  // reg term 
 		Eigen::VectorXd b_reg = -theta; // reg term 
-
 
 		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
 		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
@@ -418,12 +432,23 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		//std::cout << "reg  term b: " << b_reg.norm() << std::endl; 
 
 		// update 
-		m_translation += delta.segment<3>(0);
-		for (int i = 0; i < M; i++)
+		if (m_isLatent)
 		{
-			int jIdx = m_poseToOptimize[i];
-			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
+			double learning_rate = 1; 
+			m_translation += delta.segment<3>(0) * learning_rate; 
+			m_poseParam.segment<3>(0) += delta.segment<3>(3) * learning_rate; 
+			m_latentCode += delta.segment<32>(6) * learning_rate; 
 		}
+		else
+		{
+			m_translation += delta.segment<3>(0);
+			for (int i = 0; i < M; i++)
+			{
+				int jIdx = m_poseToOptimize[i];
+				m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
+			}
+		}
+
 #if 1
 		//Eigen::JacobiSVD<Eigen::MatrixXd> svd(H);
 		//double cond = svd.singularValues()(0)

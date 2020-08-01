@@ -75,13 +75,11 @@ public:
 	Eigen::MatrixXd getRegressedSkelbyPairs(); 
 
 	void globalAlign(); 
-	void globalAlignToVerticesSameTopo(); 
+	
 	void optimizePose(const int maxIterTime = 100, const double terminal = 0.001);
 	void optimizeShapeToBoneLength(int maxIter, double terminal); 
 	Eigen::VectorXd getRegressedSkelProj(const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T);
 	void computePivot(); 
-	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
-	void FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
 
 	void CalcZ();
 
@@ -92,7 +90,7 @@ public:
 	vector<Camera> m_cameras;
 	std::vector<double> m_weights;
 	Eigen::VectorXd m_weightsEigen;
-	Eigen::MatrixXd m_targetVSameTopo;
+
 
 	// fit pose to chamfer map, 20200430
 	vector<ROIdescripter> m_rois;
@@ -139,6 +137,14 @@ public:
 
 	void debug_numericJacobiLatent();
 	void debug_numericJacobiAA(); 
+
+	// debug: 20200801 
+	Eigen::MatrixXd m_targetVSameTopo;
+	void globalAlignToVerticesSameTopo();
+	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
+	void FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
+	void FitPoseToVerticesSameTopoLatent(); 
+
 private: 
 	// control info 
 	int m_id; 
@@ -176,8 +182,8 @@ private:
 	void CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J);
 
 	// calc jacobi for latent code 
-	void CalcPoseJacobiLatent(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, Eigen::MatrixXd& dQ); 
-	void CalcSkelJacobiByPairs(Eigen::MatrixXd& J); 
+	void CalcPoseJacobiLatent(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, bool is_joint_only=false); 
+	void CalcSkelJacobiByPairsLatent(Eigen::MatrixXd& J); 
 	
 
 	// numeric, only for test

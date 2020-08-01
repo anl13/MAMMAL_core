@@ -37,6 +37,9 @@
     <Filter Include="calibration">
       <UniqueIdentifier>{730e39a9-bd77-4a3b-809b-3c4bf6b9882e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="VAE">
+      <UniqueIdentifier>{ce603c42-3566-487f-8e06-5d7c4f5bedc0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\associate\clusterclique.cpp">
@@ -182,6 +185,12 @@
     </ClCompile>
     <ClCompile Include="..\exec\run_pose_render.cpp">
       <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VAE\layers.cpp">
+      <Filter>VAE</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VAE\decoder.cpp">
+      <Filter>VAE</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

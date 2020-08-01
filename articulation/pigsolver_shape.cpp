@@ -916,3 +916,54 @@ void PigSolver::CalcSilhouettePoseTerm(
 	//ssdify << "E:/debug_pig3/diff/diffy_" << iter << ".jpg";
 	//cv::imwrite(ssdify.str(), packdiffy);
 }
+
+
+void PigSolver::FitPoseToVerticesSameTopoLatent()
+{
+	int maxIterTime = 100; 
+	double terminal = 0.0001; 
+	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
+
+	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	{
+		std::cout << "iter: " << iterTime << std::endl; 
+		UpdateVertices();
+		std::stringstream ss;
+		ss << "G:/debug_pig4/poseiter/pose_" << iterTime << ".obj";
+		SaveObj(ss.str());
+
+		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
+
+		Eigen::VectorXd theta(3 + 3 + 32);
+		theta.segment<3>(0) = m_translation;
+		theta.segment<3>(3) = m_poseParam.segment<3>(0); 
+		theta.segment<32>(6) = m_latentCode;
+
+		Eigen::VectorXd theta0 = theta;
+
+		Eigen::MatrixXd J_joint, J_vert; 
+		CalcPoseJacobiLatent(J_joint, J_vert);
+		Eigen::MatrixXd H1 = J_vert.transpose() * J_vert;
+		Eigen::MatrixXd b1 = -J_vert.transpose() * r;
+
+		double lambda = 0.001;
+		double w1 = 1;
+		double w_reg = 0.01;
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(38, 38);
+		Eigen::MatrixXd H_reg = DTD;  // reg term 
+		Eigen::VectorXd b_reg = -theta; // reg term 
+
+		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+
+		Eigen::VectorXd delta = H.ldlt().solve(b);
+
+		// update 
+		m_translation += delta.segment<3>(0);
+		m_poseParam.segment<3>(0) += delta.segment<3>(3);
+		m_latentCode += delta.segment<32>(6); 
+
+		// if(iterTime == 1) break; 
+		if (delta.norm() < terminal) break;
+	}
+}

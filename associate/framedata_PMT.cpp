@@ -2,6 +2,7 @@
 #include "matching.h"
 #include "tracking.h" 
 #include <sstream> 
+#include "../utils/timer_util.h"
 
 void FrameData::matching()
 {
@@ -86,7 +87,11 @@ void FrameData::solve_parametric_model()
 		mp_bodysolver[i]->setSource(m_matched[i]); 
 		mp_bodysolver[i]->normalizeSource(); 
 		mp_bodysolver[i]->globalAlign(); 
-		mp_bodysolver[i]->optimizePose(10, 0.001); 
+
+		TimerUtil::Timer<std::chrono::milliseconds> timer;
+		timer.Start(); 
+		mp_bodysolver[i]->optimizePose(50, 0.001); 
+		std::cout << "solve pose " << timer.Elapsed() << "  ms" << std::endl; 
 
 		//if (i < 2) {
 		//	mp_bodysolver[i]->m_rois = getROI(i);

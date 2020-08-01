@@ -368,18 +368,17 @@ int test_vae()
 
 	std::string pig_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 
-	PigSolver pig(pig_config); 
-	Eigen::VectorXd code = Eigen::VectorXd::Random(32); 
-	pig.setLatent(code); 
-	pig.UpdateVertices(); 
-	pig.debug_numericJacobiLatent();
+	PigModel gtpig(pig_config); 
+	gtpig.setIsLatent(false); 
+	Eigen::VectorXd pose = Eigen::VectorXd::Random(62 * 3) * 0.1; 
+	gtpig.SetPose(pose); 
+	gtpig.UpdateVertices();
+	gtpig.SaveObj("G:/debug_pig4/poseiter/gt.obj"); 
 
-	//PigSolver pig(pig_config); 
-	//pig.setIsLatent(false); 
-	//Eigen::VectorXd pose = Eigen::VectorXd::Random(62 * 3);
-	//pig.SetPose(pose); 
-	//pig.UpdateVertices();
-	//pig.debug_numericJacobiAA(); 
+	PigSolver pig(pig_config); 
+	pig.m_targetVSameTopo = gtpig.GetVertices(); 
+	pig.FitPoseToVerticesSameTopoLatent(); 
+	pig.SaveObj("G:/debug_pig4/poseiter/estimation.obj");
 
 	RenderObjectColor* animal_model = new RenderObjectColor();
 	Eigen::MatrixXf vertices_f = pig.GetVertices().cast<float>();

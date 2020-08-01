@@ -122,6 +122,17 @@ void run_pose_render()
 		ss_out << frame.result_folder + "/render_all/" <<
 			std::setw(6) << std::setfill('0') << frameid << ".png";
 		cv::imwrite(ss_out.str(), output);
+
+		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+		//while (!glfwWindowShouldClose(windowPtr))
+		//{
+		//	m_renderer.Draw();
+		//	glfwSwapBuffers(windowPtr);
+		//	glfwPollEvents();
+		//};
+
+		//break;
 	}
 
 	return;

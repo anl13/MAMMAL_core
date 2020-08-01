@@ -451,6 +451,7 @@ void PigModel::saveState(std::string state_file)
     for(int i = 0; i < 3; i++) os << m_translation(i) << std::endl; 
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) os << m_poseParam(3*i+k) << std::endl; 
 	os << m_scale;
+	for (int i = 0; i < 32; i++) os << m_latentCode(i) << std::endl; 
 	os.close(); 
 }
 
@@ -465,6 +466,7 @@ void PigModel::readState(std::string state_file)
     for(int i = 0; i < 3; i++) is >> m_translation(i);
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) is >> m_poseParam(3*i+k); 
 	is >> m_scale; 
+	for (int i = 0; i < 32; i++) is >> m_latentCode(i);
 	is.close(); 
 }
 
