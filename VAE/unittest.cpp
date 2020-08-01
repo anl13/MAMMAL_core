@@ -245,3 +245,47 @@ int unittest_cr()
 
 	return 0; 
 }
+
+int unittest_numeric()
+{
+	Decoder dec;
+	int sample_id = 0;
+
+	Eigen::VectorXd input = readinput(sample_id);
+	Eigen::VectorXd grad = readgrad(sample_id);
+
+	dec.latent = input;
+	dec.forward();
+	Eigen::MatrixXd output = dec.output;
+
+	dec.end_grad = compute_endgrad(output);
+	dec.computeJacobi();
+	Eigen::VectorXd grad_est = dec.J.transpose() * dec.end_grad;
+	Eigen::VectorXd diff = grad_est - grad;
+	std::cout << "err: " << diff.norm() << std::endl;
+
+	dec.latent = input; 
+	dec.forward(); 
+	Eigen::VectorXd output0 = dec.output;
+	dec.computeJacobi(); 
+	Eigen::MatrixXd J = dec.J; 
+
+	Eigen::MatrixXd J_numeric = Eigen::MatrixXd::Zero(9 * 62, 32);
+	double alpha = 0.0001; 
+	double inv_alpha = 1 / alpha; 
+	for (int i = 0; i < 32; i++)
+	{
+		input(i) += alpha; 
+		dec.latent = input; 
+		dec.forward();
+		J_numeric.col(i) = (dec.output - output0) * inv_alpha; 
+		input(i) -= alpha; 
+	}
+	
+	Eigen::MatrixXd D = J - J_numeric; 
+	std::cout << "diff.norm(): " << D.norm() << std::endl; 
+	std::cout << "J block: " << std::endl  << J.block<10, 10>(0, 0) << std::endl; 
+	std::cout << "J_numeric block: "  << std::endl << J_numeric.block<10, 10>(0, 0) << std::endl; 
+
+	return 0; 
+}

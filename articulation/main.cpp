@@ -327,6 +327,7 @@ int test_write_video()
 	return 0; 
 }
 
+/// 20200801: pass numeric test
 int test_vae()
 {
 	// render config 
@@ -369,10 +370,16 @@ int test_vae()
 
 	PigSolver pig(pig_config); 
 	Eigen::VectorXd code = Eigen::VectorXd::Random(32); 
-	std::cout << code << std::endl;
-
 	pig.setLatent(code); 
 	pig.UpdateVertices(); 
+	pig.debug_numericJacobiLatent();
+
+	//PigSolver pig(pig_config); 
+	//pig.setIsLatent(false); 
+	//Eigen::VectorXd pose = Eigen::VectorXd::Random(62 * 3);
+	//pig.SetPose(pose); 
+	//pig.UpdateVertices();
+	//pig.debug_numericJacobiAA(); 
 
 	RenderObjectColor* animal_model = new RenderObjectColor();
 	Eigen::MatrixXf vertices_f = pig.GetVertices().cast<float>();

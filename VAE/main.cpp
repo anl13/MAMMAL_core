@@ -9,7 +9,8 @@
 void main()
 {
 	//unittest_forward();
-	unittest_backward();
+	//unittest_backward();
+	unittest_numeric(); 
 
 	system("pause");
 	return; 

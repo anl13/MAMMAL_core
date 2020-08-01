@@ -136,6 +136,9 @@ public:
 	std::vector<cv::Mat> m_rawImgs; 
 
 	Eigen::VectorXd theta_last; 
+
+	void debug_numericJacobiLatent();
+	void debug_numericJacobiAA(); 
 private: 
 	// control info 
 	int m_id; 
@@ -171,6 +174,11 @@ private:
 	void CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert);
 	void CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J);
 	void CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J);
+
+	// calc jacobi for latent code 
+	void CalcPoseJacobiLatent(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, Eigen::MatrixXd& dQ); 
+	void CalcSkelJacobiByPairs(Eigen::MatrixXd& J); 
+	
 
 	// numeric, only for test
 	void CalcPoseJacobiNumeric();
