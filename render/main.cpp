@@ -32,8 +32,8 @@ void main()
 		0, 0, 1;
 	std::cout << K << std::endl;
 
-	Eigen::Vector3f up; up << 0, 0, -1;
-	Eigen::Vector3f pos; pos << -1, 1.5, -0.8;
+	Eigen::Vector3f up; up << 0, 0, 1;
+	Eigen::Vector3f pos; pos << -1, 1.5, 0.8;
 	Eigen::Vector3f center = Eigen::Vector3f::Zero();
 
 	// init renderer 
@@ -48,13 +48,13 @@ void main()
 	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
 	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
 
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, true);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor);
+	//RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	//chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	//chess_floor->SetFaces(squareObj.faces, true);
+	//chess_floor->SetVertices(squareObj.vertices);
+	//chess_floor->SetTexcoords(squareObj.texcoords);
+	//chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//m_renderer.texObjs.push_back(chess_floor);
 
 	//std::string point_file = conf_projectFolder + "/results/points3d.txt";
 	//std::vector<Eigen::Vector3d> points = read_points(point_file);
@@ -71,10 +71,17 @@ void main()
 	//m_renderer.skels.push_back(skelObject);
 
 	Model obj;
-	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/model_triangle.obj");
-	RenderObjectColor* p_model = new RenderObjectColor();
+	obj.Load("F:/projects/model_preprocess/designed_pig/pig_prior/tmp/samples/est0.obj");
+
+	std::cout << obj.vertices.cols() << std::endl; 
+	RenderObjectMesh* p_model = new RenderObjectMesh();
 	p_model->SetVertices(obj.vertices.cast<float>());
 	p_model->SetFaces(obj.faces);
+
+	Eigen::MatrixXf colors = obj.normals.cast<float>(); 
+	p_model->SetColors(colors); 
+
+	m_renderer.meshObjs.push_back(p_model); 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 

@@ -15,6 +15,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "calibration", "calibration\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VAE", "VAE\VAE.vcxproj", "{22E8C7C3-9CC0-4412-9958-E8D0BB3C8AF8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GMM", "GMM\GMM.vcxproj", "{7DCB1D36-65EE-41D3-A587-8A666ADDA922}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -71,6 +73,14 @@ Global
 		{22E8C7C3-9CC0-4412-9958-E8D0BB3C8AF8}.Release|x64.Build.0 = Release|x64
 		{22E8C7C3-9CC0-4412-9958-E8D0BB3C8AF8}.Release|x86.ActiveCfg = Release|Win32
 		{22E8C7C3-9CC0-4412-9958-E8D0BB3C8AF8}.Release|x86.Build.0 = Release|Win32
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Debug|x64.ActiveCfg = Debug|x64
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Debug|x64.Build.0 = Debug|x64
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Debug|x86.ActiveCfg = Debug|Win32
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Debug|x86.Build.0 = Debug|Win32
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Release|x64.ActiveCfg = Release|x64
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Release|x64.Build.0 = Release|x64
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Release|x86.ActiveCfg = Release|Win32
+		{7DCB1D36-65EE-41D3-A587-8A666ADDA922}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

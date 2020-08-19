@@ -742,18 +742,32 @@ void PigModel::determineBodyPartsByWeight()
 	//std::vector<int> jaw = { 15 };
 	//std::vector<int> neck = { 11 };
 
-	// smal model 
-	std::vector<int> head = { 16 };
-	std::vector<int> l_f_leg = { 9,10 };
-	std::vector<int> r_f_leg = { 13,14 };
-	std::vector<int> l_b_leg = { 18,19,20 };
-	std::vector<int> r_b_leg = { 22,23,24 };
-	std::vector<int> main_body = { 1,2,3,4,5,6 };
-	std::vector<int> tail = { 26,27,28,29,30,31 };
-	std::vector<int> l_ear = {  };
-	std::vector<int> r_ear = {  };
-	std::vector<int> jaw = { 32 };
-	std::vector<int> neck = { };
+	//// smal model 
+	//std::vector<int> head = { 16 };
+	//std::vector<int> l_f_leg = { 9,10 };
+	//std::vector<int> r_f_leg = { 13,14 };
+	//std::vector<int> l_b_leg = { 18,19,20 };
+	//std::vector<int> r_b_leg = { 22,23,24 };
+	//std::vector<int> main_body = { 1,2,3,4,5,6 };
+	//std::vector<int> tail = { 26,27,28,29,30,31 };
+	//std::vector<int> l_ear = {  };
+	//std::vector<int> r_ear = {  };
+	//std::vector<int> jaw = { 32 };
+	//std::vector<int> neck = { };
+
+	// artist designed model 
+	std::vector<int> head = { 23 };
+	std::vector<int> l_f_leg = { 13, 14, 15 };
+	std::vector<int> r_f_leg = { 5,6,7 };
+	std::vector<int> l_b_leg = { 54, 55, 56 };
+	std::vector<int> r_b_leg = { 38, 39, 40 };
+	std::vector<int> main_body = { 1,2,3,4 };
+	std::vector<int> tail = { 46, 47, 48, 49, 50, 51, 52, 53 };
+	std::vector<int> l_ear = {31,32,33,34,35};
+	std::vector<int> r_ear = {26, 27, 28, 29, 30};
+	std::vector<int> jaw = { 36 };
+	std::vector<int> neck = {};
+
 	// priority 1
 	std::vector<std::vector<int>> prior1 = {
 		l_ear,r_ear,tail,l_f_leg,r_f_leg,jaw,main_body,head,l_b_leg,r_b_leg

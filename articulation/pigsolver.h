@@ -142,7 +142,7 @@ public:
 	Eigen::MatrixXd m_targetVSameTopo;
 	void globalAlignToVerticesSameTopo();
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
-	void FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
+	double FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
 	void FitPoseToVerticesSameTopoLatent(); 
 
 private: 

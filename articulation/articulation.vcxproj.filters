@@ -81,6 +81,18 @@
     <ClCompile Include="..\VAE\layers.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="test_render_model.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test_fitting_model.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test_render_video.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test_vae.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pigmodel.h">
@@ -91,6 +103,12 @@
     </ClInclude>
     <ClInclude Include="..\utils\nanoflann.hpp">
       <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="pigmodeldevice.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="test_main.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

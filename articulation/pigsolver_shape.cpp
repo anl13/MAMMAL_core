@@ -488,19 +488,20 @@ void PigSolver::computeVolume()
 	system(cmd_cstr);
 }
 
-void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal)
+double PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal)
 {
 	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
 
 	int M = m_poseToOptimize.size();
 	int N = m_topo.joint_num;
 
+	double loss = 0; 
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
-		std::stringstream ss; 
-		ss << "E:/debug_pig3/shapeiter/pose_" << iterTime << ".obj";
-		SaveObj(ss.str());
+		//std::stringstream ss; 
+		//ss << "E:/debug_pig3/shapeiter/pose_" << iterTime << ".obj";
+		//SaveObj(ss.str());
 
 		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
 
@@ -515,13 +516,13 @@ void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double te
 		// solve
 		Eigen::MatrixXd H_view;
 		Eigen::VectorXd b_view;
-		Eigen::MatrixXd J; 
+		Eigen::MatrixXd J; // J_vert
 		Eigen::MatrixXd J_joint; 
 		CalcPoseJacobiPartTheta(J_joint, J);
 		Eigen::MatrixXd H1 = J.transpose() * J;
 		Eigen::MatrixXd b1 = -J.transpose() * r; 
 			
-		double lambda = 0.001;
+		double lambda = 0.0001;
 		double w1 = 1;
 		double w_reg = 0.01;
 		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
@@ -541,8 +542,10 @@ void PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double te
 			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
 		}
 		// if(iterTime == 1) break; 
-		if (delta.norm() < terminal) break;
+		loss = delta.norm(); 
+		if (loss < terminal) break;
 	}
+	return loss; 
 }
 
 // solve pose and shape 
