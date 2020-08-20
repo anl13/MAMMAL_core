@@ -71,6 +71,7 @@ public:
 	std::vector<std::vector<int> > GetRegressorNoneZero() { return m_regressorNoneZero; }
 	std::vector<BODY_PART> GetBodyPart() { return m_bodyParts; }
 	void UpdateVertices();
+	void UpdateJoints(); 
 	void UpdateNormals();
 
 	void UpdateNormalOrigin();
@@ -87,6 +88,7 @@ public:
 
 	/// only used for standalone processing
 	void determineBodyPartsByWeight(); 
+	void determineBodyPartsByWeight2(); 
 	
 	// for debug:stitching
 #if 0

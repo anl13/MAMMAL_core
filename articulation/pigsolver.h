@@ -144,6 +144,7 @@ public:
 	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
 	double FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
 	void FitPoseToVerticesSameTopoLatent(); 
+	double FitPoseToJointsSameTopo(Eigen::MatrixXd target); 
 
 private: 
 	// control info 
@@ -176,8 +177,8 @@ private:
 	void CalcShapeJacobi(Eigen::MatrixXd& jointJacobiShape, Eigen::MatrixXd& vertJacobiShape);
 
 	void CalcShapeJacobiToSkel(Eigen::MatrixXd& J);
-	void CalcPoseJacobiFullTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert);
-	void CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert);
+	void CalcPoseJacobiFullTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, bool with_vert=true);
+	void CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, bool with_vert=true);
 	void CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J);
 	void CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J);
 

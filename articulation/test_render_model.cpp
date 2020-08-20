@@ -176,30 +176,30 @@ int test_body_part()
 	// model data 
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 	PigModel smal(smal_config);
+	smal.determineBodyPartsByWeight2(); 
 
-	RenderObjectMesh* animal_model = new RenderObjectMesh();
-	Eigen::MatrixXf vertices_f = smal.GetVertices().cast<float>();
-	vertices_f = vertices_f.colwise() + Eigen::Vector3f(0, 0, 0.21f);
-	Eigen::MatrixXu faces_u = smal.GetFacesVert();
-	animal_model->SetFaces(faces_u);
-	animal_model->SetVertices(vertices_f);
+	Eigen::MatrixXf vertices = smal.GetVertices().cast<float>(); 
 
-	int VN = vertices_f.cols(); 
-	Eigen::MatrixXf colors = Eigen::MatrixXf::Zero(3, VN); 
-
-	smal.determineBodyPartsByWeight(); 
-	std::vector<BODY_PART> parts = smal.GetBodyPart(); 
-	for (int i = 0; i < VN; i++)
+	std::vector<Eigen::Vector3f> balls; 
+	std::vector < std::pair < Eigen::Vector3f, Eigen::Vector3f> > sticks; 
+	std::vector<Eigen::Vector3f> colors; 
+	std::vector<float> sizes; 
+	for (int i = 0; i < smal.GetVertexNum(); i++)
 	{
-		int part = int(parts[i]); 
-		colors.col(i) = CM[part];
-		std::cout << "part: " << part << std::endl; 
+		balls.push_back(vertices.col(i));
 	}
-	animal_model->SetColors(colors);
-
-
-	m_renderer.meshObjs.push_back(animal_model);
-
+	colors.resize(vertices.cols());
+	sizes.resize(vertices.cols(), 0.003); 
+	std::vector<BODY_PART> parts = smal.GetBodyPart(); 
+	for (int i = 0; i < vertices.cols(); i++)
+	{
+		//int part = parts[i];
+		//colors[i] = CM[part]; 
+		if (parts[i] == HEAD) colors[i] = CM[0]; 
+		else colors[i] = CM[1]; 
+	}
+	BallStickObject* pointcloud = new  BallStickObject(ballObj, balls, sizes, colors);
+	m_renderer.skels.push_back(pointcloud); 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 

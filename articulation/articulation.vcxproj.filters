@@ -110,6 +110,9 @@
     <ClInclude Include="test_main.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\utils\timer_util.h">
+      <Filter>other</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="pigmodel_config.json" />

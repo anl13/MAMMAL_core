@@ -462,7 +462,7 @@ public:
 			{
 				cv::resize(cvimg, cvimg, cv::Size(m_width, m_height));
 				if(m_render_float_values)
-					cvimg.setTo(cv::Vec4d(0, 0, 0, 0));
+					cvimg.setTo(cv::Vec4f(0, 0, 0, 0));
 				else cvimg.setTo(cv::Vec4b(0, 0, 0, 0));
 			}
 

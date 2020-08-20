@@ -423,6 +423,14 @@ void PigModel::UpdateVertices()
 	UpdateVerticesFinal();
 }
 
+void PigModel::UpdateJoints()
+{
+	UpdateJointsShaped();
+	UpdateJointsDeformed(); 
+	UpdateSingleAffine(); 
+	UpdateGlobalAffine(); 
+	UpdateJointsFinal(); 
+}
 
 void PigModel::SaveObj(const std::string& filename) const
 {
@@ -729,40 +737,15 @@ void PigModel::debugStitchModel()
 void PigModel::determineBodyPartsByWeight()
 {
 	m_bodyParts.resize(m_vertexNum, NOT_BODY);
-	// pig model
-	//std::vector<int> head = { 14 };
-	//std::vector<int> l_f_leg = { 21,22,23,24,25 };
-	//std::vector<int> r_f_leg = { 6, 7,8,9,10 };
-	//std::vector<int> l_b_leg = { 40,41,42 };
-	//std::vector<int> r_b_leg = { 28,29,30 };
-	//std::vector<int> main_body = { 0,1,2,3,4 };
-	//std::vector<int> tail = { 31,32,33,34,35,36,37 };
-	//std::vector<int> l_ear = { 19 };
-	//std::vector<int> r_ear = { 17 };
-	//std::vector<int> jaw = { 15 };
-	//std::vector<int> neck = { 11 };
-
-	//// smal model 
-	//std::vector<int> head = { 16 };
-	//std::vector<int> l_f_leg = { 9,10 };
-	//std::vector<int> r_f_leg = { 13,14 };
-	//std::vector<int> l_b_leg = { 18,19,20 };
-	//std::vector<int> r_b_leg = { 22,23,24 };
-	//std::vector<int> main_body = { 1,2,3,4,5,6 };
-	//std::vector<int> tail = { 26,27,28,29,30,31 };
-	//std::vector<int> l_ear = {  };
-	//std::vector<int> r_ear = {  };
-	//std::vector<int> jaw = { 32 };
-	//std::vector<int> neck = { };
 
 	// artist designed model 
 	std::vector<int> head = { 23 };
-	std::vector<int> l_f_leg = { 13, 14, 15 };
-	std::vector<int> r_f_leg = { 5,6,7 };
-	std::vector<int> l_b_leg = { 54, 55, 56 };
-	std::vector<int> r_b_leg = { 38, 39, 40 };
-	std::vector<int> main_body = { 1,2,3,4 };
-	std::vector<int> tail = { 46, 47, 48, 49, 50, 51, 52, 53 };
+	std::vector<int> l_f_leg = { 13, 14, 15, 16,17,18,19,20};
+	std::vector<int> r_f_leg = { 5,6,7,8,9,10,11,12 };
+	std::vector<int> l_b_leg = { 55, 56, 57, 58, 59, 60, 61};
+	std::vector<int> r_b_leg = { 39, 40, 41, 42, 43, 44, 45};
+	std::vector<int> main_body = { 1,2,3,4, 5, 13, 38, 54};
+	std::vector<int> tail = {  48, 49, 50, 51, 52, 53 };
 	std::vector<int> l_ear = {31,32,33,34,35};
 	std::vector<int> r_ear = {26, 27, 28, 29, 30};
 	std::vector<int> jaw = { 36 };
@@ -799,6 +782,50 @@ void PigModel::determineBodyPartsByWeight()
 		os_part << (int)m_bodyParts[i] << "\n";
 	}
 	os_part.close();
+}
+
+void PigModel::determineBodyPartsByWeight2()
+{
+	m_bodyParts.resize(m_vertexNum, NOT_BODY);
+	std::vector<int> head = { 21, 22, 23, 24,25 };
+	std::vector<int> l_f_leg = {  14, 15, 16,17,18,19,20 };
+	std::vector<int> r_f_leg = { 6,7,8,9,10,11,12 };
+	std::vector<int> l_b_leg = { 55, 56, 57, 58, 59, 60, 61 };
+	std::vector<int> r_b_leg = { 39, 40, 41, 42, 43, 44, 45 };
+	std::vector<int> main_body = { 0, 1,2,3,4, 5, 13, 38, 54 };
+	std::vector<int> tail = { 46, 47, 48, 49, 50, 51, 52, 53 };
+	std::vector<int> l_ear = { 31,32,33,34,35 };
+	std::vector<int> r_ear = { 26, 27, 28, 29, 30 };
+	std::vector<int> jaw = { 36, 37};
+	std::vector<int> neck = {};
+
+	std::vector<BODY_PART> joint_parts(62, NOT_BODY); 
+	for (const int u : head) joint_parts[u] = HEAD; 
+	for (const int u : l_f_leg) joint_parts[u] = L_F_LEG;
+	for (const int u : r_f_leg) joint_parts[u] = R_F_LEG; 
+	for (const int u : l_b_leg) joint_parts[u] = L_B_LEG; 
+	for (const int u : r_b_leg) joint_parts[u] = R_B_LEG; 
+	for (const int u : main_body) joint_parts[u] = MAIN_BODY; 
+	for (const int u : tail) joint_parts[u] = TAIL; 
+	for (const int u : l_ear) joint_parts[u] = L_EAR; 
+	for (const int u : r_ear) joint_parts[u] = R_EAR; 
+	for (const int u : jaw) joint_parts[u] = JAW; 
+	for (const int u : neck) joint_parts[u] = NECK; 
+
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		int maxid = -1; 
+		double maxvalue = 0; 
+		for (int jid = 0; jid < m_jointNum; jid++)
+		{
+			if (m_lbsweights(jid, i) > maxvalue) {
+				maxid = jid; 
+				maxvalue = m_lbsweights(jid, i); 
+			}
+		}
+		if (maxid < 0) m_bodyParts[i] = NOT_BODY; 
+		else m_bodyParts[i] = joint_parts[maxid];
+	}
 }
 
 void PigModel::UpdateModelShapedByKNN()

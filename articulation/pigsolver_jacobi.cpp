@@ -439,7 +439,8 @@ Eigen::MatrixXd& vertJacobiShape
 	*/
 }
 
-void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen::MatrixXd& J_vert)
+void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen::MatrixXd& J_vert, 
+	bool with_vert)
 {
 	// calculate delta rodrigues
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
@@ -501,6 +502,7 @@ void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen:
 		}
 	}
 
+	if (!with_vert) return; 
 	J_vert = Eigen::MatrixXd::Zero(3 * m_vertexNum, 3 + 3 * m_jointNum);
 	Eigen::MatrixXd block = Eigen::MatrixXd::Zero(3, 3 + 3 * m_jointNum);
 	for (int vIdx = 0; vIdx < m_vertexNum; vIdx++)
@@ -527,20 +529,27 @@ void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen:
 	}
 }
 
-void PigSolver::CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert)
+void PigSolver::CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, 
+	bool with_vert)
 {
 	Eigen::MatrixXd J_jointfull, J_vertfull;
-	CalcPoseJacobiFullTheta(J_jointfull, J_vertfull);
+	CalcPoseJacobiFullTheta(J_jointfull, J_vertfull, with_vert);
 	int M = m_poseToOptimize.size();
 	J_joint.resize(3 * m_jointNum, 3 + 3 * M);
-	J_vert.resize(3 * m_vertexNum, 3 + 3 * M);
+	if (with_vert)
+	{
+		J_vert.resize(3 * m_vertexNum, 3 + 3 * M);
+		J_vert.middleCols(0, 3) = J_vertfull.middleCols(0, 3);
+	}
+	
 	J_joint.middleCols(0, 3) = J_jointfull.middleCols(0, 3);
-	J_vert.middleCols(0, 3) = J_vertfull.middleCols(0, 3);
+	
 	for (int i = 0; i < M; i++)
 	{
 		int thetaid = m_poseToOptimize[i];
 		J_joint.middleCols(3 + 3 * i, 3) = J_jointfull.middleCols(3 + 3 * thetaid, 3);
-		J_vert.middleCols(3 + 3 * i, 3) = J_vertfull.middleCols(3 + 3 * thetaid, 3);
+		if(with_vert)
+			J_vert.middleCols(3 + 3 * i, 3) = J_vertfull.middleCols(3 + 3 * thetaid, 3);
 	}
 }
 

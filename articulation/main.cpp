@@ -4,4 +4,7 @@
 void main()
 {
 	test_body_part(); 
+	//test_fitting();
+
+	system("pause"); 
 }

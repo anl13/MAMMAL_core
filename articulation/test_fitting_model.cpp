@@ -16,6 +16,7 @@
 #include "../utils/obj_reader.h"
 
 #include "test_main.h"
+#include "../utils/timer_util.h"
 
 // 20200808: reduce data dimension 
 std::vector<Eigen::VectorXd> loadData()
@@ -52,10 +53,16 @@ void test_fitting()
 
 	std::ofstream log_stream("F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\tmp\\samples\\log.txt");
 
-	for (int i = 0; i < data.size() / 2; i += 20)
+	std::vector<int> elim = { 46, 47, 48, 49, 50, 51, 52, 53 };
+	for (int i = 0; i < data.size(); i++)
 	{
 		Eigen::VectorXd pose = Eigen::VectorXd::Zero(62 * 3);
 		pose.segment<61 * 3>(3) = data[i];
+		for (int k = 0; k < elim.size(); k++)
+		{
+			int elim_num = elim[k]; 
+			pose.segment<3>(3 * elim_num) = Eigen::Vector3d::Zero(); 
+		}
 		gtpig.SetPose(pose);
 		gtpig.UpdateVertices();
 		std::stringstream ss;
@@ -63,9 +70,11 @@ void test_fitting()
 		gtpig.SaveObj(ss.str());
 
 		pig.SetPose(lastpose);
-		pig.m_targetVSameTopo = gtpig.GetVertices();
-		double loss = pig.FitPoseToVerticesSameTopo(40, 0.0001);
+		double loss = pig.FitPoseToJointsSameTopo(gtpig.GetJoints());
+		//pig.m_targetVSameTopo = pig.GetVertices(); 
+		//double loss = pig.FitPoseToVerticesSameTopo(100, 0.0001); 
 		Eigen::VectorXd newpose = pig.GetPose();
+		pig.UpdateVertices(); 
 		newdata.push_back(newpose);
 		std::stringstream ss1;
 		ss1 << "F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\tmp\\samples\\est" << i << ".obj";
@@ -87,7 +96,6 @@ void test_fitting()
 		//	}
 		//	newdata.clear(); 
 		//}
-
 	}
 	log_stream.close();
 
