@@ -22,3 +22,7 @@ std::vector<Eigen::VectorXd> loadData();
 void test_fitting();
 
 int test_body_part(); 
+
+// gpu 
+
+void test_gpu(); 

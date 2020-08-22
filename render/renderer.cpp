@@ -315,6 +315,10 @@ void Renderer::InitShader()
 	depthShader = SimpleShader(m_shaderFolder + "/depth_vs.shader",
 		m_shaderFolder + "/depth_fs.shader", 
 		m_shaderFolder+"/depth_gs.shader");
+
+	meshShader = SimpleShader(m_shaderFolder + "/mesh_v.shader",
+		m_shaderFolder + "/mesh_f.shader"); 
+
 	std::cout << "init depth shader" << std::endl; 
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -384,9 +388,12 @@ void Renderer::Draw(std::string type)
 	{
 		if (type == "color")
 		{
-			colorShader.Use();
-			s_camViewer.ConfigShader(colorShader);
-			meshObjs[i]->DrawWhole(colorShader);
+			meshShader.Use();
+			
+			s_camViewer.ConfigShader(meshShader);
+			meshShader.SetVec3("light_pos", lightPos);
+			meshShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			meshObjs[i]->DrawWhole(meshShader);
 		}
 	}
 

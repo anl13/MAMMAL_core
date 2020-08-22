@@ -15,6 +15,7 @@ public:
 	SimpleShader(const std::string& vertexPath, const std::string& fragmentPath, const std::string& geometryPath);
 	SimpleShader(const std::string& vertexPath, const std::string& fragmentPath);
 
+	unsigned int return_ID() { return ID;  }
 	void Use() const { glUseProgram(ID); }
 	void SetBool(const std::string &name, bool value) { glUniform1i(glGetUniformLocation(ID, name.c_str()), (int)value); }
 	void SetInt(const std::string &name, int value) { glUniform1i(glGetUniformLocation(ID, name.c_str()), value); }

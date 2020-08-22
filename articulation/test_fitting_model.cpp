@@ -70,9 +70,9 @@ void test_fitting()
 		gtpig.SaveObj(ss.str());
 
 		pig.SetPose(lastpose);
-		double loss = pig.FitPoseToJointsSameTopo(gtpig.GetJoints());
-		//pig.m_targetVSameTopo = pig.GetVertices(); 
-		//double loss = pig.FitPoseToVerticesSameTopo(100, 0.0001); 
+		//double loss = pig.FitPoseToJointsSameTopo(gtpig.GetJoints());
+		pig.m_targetVSameTopo = pig.GetVertices(); 
+		double loss = pig.FitPoseToVerticesSameTopo(100, 0.0001); 
 		Eigen::VectorXd newpose = pig.GetPose();
 		pig.UpdateVertices(); 
 		newdata.push_back(newpose);

@@ -190,6 +190,15 @@ void SimpleRenderObject::SetFaces(const Eigen::Matrix<unsigned int, 3, -1, Eigen
 
 }
 
+void SimpleRenderObject::SetFaces(std::vector<Eigen::Vector3u>& faces)
+{
+	faceNum = faces.size(); 
+	glBindVertexArray(VAO); 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); 
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * 3 * faceNum, faces.data(), GL_DYNAMIC_DRAW); 
+	glBindVertexArray(0); 
+}
+
 
 void SimpleRenderObject::SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& vertices)
 {
@@ -204,6 +213,16 @@ void SimpleRenderObject::SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::Co
 	glBindVertexArray(0);
 }
 
+void SimpleRenderObject::SetVertices(std::vector<Eigen::Vector3f>& vertices)
+{
+	glBindVertexArray(VAO); 
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_vertex); 
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * vertices.size(), vertices.data(), GL_DYNAMIC_DRAW); 
+	glEnableVertexAttribArray(0); 
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); 
+	glBindBuffer(GL_ARRAY_BUFFER, 0); 
+	glBindVertexArray(0); 
+}
 
 void SimpleRenderObject::SetTransform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale)
 {
@@ -220,8 +239,6 @@ RenderObjectColor::RenderObjectColor()
 
 RenderObjectColor::~RenderObjectColor()
 {
-
-
 }
 
 
@@ -327,12 +344,14 @@ void RenderObjectTexture::DrawWhole(SimpleShader& shader) const
 RenderObjectMesh::RenderObjectMesh()
 {
 	glGenBuffers(1, &VBO_color);
+	glGenBuffers(1, &VBO_normal); 
 }
 
 
 RenderObjectMesh::~RenderObjectMesh()
 {
 	glDeleteBuffers(1, &VBO_color);
+	glDeleteBuffers(1, &VBO_normal); 
 }
 
 
@@ -349,11 +368,26 @@ void RenderObjectMesh::SetColors(const Eigen::Matrix<float, 3, -1, Eigen::ColMaj
 	glBindVertexArray(0);
 }
 
+void RenderObjectMesh::SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals)
+{
+	glBindVertexArray(VAO); 
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal); 
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * normals.cols(), normals.data(), GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); 
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0); 
+	glBindVertexArray(0); 
+}
 
 void RenderObjectMesh::DrawWhole(SimpleShader& shader) const
 {
 	shader.SetMat4("model", model);
-	
+	shader.SetFloat("material_ambient", materialParam.ambient);
+	shader.SetFloat("material_diffuse", materialParam.diffuse);
+	shader.SetFloat("material_specular", materialParam.specular);
+	shader.SetFloat("material_shininess", materialParam.shininess);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 3 * faceNum, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);

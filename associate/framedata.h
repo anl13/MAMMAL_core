@@ -15,7 +15,7 @@
 #include "../articulation/pigsolver.h"
 #include "clusterclique.h"
 #include "skel.h" 
-#include "../calibration/annotator.h"
+#include "../annotator/annotator.h"
 #include "../nanorender/NanoRenderer.h"
 
 

@@ -78,8 +78,9 @@ void main()
 	p_model->SetVertices(obj.vertices.cast<float>());
 	p_model->SetFaces(obj.faces);
 
-	Eigen::MatrixXf colors = obj.normals.cast<float>(); 
-	p_model->SetColors(colors); 
+	Eigen::MatrixXf normals = obj.normals.cast<float>(); 
+	p_model->SetColors(normals); 
+	p_model->SetNormal(normals); 
 
 	m_renderer.meshObjs.push_back(p_model); 
 

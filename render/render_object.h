@@ -84,6 +84,9 @@ public:
 	virtual void SetMaterial(const MaterialParam& _materialParam);
 	virtual void SetFaces(const Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor>& faces, const bool inverse = false);
 	virtual void SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& vertices);
+	
+	virtual void SetVertices(std::vector<Eigen::Vector3f>& vertices); 
+	virtual void SetFaces(std::vector<Eigen::Vector3u>& faces); 
 
 protected:
 	GLuint VAO;
@@ -146,9 +149,10 @@ public:
 	virtual void DrawWhole(SimpleShader& shader) const;
 
 	virtual void SetColors(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& colors);
-
+	virtual void SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals); 
 private:
 	GLuint VBO_color;
+	GLuint VBO_normal; 
 };
 
 

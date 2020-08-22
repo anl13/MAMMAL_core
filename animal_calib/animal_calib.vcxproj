@@ -35,13 +35,11 @@
     <ClCompile Include="..\associate\mce\Tools.cpp" />
     <ClCompile Include="..\associate\skel.cpp" />
     <ClCompile Include="..\associate\tracking.cpp" />
-    <ClCompile Include="..\calibration\annotator.cpp" />
     <ClCompile Include="..\calibration\BASolver.cpp" />
     <ClCompile Include="..\calibration\calibration.cpp" />
     <ClCompile Include="..\exec\annotate.cpp" />
     <ClCompile Include="..\exec\compute_sym.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
-    <ClCompile Include="..\exec\modify_model.cpp" />
     <ClCompile Include="..\exec\run_pose.cpp" />
     <ClCompile Include="..\exec\run_pose_render.cpp" />
     <ClCompile Include="..\exec\run_render.cpp" />
@@ -83,7 +81,6 @@
     <ClInclude Include="..\associate\mce\Tools.h" />
     <ClInclude Include="..\associate\skel.h" />
     <ClInclude Include="..\associate\tracking.h" />
-    <ClInclude Include="..\calibration\annotator.h" />
     <ClInclude Include="..\calibration\BASolver.h" />
     <ClInclude Include="..\calibration\calibration.h" />
     <ClInclude Include="..\exec\main.h" />

@@ -138,9 +138,6 @@
     <ClCompile Include="..\exec\annotate.cpp">
       <Filter>exec</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\modify_model.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
     <ClCompile Include="..\exec\write_video.cpp">
       <Filter>exec</Filter>
     </ClCompile>
@@ -173,9 +170,6 @@
     </ClCompile>
     <ClCompile Include="..\articulation\pigsolver_shape.cpp">
       <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\calibration\annotator.cpp">
-      <Filter>calibration</Filter>
     </ClCompile>
     <ClCompile Include="..\calibration\BASolver.cpp">
       <Filter>calibration</Filter>
@@ -310,9 +304,6 @@
     </ClInclude>
     <ClInclude Include="..\articulation\pigsolver.h">
       <Filter>articulation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\calibration\annotator.h">
-      <Filter>calibration</Filter>
     </ClInclude>
     <ClInclude Include="..\calibration\BASolver.h">
       <Filter>calibration</Filter>

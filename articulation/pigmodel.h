@@ -7,22 +7,13 @@
 #include "../utils/node_graph.h"
 #include "../VAE/decoder.h"
 
-enum BODY_PART
-{
-	NOT_BODY = 0,
-	MAIN_BODY,
-	HEAD,
-	L_EAR,
-	R_EAR,
-	L_F_LEG,
-	R_F_LEG,
-	L_B_LEG,
-	R_B_LEG,
-	TAIL,
-	JAW,
-	NECK,
-	OTHERS
-};
+// gpu include 
+#include "vector_operations.hpp"
+#include <vector_functions.h>
+#include <vector_types.h>
+#include <pcl/gpu/containers/device_array.h>
+#include <pcl/gpu/containers/kernel_containers.h>
+#include "common.h"
 
 class PigModel
 {
@@ -35,8 +26,6 @@ public:
 
 	void saveState(std::string state_file="state.txt"); 
     void readState(std::string state_file="state.txt");
-	void saveShapeParam(std::string state_file = "shape.txt");
-	void readShapeParam(std::string state_file = "shape.txt");
 	void saveScale(std::string state_file = "scale.txt");
 	void readScale(std::string state_file = "scale.txt");
 
@@ -87,19 +76,8 @@ public:
 	void readTexImg(std::string filename);
 
 	/// only used for standalone processing
-	void determineBodyPartsByWeight(); 
 	void determineBodyPartsByWeight2(); 
-	
-	// for debug:stitching
-#if 0
-	void debugStitchModel();
-	std::vector<int> m_stitchMaps;
-	std::vector<int> m_texToVert;
-	std::vector<int> m_vertToTex;
-	void debugRemoveEye();
-#endif 
-	void remapmodel();
-	
+		
 	void InitNodeAndWarpField(); 
 	void UpdateModelShapedByKNN();
 	void SaveWarpField();
@@ -110,7 +88,7 @@ public:
 	// public methods for latent code
 	void setLatent(Eigen::VectorXd _l) { m_latentCode = _l; }
 	void setIsLatent(bool _is_latent) { m_isLatent = _is_latent;  }
-
+	
 protected:
 	Eigen::VectorXd m_latentCode; 
 	Decoder m_decoder; 
@@ -157,6 +135,7 @@ protected:
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_shapeBlendV;  // (vertexnum*3) * shapenum
 	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_shapeBlendJ; // (jointnum*3) * shapenum
 	std::vector<std::vector<int> > m_weightsNoneZero;
+	 
 	std::vector<std::vector<int> > m_regressorNoneZero;
 
 	Eigen::VectorXd m_poseParam;
@@ -179,4 +158,5 @@ protected:
 	void UpdateJointsDeformed();
 	inline void UpdateJointsFinal() { UpdateJointsFinal(m_jointNum); }
 	void UpdateJointsFinal(const int jointCount);
+
 };

@@ -16,6 +16,7 @@
 #include "../utils/obj_reader.h"
 
 #include "test_main.h"
+#include "../utils/timer_util.h"
 
 int test_mean_pose()
 {
@@ -65,14 +66,19 @@ int test_mean_pose()
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 	PigModel smal(smal_config);
 
-	//// smal random pose 
-	//Eigen::VectorXd pose = Eigen::VectorXd::Random(62 * 3) * 0.3;
-	//smal.SetPose(pose);
-	//smal.UpdateVertices(); 
+	// smal random pose 
+	Eigen::VectorXd pose = Eigen::VectorXd::Random(62 * 3) * 0.3;
+	smal.SetPose(pose);
+	TimerUtil::Timer<std::chrono::milliseconds> tt; 
+	tt.Start(); 
+	smal.UpdateVertices(); 
+	std::cout << "Time elapsed: " <<  tt.Elapsed() << " ms" << std::endl; 
 
 	RenderObjectColor* animal_model = new RenderObjectColor();
 	Eigen::MatrixXf vertices_f = smal.GetVertices().cast<float>();
 	vertices_f = vertices_f.colwise() + Eigen::Vector3f(0, 0, 0.21f);
+
+	
 	Eigen::MatrixXu faces_u = smal.GetFacesVert();
 	animal_model->SetFaces(faces_u);
 	animal_model->SetVertices(vertices_f);

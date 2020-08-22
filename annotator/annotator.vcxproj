@@ -53,6 +53,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -71,6 +72,8 @@
     <Import Project="..\props\nanorenderer.props" />
     <Import Project="..\props\json.props" />
     <Import Project="..\props\eigen.props" />
+    <Import Project="..\props\ceres.props" />
+    <Import Project="..\props\boost1.65.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -119,8 +122,23 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="annotator.h" />
+    <ClInclude Include="anno_utils.h" />
+    <ClInclude Include="state_annotator.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\associate\skel.cpp" />
+    <ClCompile Include="..\utils\camera.cpp" />
+    <ClCompile Include="..\utils\geometry.cpp" />
+    <ClCompile Include="..\utils\image_utils.cpp" />
+    <ClCompile Include="..\utils\math_utils.cpp" />
+    <ClCompile Include="annotator.cpp" />
+    <ClCompile Include="anno_utils.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="state_annotator.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
 </Project>

@@ -1,5 +1,6 @@
 #include "annotator.h"
 #include <Eigen/Eigen>
+#include "anno_utils.h" 
 
 std::vector<std::pair<std::string, Eigen::Vector2i> > labels = {
 	{ "pig 0",{ 0,0 } },
@@ -34,17 +35,7 @@ std::vector<std::pair<std::string, Eigen::Vector2i> > labels = {
 { "Motion",{ 7,2 } }
 };
 
-// util function 
-void drawLabel(cv::Mat& img, int x, int y, int w, int h, std::string name, bool clicked)
-{
-	cv::Scalar color(255, 255, 255);
-	if (clicked)
-	{
-		color = cv::Scalar(0, 255, 0);
-	}
-	cv::rectangle(img, cv::Rect(x+10, y+10, w-20, h-20), color,-1);
-	cv::putText(img, name, cv::Point(x+10, y+30), cv::FONT_HERSHEY_SIMPLEX, 0.8, cv::Scalar(0, 0, 0), 1.5);
-}
+
 
 void CallBackFuncPanel(int event, int x, int y, int flags, void* userdata)
 {

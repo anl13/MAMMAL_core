@@ -50,6 +50,7 @@ public:
 	SimpleShader textureShader; 
 	SimpleShader depthShader; 
 	SimpleShader normalShader;
+	SimpleShader meshShader; 
 
 	//GLuint shadowFBO;
 	//GLuint shadowTexture;
@@ -67,6 +68,7 @@ public:
 		m_backgroundColor = _color;
 	}
 	
+	unsigned int m_prog; 
 private:
 	static MOUSE_ACTION s_mouseAction;
 	static Eigen::Vector2f s_beforePos; 

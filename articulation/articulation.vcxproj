@@ -140,27 +140,38 @@
     <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pigmodel.cpp" />
+    <ClCompile Include="pigmodeldevice.cpp" />
     <ClCompile Include="pigsolver_fitting.cpp" />
     <ClCompile Include="pigsolver_jacobi.cpp" />
     <ClCompile Include="pigsolver_shape.cpp" />
     <ClCompile Include="test_fitting_model.cpp" />
+    <ClCompile Include="test_gpu.cpp" />
     <ClCompile Include="test_render_model.cpp" />
     <ClCompile Include="test_render_video.cpp" />
     <ClCompile Include="test_vae.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp" />
+    <ClInclude Include="..\utils\safe_call.hpp" />
     <ClInclude Include="..\utils\timer_util.h" />
+    <ClInclude Include="common.h" />
+    <ClInclude Include="gpuutils.h" />
     <ClInclude Include="pigmodel.h" />
     <ClInclude Include="pigmodeldevice.h" />
     <ClInclude Include="pigsolver.h" />
+    <ClInclude Include="safe_call.hpp" />
     <ClInclude Include="test_main.h" />
+    <ClInclude Include="vector_operations.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="artist_config.json" />
     <None Include="pigmodel_config.json" />
     <None Include="smal2_config.json" />
     <None Include="smal_config.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="gpuutils.cu" />
+    <CudaCompile Include="pigmodeldevice.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

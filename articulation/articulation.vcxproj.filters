@@ -93,6 +93,12 @@
     <ClCompile Include="test_vae.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="pigmodeldevice.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test_gpu.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pigmodel.h">
@@ -113,11 +119,34 @@
     <ClInclude Include="..\utils\timer_util.h">
       <Filter>other</Filter>
     </ClInclude>
+    <ClInclude Include="..\utils\safe_call.hpp">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="gpuutils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="vector_operations.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="safe_call.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="common.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="pigmodel_config.json" />
     <None Include="smal_config.json" />
     <None Include="smal2_config.json" />
     <None Include="artist_config.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="pigmodeldevice.cu">
+      <Filter>源文件</Filter>
+    </CudaCompile>
+    <CudaCompile Include="gpuutils.cu">
+      <Filter>源文件</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>
