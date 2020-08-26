@@ -182,9 +182,9 @@ public:
 		return M;
 	}
 
-	void _SetViewByCameraRT(const Eigen::Matrix3d& R, const Eigen::Vector3d& T)
+	void _SetViewByCameraRT(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
 	{
-		Eigen::Matrix4f view_eigen = _calcRenderExt(R.cast<float>(), T.cast<float>());
+		Eigen::Matrix4f view_eigen = _calcRenderExt(R, T);
 		nanogui::Matrix4f view_nano = _eigen2nanoM4f(view_eigen);
 		SetView(view_nano);
 	}

@@ -23,7 +23,6 @@
     <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
     <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\articulation\pigsolver_shape.cpp" />
-    <ClCompile Include="..\associate\associator.cpp" />
     <ClCompile Include="..\associate\clusterclique.cpp" />
     <ClCompile Include="..\associate\framedata.cpp" />
     <ClCompile Include="..\associate\framedata_PMT.cpp" />
@@ -71,7 +70,6 @@
   <ItemGroup>
     <ClInclude Include="..\articulation\pigmodel.h" />
     <ClInclude Include="..\articulation\pigsolver.h" />
-    <ClInclude Include="..\associate\associator.h" />
     <ClInclude Include="..\associate\clusterclique.h" />
     <ClInclude Include="..\associate\framedata.h" />
     <ClInclude Include="..\associate\matching.h" />

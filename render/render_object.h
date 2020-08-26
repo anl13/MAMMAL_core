@@ -82,6 +82,7 @@ public:
 	virtual void DrawDepth(SimpleShader& shader) const;
 	virtual void SetTransform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale);
 	virtual void SetMaterial(const MaterialParam& _materialParam);
+
 	virtual void SetFaces(const Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor>& faces, const bool inverse = false);
 	virtual void SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& vertices);
 	
@@ -150,6 +151,9 @@ public:
 
 	virtual void SetColors(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& colors);
 	virtual void SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals); 
+
+	virtual void SetColors(const std::vector<Eigen::Vector3f> &_colors); 
+	virtual void SetNormal(const std::vector<Eigen::Vector3f> &_normals); 
 private:
 	GLuint VBO_color;
 	GLuint VBO_normal; 

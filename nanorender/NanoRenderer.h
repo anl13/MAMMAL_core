@@ -57,7 +57,6 @@ using namespace nanogui;
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
 #include "../utils/safe_call.hpp"
-#include "../utils/timer.hpp"
 #include "RenderObject.h"
 
 #if defined(_WIN32)
@@ -324,9 +323,6 @@ public:
 		return glfwWindowShouldClose(window); }
 
 	void ClearRenderObjects(); 
-
-	void CreatePointCloudObjects(const std::vector<Eigen::Vector3f>& points, const std::vector<float>& sizes,
-		const std::vector<Eigen::Vector3i>& colors);
 
 	ref<RenderObject> CreateRenderObject(const std::string& name, const std::string& vs, const std::string& fs) {
 		ref<RenderObject> render_object = new RenderObject(name, vs, fs, Shader::BlendMode::None);

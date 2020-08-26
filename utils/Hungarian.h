@@ -1,9 +1,9 @@
 //https://github.com/Smorodov/Multitarget-tracker/tree/master/Tracker
 // Modifier: AN Liang, 2018-07-22, al17@mails.tsinghua.edu.cn 
 // Thanks to Smorodov for sharing the code! 
+// Last modified: 2020-08-24, remove typedef 
 
-#ifndef __HUNGARIAN_H__
-#define __HUNGARIAN_H__
+#pragma once 
 
 #include <vector>
 #include <iostream>
@@ -13,31 +13,27 @@
 
 // http://community.topcoder.com/tc?module=Static&d1=tutorials&d2=hungarianAlgorithm
 
-typedef std::vector<int> assignments_t;
-typedef float track_t; 
-typedef std::vector<track_t> distMatrix_t;
-
 class AssignmentProblemSolver
 {
 private:
 	// --------------------------------------------------------------------------
 	// Computes the optimal assignment (minimum overall costs) using Munkres algorithm.
 	// --------------------------------------------------------------------------
-	void assignmentoptimal(assignments_t& assignment, track_t& cost, const distMatrix_t& distMatrixIn, size_t nOfRows, size_t nOfColumns);
-	void buildassignmentvector(assignments_t& assignment, bool *starMatrix, size_t nOfRows, size_t nOfColumns);
-	void computeassignmentcost(const assignments_t& assignment, track_t& cost, const distMatrix_t& distMatrixIn, size_t nOfRows);
-	void step2a(assignments_t& assignment, track_t *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim);
-	void step2b(assignments_t& assignment, track_t *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim);
-	void step3_5(assignments_t& assignment, track_t *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim);
-	void step4(assignments_t& assignment, track_t *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim, size_t row, size_t col);
+	void assignmentoptimal(std::vector<int>& assignment, float& cost, const std::vector<float>& distMatrixIn, size_t nOfRows, size_t nOfColumns);
+	void buildassignmentvector(std::vector<int>& assignment, bool *starMatrix, size_t nOfRows, size_t nOfColumns);
+	void computeassignmentcost(const std::vector<int>& assignment, float& cost, const std::vector<float>& distMatrixIn, size_t nOfRows);
+	void step2a(std::vector<int>& assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim);
+	void step2b(std::vector<int>& assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim);
+	void step3_5(std::vector<int>& assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim);
+	void step4(std::vector<int>& assignment, float *distMatrix, bool *starMatrix, bool *newStarMatrix, bool *primeMatrix, bool *coveredColumns, bool *coveredRows, size_t nOfRows, size_t nOfColumns, size_t minDim, size_t row, size_t col);
 	// --------------------------------------------------------------------------
 	// Computes a suboptimal solution. Good for cases with many forbidden assignments.
 	// --------------------------------------------------------------------------
-	void assignmentsuboptimal1(assignments_t& assignment, track_t& cost, const distMatrix_t& distMatrixIn, size_t nOfRows, size_t nOfColumns);
+	void assignmentsuboptimal1(std::vector<int>& assignment, float& cost, const std::vector<float>& distMatrixIn, size_t nOfRows, size_t nOfColumns);
 	// --------------------------------------------------------------------------
 	// Computes a suboptimal solution. Good for cases with many forbidden assignments.
 	// --------------------------------------------------------------------------
-	void assignmentsuboptimal2(assignments_t& assignment, track_t& cost, const distMatrix_t& distMatrixIn, size_t nOfRows, size_t nOfColumns);
+	void assignmentsuboptimal2(std::vector<int>& assignment, float& cost, const std::vector<float>& distMatrixIn, size_t nOfRows, size_t nOfColumns);
 
 public:
 	enum TMethod
@@ -50,7 +46,7 @@ public:
 	AssignmentProblemSolver();
 	~AssignmentProblemSolver();
     // assignment: N 
-	track_t Solve(const distMatrix_t& distMatrixIn, size_t nOfRows, size_t nOfColumns, assignments_t& assignment, TMethod Method = optimal);
+	float Solve(const std::vector<float>& distMatrixIn, size_t nOfRows, size_t nOfColumns, std::vector<int>& assignment, TMethod Method = optimal);
 };
 
 // AN Liang 2019-09-26: assign col to row 
@@ -58,4 +54,3 @@ std::vector<int> solveHungarian(const Eigen::MatrixXf &similarity);
 // AN Liang 2019-11-30: support double matrix
 std::vector<int> solveHungarian(const Eigen::MatrixXd &similarity); 
 
-#endif 

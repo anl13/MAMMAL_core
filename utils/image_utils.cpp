@@ -28,8 +28,8 @@ void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, c
     cv::remap(input, output, map1, map2, cv::INTER_LINEAR); 
 }
 
-void my_undistort_points(const std::vector<Eigen::Vector3d>& points, 
-    std::vector<Eigen::Vector3d>& out, const Camera &camera, const Camera &newcam)
+void my_undistort_points(const std::vector<Eigen::Vector3f>& points, 
+    std::vector<Eigen::Vector3f>& out, const Camera &camera, const Camera &newcam)
 {
     cv::Vec<float, 5> distCoef; 
     distCoef[0] = camera.k(0); 
@@ -63,12 +63,13 @@ void my_undistort_points(const std::vector<Eigen::Vector3d>& points,
     }
 }
 
-void my_undistort_points(const std::vector<Eigen::Vector2d>& points,
-	std::vector<Eigen::Vector2d>& out, const Camera &cam, const Camera &newcam)
+void my_undistort_points(const std::vector<Eigen::Vector2f>& points,
+	std::vector<Eigen::Vector2f>& out, const Camera &cam, const Camera &newcam)
 {
-	std::vector<Eigen::Vector3d> points_in;
-	std::vector<Eigen::Vector3d> points_out; 
+	std::vector<Eigen::Vector3f> points_in;
+	std::vector<Eigen::Vector3f> points_out; 
 	points_in.resize(points.size());
+#pragma omp parallel for
 	for (int i = 0; i < points.size(); i++)
 	{
 		points_in[i].segment<2>(0) = points[i];
@@ -76,13 +77,14 @@ void my_undistort_points(const std::vector<Eigen::Vector2d>& points,
 	}
 	my_undistort_points(points_in, points_out, cam, newcam);
 	out.resize(points_out.size());
+#pragma omp parallel for 
 	for (int i = 0; i < points_out.size(); i++)
 	{
 		out[i] = points_out[i].segment<2>(0);
 	}
 }
 
-void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points)
+void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3f> &points)
 {
     size_t pnum = points.size(); 
     for(int i = 0; i < pnum; i++)
@@ -95,7 +97,7 @@ void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points)
     }
 }
 
-void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, const Eigen::Vector3i &c)
+void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3f> &points, const Eigen::Vector3i &c)
 {
     size_t pnum = points.size(); 
     for(int i = 0; i < pnum; i++)
@@ -108,7 +110,7 @@ void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, co
     }
 }
 
-void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, const Eigen::Vector3i &c, int radius)
+void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3f> &points, const Eigen::Vector3i &c, int radius)
 {
     size_t pnum = points.size(); 
     for(int i = 0; i < pnum; i++)
@@ -120,7 +122,7 @@ void my_draw_points(cv::Mat &img, const std::vector<Eigen::Vector3d> &points, co
     }
 }
 
-void my_draw_point(cv::Mat& img, const Eigen::Vector3d &point, const Eigen::Vector3i& c, int radius)
+void my_draw_point(cv::Mat& img, const Eigen::Vector3f &point, const Eigen::Vector3i& c, int radius)
 {
     int x = int(point(0)); 
     int y = int(point(1)); 
@@ -128,7 +130,7 @@ void my_draw_point(cv::Mat& img, const Eigen::Vector3d &point, const Eigen::Vect
     cv::circle(img, cv::Point(x,y), radius, cv::Scalar(c(0),c(1),c(2)), -1); 
 }
 
-void draw_line(cv::Mat &img, Eigen::Vector3d ep, Eigen::Vector3i c)
+void draw_line(cv::Mat &img, Eigen::Vector3f ep, Eigen::Vector3i c)
 {
     int w = img.cols;
     int h = img.rows; 
@@ -216,22 +218,23 @@ void getColorMap(std::string cm_type, std::vector<Eigen::Vector3i> &colormap)
     }
 }
 
-std::vector<float4> getColorMapFloat4(std::string cm_type)
-{
-	std::vector<Eigen::Vector3i> CM; 
-	getColorMap(cm_type, CM);
-	std::vector<float4> CM4; 
-	if (CM.size() > 0)
-	{
-		CM4.resize(CM.size());
-		for (int i = 0; i < CM.size(); i++)
-		{
-			CM4[i] = make_float4(
-				CM[i](0)/255.f, CM[i](1)/255.f, CM[i](2)/255.f, 1.0f);
-		}
-	}
-	return CM4; 
-}
+//std::vector<float4> getColorMapFloat4(std::string cm_type)
+//{
+//	std::vector<Eigen::Vector3i> CM; 
+//	getColorMap(cm_type, CM);
+//	std::vector<float4> CM4; 
+//	if (CM.size() > 0)
+//	{
+//		CM4.resize(CM.size());
+//		for (int i = 0; i < CM.size(); i++)
+//		{
+//			CM4[i] = make_float4(
+//				CM[i](0)/255.f, CM[i](1)/255.f, CM[i](2)/255.f, 1.0f);
+//		}
+//	}
+//	return CM4; 
+//}
+
 std::vector<Eigen::Vector3i> getColorMapEigen(std::string cm_type)
 {
 	std::vector<Eigen::Vector3i> CM;
@@ -254,23 +257,23 @@ std::vector<Eigen::Vector3f> getColorMapEigenF(std::string cm_type)
 	return CM_out; 
 }
 
-std::vector<nanogui::Vector4f> getColorMapNano(std::string cm_type)
-{
-	std::vector<Eigen::Vector3i> CM;
-	getColorMap(cm_type, CM); 
-	std::vector<nanogui::Vector4f> nano; 
-	nano.resize(CM.size());
-	for (int i = 0; i < CM.size(); i++)
-	{
-		nano[i][0] = CM[i](0) / 255.f; 
-		nano[i][1] = CM[i](1) / 255.f;
-		nano[i][2] = CM[i](2) / 255.f;
-		nano[i][3] = 1.f; 
-	}
-	return nano;
-}
+//std::vector<nanogui::Vector4f> getColorMapNano(std::string cm_type)
+//{
+//	std::vector<Eigen::Vector3i> CM;
+//	getColorMap(cm_type, CM); 
+//	std::vector<nanogui::Vector4f> nano; 
+//	nano.resize(CM.size());
+//	for (int i = 0; i < CM.size(); i++)
+//	{
+//		nano[i][0] = CM[i](0) / 255.f; 
+//		nano[i][1] = CM[i](1) / 255.f;
+//		nano[i][2] = CM[i](2) / 255.f;
+//		nano[i][3] = 1.f; 
+//	}
+//	return nano;
+//}
 
-void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Vector3i c)
+void my_draw_segment(cv::Mat &img, const Eigen::Vector3f& s, const Eigen::Vector3f& e, const Eigen::Vector3i c)
 {
     cv::Point2f s_cv; 
     cv::Point2f e_cv; 
@@ -282,7 +285,7 @@ void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Ve
     cv::line(img, s_cv, e_cv, cv::Scalar(c(0),c(1),c(2)), 10); 
 }
 
-void my_draw_segment(cv::Mat &img, const Vec3& s, const Vec3& e, const Eigen::Vector3i c, int linewidth, int pointRadius)
+void my_draw_segment(cv::Mat &img, const Eigen::Vector3f& s, const Eigen::Vector3f& e, const Eigen::Vector3i c, int linewidth, int pointRadius)
 {
     cv::Point2f s_cv; 
     cv::Point2f e_cv; 
@@ -313,28 +316,28 @@ void cloneImgs(const std::vector<cv::Mat> &input, std::vector<cv::Mat>&output)
     }
 }
 
-void getLegend(cv::Mat & out) 
-{
-    std::vector<std::string> legend_names = {
-        "face", "left front leg", "left back leg", 
-        "torso", "right front leg", "right back leg"
-    };
-    std::vector<Eigen::Vector3i> m_CM;
-    getColorMap("anliang_rgb", m_CM); 
-    // legend size: 50 * 1024
-    cv::Mat img;
-    img.create(cv::Size(1024,50), CV_8UC3);
-    for(int i = 0; i < 6; i++)
-    {
-        auto c = m_CM[i]; 
-        cv::rectangle(img, cv::Point2f(170*i+15, 15), cv::Point2f(170*i+45, 35), cv::Scalar(c(0), c(1), c(2)),-1);
-        cv::putText(img, legend_names[i], cv::Point2f(170*i+60, 25), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255,255,255));
-    }
-    out = img;  
-}
+//void getLegend(cv::Mat & out) 
+//{
+//    std::vector<std::string> legend_names = {
+//        "face", "left front leg", "left back leg", 
+//        "torso", "right front leg", "right back leg"
+//    };
+//    std::vector<Eigen::Vector3i> m_CM;
+//    getColorMap("anliang_rgb", m_CM); 
+//    // legend size: 50 * 1024
+//    cv::Mat img;
+//    img.create(cv::Size(1024,50), CV_8UC3);
+//    for(int i = 0; i < 6; i++)
+//    {
+//        auto c = m_CM[i]; 
+//        cv::rectangle(img, cv::Point2f(170*i+15, 15), cv::Point2f(170*i+45, 35), cv::Scalar(c(0), c(1), c(2)),-1);
+//        cv::putText(img, legend_names[i], cv::Point2f(170*i+60, 25), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255,255,255));
+//    }
+//    out = img;  
+//}
 
 
-std::vector<Eigen::Vector3d> read_points(std::string filename)
+std::vector<Eigen::Vector3f> read_points(std::string filename)
 {
     std::ifstream infile(filename); 
     if(!infile.is_open())
@@ -342,44 +345,44 @@ std::vector<Eigen::Vector3d> read_points(std::string filename)
         std::cout << ("can not open file ") << filename << std::endl; 
         exit(-1); 
     }
-    std::vector<Eigen::Vector3d> points; 
+    std::vector<Eigen::Vector3f> points; 
     while(!infile.eof())
     {
         double x, y, z; 
         infile >> x >> y; 
         if(infile.eof()) break;
         infile >> z; 
-        Eigen::Vector3d p;
-        p << x, y, z;
+        Eigen::Vector3f p;
+        p << (float)x, (float)y, (float)z;
         points.push_back(p); 
     };
     infile.close(); 
     return points;
 }
 
-Eigen::Vector4d my_undistort_box(Eigen::Vector4d x, const Camera &cam, const Camera &newcam)
+Eigen::Vector4f my_undistort_box(Eigen::Vector4f x, const Camera &cam, const Camera &newcam)
 {
 /*
   p1-------p4
   |  a box  |
   p3-------p2
 */
-    std::vector<Eigen::Vector3d> points; 
-    Eigen::Vector3d p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
-    Eigen::Vector3d p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
-    Eigen::Vector3d p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
-    Eigen::Vector3d p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
+    std::vector<Eigen::Vector3f> points; 
+    Eigen::Vector3f p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
+    Eigen::Vector3f p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
+    Eigen::Vector3f p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
+    Eigen::Vector3f p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
     points.push_back(p1); 
     points.push_back(p2); 
     points.push_back(p3); 
     points.push_back(p4); 
-    std::vector<Eigen::Vector3d> points_out; 
+    std::vector<Eigen::Vector3f> points_out; 
     my_undistort_points(points, points_out, cam, newcam); 
-    Eigen::Vector4d new_box; 
-    double x_min = my_max(my_min(points_out[0](0), points_out[2](0)), 0);
-    double y_min = my_max(my_min(points_out[0](1), points_out[3](1)), 0);
-    double x_max = my_min(my_max(points_out[3](0), points_out[1](0)), 1919); 
-    double y_max = my_min(my_max(points_out[2](1), points_out[1](1)), 1079); 
+    Eigen::Vector4f new_box; 
+    float x_min = my_max(my_min(points_out[0](0), points_out[2](0)), 0);
+    float y_min = my_max(my_min(points_out[0](1), points_out[3](1)), 0);
+    float x_max = my_min(my_max(points_out[3](0), points_out[1](0)), 1919); 
+    float y_max = my_min(my_max(points_out[2](1), points_out[1](1)), 1079); 
     new_box(0) = x_min;
     new_box(1) = y_min; 
     new_box(2) = x_max; 
@@ -387,13 +390,13 @@ Eigen::Vector4d my_undistort_box(Eigen::Vector4d x, const Camera &cam, const Cam
     return new_box; 
 }
 
-Eigen::Vector4d expand_box(Eigen::Vector4d x, double ratio)
+Eigen::Vector4f expand_box(Eigen::Vector4f x, float ratio)
 {
-    Eigen::Vector4d out; 
-    double w = x(2) - x(0); 
-    double h = x(3) - x(1); 
-    double dx = w * ratio;
-    double dy = h * ratio; 
+    Eigen::Vector4f out; 
+    float w = x(2) - x(0); 
+    float h = x(3) - x(1); 
+    float dx = w * ratio;
+    float dy = h * ratio; 
     out(0) = my_max(x(0) - dx, 0); 
     out(1) = my_max(x(1) - dy, 0); 
     out(2) = my_min(x(2) + dx, 1919); 
@@ -406,15 +409,15 @@ Eigen::Vector4d expand_box(Eigen::Vector4d x, double ratio)
   |  a box  |
   p3-------p2
 */
-void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes)
+void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4f>& boxes)
 {
     for(int bid = 0; bid < boxes.size(); bid++)
     {
-        Eigen::Vector4d x = boxes[bid]; 
-        Eigen::Vector3d p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
-        Eigen::Vector3d p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
-        Eigen::Vector3d p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
-        Eigen::Vector3d p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
+        Eigen::Vector4f x = boxes[bid]; 
+        Eigen::Vector3f p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
+        Eigen::Vector3f p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
+        Eigen::Vector3f p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
+        Eigen::Vector3f p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
         Eigen::Vector3i color = Eigen::Vector3i::Zero(); 
         color(1) = 255; 
         my_draw_segment(img, p1, p3, color, 3, 6); 
@@ -424,13 +427,13 @@ void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4d>& boxes)
     }
 }
 
-void my_draw_box(cv::Mat& img, const Eigen::Vector4d& box, Eigen::Vector3i c)
+void my_draw_box(cv::Mat& img, const Eigen::Vector4f& box, Eigen::Vector3i c)
 {
-    Eigen::Vector4d x = box; 
-    Eigen::Vector3d p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
-    Eigen::Vector3d p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
-    Eigen::Vector3d p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
-    Eigen::Vector3d p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
+    Eigen::Vector4f x = box; 
+    Eigen::Vector3f p1; p1(0) = x(0); p1(1) = x(1); p1(2) = 1; 
+    Eigen::Vector3f p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
+    Eigen::Vector3f p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
+    Eigen::Vector3f p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
     Eigen::Vector3i color = c;
     my_draw_segment(img, p1, p3, color, 3, 6); 
     my_draw_segment(img, p1, p4, color, 3, 6); 
@@ -439,7 +442,7 @@ void my_draw_box(cv::Mat& img, const Eigen::Vector4d& box, Eigen::Vector3i c)
 }
 
 void my_draw_mask(cv::Mat& img, 
-    vector<vector<Eigen::Vector2d> > contour_list, 
+    vector<vector<Eigen::Vector2f> > contour_list, 
     Eigen::Vector3i c, 
     float alpha)
 {
@@ -464,7 +467,7 @@ void my_draw_mask(cv::Mat& img,
 }
 
 void my_draw_mask_gray(cv::Mat& img,
-	vector<vector<Eigen::Vector2d> > contour_list,
+	vector<vector<Eigen::Vector2f> > contour_list,
 	int c)
 {
 	cv::Mat grey(cv::Size(1920, 1080), CV_8UC1); 
@@ -489,6 +492,24 @@ cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)
 {
     cv::Mat out = img1 * alpha + img2 * (1-alpha); 
     return out; 
+}
+
+// assume render is black background with non-black foreground. 
+cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float a)
+{
+
+
+	cv::Mat mask_fore;
+	cv::Mat mask_back;
+	cv::threshold(render, mask_fore, 1, 1, cv::THRESH_BINARY);
+	cv::threshold(render, mask_back, 1, 1, cv::THRESH_BINARY_INV);
+	render = render + mask_fore * 255;
+	cv::Mat alpha, beta;
+	cv::multiply(mask_fore, render, alpha);
+	cv::multiply(mask_back, rawimg, beta);
+	cv::Mat gamma = alpha + beta;
+	cv::Mat overlay = a * rawimg + (1 - a) * gamma;
+	return overlay;
 }
 
 Eigen::Vector3f rgb2bgr(const Eigen::Vector3f& color)
@@ -552,9 +573,9 @@ cv::Mat get_dist_trans(cv::Mat input)
 
 
 /// ROIDescripter 
-float ROIdescripter::queryChamfer(const Eigen::Vector3d& point)
+float ROIdescripter::queryChamfer(const Eigen::Vector3f& point)
 {
-	Eigen::Vector3d proj = project(cam, point);
+	Eigen::Vector3f proj = project(cam, point);
 	Eigen::Vector2i p_int;
 	p_int(0) = int(round(proj(0)));
 	p_int(1) = int(round(proj(1)));
@@ -564,10 +585,10 @@ float ROIdescripter::queryChamfer(const Eigen::Vector3d& point)
 	return chamfer.at<float>(p_int(1), p_int(0));
 }
 
-int ROIdescripter::queryMask(const Eigen::Vector3d& point)
+int ROIdescripter::queryMask(const Eigen::Vector3f& point)
 {
 	vector<int> list = { 1,2,4,8 };
-	Eigen::Vector3d proj = project(cam, point);
+	Eigen::Vector3f proj = project(cam, point);
 	Eigen::Vector2i p_int;
 	p_int(0) = int(round(proj(0)));
 	p_int(1) = int(round(proj(1)));
@@ -586,7 +607,7 @@ int ROIdescripter::queryMask(const Eigen::Vector3d& point)
 	return 4; // unknown error  
 }	
 
-double ROIdescripter::keypointsMaskOverlay()
+float ROIdescripter::keypointsMaskOverlay()
 {
 	int total = 0;
 	int valid = 0; 
@@ -599,23 +620,12 @@ double ROIdescripter::keypointsMaskOverlay()
 		if (mask.at<uchar>(y, x) == idcode) valid += 1;
 	}
 	if (total == 0) return 0; 
-	return (double)valid / (double)total;
+	return (float)valid / (float)total;
 }
 
-void ROIdescripter::clean_keypoints()
+float queryPixel(const cv::Mat& img, const Eigen::Vector3f& point, const Camera& cam)
 {
-	for (int i = 0; i < keypoints.size(); i++) {
-		Eigen::Vector3d p = keypoints[i];
-		int x = round(p(0));
-		int y = round(p(1));
-		
-	}
-}
-
-
-float queryPixel(const cv::Mat& img, const Eigen::Vector3d& point, const Camera& cam)
-{
-	Eigen::Vector3d proj = project(cam, point);
+	Eigen::Vector3f proj = project(cam, point);
 	Eigen::Vector2i p_int;
 	p_int(0) = int(round(proj(0)));
 	p_int(1) = int(round(proj(1)));
@@ -672,25 +682,24 @@ float queryDepth(const cv::Mat& img, float x, float y)
 }
 
 
-
 cv::Mat reverseChamfer(const cv::Mat& chamfer)
 {
 	cv::Mat out = -chamfer;
 	return out; 
 }
 
-std::vector<Eigen::Vector2d> computeContourNormal(const std::vector<Eigen::Vector2d>& points)
+std::vector<Eigen::Vector2f> computeContourNormal(const std::vector<Eigen::Vector2f>& points)
 {
-	std::vector<Eigen::Vector2d> normals; 
+	std::vector<Eigen::Vector2f> normals; 
 	normals.resize(points.size());
 	int N = points.size();
 	for(int i = 0; i < N; i++)
 	{
-		const Eigen::Vector2d& a = points[(i - 1) % N];
-		const Eigen::Vector2d& b = points[i];
-		const Eigen::Vector2d& c = points[(i + 1) % N];
-		Eigen::Vector2d ac = (c - a).normalized();
-		Eigen::Vector2d n;
+		const Eigen::Vector2f& a = points[(i - 1) % N];
+		const Eigen::Vector2f& b = points[i];
+		const Eigen::Vector2f& c = points[(i + 1) % N];
+		Eigen::Vector2f ac = (c - a).normalized();
+		Eigen::Vector2f n;
 		n(0) = -ac(1);
 		n(1) = ac(0); 
 		normals[i] = n;
@@ -698,11 +707,11 @@ std::vector<Eigen::Vector2d> computeContourNormal(const std::vector<Eigen::Vecto
 	return normals;
 }
 
-std::vector<std::vector<Eigen::Vector2d>  > 
+std::vector<std::vector<Eigen::Vector2f>  > 
 computeContourNormalsAll(
-	const std::vector<std::vector<Eigen::Vector2d> >&points)
+	const std::vector<std::vector<Eigen::Vector2f> >&points)
 {
-	std::vector<std::vector<Eigen::Vector2d> > normals;
+	std::vector<std::vector<Eigen::Vector2f> > normals;
 	normals.resize(points.size());
 	for (int i = 0; i < points.size(); i++)
 	{
@@ -780,7 +789,7 @@ cv::Mat computeSDF2dFromDepthf(const cv::Mat& depth, int thresh)
 	return computeSDF2d(mask, thresh); 
 }
 
-cv::Mat fromDeptyToColorMask(cv::Mat depth)
+cv::Mat fromDepthToColorMask(cv::Mat depth)
 {
 	cv::Mat img(depth.size(), CV_8UC3);
 #pragma omp parallel for 
@@ -862,25 +871,7 @@ void computeGradient(cv::Mat input, cv::Mat& outx, cv::Mat& outy)
 	cv::Sobel(input, outy, CV_32F, 0, 1, 3, scale, delta, cv::BORDER_DEFAULT);
 }
 
-// assume render is black background with non-black foreground. 
-cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float a)
-{
-
-	
-	cv::Mat mask_fore;
-	cv::Mat mask_back;
-	cv::threshold(render, mask_fore, 1, 1, cv::THRESH_BINARY);
-	cv::threshold(render, mask_back, 1, 1, cv::THRESH_BINARY_INV);
-	render = render + mask_fore * 255; 
-	cv::Mat alpha, beta; 
-	cv::multiply(mask_fore, render, alpha);
-	cv::multiply(mask_back, rawimg, beta);
-	cv::Mat gamma = alpha + beta; 
-	cv::Mat overlay = a * rawimg + (1-a) * gamma;
-	return overlay;
-}
-
-cv::Mat drawCVDepth(Eigen::MatrixXd vertices, Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> faces, Camera cam)
+cv::Mat drawCVDepth(Eigen::MatrixXf vertices, Eigen::MatrixXu faces, Camera cam)
 {
 	cv::Mat image(cv::Size(1920, 1080), CV_8UC3);
 	for (int i = 0; i < faces.cols(); i++)
@@ -888,12 +879,12 @@ cv::Mat drawCVDepth(Eigen::MatrixXd vertices, Eigen::Matrix<unsigned int,-1,-1,E
 		int index1 = faces(0, i);
 		int index2 = faces(1, i);
 		int index3 = faces(2, i);
-		Eigen::Vector3d v1d = vertices.col(index1);
-		Eigen::Vector3d v2d = vertices.col(index2);
-		Eigen::Vector3d v3d = vertices.col(index3);
-		Eigen::Vector3d v1 = project(cam, v1d);
-		Eigen::Vector3d v2 = project(cam, v2d);
-		Eigen::Vector3d v3 = project(cam, v3d);
+		Eigen::Vector3f v1d = vertices.col(index1);
+		Eigen::Vector3f v2d = vertices.col(index2);
+		Eigen::Vector3f v3d = vertices.col(index3);
+		Eigen::Vector3f v1 = project(cam, v1d);
+		Eigen::Vector3f v2 = project(cam, v2d);
+		Eigen::Vector3f v3 = project(cam, v3d);
 		std::vector<std::vector<cv::Point2i> > points; 
 		points.resize(1);
 		points[0].resize(3); 

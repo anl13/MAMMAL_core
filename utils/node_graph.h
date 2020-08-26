@@ -2,15 +2,14 @@
 #include <Eigen/Eigen>
 #include <iostream>
 #include <fstream>
-#include "model.h"
-
+#include "mesh.h"
 
 struct NodeGraph
 {
 	Eigen::VectorXi nodeIdx;
 	Eigen::MatrixXi nodeNet;
 	Eigen::MatrixXi knn;
-	Eigen::MatrixXd weight;
+	Eigen::MatrixXf weight;
 
 	NodeGraph() {};
 	NodeGraph(const std::string& folder) { Load(folder); }
@@ -21,8 +20,8 @@ struct NodeGraph
 
 struct NodeGraphGenerator : public NodeGraph
 {
-	Eigen::VectorXd Dijkstra(const int& start, const Eigen::MatrixXd& w)const;
-	void Generate(const Model& _model);
+	Eigen::VectorXf Dijkstra(const int& start, const Eigen::MatrixXf& w)const;
+	void Generate(const Mesh& _model);
 	void CalcGeodesic();
 	void SampleNode();
 	void GenKnn();
@@ -40,8 +39,8 @@ struct NodeGraphGenerator : public NodeGraph
 	// param for smal notail
 	int netDegree = 4;
 	int knnSize = 8;
-	double nodeSpacing = 0.05f;
-	double cutRate = 5.f;
-	Model model;
-	std::vector<std::map<int, double>> geodesic;
+	float nodeSpacing = 0.05f;
+	float cutRate = 5.f;
+	Mesh model;
+	std::vector<std::map<int, float>> geodesic;
 };

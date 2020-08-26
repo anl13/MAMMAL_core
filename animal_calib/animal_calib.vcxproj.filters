@@ -141,9 +141,6 @@
     <ClCompile Include="..\exec\write_video.cpp">
       <Filter>exec</Filter>
     </ClCompile>
-    <ClCompile Include="..\associate\associator.cpp">
-      <Filter>associate</Filter>
-    </ClCompile>
     <ClCompile Include="..\render\camviewer.cpp">
       <Filter>render</Filter>
     </ClCompile>
@@ -277,9 +274,6 @@
     </ClInclude>
     <ClInclude Include="..\nanorender\shader_file.h">
       <Filter>nanorender</Filter>
-    </ClInclude>
-    <ClInclude Include="..\associate\associator.h">
-      <Filter>associate</Filter>
     </ClInclude>
     <ClInclude Include="..\render\camviewer.h">
       <Filter>render</Filter>

@@ -134,7 +134,7 @@
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
-    <ClCompile Include="..\utils\model.cpp" />
+    <ClCompile Include="..\utils\mesh.cpp" />
     <ClCompile Include="camviewer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="renderer.cpp" />

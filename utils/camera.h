@@ -1,59 +1,53 @@
-#ifndef __CAMERA_H__
-#define __CAMERA_H__
+#pragma once 
 
 #include <string> 
+
 #include <Eigen/Dense> 
-#include "math_utils.h" 
 #include <opencv2/opencv.hpp> 
 
+#include "math_utils.h" 
 
-class Camera 
+struct Camera 
 {
-public: 
     Camera() {
         W = 1920; 
         H = 1080; 
     }
-    Camera(const Mat3& _K, 
-           const Mat3& _R, 
-           const Vec3& _T);
+    Camera(const Eigen::Matrix3f& _K, 
+           const Eigen::Matrix3f& _R, 
+           const Eigen::Vector3f& _T);
 
-    void SetK(const Mat3 &_K) {K = _K; inv_K = K.inverse(); }
-    void SetRT(const Mat3 &_R, const Vec3 &_T); 
-    void SetDistortion(const Vec3 &_k, const Vec2 &_p){k = _k; p = _p;}
-    void SetRT(const Vec3 &Rvec, const Vec3 &T); 
+    void SetK(const Eigen::Matrix3f &_K) {K = _K; inv_K = K.inverse(); }
+    void SetRT(const Eigen::Matrix3f &_R, const Eigen::Vector3f &_T); 
+    void SetDistortion(const Eigen::Vector3f &_k, const Eigen::Vector2f &_p){k = _k; p = _p;}
+    void SetRT(const Eigen::Vector3f &Rvec, const Eigen::Vector3f &T); 
     void NormalizeK(); 
 
-    int uniqueID;  
     int W; 
     int H; 
 
-    Mat3 K; // camera intrinsic matrix 
-    Mat3 inv_K; // inverse of camera intrinsic matrix
-    Mat3 R; // 
-    Vec3 T; // 
-    Mat3 inv_R; 
+    Eigen::Matrix3f K; // camera intrinsic matrix 
+    Eigen::Matrix3f inv_K; // inverse of camera intrinsic matrix
+    Eigen::Matrix3f R; // 
+    Eigen::Vector3f T; // 
+    Eigen::Matrix3f inv_R; 
 
-    Vec3 k;  // k1, k2, k3
-    Vec2 p;  // p1, p2
+    Eigen::Vector3f k;  // k1, k2, k3
+    Eigen::Vector2f p;  // p1, p2
 
-
-    Mat4 P_g; // projection from global coordinate to image
+    Eigen::Matrix4f P_g; // projection from global coordinate to image
 
     // Given cam2, compute E and F relative to this cam. 
-    Mat3 GetEnssential(const Mat3& globalR, 
-                                const Vec3& globalT) const; 
-    Mat3 GetEnssential(const Camera& cam2) const; 
-    Mat3 GetFundamental(const Mat3& R2, 
-                                   const Vec3& T2, 
-                                   const Mat3& inv_K2) const; 
-    Mat3 GetFundamental(const Camera& cam2) const; 
-    Mat3 GetRelR(const Camera& cam2) const;
-    Vec3 GetRelT(const Camera& cam2) const; 
+    Eigen::Matrix3f GetEnssential(const Eigen::Matrix3f& globalR, 
+                                const Eigen::Vector3f& globalT) const; 
+    Eigen::Matrix3f GetEnssential(const Camera& cam2) const; 
+    Eigen::Matrix3f GetFundamental(const Eigen::Matrix3f& R2, 
+                                   const Eigen::Vector3f& T2, 
+                                   const Eigen::Matrix3f& inv_K2) const; 
+    Eigen::Matrix3f GetFundamental(const Camera& cam2) const; 
+    Eigen::Matrix3f GetRelR(const Camera& cam2) const;
+    Eigen::Vector3f GetRelT(const Camera& cam2) const; 
 
+	static Camera getDefaultCameraRaw();
+	static Camera getDefaultCameraUndist();
 };
-
-Camera getDefaultCameraRaw(); 
-Camera getDefaultCameraUndist(); 
-
-#endif 

@@ -65,10 +65,10 @@ void NodeGraph::Save(const std::string& filename) const
 }
 
 
-Eigen::VectorXd NodeGraphGenerator::Dijkstra(const int& start, const Eigen::MatrixXd& w) const
+Eigen::VectorXf NodeGraphGenerator::Dijkstra(const int& start, const Eigen::MatrixXf& w) const
 {
 	const int n = (int)w.rows();
-	Eigen::VectorXd dist = w.col(start);
+	Eigen::VectorXf dist = w.col(start);
 	Eigen::VectorXi visited = Eigen::VectorXi::Zero(n);
 
 	dist(start) = 0;
@@ -78,7 +78,7 @@ Eigen::VectorXd NodeGraphGenerator::Dijkstra(const int& start, const Eigen::Matr
 	for (int cnt = 1; cnt < n; cnt++) {
 		// find the vertex unvisited nearest to start vertex
 		int k = -1;
-		double dmin = DBL_MAX;
+		float dmin = FLT_MAX;
 		for (int i = 0; i < n; i++)
 			if (!visited(i) && dist(i) < dmin) {
 				dmin = dist(i);
@@ -91,7 +91,7 @@ Eigen::VectorXd NodeGraphGenerator::Dijkstra(const int& start, const Eigen::Matr
 		visited(k) = 1;
 		// update
 		for (int i = 0; i < n; i++) {
-			if (visited[i] || w(k, i) == DBL_MAX)
+			if (visited[i] || w(k, i) == FLT_MAX)
 				continue;
 			dist[i] = std::min(dist[i], dist(k) + w(k, i));
 		}
@@ -102,7 +102,7 @@ Eigen::VectorXd NodeGraphGenerator::Dijkstra(const int& start, const Eigen::Matr
 
 void NodeGraphGenerator::CalcGeodesic()
 {
-	const int n = (int)model.vertices.cols();
+	const int n = (int)model.vertex_num;
 	geodesic.clear();
 	geodesic.resize(n);
 
@@ -111,12 +111,12 @@ void NodeGraphGenerator::CalcGeodesic()
 	double min_nbor_dist = 1000;
 #endif 
 	// generate graph
-	std::vector<std::map<int, double>> nbor(n);
-	for (int fIdx = 0; fIdx < model.faces.cols(); fIdx++) {
+	std::vector<std::map<int, float>> nbor(n);
+	for (int fIdx = 0; fIdx < model.face_num; fIdx++) {
 		for (int i = 0; i < 3; i++) {
-			const int va = model.faces(i, fIdx);
-			const int vb = model.faces((i + 1) % 3, fIdx);
-			const double norm = (model.vertices.col(va) - model.vertices.col(vb)).norm();
+			const int va = model.faces_v_vec[fIdx](i);
+			const int vb = model.faces_v_vec[fIdx]((i + 1) % 3);
+			const float norm = (model.vertices_vec[va] - model.vertices_vec[vb]).norm();
 			nbor[va].insert(std::make_pair(vb, norm));
 			nbor[vb].insert(std::make_pair(va, norm));
 #ifdef DEBUG_NODE
@@ -142,7 +142,7 @@ void NodeGraphGenerator::CalcGeodesic()
 #endif 
 
 	// calc geodesic distance
-	const double cutSpacing = cutRate * nodeSpacing;
+	const float cutSpacing = cutRate * nodeSpacing;
 #pragma omp parallel for
 	for (int srcIdx = 0; srcIdx < n; srcIdx++) {
 		std::vector<int> tarIdxMap;
@@ -150,11 +150,11 @@ void NodeGraphGenerator::CalcGeodesic()
 		for (int tarIdx = 0; tarIdx < n; tarIdx++) {
 			if (tarIdx == srcIdx)
 				start = int(tarIdxMap.size());
-			if ((model.vertices.col(tarIdx) - model.vertices.col(srcIdx)).norm() < cutSpacing)
+			if ((model.vertices_vec[tarIdx] - model.vertices_vec[srcIdx]).norm() < cutSpacing)
 				tarIdxMap.emplace_back(tarIdx);
 		}
 
-		Eigen::MatrixXd w = Eigen::MatrixXd::Constant(tarIdxMap.size(), tarIdxMap.size(), DBL_MAX);
+		Eigen::MatrixXf w = Eigen::MatrixXf::Constant(tarIdxMap.size(), tarIdxMap.size(), FLT_MAX);
 		for (int i = 0; i < w.rows(); i++) {
 			for (const auto& nb : nbor[tarIdxMap[i]]) {
 				auto iter = std::find(tarIdxMap.begin(), tarIdxMap.end(), nb.first);
@@ -163,10 +163,10 @@ void NodeGraphGenerator::CalcGeodesic()
 			}
 		}
 
-		Eigen::VectorXd dist = Dijkstra(start, w);
+		Eigen::VectorXf dist = Dijkstra(start, w);
 
 		for (int i = 0; i < tarIdxMap.size(); i++)
-			if (dist[i] != DBL_MAX)
+			if (dist[i] != FLT_MAX)
 				geodesic[srcIdx].insert(std::make_pair(tarIdxMap[i], dist[i]));
 	}
 }
@@ -192,15 +192,15 @@ void NodeGraphGenerator::SampleNode()
 void NodeGraphGenerator::GenKnn()
 {
 	knn = Eigen::MatrixXi::Constant(knnSize, geodesic.size(), -1);
-	weight = Eigen::MatrixXd::Zero(knnSize, geodesic.size());
+	weight = Eigen::MatrixXf::Zero(knnSize, geodesic.size());
 
 	for (int vIdx = 0; vIdx < geodesic.size(); vIdx++) {
-		std::vector<std::pair<double, int>> dist;
+		std::vector<std::pair<float, int>> dist;
 		for (int ni = 0; ni < nodeIdx.size(); ni++) {
 			if (nodeIdx[ni] == vIdx)
 				continue;
 			auto iter = geodesic[vIdx].find(nodeIdx[ni]);
-			if (iter != geodesic[vIdx].end() && iter->second != DBL_MAX)
+			if (iter != geodesic[vIdx].end() && iter->second != FLT_MAX)
 				dist.emplace_back(std::make_pair(iter->second, ni));
 		}
 
@@ -210,13 +210,13 @@ void NodeGraphGenerator::GenKnn()
 			std::cerr << "knn dist size: " << dist.size() << " geodesic is not enough, should turn up cut rate" << std::endl;
 		}
 		std::sort(dist.begin(), dist.end());
-		double sum = 0;
+		float sum = 0;
 		for (int i = 0; i < dist.size() && i < knnSize; i++)
-			sum += 1.0 / dist[i].first;
+			sum += 1.0f / dist[i].first;
 
 		for (int i = 0; i < dist.size() && i < knnSize; i++) {
 			knn(i, vIdx) = dist[i].second;
-			weight(i, vIdx) = 1.0 / sum / dist[i].first;
+			weight(i, vIdx) = 1.0f / sum / dist[i].first;
 		}
 	}
 }
@@ -226,11 +226,11 @@ void NodeGraphGenerator::GenNodeNet()
 {
 	nodeNet = Eigen::MatrixXi::Constant(netDegree, nodeIdx.size(), -1);
 	for (int ni = 0; ni < nodeIdx.size(); ni++) {
-		std::vector<std::pair<double, int>> dist;
+		std::vector<std::pair<float, int>> dist;
 		for (int nj = 0; nj < nodeIdx.size(); nj++)
 			if (nj != ni) {
 				auto iter = geodesic[nodeIdx[ni]].find(nodeIdx[nj]);
-				if (iter != geodesic[nodeIdx[ni]].end() && iter->second != DBL_MAX)
+				if (iter != geodesic[nodeIdx[ni]].end() && iter->second != FLT_MAX)
 					dist.emplace_back(std::make_pair(iter->second, nj));
 				//dist.emplace_back(std::make_pair(
 				//(model.vertices.col(nodeIdx[ni])
@@ -249,7 +249,7 @@ void NodeGraphGenerator::GenNodeNet()
 }
 
 
-void NodeGraphGenerator::Generate(const Model& _model)
+void NodeGraphGenerator::Generate(const Mesh& _model)
 {
 	model = _model;
 	CalcGeodesic();
@@ -272,7 +272,7 @@ void NodeGraphGenerator::LoadGeodesic(const std::string& filename)
 	}
 
 	int m, n;
-	std::pair<int, double> pair;
+	std::pair<int, float> pair;
 	ifs >> n;
 	geodesic.resize(n);
 	for (int i = 0; i < n; i++) {
@@ -304,8 +304,7 @@ void NodeGraphGenerator::VisualizeNodeNet(const std::string& filename) const
 {
 	std::ofstream fs(filename);
 	for (int i = 0; i < nodeIdx.size(); i++)
-		fs << "v " << model.vertices(0, nodeIdx[i]) << " " <<
-		model.vertices(1, nodeIdx[i]) << " " << model.vertices(2, nodeIdx[i]) << std::endl;
+		fs << "v " << model.vertices_vec[nodeIdx[i]].transpose() << " " << std::endl;
 
 	for (int i = 0; i < nodeNet.cols(); i++)
 		for (int j = 0; j < nodeNet.rows(); j++)
@@ -319,7 +318,7 @@ void NodeGraphGenerator::VisualizeKnn(const std::string& filename) const
 {
 	std::ofstream fs(filename);
 	for (int i = 0; i < knn.cols(); i++)
-		fs << "v " << model.vertices(0, i) << " " << model.vertices(1, i) << " " << model.vertices(2, i) << std::endl;
+		fs << "v " << model.vertices_vec[i].transpose() << std::endl;
 
 	for (int i = 0; i < knn.cols(); i++)
 		for (int j = 0; j < knn.rows(); j++)

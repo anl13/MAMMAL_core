@@ -30,13 +30,19 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\objloader.cpp">
+    <ClCompile Include="..\utils\mesh.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\dataconverter.cpp">
+    <ClCompile Include="..\utils\math_utils.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\model.cpp">
+    <ClCompile Include="..\utils\image_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\geometry.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\camera.cpp">
       <Filter>other</Filter>
     </ClCompile>
   </ItemGroup>

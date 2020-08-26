@@ -7,8 +7,8 @@
 
 #include "shader.h"
 
-#define RENDER_NEAR_PLANE 0.01f
-#define RENDER_FAR_PLANE 50.0f
+#define RENDER_NEAR_PLANE 0.1f
+#define RENDER_FAR_PLANE 10.0f
 
 class CamViewer
 {

@@ -26,8 +26,8 @@ Volume::~Volume()
 }
 
 void Volume::get3DBox(
-	std::vector<Eigen::Vector3d>& points,
-	std::vector<Eigen::Vector2i>& edges) 
+	std::vector<Eigen::Vector3f>& points,
+	std::vector<Eigen::Vector2u>& edges) 
 	// return a cube
 {
 	/*
@@ -77,7 +77,7 @@ void Volume::computeVolumeFromRoi(
 		{
 			for (int z = 0; z < resZ; z++)
 			{
-				Eigen::Vector3d P;
+				Eigen::Vector3f P;
 				P(0) = O(0) + dx * x;
 				P(1) = O(1) + dy * y; 
 				P(2) = O(2) + dz * z; 

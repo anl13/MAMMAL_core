@@ -4,9 +4,9 @@
 void main()
 {
 	//test_body_part(); 
-	//test_fitting();
+	test_fitting();
 	//test_mean_pose(); 
-	test_gpu(); 
+	//test_gpu(); 
 
 
 	system("pause"); 

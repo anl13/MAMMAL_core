@@ -33,7 +33,7 @@ void ObjData::LoadObj(const std::string& objFile)
 	}
 
 	std::vector<Eigen::Vector3f> vertexVec;
-	std::vector<std::vector<Eigen::Vector3i>> faceVec;
+	std::vector<std::vector<Eigen::Vector3u>> faceVec;
 	std::vector<Eigen::Vector2f> textureVec;
 	std::vector<Eigen::Vector3f> normalVec;
 
@@ -64,7 +64,7 @@ void ObjData::LoadObj(const std::string& objFile)
 		}
 		else if (dataType == "f")
 		{
-			std::vector<Eigen::Vector3i> tempFace(3);
+			std::vector<Eigen::Vector3u> tempFace(3);
 			for (int i = 0; i < 3; i++)
 			{
 				std::string dataStr;
@@ -97,9 +97,9 @@ void ObjData::LoadObj(const std::string& objFile)
 	std::vector<int> vertexMap(allVertexSize, -1);
 	std::vector<int> normalMap(allVertexSize, -1);
 
-	for (const std::vector<Eigen::Vector3i>& face : faceVec)
+	for (const std::vector<Eigen::Vector3u>& face : faceVec)
 	{
-		for (const Eigen::Vector3i& faceParam : face)
+		for (const Eigen::Vector3u& faceParam : face)
 		{
 			int vertexId = faceParam.x() - 1;
 			int textureId = faceParam.y() - 1;
@@ -226,7 +226,7 @@ void SimpleRenderObject::SetVertices(std::vector<Eigen::Vector3f>& vertices)
 
 void SimpleRenderObject::SetTransform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale)
 {
-	model = EigenUtil::Transform(_translation, _rotation, _scale);
+	model = Transform(_translation, _rotation, _scale);
 }
 
 // --------------------------------------------------
@@ -381,6 +381,32 @@ void RenderObjectMesh::SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMaj
 	glBindVertexArray(0); 
 }
 
+void RenderObjectMesh::SetColors(const std::vector<Eigen::Vector3f> &colors)
+{
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_color);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * colors.size(), colors.data(), GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void RenderObjectMesh::SetNormal(const std::vector<Eigen::Vector3f>& normals)
+{
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * normals.size(), normals.data(), GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
 void RenderObjectMesh::DrawWhole(SimpleShader& shader) const
 {
 	shader.SetMat4("model", model);
@@ -392,6 +418,8 @@ void RenderObjectMesh::DrawWhole(SimpleShader& shader) const
 	glDrawElements(GL_TRIANGLES, 3 * faceNum, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 }
+
+
 
 
 // --------------------------------------------------

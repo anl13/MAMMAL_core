@@ -15,22 +15,11 @@
 #include "image_utils.h"
 #include "camera.h" 
 
-using std::vector; 
-
 // N view triangulation with DLT methods (eigen vector)
-Eigen::Vector3d NViewDLT(
+Eigen::Vector3f NViewDLT(
     const std::vector<Camera>          &cams, 
-    const std::vector<Eigen::Vector2d> &xs
+    const std::vector<Eigen::Vector2f> &xs
 ); 
-
-double getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Vec2& u1, const Vec2& u2);
-double getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Vec3& u1, const Vec3& u2);
-double getEpipolarDist(const Camera& cam1, const Camera& cam2, const Vec3& u1, const Vec3& u2); 
-double getEpipolarDist(const Vec3& p1, const Mat3& F, const Vec3& p2); 
-
-void project(const Camera& cam, const vector<Eigen::Vector3d> &points3d, vector<Eigen::Vector3d> &points2d); 
-void project(const Camera& cam, const Eigen::Vector3d& p3d, Eigen::Vector3d &p2d); 
-Eigen::Vector3d project(const Camera& cam, const Eigen::Vector3d& p3d); 
 
 class Joint3DSolver 
 {
@@ -59,6 +48,16 @@ private:
     bool status_init_set; 
 }; 
 
+float getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Eigen::Vector2f& u1, const Eigen::Vector2f& u2);
+float getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Eigen::Vector3f& u1, const Eigen::Vector3f& u2);
+float getEpipolarDist(const Eigen::Vector3f& p1, const Eigen::Matrix3f& F, const Eigen::Vector3f& p2);
+float getEpipolarDist(const Camera& cam1, const Camera& cam2, const Eigen::Vector3f& u1, const Eigen::Vector3f& u2);
+
+
+void project(const Camera& cam, const vector<Eigen::Vector3f> &points3d, vector<Eigen::Vector3f> &points2d);
+void project(const Camera& cam, const Eigen::Vector3f& p3d, Eigen::Vector3f &p2d);
+Eigen::Vector3f project(const Camera& cam, const Eigen::Vector3f& p3d);
+
 Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d); 
 
 void test_epipolar(
@@ -71,7 +70,7 @@ void test_epipolar(
 
 void test_epipolar_all(const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2d> > &joints2d); 
+    const std::vector< std::vector<Eigen::Vector2f> > &joints2d); 
 
 void test_epipole(
     const std::vector<Camera> &cameras, 

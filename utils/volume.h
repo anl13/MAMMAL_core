@@ -27,7 +27,7 @@ struct Volume
 	);
 	void getSurface();
 	Eigen::Vector3f computeNormal(int x,int y,int z);
-	void get3DBox(std::vector<Eigen::Vector3d>& points, std::vector<Eigen::Vector2i>& edges); // return a cube
+	void get3DBox(std::vector<Eigen::Vector3f>& points, std::vector<Eigen::Vector2u>& edges); // return a cube
 	void saveXYZFileWithNormal(std::string filename);
 	void readXYZFileWithNormal(std::string filename); 
 

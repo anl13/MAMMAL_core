@@ -1,38 +1,11 @@
 ﻿#include "math_utils.h"
 #include <algorithm>
-#include <cmath>
 
-#define M_PI 3.1415926
 
-Mat3 GetSkewMatrix(const Vec3& w)
+//*********************homogeneous coordinate***************
+Eigen::Vector4f ToHomogeneous(const Eigen::Vector3f &_v)
 {
-    Mat3 expw = Mat3::Zero(); 
-    expw(0,1) = -w(2); 
-    expw(0,2) = w(1);
-    expw(1,0) = w(2); 
-    expw(1,2) = -w(0); 
-    expw(2,0) = -w(1); 
-    expw(2,1) = w(0); 
-    return expw; 
-}
-
-// w: axis-angle vector 
-Mat3 GetRodrigues(const Vec3& w)
-{
-    cv::Mat cv_w(3,1,CV_64F); 
-    cv::eigen2cv(w,cv_w); 
-    
-    cv::Mat cv_rod(3,3,CV_64F); 
-    cv::Rodrigues(cv_w,cv_rod); 
-
-    Mat3 eigen_rod; 
-    cv::cv2eigen(cv_rod, eigen_rod); 
-    return eigen_rod; 
-}
-
-Vec4 ToHomogeneous(const Vec3 &_v)
-{
-    Vec4 v2;
+    Eigen::Vector4f v2;
     v2.x() = _v.x();
     v2.y() = _v.y();
     v2.z() = _v.z();
@@ -41,196 +14,134 @@ Vec4 ToHomogeneous(const Vec3 &_v)
     return v2;
 }
 
-Vec3 ToHomogeneous(const Vec2 &_v)
+Eigen::Vector3f ToHomogeneous(const Eigen::Vector2f &_v)
 {
-    Vec3 v2;
+    Eigen::Vector3f v2;
     v2.x() = _v.x();
     v2.y() = _v.y();
     v2.z() = 1.0;
     return v2;
 }
 
-Vec3 FromHomogeneous(const Vec4 &_v)
+Eigen::Vector3f FromHomogeneous(const Eigen::Vector4f &_v)
 {
-    Vec3 v2;
+    Eigen::Vector3f v2;
     v2 = _v.block<3,1>(0,0);
     if(_v(3) < 1e-8) return v2; 
     else return v2 / _v(3);
 }
 
-Mat4 ToHomogeneous(const Mat3 &_m, 
-                                        Vec3 &_v)
-{
-    Mat4 m2 = Mat4::Identity();
-    m2.block<3,3>(0,0) = _m; 
-    m2.block<3,1>(0,3) = _v;
+/*****************rotation convert********************/
 
-    return m2;
-}
-
-Vec4 AxisAngleToQuat(const Vec3 &v)
+Eigen::Vector4f AxisAngleToQuat(const Eigen::Vector3f &v)
 {
     float angle = v.norm(); 
-    if(angle == 0) return Vec4::Zero(); 
-    Vec3 n = v/angle; 
-    Vec4 quat; 
+    if(angle == 0) return Eigen::Vector4f::Zero(); 
+    Eigen::Vector3f n = v/angle; 
+    Eigen::Vector4f quat; 
     quat.block<3,1>(0,0) = n * sinf(angle/2); 
     quat[3] = cosf(angle/2); 
 
     return quat; 
 }
 
-Vec3 Quat2AxisAngle(const Vec4 &q)   // TODO: bugs here, NOT reciprocal inverse to AxisAngleToQuat
+Eigen::Matrix3f GetSkewMatrix(const Eigen::Vector3f& w)
 {
-    float angle = acosf(q[3]) * 2; 
-    Vec3 v; 
-    float sin_angle = sqrt(1-q[3]*q[3]);
-    v = q.block<3,1>(0,0) / sin_angle;  // TODO: handle corner case 
-    return v * angle; 
+	Eigen::Matrix3f expw = Eigen::Matrix3f::Zero();
+	expw(0, 1) = -w(2);
+	expw(0, 2) = w(1);
+	expw(1, 0) = w(2);
+	expw(1, 2) = -w(0);
+	expw(2, 0) = -w(1);
+	expw(2, 1) = w(0);
+	return expw;
 }
 
-Vec3 AvgAxisAngles(const std::vector<Vec3> &rots)
+Eigen::Matrix3f GetRodrigues(const Eigen::Vector3f& w)
 {
-    std::vector<Vec4> quats; 
-    for(int i=0;i<rots.size();i++) quats.push_back(AxisAngleToQuat(rots[i])); 
-    Vec4 quat_avg = AvgQuats(quats); 
+	cv::Mat cv_w(3, 1, CV_32F);
+	cv::eigen2cv(w, cv_w);
 
-    return Quat2AxisAngle(quat_avg); 
+	cv::Mat cv_rod(3, 3, CV_32F);
+	cv::Rodrigues(cv_w, cv_rod);
+
+	Eigen::Matrix3f eigen_rod;
+	cv::cv2eigen(cv_rod, eigen_rod);
+	return eigen_rod;
 }
-
-//http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20070017872_2007014421.pdf
-// 
-Vec4 AvgQuats(const std::vector<Vec4> &quats)
-{
-    Mat4 M = Mat4::Zero(); 
-    for(int i=0;i<quats.size();i++)
-    {
-        M = M + quats[i] * quats[i].transpose(); 
-    }
-
-    Eigen::JacobiSVD<Mat4> svd(M, 
-        Eigen::ComputeFullU | Eigen::ComputeFullV | Eigen::ColPivHouseholderQRPreconditioner); 
-    
-    auto V = svd.matrixV(); 
-    auto q_avg = V.col(0); // eigen vector corresponding to the largest eigen value 
-
-    return q_avg; 
-}
-
-/*********double functions for ceres***************/ 
-// Eigen::Matrix3d CalcRodrigues(const Eigen::Vector3d &vec) 
-// {
-// 	double theta = sqrt(pow(vec(0), 2) + pow(vec(1), 2) + pow(vec(2), 2));
-// 	if (theta < 1e-6)
-// 	{
-// 		return Eigen::Matrix3d::Identity();
-// 	}
-// 	else
-// 	{
-// 		Eigen::Vector3d r = vec / theta;
-
-// 		Eigen::Matrix3d last = Eigen::Matrix3d::Zero();
-// 		{
-// 			last(0, 1) = -r(2);
-// 			last(0, 2) = r(1);
-// 			last(1, 0) = r(2);
-// 			last(1, 2) = -r(0);
-// 			last(2, 0) = -r(1);
-// 			last(2, 1) = r(0);
-// 		}
-
-// 		Eigen::Matrix3d rodriguesMatrix = cos(theta)*Eigen::Matrix3d::Identity()
-// 			+ (1.0 - cos(theta))*r * r.transpose() + sin(theta)*last;
-// 		return rodriguesMatrix;
-// 	}
-// }
-
-Eigen::Matrix3f GetRodriguesF(const Eigen::Vector3f &w)
-{
-    cv::Mat cv_w(3,1,CV_32F); 
-    cv::eigen2cv(w,cv_w); 
-    
-    cv::Mat cv_rod(3,3,CV_32F); 
-    cv::Rodrigues(cv_w,cv_rod); 
-
-    Eigen::Matrix3f eigen_rod; 
-    cv::cv2eigen(cv_rod, eigen_rod); 
-    return eigen_rod; 
-}
-
-double L2LDist(const Vec3& x1, const Vec3& x2, const Vec3& x3, const Vec3& x4)
-{
-    Vec3 a = x2 - x1; 
-    Vec3 b = x4 - x3;
-    Vec3 c = x3 - x1;
-    double d = c.dot(a.cross(b)) / (a.cross(b)).norm();
-    return fabs(d); 
-}
-
-double L2LDist(const Vec3& a, const Vec3& b, const Vec3& c)
-{
-    double d = c.dot(a.cross(b)) / (a.cross(b)).norm();
-    return fabs(d); 
-}
-
 
 Eigen::Matrix<float, 3, 9, Eigen::ColMajor> RodriguesJacobiF(const Eigen::Vector3f& vec)
 {
-    cv::Mat cvVec;
-    cv::Mat cvRodriguesMat;
-    cv::Mat cvJacobiMat;
-    Eigen::Matrix<float, 3, 9, Eigen::RowMajor> eigenJacobiMat;
+	cv::Mat cvVec;
+	cv::Mat cvRodriguesMat;
+	cv::Mat cvJacobiMat;
+	Eigen::Matrix<float, 3, 9, Eigen::RowMajor> eigenJacobiMat;
 
-    cv::eigen2cv(vec, cvVec);
-    cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
-    cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
+	cv::eigen2cv(vec, cvVec);
+	cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
+	cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
 
-    Eigen::Matrix<float, 3, 9, Eigen::ColMajor> jacobiMat;
-    for (int i = 0; i < 3; i++)
-    {
-        jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
-    }
-    return jacobiMat;
+	Eigen::Matrix<float, 3, 9, Eigen::ColMajor> jacobiMat;
+	for (int i = 0; i < 3; i++)
+	{
+		jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
+	}
+	return jacobiMat;
 }
 
-Eigen::Matrix<double, 3, 9, Eigen::ColMajor> RodriguesJacobiD(const Eigen::Vector3d& vec)
+////http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20070017872_2007014421.pdf
+//// 
+//Eigen::Vector4f AvgQuats(const std::vector<Eigen::Vector4f> &quats)
+//{
+//    Eigen::Matrix4f M = Eigen::Matrix4f::Zero(); 
+//    for(int i=0;i<quats.size();i++)
+//    {
+//        M = M + quats[i] * quats[i].transpose(); 
+//    }
+//
+//    Eigen::JacobiSVD<Eigen::Matrix4f> svd(M, 
+//        Eigen::ComputeFullU | Eigen::ComputeFullV | Eigen::ColPivHouseholderQRPreconditioner); 
+//    
+//    auto V = svd.matrixV(); 
+//    auto q_avg = V.col(0); // eigen vector corresponding to the largest eigen value 
+//
+//    return q_avg; 
+//}
+
+/*********************distance computation************************/
+float L2LDist(const Eigen::Vector3f& x1, const Eigen::Vector3f& x2, const Eigen::Vector3f& x3, const Eigen::Vector3f& x4)
 {
-    cv::Mat cvVec;
-    cv::Mat cvRodriguesMat;
-    cv::Mat cvJacobiMat;
-    Eigen::Matrix<double, 3, 9, Eigen::RowMajor> eigenJacobiMat;
-
-    cv::eigen2cv(vec, cvVec);
-    cv::Rodrigues(cvVec, cvRodriguesMat, cvJacobiMat);
-    cv::cv2eigen(cvJacobiMat, eigenJacobiMat);
-
-    Eigen::Matrix<double, 3, 9, Eigen::ColMajor> jacobiMat;
-    for (int i = 0; i < 3; i++)
-    {
-        jacobiMat.block<3, 3>(0, 3 * i) = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(eigenJacobiMat.row(i).data());
-    }
-    return jacobiMat;
+    Eigen::Vector3f a = x2 - x1; 
+    Eigen::Vector3f b = x4 - x3;
+    Eigen::Vector3f c = x3 - x1;
+    float d = c.dot(a.cross(b)) / (a.cross(b)).norm();
+    return fabs(d); 
 }
 
-double p2ldist( Vec3 x,  Vec3 line){
+float L2LDist(const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c)
+{
+    float d = c.dot(a.cross(b)) / (a.cross(b)).norm();
+    return fabs(d); 
+}
+
+float p2ldist( Eigen::Vector3f x,  Eigen::Vector3f line){
     x.normalize(); 
     line.normalize(); 
     return (x.cross(line)).norm(); 
 }
 
-double p2ldist( Vec3 x,  Vec3 a,  Vec3 b)
+float p2ldist( Eigen::Vector3f x,  Eigen::Vector3f a,  Eigen::Vector3f b)
 {
-    Vec3 line = a-b; 
-    Vec3 x_line = x-b;
+    Eigen::Vector3f line = a-b; 
+    Eigen::Vector3f x_line = x-b;
     return p2ldist(x_line, line); 
 }
+
+/******************* vector comparison ******************/
 
 bool my_equal(std::vector<int> a, std::vector<int> b)
 {
     if(a.size() != b.size()) return false;
-    // bool indicator = true;  
-    // std::sort(a.begin(), a.end()); 
-    // std::sort(b.begin(), b.end()); 
     for(int i = 0; i < a.size(); i++)
     {
         if(a[i] != b[i]) {return false;} 
@@ -255,7 +166,6 @@ bool my_contain(std::vector<int> full, std::vector<int> sub)
     }
     return true; 
 }
-
 
 bool in_list(const int& query, const std::vector<int>& list)
 {
@@ -293,7 +203,7 @@ bool my_exclude(std::vector<int> a, std::vector<int> b)
     return exclude; 
 }
 
-bool in_box_test(const Eigen::Vector2d& x, const Eigen::Vector4d& box)
+bool in_box_test(const Eigen::Vector2f& x, const Eigen::Vector4f& box)
 {
     if(
         x(0) >= box(0) && x(0) <= box(2) && x(1) >= box(1) && x(1) <= box(3)
@@ -312,34 +222,34 @@ bool in_box_test(const Eigen::Vector2i& x, const Eigen::Vector4i& box)
 }
 
 
-double welsch(double x, double c)
+float welsch(float x, float c)
 {
-    double y = 1 - exp(-0.5 * x * x / c /c); 
+    float y = 1 - expf(-0.5 * x * x / c /c); 
 }
 
-double IoU_xyxy(Eigen::Vector4d b1, Eigen::Vector4d b2)
+float IoU_xyxy(Eigen::Vector4f b1, Eigen::Vector4f b2)
 {
 	if (b1.norm() == 0 || b2.norm() == 0) return 0; 
-    double xA = my_max(b1(0), b2(0));
-    double yA = my_max(b1(1), b2(1)); 
-    double xB = my_min(b1(2), b2(2)); 
-    double yB = my_min(b1(3), b2(3)); 
-    double inter = my_max(0, xB - xA +1) * my_max(0, yB - yA + 1); 
-    double areaA = (b1(2) - b1(0) + 1) * (b1(3) - b1(1) + 1); 
-    double areaB = (b2(2) - b2(0) + 1) * (b2(3) - b2(1) + 1); 
-    double iou = inter / (areaA + areaB - inter);
+    float xA = my_max(b1(0), b2(0));
+    float yA = my_max(b1(1), b2(1)); 
+    float xB = my_min(b1(2), b2(2)); 
+    float yB = my_min(b1(3), b2(3)); 
+    float inter = my_max(0, xB - xA +1) * my_max(0, yB - yA + 1); 
+    float areaA = (b1(2) - b1(0) + 1) * (b1(3) - b1(1) + 1); 
+    float areaB = (b2(2) - b2(0) + 1) * (b2(3) - b2(1) + 1); 
+    float iou = inter / (areaA + areaB - inter);
     return iou; 
 }
 
-void IoU_xyxy_ratio(Eigen::Vector4d b1, Eigen::Vector4d b2, double& iou, double &iou2b1, double &iou2b2)
+void IoU_xyxy_ratio(Eigen::Vector4f b1, Eigen::Vector4f b2, float& iou, float &iou2b1, float &iou2b2)
 {
-    double xA = my_max(b1(0), b2(0));
-    double yA = my_max(b1(1), b2(1)); 
-    double xB = my_min(b1(2), b2(2)); 
-    double yB = my_min(b1(3), b2(3)); 
-    double inter = my_max(0, xB - xA +1) * my_max(0, yB - yA + 1); 
-    double areaA = (b1(2) - b1(0) + 1) * (b1(3) - b1(1) + 1); 
-    double areaB = (b2(2) - b2(0) + 1) * (b2(3) - b2(1) + 1); 
+    float xA = my_max(b1(0), b2(0));
+    float yA = my_max(b1(1), b2(1)); 
+    float xB = my_min(b1(2), b2(2)); 
+    float yB = my_min(b1(3), b2(3)); 
+    float inter = my_max(0, xB - xA +1) * my_max(0, yB - yA + 1); 
+    float areaA = (b1(2) - b1(0) + 1) * (b1(3) - b1(1) + 1); 
+    float areaB = (b2(2) - b2(0) + 1) * (b2(3) - b2(1) + 1); 
     iou = inter / (areaA + areaB - inter);
     iou2b1 = inter / areaA; 
     iou2b2 = inter / areaB;
@@ -351,23 +261,23 @@ bool in_image(float w, float h, float x, float y)
 }
 
 
-Mat3 EulerToRotRadD(double x, double y, double z, std::string type)
+Eigen::Matrix3f EulerToRotRad(float x, float y, float z, std::string type)
 {
     if(type=="XYZ")
     {
-        double cx = cos(x); 
-        double sx = sin(x); 
-        double cy = cos(y); 
-        double sy = sin(y); 
-        double cz = cos(z); 
-        double sz = sin(z); 
-        Mat3 Rx = Mat3::Identity(); 
+        float cx = cos(x); 
+        float sx = sin(x); 
+        float cy = cos(y); 
+        float sy = sin(y); 
+        float cz = cos(z); 
+        float sz = sin(z); 
+        Eigen::Matrix3f Rx = Eigen::Matrix3f::Identity(); 
         Rx(1,1) = Rx(2,2) = cx; 
         Rx(1,2) = -sx; Rx(2,1) = sx; 
-        Mat3 Ry = Mat3::Identity(); 
+        Eigen::Matrix3f Ry = Eigen::Matrix3f::Identity(); 
         Ry(0,0) = Ry(2,2) = cy; 
         Ry(0,2) = sy; Ry(2,0) = -sy; 
-        Mat3 Rz = Mat3::Identity(); 
+        Eigen::Matrix3f Rz = Eigen::Matrix3f::Identity(); 
         Rz(0,0) = Rz(1,1) = cz; 
         Rz(0,1) = -sz; Rz(1,0) = sz;  
         
@@ -375,43 +285,106 @@ Mat3 EulerToRotRadD(double x, double y, double z, std::string type)
     }
     else { 
         std::cout << "euler type " << type << " not implemented yet." << std::endl; 
-        return Mat3::Identity();
+        return Eigen::Matrix3f::Identity();
     }
 }
 
-Mat3 EulerToRotDegreeD(double x, double y, double z, std::string type)
+Eigen::Matrix3f EulerToRotDegree(float x, float y, float z, std::string type)
 {
-    double xrad = x * 3.14159265359 / 180; 
-    double yrad = y * 3.14159265359 / 180; 
-    double zrad = z * 3.14159265359 / 180; 
-    return EulerToRotRadD(xrad, yrad, zrad, type); 
+    float xrad = x * 3.14159265359 / 180; 
+    float yrad = y * 3.14159265359 / 180; 
+    float zrad = z * 3.14159265359 / 180; 
+    return EulerToRotRad(xrad, yrad, zrad, type); 
 }
 
-Mat3 EulerToRotRadD(Vec3 rads, std::string type)
+Eigen::Matrix3f EulerToRotRad(Eigen::Vector3f rads, std::string type)
 {
-    return EulerToRotRadD(rads(0), rads(1), rads(2), type); 
+    return EulerToRotRad(rads(0), rads(1), rads(2), type); 
 }
 
-Mat3 EulerToRotDegreeD(Vec3 rads, std::string type)
+Eigen::Matrix3f EulerToRotDegree(Eigen::Vector3f rads, std::string type)
 {
-    return EulerToRotDegreeD(rads(0), rads(1), rads(2), type); 
+    return EulerToRotDegree(rads(0), rads(1), rads(2), type); 
 }
 
 //Q.x∗R.y+P.x∗Q.y+P.y∗R.x−P.x∗R.y−Q.y∗R.x−P.y∗Q.x
-bool to_left_test(const Eigen::Vector3d& p, const Eigen::Vector3d& q, const Eigen::Vector3d& r)
+bool to_left_test(const Eigen::Vector3f& p, const Eigen::Vector3f& q, const Eigen::Vector3f& r)
 {
-	double v = q(0) * r(1) + p(0) * q(1) + p(1) * r(0)
+	float v = q(0) * r(1) + p(0) * q(1) + p(1) * r(0)
 		- p(0) * r(1) - q(1) * r(0) - p(1) * q(0);
 	if (v > 0) return true; 
 	return false; 
 }
 
-double vec2angle(const Eigen::Vector2d& vec)
+float vec2angle(const Eigen::Vector2f& vec)
 {
-	double angleInRadians = std::atan2(vec(1), vec(0));
-	double angleInDegrees = (angleInRadians / M_PI) * 180.0;
+	float angleInRadians = std::atan2(vec(1), vec(0));
+	float angleInDegrees = (angleInRadians / M_PI) * 180.0;
 	return angleInDegrees;
 	// -180 ~ 180
+}
+
+Eigen::Matrix4f Twist(const Eigen::Vector6f &_twist)
+{
+	// calculate exponential mapping from Lie Algebra (se(3)) to Lie Group (SE(3))
+	Eigen::Matrix4f T = Eigen::Matrix4f::Identity();
+	Eigen::Vector3f axis = _twist.head(3);
+
+	if (axis.cwiseAbs().sum() > 1e-5f) {
+		float angle = axis.norm();
+		axis.normalize();
+
+		// rotation
+		T.topLeftCorner(3, 3) = Eigen::AngleAxisf(angle, axis).matrix();
+
+		// translation
+		Eigen::Vector3f rho(_twist.tail(3));
+		const float s = std::sin(angle) / angle;
+		const float t = (1 - std::cos(angle)) / angle;
+
+		Eigen::Matrix3f skew = GetSkewMatrix(axis);
+		Eigen::Matrix3f J = s * Eigen::Matrix3f::Identity() + (1 - s) * (skew * skew + Eigen::Matrix3f::Identity()) + t * skew;
+		Eigen::Vector3f trans = J * rho;
+		T.topRightCorner(3, 1) = trans;
+	}
+	return T;
+}
+
+Eigen::Matrix4f LookAt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _target, const Eigen::Vector3f& _up)
+{
+	const Eigen::Vector3f direct = (_pos - _target).normalized();
+	const Eigen::Vector3f right = (_up.cross(direct)).normalized();
+	const Eigen::Vector3f up = (direct.cross(right)).normalized();
+
+	Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
+	Eigen::Matrix3f R = mat.block<3, 3>(0, 0);
+	R.row(0) = right.transpose();
+	R.row(1) = up.transpose();
+	R.row(2) = direct.transpose();
+	mat.block<3, 3>(0, 0) = R;
+	mat.block<3, 1>(0, 3) = R * (-_pos);
+
+	return mat;
+}
+
+Eigen::Matrix4f Transform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale)
+{
+	Eigen::Matrix4f mat = Eigen::Matrix4f::Identity();
+	mat.block<3, 3>(0, 0) = _scale * GetRodrigues(_rotation);
+	mat.block<3, 1>(0, 3) = _translation;
+	return mat;
+}
+
+Eigen::Matrix4f Perspective(const float fovy, const float aspect, const float zNear, const float zFar)
+{
+	Eigen::Matrix4f mat = Eigen::Matrix4f::Zero();
+	float tangent = tanf(0.5f * fovy);
+	mat(0, 0) = 1.0f / (tangent*aspect);
+	mat(1, 1) = 1.0f / tangent;
+	mat(2, 2) = (zNear + zFar) / (zNear - zFar);
+	mat(3, 2) = -1.0f;
+	mat(2, 3) = 2.0f*zFar*zNear / (zNear - zFar);
+	return mat;
 }
 
 Eigen::Matrix4f calcRenderExt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _up, const Eigen::Vector3f& _center)
@@ -420,11 +393,7 @@ Eigen::Matrix4f calcRenderExt(const Eigen::Vector3f& _pos, const Eigen::Vector3f
 	Eigen::Vector3f up = _up;
 	Eigen::Vector3f center = _center;
 
-	Eigen::Vector3f front = (pos - center).normalized();
-	Eigen::Vector3f right = (front.cross(up)).normalized();
-	up = (right.cross(front)).normalized();
-
-	Eigen::Matrix4f viewMat = EigenUtil::LookAt(pos, center, up);
+	Eigen::Matrix4f viewMat = LookAt(pos, center, up);
 	return viewMat; 
 }
 
@@ -435,4 +404,30 @@ Eigen::Matrix4f calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T
 	Eigen::Vector3f pos = -R.transpose() * T;
 	Eigen::Vector3f center = pos - 1.0f*front;
 	return calcRenderExt(pos, up, center);
+}
+
+nanogui::Matrix4f eigen2nanoM4f(const Eigen::Matrix4f& mat)
+{
+	nanogui::Matrix4f M;
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			M.m[j][i] = mat(i, j);
+		}
+	}
+	return M;
+}
+
+Eigen::Matrix4f nano2eigenM4f(const nanogui::Matrix4f& mat)
+{
+	Eigen::Matrix4f M;
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			M(i, j) = mat.m[j][i];
+		}
+	}
+	return M;
 }

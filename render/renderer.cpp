@@ -27,8 +27,8 @@ void Renderer::s_InitGLFW()
 {
 	// glfw: initialize and configure
 	glfwInit();
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
@@ -293,6 +293,8 @@ void Renderer::s_KeyCallBack(GLFWwindow *_windowPtr, int key, int scancode, int 
 Renderer::Renderer(const std::string &shaderFolder):m_shaderFolder(shaderFolder)
 {
 	InitShader();
+
+	is_useResource = false; 
 }
 
 
@@ -305,19 +307,17 @@ Renderer::~Renderer()
 void Renderer::InitShader()
 {
 	colorShader = SimpleShader(m_shaderFolder + "/basic_color_v.shader", m_shaderFolder + "/basic_color_f.shader", m_shaderFolder + "/basic_color_g.shader");
-	std::cout << "init color shader" << std::endl; 
 	textureShader = SimpleShader(m_shaderFolder + "/basic_texture_v.shader", m_shaderFolder + "/basic_texture_f.shader", m_shaderFolder + "/basic_texture_g.shader");
-	std::cout << "init texture shader" << std::endl; 
 	normalShader = SimpleShader(m_shaderFolder + "/basic_color_v.shader",
 		m_shaderFolder + "/fs_normal.shader",
 		m_shaderFolder + "/basic_color_g.shader");
-	std::cout << "init normal shader" << std::endl;
 	depthShader = SimpleShader(m_shaderFolder + "/depth_vs.shader",
 		m_shaderFolder + "/depth_fs.shader", 
 		m_shaderFolder+"/depth_gs.shader");
-
 	meshShader = SimpleShader(m_shaderFolder + "/mesh_v.shader",
 		m_shaderFolder + "/mesh_f.shader"); 
+	positionShader = SimpleShader(m_shaderFolder + "/position_v.shader",
+		m_shaderFolder + "/position_f.shader"); 
 
 	std::cout << "init depth shader" << std::endl; 
 
@@ -389,11 +389,19 @@ void Renderer::Draw(std::string type)
 		if (type == "color")
 		{
 			meshShader.Use();
-			
 			s_camViewer.ConfigShader(meshShader);
 			meshShader.SetVec3("light_pos", lightPos);
 			meshShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 			meshObjs[i]->DrawWhole(meshShader);
+
+		}
+		else if (type == "depth")
+		{
+			positionShader.Use();
+			s_camViewer.ConfigShader(positionShader);
+			positionShader.SetVec3("light_pos", lightPos);
+			positionShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			meshObjs[i]->DrawWhole(positionShader);
 		}
 	}
 
@@ -427,3 +435,60 @@ cv::Mat Renderer::GetFloatImage()
 	cv::flip(image, image, 0);
 	return image; 
 }
+
+// gpu resource 
+void Renderer::initResource()
+{
+	is_useResource = true;
+	
+	glGenRenderbuffers(2, m_renderbuffers); 
+
+	glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffers[0]); 
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA32F, WINDOW_WIDTH, WINDOW_HEIGHT); 
+	glBindRenderbuffer(GL_RENDERBUFFER, m_renderbuffers[1]); 
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT32F, WINDOW_WIDTH, WINDOW_HEIGHT);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0); 
+
+	glGenFramebuffers(1, &m_framebuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer); 
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+		GL_RENDERBUFFER, m_renderbuffers[0]); 
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,
+		GL_RENDERBUFFER, m_renderbuffers[1]);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+	
+	m_cuda_gl_resources.resize(1); 
+
+	cudaGraphicsGLRegisterImage(&m_cuda_gl_resources[0], m_renderbuffers[0],
+		GL_RENDERBUFFER, cudaGraphicsRegisterFlagsReadOnly);
+}
+
+void Renderer::releaseResource()
+{
+	glDeleteRenderbuffers(2, m_renderbuffers);
+	glDeleteFramebuffers(1, &m_framebuffer); 
+	is_useResource = false; 
+}
+
+void Renderer::beginOffscreenRender()
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, m_framebuffer); 
+}
+
+void Renderer::endOffscreenRender()
+{
+	glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+}
+
+void Renderer::mapRenderingResults()
+{
+	cudaGraphicsMapResources(m_cuda_gl_resources.size(), &m_cuda_gl_resources[0]); 
+	
+	cudaGraphicsSubResourceGetMappedArray(&m_colorArray, m_cuda_gl_resources[0], 0, 0);
+}
+
+void Renderer::unmapRenderingResults()
+{
+	cudaGraphicsUnmapResources(m_cuda_gl_resources.size(), &m_cuda_gl_resources[0]); 
+}
+

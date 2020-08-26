@@ -62,13 +62,13 @@
     <ClCompile Include="..\utils\math_utils.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\model.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\geometry.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\mesh.cpp">
       <Filter>other</Filter>
     </ClCompile>
   </ItemGroup>

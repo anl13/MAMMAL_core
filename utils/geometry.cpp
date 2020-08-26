@@ -1,32 +1,34 @@
-#include "geometry.h" 
+
 #include <ceres/loss_function.h> 
+
+#include "geometry.h" 
 #include "colorterminal.h" 
 
-Eigen::Vector3d NViewDLT(
+Eigen::Vector3f NViewDLT(
     const std::vector<Camera>          &cams, 
-    const std::vector<Eigen::Vector2d> &xs
+    const std::vector<Eigen::Vector2f> &xs
 )
 {
     int N_view = cams.size();
-    Eigen::MatrixXd A(N_view * 3, 4); 
+    Eigen::MatrixXf A(N_view * 3, 4); 
     for(int i=0;i<cams.size();i++)
     {
-        auto P = cams[i].P_g.cast<double>(); 
-        auto x = xs[i]; 
+        Eigen::Matrix4f P = cams[i].P_g.cast<float>(); 
+        Eigen::Vector2f x = xs[i]; 
         A.row(3*i) =   -P.row(1) +  P.row(2) * x(1); 
         A.row(3*i+1) = P.row(0) - x(0) * P.row(2); 
         A.row(3*i+2) = -x(1) * P.row(0) + x(0) * P.row(1);  
     }
-    Eigen::Matrix4d ATA; 
+    Eigen::Matrix4f ATA; 
     // ATA = A.transpose() * A; 
     ATA = A.adjoint() * A;
 
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix4d> eigenSolver(ATA); 
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix4f> eigenSolver(ATA); 
     // std::cout << "Eigen values: " << eigenSolver.eigenvalues() << std::endl; 
     // std::cout << "Eigen vectors: " << std::endl << eigenSolver.eigenvectors() << std::endl;
-    Eigen::Matrix4d eigenvec = eigenSolver.eigenvectors(); 
-    Eigen::Vector4d v = eigenvec.col(0); 
-    Eigen::Vector3d point = v.block<3,1>(0, 0) / v(3); 
+    Eigen::Matrix4f eigenvec = eigenSolver.eigenvectors(); 
+    Eigen::Vector4f v = eigenvec.col(0); 
+    Eigen::Vector3f point = v.block<3,1>(0, 0) / v(3); 
     return point; 
 }
 
@@ -115,7 +117,7 @@ void Joint3DSolver::Solve3D()
     if(!status_init_set) X = Eigen::Vector3d::Zero(); // default zero init 
     for(int i = 0; i < u.size(); i++)
     {
-        E_reproj_euc *term_reproj = new E_reproj_euc(cams[i].P_g, u[i], conf[i]); 
+        E_reproj_euc *term_reproj = new E_reproj_euc(cams[i].P_g.cast<double>(), u[i], conf[i]); 
         CostFunction *cost_func = 
             new AutoDiffCostFunction<E_reproj_euc, 2, 3>(term_reproj); 
         problem.AddResidualBlock(cost_func, NULL, X.data()); 
@@ -128,68 +130,68 @@ void Joint3DSolver::Solve3D()
     Solve(options, &problem, &summary);
 }
 
-double getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Vec2& u1, const Vec2& u2)
+float getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Eigen::Vector2f& u1, const Eigen::Vector2f& u2)
 {
-    Vec3 u1_homo = ToHomogeneous(u1); 
-    Vec3 u2_homo = ToHomogeneous(u2); 
+    Eigen::Vector3f u1_homo = ToHomogeneous(u1); 
+    Eigen::Vector3f u2_homo = ToHomogeneous(u2); 
     return getEpipolarDist(cam1, cam2, u1_homo, u2_homo);
 }
 
-double getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Vec3& _u1, const Vec3& _u2)
+float getEpipolarDistL2L(const Camera& cam1, const Camera& cam2, const Eigen::Vector3f& _u1, const Eigen::Vector3f& _u2)
 {
-    Vec3 u1 = _u1; 
-    Vec3 u2 = _u2;
+	Eigen::Vector3f u1 = _u1;
+	Eigen::Vector3f u2 = _u2;
     u1(2) = 1; 
     u2(2) = 1; 
-    Vec3 a = cam1.inv_K * u1; // x2 - x1 
-    Vec3 b = cam2.inv_K * u2; // x4 - x3
-    Mat3 Rrel = cam1.GetRelR(cam2); 
-    Vec3 Trel = cam1.GetRelT(cam2); 
-    Vec3 b_in_cam1 = Rrel * b; 
-    Vec3 c = Trel; 
+	Eigen::Vector3f a = cam1.inv_K * u1; // x2 - x1 
+	Eigen::Vector3f b = cam2.inv_K * u2; // x4 - x3
+    Eigen::Matrix3f Rrel = cam1.GetRelR(cam2); 
+	Eigen::Vector3f Trel = cam1.GetRelT(cam2);
+	Eigen::Vector3f b_in_cam1 = Rrel * b;
+	Eigen::Vector3f c = Trel;
 
     return L2LDist(a, b_in_cam1, c);
 }
 
-double getEpipolarDist(const Vec3& p1, const Mat3& F, const Vec3& p2)
+float getEpipolarDist(const Eigen::Vector3f& p1, const Eigen::Matrix3f& F, const Eigen::Vector3f& p2)
 {
-    Vec3 l = F.transpose() * p1; 
-    double sqrt_ab = l.segment<2>(0).norm(); 
+    Eigen::Vector3f l = F.transpose() * p1; 
+    float sqrt_ab = l.segment<2>(0).norm(); 
     return fabs(l.dot(p2) / sqrt_ab);
 }
 
-double getEpipolarDist(const Camera& cam1, const Camera& cam2, const Vec3& _u1, const Vec3& _u2)
+float getEpipolarDist(const Camera& cam1, const Camera& cam2, const Eigen::Vector3f& _u1, const Eigen::Vector3f& _u2)
 {
-    Mat3 F1 = cam1.GetFundamental(cam2); 
-    Mat3 F2 = cam2.GetFundamental(cam1); 
-    Vec3 u1 = _u1; u1(2) = 1; 
-    Vec3 u2 = _u2; u2(2) = 1; 
-    double dist1 = getEpipolarDist(u1, F1, u2); 
-    double dist2 = getEpipolarDist(u2, F2, u1); 
+    Eigen::Matrix3f F1 = cam1.GetFundamental(cam2); 
+    Eigen::Matrix3f F2 = cam2.GetFundamental(cam1); 
+    Eigen::Vector3f u1 = _u1; u1(2) = 1; 
+    Eigen::Vector3f u2 = _u2; u2(2) = 1; 
+    float dist1 = getEpipolarDist(u1, F1, u2); 
+    float dist2 = getEpipolarDist(u2, F2, u1); 
     return (dist1 + dist2) / 2; 
 }
 
-void project(const Camera& cam, const vector<Eigen::Vector3d> &points3d, vector<Eigen::Vector3d> &points2d)
+void project(const Camera& cam, const vector<Eigen::Vector3f> &points3d, vector<Eigen::Vector3f> &points2d)
 {
     points2d.resize(points3d.size()); 
     for(int i = 0; i < points3d.size(); i++)
     {
-        Vec3 p = points3d[i];
-        Vec3 p_proj = cam.K * (cam.R * p + cam.T); 
+        Eigen::Vector3f p = points3d[i];
+        Eigen::Vector3f p_proj = cam.K * (cam.R * p + cam.T); 
         p_proj = p_proj / p_proj(2); 
         points2d[i] = p_proj; 
     }
 }
 
-void project(const Camera& cam, const Eigen::Vector3d& p3d, Eigen::Vector3d &p2d)
+void project(const Camera& cam, const Eigen::Vector3f& p3d, Eigen::Vector3f &p2d)
 {
     p2d = cam.K * (cam.R * p3d + cam.T);
     p2d = p2d / p2d(2); 
 }
 
-Eigen::Vector3d project(const Camera& cam, const Eigen::Vector3d& p3d)
+Eigen::Vector3f project(const Camera& cam, const Eigen::Vector3f& p3d)
 {
-    Vec3 p2d = cam.K * (cam.R * p3d + cam.T);
+    Eigen::Vector3f p2d = cam.K * (cam.R * p3d + cam.T);
     p2d = p2d / p2d(2); 
     return p2d; 
 }
@@ -216,9 +218,9 @@ void test_epipole(
     auto cam0 = cameras[camid0]; 
     auto cam1 = cameras[camid1]; 
 
-    Eigen::Vector3d E0 = -cam0.R * cam1.inv_R * cam1.T + cam0.T; 
-    Eigen::Vector3d e0_homo = cam0.K * E0; 
-    Eigen::Vector2d e0 = e0_homo.block<2,1>(0,0) / e0_homo(2); 
+    Eigen::Vector3f E0 = -cam0.R * cam1.inv_R * cam1.T + cam0.T; 
+    Eigen::Vector3f e0_homo = cam0.K * E0; 
+    Eigen::Vector2f e0 = e0_homo.block<2,1>(0,0) / e0_homo(2); 
 
     // draw epipole 
     if(in_image(imgs[camid0].cols, imgs[camid0].rows, e0(0), e0(1)))
@@ -234,7 +236,7 @@ void test_epipole(
 void test_epipolar(
     const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2d> > &joints2d, 
+    const std::vector< std::vector<Eigen::Vector2f> > &joints2d, 
     int camid0, 
     int camid1,
     int jid)
@@ -244,27 +246,27 @@ void test_epipolar(
     auto cam0 = cameras[camid0]; 
     auto cam1 = cameras[camid1]; 
 
-    Eigen::Vector3d E0 = -cam0.R * cam1.inv_R * cam1.T + cam0.T; 
-    Eigen::Vector3d e0_homo = cam0.K * E0; 
-    Eigen::Vector2d e0 = e0_homo.block<2,1>(0,0) / e0_homo(2); 
+    Eigen::Vector3f E0 = -cam0.R * cam1.inv_R * cam1.T + cam0.T; 
+    Eigen::Vector3f e0_homo = cam0.K * E0; 
+    Eigen::Vector2f e0 = e0_homo.block<2,1>(0,0) / e0_homo(2); 
 
-    Eigen::Vector2d point1 = joints2d[camid1][jid]; 
-    Eigen::Vector2d point0 = joints2d[camid0][jid]; 
+    Eigen::Vector2f point1 = joints2d[camid1][jid]; 
+    Eigen::Vector2f point0 = joints2d[camid0][jid]; 
 
     int color_jid = (jid * 5) % colormap.size();  
     Eigen::Vector3i c = colormap[color_jid]; 
     cv::circle(imgs[camid0], cv::Point(point0(0), point0(1) ), 6, cv::Scalar(c(2),c(1),c(0)), -1); 
 
-    Eigen::Matrix3d F1 = cam1.GetFundamental(cam0); 
+    Eigen::Matrix3f F1 = cam1.GetFundamental(cam0); 
 
-    Eigen::Vector3d point0_homo; 
+    Eigen::Vector3f point0_homo; 
     point0_homo =  ToHomogeneous(point0); 
 
-    Eigen::Vector3d point1_homo; 
+    Eigen::Vector3f point1_homo; 
     point1_homo = ToHomogeneous(point1); 
 
-    Eigen::Vector3d ep0 = point1_homo.transpose() * F1; 
-    double uFu = ep0.transpose() * point0_homo; 
+    Eigen::Vector3f ep0 = point1_homo.transpose() * F1; 
+    float uFu = ep0.transpose() * point0_homo; 
 
     draw_line(imgs[camid0], ep0, c); 
 
@@ -294,7 +296,7 @@ void test_epipole_all(
 
 void test_epipolar_all(const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2d> > &joints2d)
+    const std::vector< std::vector<Eigen::Vector2f> > &joints2d)
 {
     int jointNum = joints2d[0].size(); 
     for(int cam1 = 0; cam1 < cameras.size(); cam1 ++)
@@ -310,6 +312,5 @@ void test_epipolar_all(const std::vector<Camera> &cameras,
             }
         }
     }
-    
 }
 

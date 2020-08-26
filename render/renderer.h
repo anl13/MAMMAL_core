@@ -12,6 +12,13 @@
 #include "shader.h"
 #include "../utils/math_utils.h"
 
+#include "../utils/safe_call.hpp"
+#include <cuda_runtime_api.h>
+#include <cuda_gl_interop.h>
+#include <pcl/gpu/containers/device_array.h>
+#include <pcl/point_types.h>
+
+
 #define WINDOW_HEIGHT 1080
 #define WINDOW_WIDTH  1920
 #define SHADOW_WINDOW_HEIGHT  1080
@@ -51,6 +58,7 @@ public:
 	SimpleShader depthShader; 
 	SimpleShader normalShader;
 	SimpleShader meshShader; 
+	SimpleShader positionShader; 
 
 	//GLuint shadowFBO;
 	//GLuint shadowTexture;
@@ -67,8 +75,22 @@ public:
 	void SetBackgroundColor(const Eigen::Vector4f& _color) {
 		m_backgroundColor = _color;
 	}
-	
-	unsigned int m_prog; 
+
+	// offscreen rendering 
+	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources; 
+	 
+	void initResource(); 
+
+	bool is_useResource; 
+	GLuint m_renderbuffers[2]; 
+	GLuint m_framebuffer; 
+	cudaArray_t m_colorArray;
+	void beginOffscreenRender(); 
+	void endOffscreenRender(); 
+	void mapRenderingResults();
+	void unmapRenderingResults(); 
+
+	void releaseResource(); 
 private:
 	static MOUSE_ACTION s_mouseAction;
 	static Eigen::Vector2f s_beforePos; 
@@ -79,7 +101,6 @@ private:
 	static void s_InitGLAD();
 	static void s_InitMouse();
 
-
 	static void s_MouseButtonCallBack(GLFWwindow* _windowPtr, int button, int cation, int mods); 
 	static void s_CursorPoseCallBack(GLFWwindow* _windowPtr, double x, double y); 
 	static void s_ScrollCallBack(GLFWwindow* _windowPtr, double xOffset, double yOffset);
@@ -89,8 +110,4 @@ private:
 
 	Eigen::Vector4f m_backgroundColor; 
 };
-
-
-
-
 

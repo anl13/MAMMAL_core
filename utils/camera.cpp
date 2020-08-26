@@ -1,11 +1,13 @@
-#include "camera.h" 
-#include <json/json.h> 
 #include <fstream> 
 
+#include <json/json.h> 
 
-Camera::Camera(const Mat3& _K,
-               const Mat3& _R, 
-               const Vec3& _T)
+#include "camera.h" 
+
+
+Camera::Camera(const Eigen::Matrix3f& _K,
+               const Eigen::Matrix3f& _R, 
+               const Eigen::Vector3f& _T)
 {
     K = _K; 
     inv_K = K.inverse(); 
@@ -14,71 +16,71 @@ Camera::Camera(const Mat3& _K,
     H = 1080; 
 }
 
-void Camera::SetRT(const Mat3 &_R, const Vec3 &_T)
+void Camera::SetRT(const Eigen::Matrix3f &_R, const Eigen::Vector3f &_T)
 {
     R = _R;
     T = _T; 
     inv_R = R.transpose(); 
 
     // projection directly from global 3-space to local image space
-    P_g = Mat4::Zero(); 
+    P_g = Eigen::Matrix4f::Zero(); 
     P_g.block<3,3>(0,0) = R; 
     P_g.block<3,1>(0,3) = T;
     P_g(3,3) = 1; 
     P_g.block<3,4>(0,0) = K * P_g.block<3,4>(0,0); 
 }
 
-void Camera::SetRT(const Vec3 &Rvec, const Vec3 &_T)
+void Camera::SetRT(const Eigen::Vector3f &Rvec, const Eigen::Vector3f &_T)
 {
-    Mat3 Rmat = GetRodrigues(Rvec); 
+    Eigen::Matrix3f Rmat = GetRodrigues(Rvec); 
     SetRT(Rmat, _T); 
 }
 
-Mat3 Camera::GetEnssential(
-    const Mat3& R2, // R of camera2 
-    const Vec3& T2  // T of camera2
+Eigen::Matrix3f Camera::GetEnssential(
+    const Eigen::Matrix3f& R2, // R of camera2 
+    const Eigen::Vector3f& T2  // T of camera2
 ) const 
 {
-    Mat3 R_rel = R * R2.transpose(); 
-    Vec3 T_rel = - R * R2.transpose() * T2 + T;
-    Mat3 T_skew = GetSkewMatrix(T_rel); 
+    Eigen::Matrix3f R_rel = R * R2.transpose(); 
+    Eigen::Vector3f T_rel = - R * R2.transpose() * T2 + T;
+    Eigen::Matrix3f T_skew = GetSkewMatrix(T_rel); 
     return T_skew * R_rel; 
 }
 
-Mat3 Camera::GetFundamental(const Mat3& R2, 
-                               const Vec3& T2, 
-                               const Mat3& inv_K2) const
+Eigen::Matrix3f Camera::GetFundamental(const Eigen::Matrix3f& R2, 
+                               const Eigen::Vector3f& T2, 
+                               const Eigen::Matrix3f& inv_K2) const
 {
-    Mat3 E = GetEnssential(R2, T2); 
+    Eigen::Matrix3f E = GetEnssential(R2, T2); 
     return inv_K.transpose() * E * inv_K2; 
 }
 
-Mat3 Camera::GetEnssential(const Camera& cam2)const 
+Eigen::Matrix3f Camera::GetEnssential(const Camera& cam2)const 
 {
     return GetEnssential(cam2.R, cam2.T); 
     
 }
 
-Mat3 Camera::GetFundamental(const Camera& cam2)const 
+Eigen::Matrix3f Camera::GetFundamental(const Camera& cam2)const 
 {
     return GetFundamental(cam2.R, cam2.T, cam2.inv_K); 
 }
 
-Mat3 Camera::GetRelR(const Camera& cam2) const 
+Eigen::Matrix3f Camera::GetRelR(const Camera& cam2) const 
 {
-    Mat3 R2 = cam2.R; 
-    Vec3 T2 = cam2.T; 
-    Mat3 R_rel = R * R2.transpose(); 
-    Vec3 T_rel = - R * R2.transpose() * T2 + T;
+    Eigen::Matrix3f R2 = cam2.R; 
+    Eigen::Vector3f T2 = cam2.T; 
+    Eigen::Matrix3f R_rel = R * R2.transpose(); 
+    Eigen::Vector3f T_rel = - R * R2.transpose() * T2 + T;
     return R_rel; 
 }
 
-Vec3 Camera::GetRelT(const Camera& cam2) const 
+Eigen::Vector3f Camera::GetRelT(const Camera& cam2) const 
 {
-    Mat3 R2 = cam2.R; 
-    Vec3 T2 = cam2.T; 
-    Mat3 R_rel = R * R2.transpose(); 
-    Vec3 T_rel = - R * R2.transpose() * T2 + T;
+    Eigen::Matrix3f R2 = cam2.R; 
+    Eigen::Vector3f T2 = cam2.T; 
+    Eigen::Matrix3f R_rel = R * R2.transpose(); 
+    Eigen::Vector3f T_rel = - R * R2.transpose() * T2 + T;
     return T_rel; 
 }
 
@@ -92,38 +94,38 @@ void Camera::NormalizeK()
 }
 
 /// default cameras for pig data
-Camera getDefaultCameraRaw()
+ Camera Camera::getDefaultCameraRaw()
 {
-    Mat3 K;
-    K << 1625.30923,      0, 963.88710, 
-                   0, 1625.34802, 523.45901, 
-                   0,      0,     1; 
-    Vec3 k = {-0.35582, 0.14595, 0};
-    Vec2 p = { -0.00031, -0.00004}; 
+    Eigen::Matrix3f K;
+    K << 1625.30923f,      0.f, 963.88710f, 
+                   0.f, 1625.34802f, 523.45901f, 
+                   0.f,      0.f,     1.f; 
+    Eigen::Vector3f k = {-0.35582f, 0.14595f, 0.f};
+    Eigen::Vector2f p = { -0.00031f, -0.00004f}; 
     Camera camera;
     camera.SetK(K); 
     camera.SetDistortion(k, p); 
 
-    Mat3 R = Mat3::Identity(); 
-    Vec3 T = Vec3::Zero(); 
+    Eigen::Matrix3f R = Eigen::Matrix3f::Identity(); 
+    Eigen::Vector3f T = Eigen::Vector3f::Zero(); 
     camera.SetRT(R,T); 
     return camera; 
 }
 
-Camera getDefaultCameraUndist()
+ Camera Camera::getDefaultCameraUndist()
 {
-    Mat3 K;
-    K << 1340.0378,        0, 964.7579, 
-                     0, 1342.6888, 521.4926, 
-                     0,        0,      1; 
-    Vec3 k = {0, 0, 0};
-    Vec2 p = {0, 0}; 
+    Eigen::Matrix3f K;
+    K << 1340.0378f,        0.f, 964.7579f, 
+                     0.f, 1342.6888f, 521.4926f, 
+                     0.f,        0.f,      1.f; 
+    Eigen::Vector3f k = {0.f, 0.f, 0.f};
+    Eigen::Vector2f p = {0.f, 0.f}; 
     Camera camera;
     camera.SetK(K); 
     camera.SetDistortion(k, p); 
 
-    Mat3 R = Mat3::Identity(); 
-    Vec3 T = Vec3::Zero(); 
+    Eigen::Matrix3f R = Eigen::Matrix3f::Identity(); 
+    Eigen::Vector3f T = Eigen::Vector3f::Zero(); 
     camera.SetRT(R,T); 
 
     return camera; 

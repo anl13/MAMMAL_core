@@ -54,7 +54,7 @@ void test_fitting()
 	std::ofstream log_stream("F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\tmp\\samples\\log.txt");
 
 	std::vector<int> elim = { 46, 47, 48, 49, 50, 51, 52, 53 };
-	for (int i = 0; i < data.size(); i++)
+	for (int i = 0; i < 1; i++)
 	{
 		Eigen::VectorXd pose = Eigen::VectorXd::Zero(62 * 3);
 		pose.segment<61 * 3>(3) = data[i];
