@@ -26,11 +26,6 @@ void CamViewer::SetExtrinsic(const Eigen::Vector3f& _pos, const Eigen::Vector3f&
 	up = (right.cross(front)).normalized();
 
 	viewMat = LookAt(pos, center, up);
-	// std::cout << "viewMat: " << std::endl << viewMat << std::endl; 
-	// std::cout << "right:   " << right.transpose() << std::endl; 
-	// std::cout << "front:   " << front.transpose() << std::endl; 
-	// std::cout << "up   :   " << up.transpose() << std::endl; 
-
 }
 
 

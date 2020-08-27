@@ -8,6 +8,7 @@
 
 #include "shader.h"
 #include "../utils/math_utils.h"
+#include "../utils/mesh.h"
 
 enum RENDER_OBJECT_TYPE
 {
@@ -15,59 +16,6 @@ enum RENDER_OBJECT_TYPE
 	RENDER_OBJECT_TEXTURE,
 	RENDER_OBJECT_MESH
 };
-
-
-class ObjData
-{
-public:
-	ObjData() {};
-	~ObjData() {};
-
-	ObjData(const std::string& objFile);
-
-	ObjData(
-		Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& _vertices,
-		Eigen::Matrix<float, 2, -1, Eigen::ColMajor>& _texcoords,
-		Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor>& _faces)
-		: vertices(_vertices), texcoords(_texcoords), faces(_faces)
-	{}
-
-	ObjData(
-		Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& _vertices,
-		Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor>& _faces)
-		: vertices(_vertices), faces(_faces)
-	{}
-
-	void LoadObj(const std::string& objFile);
-	void Deform(const Eigen::Vector3f& xyzScale); 
-
-	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> vertices;
-	Eigen::Matrix<float, 2, -1, Eigen::ColMajor> texcoords;
-	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> faces;
-	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> colors;
-
-private:
-};
-
-
-struct MaterialParam
-{
-	MaterialParam(float _ambient, float _diffuse, float _specular, float _shininess)
-	{
-		ambient = _ambient;
-		diffuse = _diffuse;
-		specular = _specular;
-		shininess = _shininess;
-	}
-
-	MaterialParam() :MaterialParam(1.0f, 1.0f, 1.0f, 1.0f) {}
-
-	float ambient;
-	float diffuse;
-	float specular;
-	float shininess;
-};
-
 
 class SimpleRenderObject
 {
@@ -79,25 +27,27 @@ public:
 
 	virtual RENDER_OBJECT_TYPE GetType() const = 0;
 	virtual void DrawWhole(SimpleShader& shader) const = 0;
-	virtual void DrawDepth(SimpleShader& shader) const;
 	virtual void SetTransform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale);
-	virtual void SetMaterial(const MaterialParam& _materialParam);
 
 	virtual void SetFaces(const Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor>& faces, const bool inverse = false);
-	virtual void SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& vertices);
+	virtual void SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& vertices, int layout_location=0);
 	
-	virtual void SetVertices(std::vector<Eigen::Vector3f>& vertices); 
-	virtual void SetFaces(std::vector<Eigen::Vector3u>& faces); 
+	virtual void SetVertices(const std::vector<Eigen::Vector3f>& vertices, int layout_location=0); 
+	virtual void SetFaces(const std::vector<Eigen::Vector3u>& faces); 
+
+	virtual void SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals, int layout_location=1);
+	virtual void SetNormal(const std::vector<Eigen::Vector3f> &_normals, int layout_location=1);
 
 protected:
 	GLuint VAO;
-	GLuint VBO_vertex;
 	GLuint EBO;
+
+	GLuint VBO_vertex;
+	GLuint VBO_normal; 
 
 	Eigen::Matrix<float,4,4,Eigen::ColMajor> model;					// transform mat, include translation, rotation, scale
 
 	int faceNum;
-	MaterialParam materialParam;
 };
 
 
@@ -130,7 +80,8 @@ public:
 	virtual void DrawWhole(SimpleShader& shader) const;
 
 	virtual void SetTexture(const std::string& texturePath);
-	virtual void SetTexcoords(const Eigen::Matrix<float, 2, -1, Eigen::ColMajor>& texcoords);
+	virtual void SetTexcoords(const Eigen::Matrix<float, 2, -1, Eigen::ColMajor>& texcoords, int layout_location=1);
+	virtual void SetTexcoords(const std::vector<Eigen::Vector2f>& texcoords, int layout_location = 1); 
 
 private:
 	GLuint VBO_texcoord;
@@ -149,35 +100,33 @@ public:
 	virtual RENDER_OBJECT_TYPE GetType() const { return RENDER_OBJECT_MESH; }
 	virtual void DrawWhole(SimpleShader& shader) const;
 
-	virtual void SetColors(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& colors);
-	virtual void SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals); 
+	virtual void SetColors(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& colors, int layout_location=2);
 
-	virtual void SetColors(const std::vector<Eigen::Vector3f> &_colors); 
-	virtual void SetNormal(const std::vector<Eigen::Vector3f> &_normals); 
+	virtual void SetColors(const std::vector<Eigen::Vector3f> &_colors, int layout_location=2); 
 private:
 	GLuint VBO_color;
-	GLuint VBO_normal; 
 };
 
 
-class BallStickObject : virtual public RenderObjectColor
+class BallStickObject
 {
 public:
 	BallStickObject(
-		const ObjData& ballObj, const ObjData& stickObj,
+		const MeshEigen& ballObj, const MeshEigen& stickObj,
 		const std::vector<Eigen::Vector3f>& balls, 
 		const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 		float ballSize, float StickSize, const Eigen::Vector3f& color);
 
-	BallStickObject(
-		const ObjData& ballObj, 
+	// As point clouds with per-point size and color 
+	BallStickObject( 
+		const MeshEigen& ballObj, 
 		const std::vector<Eigen::Vector3f>& balls, 
 		const std::vector<float> sizes, 
 		const std::vector<Eigen::Vector3f>& colors
 	);
 
 	BallStickObject(
-		const ObjData& ballObj, const ObjData& stickObj,
+		const MeshEigen& ballObj, const MeshEigen& stickObj,
 		const std::vector<Eigen::Vector3f>& balls,
 		const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 		float ballSize, float StickSize, const std::vector<Eigen::Vector3f>& color);

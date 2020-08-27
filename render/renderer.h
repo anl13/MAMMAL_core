@@ -1,33 +1,29 @@
 #pragma once
+
+#include <map> 
+#include <vector>
+
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
-#include <vector>
 #include <Eigen/Eigen>
-#include <map> 
 #include <opencv2/opencv.hpp>
+#include <cuda_runtime_api.h>
+#include <cuda_gl_interop.h>
+#include <pcl/gpu/containers/device_array.h>
+#include <pcl/point_types.h>
 
 #include "camviewer.h"
 #include "render_object.h"
 #include "shader.h"
 #include "../utils/math_utils.h"
-
 #include "../utils/safe_call.hpp"
-#include <cuda_runtime_api.h>
-#include <cuda_gl_interop.h>
-#include <pcl/gpu/containers/device_array.h>
-#include <pcl/point_types.h>
 
 
 #define WINDOW_HEIGHT 1080
 #define WINDOW_WIDTH  1920
 #define SHADOW_WINDOW_HEIGHT  1080
 #define SHADOW_WINDOW_WIDTH   1920
-
-//#define WINDOW_HEIGHT 1024
-//#define WINDOW_WIDTH  1024
-//#define SHADOW_WINDOW_HEIGHT  1024
-//#define SHADOW_WINDOW_WIDTH   1024
 
 class Renderer
 {
@@ -43,7 +39,7 @@ public:
 	static CamViewer s_camViewer;
 	static GLFWwindow* s_windowPtr;
 
-	static void s_Init();
+	static void s_Init(bool isHideWindow=false);
 
 	// --------------------------------------------------
 	Renderer(const std::string &_shaderFolder);
@@ -55,13 +51,8 @@ public:
 
 	SimpleShader colorShader; 
 	SimpleShader textureShader; 
-	SimpleShader depthShader; 
-	SimpleShader normalShader;
 	SimpleShader meshShader; 
 	SimpleShader positionShader; 
-
-	//GLuint shadowFBO;
-	//GLuint shadowTexture;
 	
 	std::vector<RenderObjectColor*> colorObjs; 
 	std::vector<RenderObjectMesh*> meshObjs; 
@@ -97,7 +88,7 @@ private:
 	static float s_arcballRadius; 
 	static double s_leftClickTimeSeconds; 
 	
-	static void s_InitGLFW();
+	static void s_InitGLFW(bool isHideWindow=false);
 	static void s_InitGLAD();
 	static void s_InitMouse();
 

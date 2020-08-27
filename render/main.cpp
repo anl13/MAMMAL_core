@@ -13,12 +13,21 @@
 #endif /* _UNISTD_H */
 #endif 
 
+//#include <opencv2/cudaimgproc.hpp>
+//#include <opencv2/core/cuda_stream_accessor.hpp>
+//#include <opencv2/cudaarithm.hpp>
+#include <opencv2/core/cuda.hpp>
+
 #include "render_utils.h" 
 #include "../utils/camera.h"
 #include "../utils/math_utils.h"
 #include "../utils/colorterminal.h" 
 #include "../utils/mesh.h"
 #include "../utils/geometry.h"
+
+#include "../utils/timer_util.h"
+
+#include "test_kernel.h"
 
 std::vector<Camera> readCameras()
 {
@@ -60,7 +69,7 @@ std::vector<Camera> readCameras()
 	return cams;
 }
 
-void test_cuda()
+void test_shader()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
@@ -80,93 +89,70 @@ void test_cuda()
 	Renderer::s_Init();
 
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 
-	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
 
-	//RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	//chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	//chess_floor->SetFaces(squareObj.faces, true);
-	//chess_floor->SetVertices(squareObj.vertices);
-	//chess_floor->SetTexcoords(squareObj.texcoords);
-	//chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	//m_renderer.texObjs.push_back(chess_floor);
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh); 
+	MeshEigen stickMeshEigen(stickMesh); 
 
-	//std::string point_file = conf_projectFolder + "/results/points3d.txt";
-	//std::vector<Eigen::Vector3d> points = read_points(point_file);
-	//std::vector<float> sizes(points.size(), 0.05f);
-	//std::vector<Eigen::Vector3f> balls, colors;
-	//balls.resize(points.size());
-	//colors.resize(points.size());
-	//for (int i = 0; i < points.size(); i++)
-	//{
-	//	balls[i] = points[i].cast<float>();
-	//	colors[i] = CM[0];
-	//}
-	//BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors);
-	//m_renderer.skels.push_back(skelObject);
+	RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	chess_floor->SetFaces(squareMesh.faces_v_vec);
+	chess_floor->SetVertices(squareMesh.vertices_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec); 
+	chess_floor->SetTexcoords(squareMesh.textures_vec);
+	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	m_renderer.texObjs.push_back(chess_floor);
+
+	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
+	std::vector<Eigen::Vector3f> points = read_points(point_file);
+	std::cout << "pointsize:  " << points.size() << std::endl;
+	std::vector<float> sizes(points.size(), 0.05f);
+	std::vector<Eigen::Vector3f> balls, colors;
+	balls = points; 
+	colors.resize(points.size());
+	for (int i = 0; i < points.size(); i++)
+	{
+		colors[i] = CM[0];
+	}
+	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
+	m_renderer.skels.push_back(skelObject);
 
 	Mesh obj;
 	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
-	MeshEigen objeigen; 
-	obj.GetMeshEigen(objeigen); 
+	MeshEigen objeigen(obj); 
 
-	RenderObjectMesh* p_model = new RenderObjectMesh();
-	p_model->SetVertices(obj.vertices_vec);
-	p_model->SetFaces(obj.faces_v_vec);
-	p_model->SetColors(obj.normals_vec); 
+	//RenderObjectMesh* p_model = new RenderObjectMesh();
+	//p_model->SetVertices(obj.vertices_vec);
+	//p_model->SetFaces(obj.faces_v_vec);
+	//p_model->SetColors(obj.normals_vec); 
+	//p_model->SetNormal(obj.normals_vec); 
+
+	RenderObjectColor * p_model = new RenderObjectColor(); 
+	p_model->SetVertices(obj.vertices_vec); 
+	p_model->SetFaces(obj.faces_v_vec); 
 	p_model->SetNormal(obj.normals_vec); 
+	p_model->SetColor(Eigen::Vector3f(0.2f, 0.8f, 0.5f)); 
 
-	m_renderer.meshObjs.push_back(p_model); 
-	//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 0.5f, 0.5f, 1.0f)); 
+	m_renderer.colorObjs.push_back(p_model); 
+	//m_renderer.meshObjs.push_back(p_model); 
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 0.5f, 0.5f, 1.0f)); 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
-	m_renderer.initResource();
-	cv::Mat img; 
-	img.create(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_32FC4); 
-	cv::Mat depth; 
-	depth.create(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_32FC1); 
 	while (!glfwWindowShouldClose(windowPtr))
 	{
-		
-		m_renderer.beginOffscreenRender(); 
-
 		m_renderer.Draw();
-
-		m_renderer.mapRenderingResults(); 
-		cudaMemcpy2DFromArray(
-			img.data, img.cols * img.elemSize(),
-			m_renderer.m_colorArray, 0, 0, img.cols*img.elemSize(),
-			img.rows,
-			cudaMemcpyDeviceToHost
-		);
-		cv::flip(img, img, 0); 
-		cv::extractChannel(img, depth, 2);
-
-		cv::Mat depth_pseudo = pseudoColor(depth); 
-
-		m_renderer.unmapRenderingResults(); 
-
-		m_renderer.endOffscreenRender();
-
-		cv::namedWindow("render", cv::WINDOW_NORMAL); 
-		cv::imshow("render", depth_pseudo); 
-		cv::waitKey(); 
-		cv::destroyAllWindows(); 
 
 		glfwSwapBuffers(windowPtr);
 		glfwPollEvents();
-
-		break; 
 	};
-
-	m_renderer.releaseResource(); 
 }
 
 
@@ -192,15 +178,10 @@ void test_depth()
 	Eigen::Vector3f center = Eigen::Vector3f::Zero();
 
 	// init renderer 
-	Renderer::s_Init();
+	Renderer::s_Init(true);
 	Renderer m_renderer(conf_projectFolder + "/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-
-	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/data/obj_model/square.obj");
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.f, 0.f, 0.f, 1.0f));
@@ -222,30 +203,45 @@ void test_depth()
 	img.create(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_32FC4);
 	cv::Mat depth;
 	depth.create(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_32FC1);
+	
+	float4 * imgdata; 
+	cudaMalloc( (void**)&imgdata, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float4));
 
-	glEnable(GL_CULL_FACE); 
 	m_renderer.beginOffscreenRender();
 	m_renderer.Draw("depth");
 	m_renderer.mapRenderingResults();
+
+	TimerUtil::Timer<std::chrono::microseconds> tt; 
+	tt.Start(); 
 	cudaMemcpy2DFromArray(
 		img.data, img.cols * img.elemSize(),
 		m_renderer.m_colorArray, 0, 0, img.cols*img.elemSize(),
 		img.rows,
 		cudaMemcpyDeviceToHost
 	);
+	std::cout << tt.Elapsed() << std::endl; 
+	tt.Start(); 
+	cudaMemcpy2DFromArray(imgdata, WINDOW_WIDTH * sizeof(float4), m_renderer.m_colorArray,
+		0, 0, WINDOW_WIDTH * sizeof(float4), WINDOW_HEIGHT, cudaMemcpyDeviceToDevice);
+	std::cout << tt.Elapsed() << std::endl; 
+
+	cv::Mat depth_pseudo2;
+	cv::Mat depth_out; 
+	gpupseudo_color(imgdata, 1920, 1080, 2.48504, 0, depth_pseudo2, depth_out);
+
+	//deviceimg.download(img); 
 	cv::flip(img, img, 0);
 	cv::extractChannel(img, depth, 2);
-	cv::Mat depth_pseudo = pseudoColor(-depth);
+	cv::Mat depth_pseudo = pseudoColor(depth_out);
 	m_renderer.unmapRenderingResults();
 	m_renderer.endOffscreenRender();
 	m_renderer.releaseResource();
 
-	MeshEigen objeigen;
-	obj.GetMeshEigen(objeigen); 
+	MeshEigen objeigen(obj);
 	cv::Mat mask = drawCVDepth(objeigen.vertices, objeigen.faces, cams[0]);
 	cv::Mat blend = blend_images(depth_pseudo, mask, 0.5);
 
-	cv::imshow("depth", depth_pseudo);
+	cv::imshow("depth", depth_pseudo2);
 	cv::imshow("mask", mask);
 	cv::imshow("blend", blend);
 	cv::imwrite("E:/render_test/vis_align.png", depth_pseudo);
@@ -254,6 +250,8 @@ void test_depth()
 
 	cv::waitKey();
 	cv::destroyAllWindows();
+
+	return; 
 
 	int vertexNum = obj.vertex_num; 
 	std::vector<Eigen::Vector3f> colors(vertexNum, Eigen::Vector3f(1.0f, 1.0f, 1.0f));

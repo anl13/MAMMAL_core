@@ -111,9 +111,6 @@
     <ClCompile Include="..\exec\testfunc.cpp">
       <Filter>exec</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\run_render.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\dataconverter.cpp">
       <Filter>utils</Filter>
     </ClCompile>

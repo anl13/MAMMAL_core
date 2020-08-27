@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <IncludePath>D:\Projects\animal_calib\3rdparty\PCL-vs2017-10.0-1.9.1\include\pcl-1.9;D:\Projects\animal_calib\3rdparty\opengl\include;$(IncludePath)</IncludePath>
+    <LibraryPath>D:\Projects\animal_calib\3rdparty\opengl\lib;D:\Projects\animal_calib\3rdparty\PCL-vs2017-10.0-1.9.1\lib;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies>..\3rdparty\opengl\lib\*.lib;cudart_static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;pcl_common_release.lib;pcl_cuda_features_release.lib;pcl_cuda_sample_consensus_release.lib;pcl_cuda_segmentation_release.lib;pcl_features_release.lib;pcl_filters_release.lib;pcl_gpu_containers_release.lib;pcl_gpu_features_release.lib;pcl_gpu_octree_release.lib;pcl_gpu_segmentation_release.lib;pcl_gpu_utils_release.lib;pcl_io_ply_release.lib;pcl_io_release.lib;pcl_kdtree_release.lib;pcl_keypoints_release.lib;pcl_ml_release.lib;pcl_octree_release.lib;pcl_outofcore_release.lib;pcl_people_release.lib;pcl_recognition_release.lib;pcl_registration_release.lib;pcl_sample_consensus_release.lib;pcl_search_release.lib;pcl_segmentation_release.lib;pcl_stereo_release.lib;pcl_surface_release.lib;pcl_tracking_release.lib;pcl_visualization_release.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup />
+</Project>

@@ -16,12 +16,6 @@ uniform vec3 light_pos;
 uniform float far_plane;
 uniform vec3 view_pos;
 
-uniform float material_ambient;
-uniform float material_diffuse;
-uniform float material_specular;
-uniform float material_shininess;
-
-
 void main()
 {        
     out_color = vec4(fs_in.pos, 1); 

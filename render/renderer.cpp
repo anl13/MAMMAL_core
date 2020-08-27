@@ -15,15 +15,15 @@ double                  Renderer::s_leftClickTimeSeconds;
 
 // #define SHOW_CAM_POSE
 
-void Renderer::s_Init()
+void Renderer::s_Init(bool isHideWindow)
 {
-	s_InitGLFW();
+	s_InitGLFW(isHideWindow);
 	s_InitGLAD();
 	s_InitMouse(); 
 }
 
 
-void Renderer::s_InitGLFW()
+void Renderer::s_InitGLFW(bool isHideWindow)
 {
 	// glfw: initialize and configure
 	glfwInit();
@@ -31,6 +31,8 @@ void Renderer::s_InitGLFW()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	if(isHideWindow)
+		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
 	// glfw window creation
 	s_windowPtr = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Renderer", NULL, NULL);
@@ -42,22 +44,13 @@ void Renderer::s_InitGLFW()
 	}
 
 	glfwMakeContextCurrent(s_windowPtr);
-
-	// bind callback
-	glfwSetMouseButtonCallback(s_windowPtr, s_MouseButtonCallBack);
-	glfwSetCursorPosCallback(s_windowPtr, s_CursorPoseCallBack);
-	glfwSetScrollCallback(s_windowPtr, s_ScrollCallBack);
-	glfwSetKeyCallback(s_windowPtr, s_KeyCallBack);
-
 }
-
 
 void Renderer::s_InitGLAD()
 {
 	// glad: load all OpenGL function pointers
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 	{
-		// throw "Failed to initialize GLAD";
 		std::cout << "failed to initialize GLAD" << std::endl; 
 		exit(-1); 
 		glfwTerminate();
@@ -65,14 +58,17 @@ void Renderer::s_InitGLAD()
 
 	// configure global opengl state
 	glEnable(GL_DEPTH_TEST);
-	
-	//glEnable(GL_CULL_FACE);
-
+	glEnable(GL_CULL_FACE);
 }
 
 
 void Renderer::s_InitMouse()
 {
+	// bind callback
+	glfwSetMouseButtonCallback(s_windowPtr, s_MouseButtonCallBack);
+	glfwSetCursorPosCallback(s_windowPtr, s_CursorPoseCallBack);
+	glfwSetScrollCallback(s_windowPtr, s_ScrollCallBack);
+	glfwSetKeyCallback(s_windowPtr, s_KeyCallBack);
 	s_mouseAction = MOUSE_NONE;
 	s_beforePos = Eigen::Vector2f::Zero();
 	s_arcballRadius = 1.0f;
@@ -97,9 +93,11 @@ void Renderer::s_MouseButtonCallBack(GLFWwindow* _windowPtr, int button, int act
 				Eigen::Vector3f newCamPos = camPos - camCenter; 
 				Eigen::Vector3f newCenter = Eigen::Vector3f::Zero(); 
 				s_camViewer.SetExtrinsic(newCamPos, camUp, newCenter);
+#ifdef SHOW_CAM_POSE
 				std::cout << "newCamPos:" << newCamPos.transpose() << std::endl;
 				std::cout << "camUp: " << camUp.transpose() << std::endl;
 				std::cout << "newCenter: " << newCenter.transpose() << std::endl; 
+#endif 
 			}
 			s_leftClickTimeSeconds = seconds; 
 
@@ -306,14 +304,10 @@ Renderer::~Renderer()
 
 void Renderer::InitShader()
 {
-	colorShader = SimpleShader(m_shaderFolder + "/basic_color_v.shader", m_shaderFolder + "/basic_color_f.shader", m_shaderFolder + "/basic_color_g.shader");
-	textureShader = SimpleShader(m_shaderFolder + "/basic_texture_v.shader", m_shaderFolder + "/basic_texture_f.shader", m_shaderFolder + "/basic_texture_g.shader");
-	normalShader = SimpleShader(m_shaderFolder + "/basic_color_v.shader",
-		m_shaderFolder + "/fs_normal.shader",
-		m_shaderFolder + "/basic_color_g.shader");
-	depthShader = SimpleShader(m_shaderFolder + "/depth_vs.shader",
-		m_shaderFolder + "/depth_fs.shader", 
-		m_shaderFolder+"/depth_gs.shader");
+	colorShader = SimpleShader(m_shaderFolder + "/color_v.shader", 
+		m_shaderFolder + "/color_f.shader");
+	textureShader = SimpleShader(m_shaderFolder + "/texture_v.shader", 
+		m_shaderFolder + "/texture_f.shader");
 	meshShader = SimpleShader(m_shaderFolder + "/mesh_v.shader",
 		m_shaderFolder + "/mesh_f.shader"); 
 	positionShader = SimpleShader(m_shaderFolder + "/position_v.shader",
@@ -349,25 +343,6 @@ void Renderer::Draw(std::string type)
 			colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 			colorObjs[i]->DrawWhole(colorShader);
 		}
-
-		if (type == "normal")
-		{
-			normalShader.Use(); 
-			normalShader.SetVec3("light_pos", lightPos);
-			normalShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-			s_camViewer.ConfigShader(normalShader);
-			colorObjs[i]->DrawWhole(normalShader);
-		}
-
-		if (type == "depth")
-		{
-			depthShader.Use();
-			depthShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-			depthShader.SetVec3("light_pos", lightPos);
-			depthShader.SetFloat("near_plane", RENDER_NEAR_PLANE);
-			s_camViewer.ConfigShader(depthShader);
-			colorObjs[i]->DrawDepth(depthShader);
-		}
 	}
 	
 	for(int i = 0; i < texObjs.size(); i++)
@@ -393,15 +368,14 @@ void Renderer::Draw(std::string type)
 			meshShader.SetVec3("light_pos", lightPos);
 			meshShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 			meshObjs[i]->DrawWhole(meshShader);
-
 		}
 		else if (type == "depth")
 		{
 			positionShader.Use();
-			s_camViewer.ConfigShader(positionShader);
+			s_camViewer.ConfigShader(positionShader); 
 			positionShader.SetVec3("light_pos", lightPos);
-			positionShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-			meshObjs[i]->DrawWhole(positionShader);
+			positionShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
+			meshObjs[i]->DrawWhole(positionShader); 
 		}
 	}
 

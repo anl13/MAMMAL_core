@@ -12,22 +12,7 @@
 
 #include "math_utils.h"
 
-struct MeshEigen
-{
-	Eigen::Matrix3Xf vertices;
-	Eigen::Matrix3Xf normals;
-	Eigen::Matrix3Xu faces;
-	Eigen::Matrix2Xf textures; 
 
-	void Deform(const Eigen::Vector3f &xyzScale); 
-};
-
-struct MeshFloat4
-{
-	std::vector<float4> vertices;
-	std::vector<float4> normals;
-	std::vector<unsigned int> indices;
-};
 
 struct Mesh
 {
@@ -49,10 +34,30 @@ public:
 	void Load(const std::string& filename);
 	void Save(const std::string& filename) const; 
 
-	void GetMeshEigen(MeshEigen &_mesh); 
-	void GetMeshFloat4(MeshFloat4 &_mesh); 
 
 private: 
 	void SplitFaceStr(std::string &str, int &i1, int &i2, int &i3); 
 };
 
+class MeshEigen
+{
+public:
+	MeshEigen() {}
+	MeshEigen(const Mesh& _mesh);
+	Eigen::Matrix3Xf vertices;
+	Eigen::Matrix3Xf normals;
+	Eigen::Matrix3Xu faces;
+	Eigen::Matrix2Xf textures;
+
+	void Deform(const Eigen::Vector3f &xyzScale);
+};
+
+class MeshFloat4
+{
+public:
+	MeshFloat4() {}
+	MeshFloat4(const Mesh& _mesh);
+	std::vector<float4> vertices;
+	std::vector<float4> normals;
+	std::vector<unsigned int> indices;
+};

@@ -98,10 +98,8 @@ int test_datatype()
 		nanogui::Texture::ComponentFormat::UInt8,
 		nanogui::Vector2i(tex0Image.cols, tex0Image.rows), tex0Image.data);
 
-	Mesh model; 
-	model.Load("D:/Projects/animal_calib/nanorender/data/model.obj");
-	MeshFloat4 model_float4; 
-	model.GetMeshFloat4(model_float4); 
+	Mesh model("D:/Projects/animal_calib/nanorender/data/model.obj");
+	MeshFloat4 model_float4(model); 
 	auto human_model = renderer.CreateRenderObject("human_model", vs_phong_geometry, fs_phong_geometry);
 	human_model->SetIndices(model_float4.indices);
 	human_model->SetBuffer("positions", model_float4.vertices);
@@ -211,12 +209,9 @@ int test_depth()
 	std::vector<float4> colormap = getColorMapFloat4("anliang_rgb");
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_rgb");
 	/// read smal model 
-	Mesh obj; 
-	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
-	MeshFloat4 objfloat4; 
-	obj.GetMeshFloat4(objfloat4); 
-	MeshEigen objeigen; 
-	obj.GetMeshEigen(objeigen); 
+	Mesh obj("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
+	MeshFloat4 objfloat4(obj); 
+	MeshEigen objeigen(obj); 
 
 	std::vector<Camera> cams = readCameras(); 
 	Camera cam = cams[0]; 

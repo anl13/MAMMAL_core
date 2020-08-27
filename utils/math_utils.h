@@ -9,9 +9,9 @@
 #include <type_traits>
 #include <algorithm> 
 
-#include <nanogui/vector.h>
-
+#ifndef M_PI
 #define M_PI 3.1415926
+#endif 
 
 namespace Eigen {
 	typedef Eigen::Matrix<unsigned char, Eigen::Dynamic, Eigen::Dynamic> MatrixXb;
@@ -92,6 +92,3 @@ Eigen::Matrix4f Transform(const Eigen::Vector3f& _translation, const Eigen::Vect
 Eigen::Matrix4f Perspective(const float fovy, const float aspect, const float zNear, const float zFar);
 Eigen::Matrix4f calcRenderExt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _up, const Eigen::Vector3f& _center);
 Eigen::Matrix4f calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T);
-
-nanogui::Matrix4f eigen2nanoM4f(const Eigen::Matrix4f& mat);
-Eigen::Matrix4f nano2eigenM4f(const nanogui::Matrix4f& mat);

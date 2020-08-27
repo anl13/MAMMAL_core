@@ -1,5 +1,24 @@
 #include "mesh.h"
 
+MeshEigen::MeshEigen(const Mesh& _mesh)
+{
+	vertices.resize(3, _mesh.vertex_num);
+#pragma omp parallel for 
+	for (int i = 0; i < _mesh.vertex_num; i++) vertices.col(i) = _mesh.vertices_vec[i];
+
+	normals.resize(3, _mesh.vertex_num);
+#pragma omp parallel for 
+	for (int i = 0; i < _mesh.vertex_num; i++) normals.col(i) = _mesh.normals_vec[i];
+
+	faces.resize(3, _mesh.face_num);
+#pragma omp parallel for 
+	for (int i = 0; i < _mesh.face_num; i++) faces.col(i) = _mesh.faces_v_vec[i];
+
+	textures.resize(2, _mesh.texture_num);
+#pragma omp parallel for 
+	for (int i = 0; i < _mesh.texture_num; i++) textures.col(i) = _mesh.textures_vec[i];
+}
+
 void MeshEigen::Deform(const Eigen::Vector3f &xyzScale)
 {
 	vertices.row(0) = vertices.row(0) * xyzScale(0);
@@ -7,18 +26,30 @@ void MeshEigen::Deform(const Eigen::Vector3f &xyzScale)
 	vertices.row(2) = vertices.row(2) * xyzScale(2);
 }
 
+MeshFloat4::MeshFloat4(const Mesh& _mesh)
+{
+	vertices.resize(_mesh.vertex_num);
+	for (int i = 0; i < _mesh.vertex_num; i++) vertices[i] = make_float4(_mesh.vertices_vec[i].x(),
+		_mesh.vertices_vec[i].y(), _mesh.vertices_vec[i].z(), 1.0f);
+
+	normals.resize(_mesh.vertex_num);
+	for (int i = 0; i < _mesh.vertex_num; i++) normals[i] = make_float4(_mesh.normals_vec[i].x(),
+		_mesh.normals_vec[i].y(), _mesh.normals_vec[i].z(), 1.0f);
+
+	indices.resize(3 * _mesh.face_num);
+	for (int i = 0; i < _mesh.face_num; i++)
+	{
+		indices[3 * i + 0] = _mesh.faces_v_vec[i].x();
+		indices[3 * i + 1] = _mesh.faces_v_vec[i].y();
+		indices[3 * i + 2] = _mesh.faces_v_vec[i].z();
+	}
+}
+
 void Mesh::CalcNormal()
 {
 	normals_vec.resize(vertex_num, Eigen::Vector3f::Zero()); 
 	for (int fIdx = 0; fIdx < faces_v_vec.size(); fIdx++) {
 		const Eigen::Vector3u face = faces_v_vec[fIdx];
-		//if (face(0) >= vertex_num || face(1) >= vertex_num || face(2) >= vertex_num)
-		//{
-		//	std::cout << "vertex_num: " << vertex_num << std::endl; 
-		//	std::cout << "face: " << face.transpose() << std::endl; 
-		//	system("pause"); 
-		//	exit(-1);
-		//}
 		Eigen::Vector3f normal = ((vertices_vec[face.x()] - vertices_vec[face.y()]).cross(
 			vertices_vec[face.y()] - vertices_vec[face.z()])).normalized();
 
@@ -157,39 +188,3 @@ void Mesh::Save(const std::string &filename) const
 	}
 	f.close();
 }
-
-void Mesh::GetMeshEigen(MeshEigen &_m)
-{
-	_m.vertices.resize(3, vertex_num); 
-	for (int i = 0; i < vertex_num; i++) _m.vertices.col(i) = vertices_vec[i]; 
-
-	_m.normals.resize(3, vertex_num); 
-	for (int i = 0; i < vertex_num; i++) _m.normals.col(i) = normals_vec[i]; 
-
-	_m.faces.resize(3, face_num); 
-	for (int i = 0; i < face_num; i++) _m.faces.col(i) = faces_v_vec[i]; 
-
-	_m.textures.resize(2, texture_num); 
-	for (int i = 0; i < texture_num; i++) _m.textures.col(i) = textures_vec[i]; 
-
-}
-
-void Mesh::GetMeshFloat4(MeshFloat4 &_m)
-{
-	_m.vertices.resize(vertex_num); 
-	for (int i = 0; i < vertex_num; i++) _m.vertices[i] = make_float4(vertices_vec[i].x(),
-		vertices_vec[i].y(), vertices_vec[i].z(), 1.0f); 
-
-	_m.normals.resize(vertex_num); 
-	for (int i = 0; i < vertex_num; i++) _m.normals[i] = make_float4(normals_vec[i].x(),
-		normals_vec[i].y(), normals_vec[i].z(), 1.0f);
-	
-	_m.indices.resize(3 * face_num); 
-	for (int i = 0; i < face_num; i++)
-	{
-		_m.indices[3 * i + 0] = faces_v_vec[i].x(); 
-		_m.indices[3 * i + 1] = faces_v_vec[i].y();
-		_m.indices[3 * i + 2] = faces_v_vec[i].z();
-	}
-}
-

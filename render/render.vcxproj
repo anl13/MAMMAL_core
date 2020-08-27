@@ -68,12 +68,12 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\props\nanorenderer.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\OpenCV4.1.props" />
     <Import Project="..\props\json.props" />
     <Import Project="..\props\ceres.props" />
+    <Import Project="..\props\gl-pcl.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -128,6 +128,7 @@
     <ClInclude Include="render_utils.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="test_kernel.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\utils\camera.cpp" />
@@ -141,6 +142,9 @@
     <ClCompile Include="render_object.cpp" />
     <ClCompile Include="render_utils.cpp" />
     <ClCompile Include="shader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="test_kernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,6 +1,6 @@
 #version 330 core
 
-in GS_OUT
+in VS_OUT
 {
     vec3 pos;
     vec3 normal;
@@ -8,34 +8,22 @@ in GS_OUT
 
 out vec4 out_color;
 
-uniform samplerCube depth_cube;       
+uniform samplerCube depth_cube;  
+uniform sampler2D object_texture;      
 uniform vec3 object_color;
-
 uniform vec3 light_pos;
 uniform float far_plane;
 uniform vec3 view_pos;
-
-uniform float material_ambient;
-uniform float material_diffuse;
-uniform float material_specular;
-uniform float material_shininess;
-
-// array of offset direction for sampling
-vec3 grid_sampling_disk[20] = vec3[]
-(
-   vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
-   vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
-   vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
-   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
-   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
-);
 
 
 void main()
 {            
     // calculate shadow
     float shadow = 0.0;
-
+    float material_ambient = 0.5;
+    float material_diffuse = 0.6;
+    float material_specular = 0.01;
+    float material_shininess = 1;
     // vec3 light_distance = fs_in.pos - light_pos;
     // float current_depth = (length(light_distance))/far_plane;      
     // int samples = 20;

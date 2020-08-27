@@ -405,29 +405,3 @@ Eigen::Matrix4f calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T
 	Eigen::Vector3f center = pos - 1.0f*front;
 	return calcRenderExt(pos, up, center);
 }
-
-nanogui::Matrix4f eigen2nanoM4f(const Eigen::Matrix4f& mat)
-{
-	nanogui::Matrix4f M;
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			M.m[j][i] = mat(i, j);
-		}
-	}
-	return M;
-}
-
-Eigen::Matrix4f nano2eigenM4f(const nanogui::Matrix4f& mat)
-{
-	Eigen::Matrix4f M;
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			M(i, j) = mat.m[j][i];
-		}
-	}
-	return M;
-}

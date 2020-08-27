@@ -41,7 +41,6 @@
     <ClCompile Include="..\exec\main.cpp" />
     <ClCompile Include="..\exec\run_pose.cpp" />
     <ClCompile Include="..\exec\run_pose_render.cpp" />
-    <ClCompile Include="..\exec\run_render.cpp" />
     <ClCompile Include="..\exec\run_shape.cpp" />
     <ClCompile Include="..\exec\testfunc.cpp" />
     <ClCompile Include="..\exec\write_video.cpp" />

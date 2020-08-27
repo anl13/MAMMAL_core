@@ -1,6 +1,6 @@
 #version 330 core
 
-in GS_OUT
+in VS_OUT
 {
     vec3 pos;
     vec2 texcoord;
@@ -16,29 +16,15 @@ uniform vec3 light_pos;
 uniform float far_plane;
 uniform vec3 view_pos;
 
-uniform float material_ambient;
-uniform float material_diffuse;
-uniform float material_specular;
-uniform float material_shininess;
-
-// array of offset direction for sampling
-vec3 grid_sampling_disk[20] = vec3[]
-(
-   vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
-   vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
-   vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
-   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
-   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
-);
-
-
 void main()
 {        
 
     float shadow = 0.0;
     // ambient
-    float ambient = material_ambient;
-  	
+    float material_ambient = 0.5;
+    float material_diffuse = 0.6;
+    float material_specular = 0.01;
+    float material_shininess = 1;
     // diffuse 
     vec3 light_dir = normalize(light_pos - fs_in.pos);
     float diff = max(dot(fs_in.normal, light_dir), 0.0);
@@ -52,7 +38,7 @@ void main()
     float specular = spec * material_specular;  
 
     // sum
-    out_color =  (ambient + (1.0 - shadow) * (diffuse + specular)) *  texture(object_texture, fs_in.texcoord);
+    out_color =  (material_ambient + (1.0 - shadow) * (diffuse + specular)) *  texture(object_texture, fs_in.texcoord);
     //out_color = vec4(vec3(texture(depth_cube, vec3(fs_in.pos - light_pos)).r),1.0);
     //out_color = vec4(vec3(shadow),1.0);
 }

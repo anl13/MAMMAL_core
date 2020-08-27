@@ -16,27 +16,15 @@ uniform vec3 light_pos;
 uniform float far_plane;
 uniform vec3 view_pos;
 
-uniform float material_ambient;
-uniform float material_diffuse;
-uniform float material_specular;
-uniform float material_shininess;
-
-// array of offset direction for sampling
-vec3 grid_sampling_disk[20] = vec3[]
-(
-   vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
-   vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
-   vec3(1, 1,  0), vec3( 1, -1,  0), vec3(-1, -1,  0), vec3(-1, 1,  0),
-   vec3(1, 0,  1), vec3(-1,  0,  1), vec3( 1,  0, -1), vec3(-1, 0, -1),
-   vec3(0, 1,  1), vec3( 0, -1,  1), vec3( 0, -1, -1), vec3( 0, 1, -1)
-);
-
-
 void main()
 {        
 
     float shadow = 0.0;
     // ambient
+    float material_ambient = 0.5;
+    float material_diffuse = 0.6;
+    float material_specular = 0.01;
+    float material_shininess = 1;
     float ambient = material_ambient;
   	
     // diffuse 

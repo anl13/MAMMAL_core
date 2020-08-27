@@ -9,166 +9,26 @@
 #include "stb_image.h"
 #include "../utils/math_utils.h"
 
-ObjData::ObjData(const std::string& objFile)
-{
-	LoadObj(objFile);
-}
-
-void ObjData::Deform(const Eigen::Vector3f& xyzScale)
-{
-	vertices.row(0) = vertices.row(0) * xyzScale(0); 
-	vertices.row(1) = vertices.row(1) * xyzScale(1); 
-	vertices.row(2) = vertices.row(2) * xyzScale(2); 
-}
-
-void ObjData::LoadObj(const std::string& objFile)
-{
-	std::fstream reader;
-	reader.open(objFile.c_str(), std::ios::in);
-
-	if (!reader.is_open())
-	{
-		std::cout <<"[ObjData] file not exist!" << std::endl; 
-		exit(-1); 
-	}
-
-	std::vector<Eigen::Vector3f> vertexVec;
-	std::vector<std::vector<Eigen::Vector3u>> faceVec;
-	std::vector<Eigen::Vector2f> textureVec;
-	std::vector<Eigen::Vector3f> normalVec;
-
-	while (!reader.eof())
-	{
-		std::string dataType;
-		reader >> dataType;
-
-		if(reader.eof()) break;
-
-		if (dataType == "v")
-		{
-			Eigen::Vector3f temp;
-			reader >> temp.x() >> temp.y() >> temp.z();
-			vertexVec.push_back(temp);
-		}
-		else if (dataType == "vn")
-		{
-			Eigen::Vector3f temp;
-			reader >> temp.x() >> temp.y() >> temp.z();
-			normalVec.push_back(temp);
-		}
-		else if (dataType == "vt")
-		{
-			Eigen::Vector2f temp;
-			reader >> temp.x() >> temp.y();
-			textureVec.push_back(temp);
-		}
-		else if (dataType == "f")
-		{
-			std::vector<Eigen::Vector3u> tempFace(3);
-			for (int i = 0; i < 3; i++)
-			{
-				std::string dataStr;
-				reader >> dataStr;
-				std::stringstream ss(dataStr);
-
-				for (int j = 0; j < 3; j++)
-				{
-					std::string temp;
-					std::getline(ss, temp, '/');
-					if(temp != "")
-					{
-						tempFace[i](j) = std::stoi(temp);
-					}
-					else tempFace[i](j) = 0; 
-				}
-			}
-			faceVec.push_back(tempFace);
-		}
-		else
-		{
-			std::cout << "datatype : " << dataType << std::endl; 
-			std::cout << "[ObjData] unknown type" << std::endl; 
-			exit(-1); 
-		}
-	}
-
-	// find relation map, use texture as key
-	int allVertexSize = (int)textureVec.size();
-	std::vector<int> vertexMap(allVertexSize, -1);
-	std::vector<int> normalMap(allVertexSize, -1);
-
-	for (const std::vector<Eigen::Vector3u>& face : faceVec)
-	{
-		for (const Eigen::Vector3u& faceParam : face)
-		{
-			int vertexId = faceParam.x() - 1;
-			int textureId = faceParam.y() - 1;
-			int normalId = faceParam.z() - 1;
-			vertexMap[textureId] = vertexId;
-			normalMap[textureId] = normalId;
-		}
-	}
-
-	// fill vertex data with  texture-key map
-	vertices.resize(3, allVertexSize);
-	texcoords.resize(2, allVertexSize);
-	// Attention: sort the vec as the texture sequence
-	for (int textureId = 0; textureId < allVertexSize; textureId++)
-	{
-		texcoords.col(textureId) = textureVec[textureId];
-		vertices.col(textureId) = vertexVec[vertexMap[textureId]];
-	}
-
-	// fill face data
-	faces.resize(3, faceVec.size());
-	for (int faceId = 0; faceId < faceVec.size(); faceId++)
-	{
-		for (int i = 0; i < 3; i++)
-		{
-			unsigned int textureId = faceVec[faceId][i].y() - 1;
-			faces(i, faceId) = textureId;
-		}
-	}
-	// std::cout << "read done. " << std::endl; 
-}
-
-
 // --------------------------------------------------
 // RenderObject
 SimpleRenderObject::SimpleRenderObject()
 {
 	model.setIdentity();
-	materialParam = MaterialParam(0.5f, 0.6f, 0.01f, 1.0f);
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO_vertex);
 	glGenBuffers(1, &EBO);
+	glGenBuffers(1, &VBO_normal); 
 }
 
 
 SimpleRenderObject::~SimpleRenderObject()
 {
 	glDeleteBuffers(1, &VBO_vertex);
+	glDeleteBuffers(1, &VBO_normal); 
 	glDeleteBuffers(1, &EBO);
 	glDeleteVertexArrays(1, &VAO);
 }
-
-
-void SimpleRenderObject::DrawDepth(SimpleShader& shader) const
-{
-	shader.SetMat4("model", model);
-
-	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, 3 * faceNum, GL_UNSIGNED_INT, 0);
-	glBindVertexArray(0);
-}
-
-
-void SimpleRenderObject::SetMaterial(const MaterialParam& _materialParam)
-{
-	materialParam = _materialParam;
-}
-
 
 void SimpleRenderObject::SetFaces(const Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor>& faces, const bool inverse)
 {
@@ -190,7 +50,7 @@ void SimpleRenderObject::SetFaces(const Eigen::Matrix<unsigned int, 3, -1, Eigen
 
 }
 
-void SimpleRenderObject::SetFaces(std::vector<Eigen::Vector3u>& faces)
+void SimpleRenderObject::SetFaces(const std::vector<Eigen::Vector3u>& faces)
 {
 	faceNum = faces.size(); 
 	glBindVertexArray(VAO); 
@@ -200,26 +60,26 @@ void SimpleRenderObject::SetFaces(std::vector<Eigen::Vector3u>& faces)
 }
 
 
-void SimpleRenderObject::SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& vertices)
+void SimpleRenderObject::SetVertices(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& vertices, int layout_location)
 {
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_vertex);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*3* vertices.cols(), vertices.data(), GL_DYNAMIC_DRAW);
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(layout_location);
+	glVertexAttribPointer(layout_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 
-void SimpleRenderObject::SetVertices(std::vector<Eigen::Vector3f>& vertices)
+void SimpleRenderObject::SetVertices(const std::vector<Eigen::Vector3f>& vertices, int layout_location)
 {
 	glBindVertexArray(VAO); 
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_vertex); 
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * vertices.size(), vertices.data(), GL_DYNAMIC_DRAW); 
-	glEnableVertexAttribArray(0); 
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); 
+	glEnableVertexAttribArray(layout_location); 
+	glVertexAttribPointer(layout_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); 
 	glBindBuffer(GL_ARRAY_BUFFER, 0); 
 	glBindVertexArray(0); 
 }
@@ -227,6 +87,32 @@ void SimpleRenderObject::SetVertices(std::vector<Eigen::Vector3f>& vertices)
 void SimpleRenderObject::SetTransform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale)
 {
 	model = Transform(_translation, _rotation, _scale);
+}
+
+void SimpleRenderObject::SetNormal(const std::vector<Eigen::Vector3f>& normals, int layout_location)
+{
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * normals.size(), normals.data(), GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(layout_location);
+	glVertexAttribPointer(layout_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void SimpleRenderObject::SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals,int layout_location)
+{
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * normals.cols(), normals.data(), GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(layout_location);
+	glVertexAttribPointer(layout_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
 }
 
 // --------------------------------------------------
@@ -245,11 +131,6 @@ RenderObjectColor::~RenderObjectColor()
 void RenderObjectColor::DrawWhole(SimpleShader& shader) const
 {
 	shader.SetMat4("model", model);
-	shader.SetFloat("material_ambient", materialParam.ambient);
-	shader.SetFloat("material_diffuse", materialParam.diffuse);
-	shader.SetFloat("material_specular", materialParam.specular);
-	shader.SetFloat("material_shininess", materialParam.shininess);
-	
 	shader.SetVec3("object_color", color);
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 3 * faceNum, GL_UNSIGNED_INT, 0);
@@ -274,14 +155,27 @@ RenderObjectTexture::~RenderObjectTexture()
 }
 
 
-void RenderObjectTexture::SetTexcoords(const Eigen::Matrix<float, 2, -1, Eigen::ColMajor>& texcoords)
+void RenderObjectTexture::SetTexcoords(const Eigen::Matrix<float, 2, -1, Eigen::ColMajor>& texcoords, int layout_location)
 {
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_texcoord);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * texcoords.cols(), texcoords.data(), GL_DYNAMIC_DRAW);
 
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(layout_location);
+	glVertexAttribPointer(layout_location, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+}
+
+void RenderObjectTexture::SetTexcoords(const std::vector<Eigen::Vector2f>& texcoords, int layout_location)
+{
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO_texcoord);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 2 * texcoords.size(), texcoords.data(), GL_DYNAMIC_DRAW);
+
+	glEnableVertexAttribArray(layout_location);
+	glVertexAttribPointer(layout_location, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -326,11 +220,7 @@ void RenderObjectTexture::SetTexture(const std::string& texturePath)
 void RenderObjectTexture::DrawWhole(SimpleShader& shader) const
 {
 	shader.SetMat4("model", model);
-	shader.SetFloat("material_ambient", materialParam.ambient);
-	shader.SetFloat("material_diffuse", materialParam.diffuse);
-	shader.SetFloat("material_specular", materialParam.specular);
-	shader.SetFloat("material_shininess", materialParam.shininess);
-	
+
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
 	glBindVertexArray(VAO);
@@ -344,76 +234,49 @@ void RenderObjectTexture::DrawWhole(SimpleShader& shader) const
 RenderObjectMesh::RenderObjectMesh()
 {
 	glGenBuffers(1, &VBO_color);
-	glGenBuffers(1, &VBO_normal); 
 }
 
 
 RenderObjectMesh::~RenderObjectMesh()
 {
 	glDeleteBuffers(1, &VBO_color);
-	glDeleteBuffers(1, &VBO_normal); 
 }
 
 
-void RenderObjectMesh::SetColors(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& colors)
+void RenderObjectMesh::SetColors(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& colors, int layout_location)
 {
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_color);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * colors.cols(), colors.data(), GL_DYNAMIC_DRAW);
 
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(layout_location);
+	glVertexAttribPointer(layout_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 
-void RenderObjectMesh::SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals)
-{
-	glBindVertexArray(VAO); 
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal); 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * normals.cols(), normals.data(), GL_DYNAMIC_DRAW);
 
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0); 
 
-	glBindBuffer(GL_ARRAY_BUFFER, 0); 
-	glBindVertexArray(0); 
-}
-
-void RenderObjectMesh::SetColors(const std::vector<Eigen::Vector3f> &colors)
+void RenderObjectMesh::SetColors(const std::vector<Eigen::Vector3f> &colors, int layout_location)
 {
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO_color);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * colors.size(), colors.data(), GL_DYNAMIC_DRAW);
 
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(layout_location);
+	glVertexAttribPointer(layout_location, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 }
 
-void RenderObjectMesh::SetNormal(const std::vector<Eigen::Vector3f>& normals)
-{
-	glBindVertexArray(VAO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO_normal);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 3 * normals.size(), normals.data(), GL_DYNAMIC_DRAW);
 
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-}
 
 void RenderObjectMesh::DrawWhole(SimpleShader& shader) const
 {
 	shader.SetMat4("model", model);
-	shader.SetFloat("material_ambient", materialParam.ambient);
-	shader.SetFloat("material_diffuse", materialParam.diffuse);
-	shader.SetFloat("material_specular", materialParam.specular);
-	shader.SetFloat("material_shininess", materialParam.shininess);
+
 	glBindVertexArray(VAO);
 	glDrawElements(GL_TRIANGLES, 3 * faceNum, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
@@ -426,7 +289,7 @@ void RenderObjectMesh::DrawWhole(SimpleShader& shader) const
 //BallStickObject
 //BallStickObject
 BallStickObject::BallStickObject(
-	const ObjData& ballObj, const ObjData& stickObj,
+	const MeshEigen& ballObj, const MeshEigen& stickObj,
 	const std::vector<Eigen::Vector3f>& balls, 
 	const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 	float ballSize, float StickSize, const Eigen::Vector3f& color)
@@ -434,20 +297,21 @@ BallStickObject::BallStickObject(
 	for (int i = 0; i < balls.size(); i++)
 	{
 		// std::cout << balls[i].transpose() << std::endl; 
-		ObjData ballObjCopy(ballObj);
-		ballObjCopy.Deform(Eigen::Vector3f(ballSize, ballSize, ballSize));
+		//ObjData ballObjCopy(ballObj);
+		//ballObjCopy.Deform(Eigen::Vector3f(ballSize, ballSize, ballSize));
 
 		RenderObjectColor* ballObject = new RenderObjectColor();
-		ballObject->SetFaces(ballObjCopy.faces);
-		ballObject->SetVertices(ballObjCopy.vertices);
-		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), 1.0f);
+		ballObject->SetFaces(ballObj.faces);
+		ballObject->SetVertices(ballObj.vertices);
+		ballObject->SetNormal(ballObj.normals); 
+		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), ballSize);
 		ballObject->SetColor(color);
 		objectPtrs.push_back(ballObject);
 	}
 
 	for (const std::pair<Eigen::Vector3f, Eigen::Vector3f>& stick : sticks)
 	{
-		ObjData stickObjCopy(stickObj);
+		MeshEigen stickObjCopy = stickObj;
 		Eigen::Vector3f direction = stick.first - stick.second;
 		stickObjCopy.Deform(Eigen::Vector3f(StickSize, StickSize,  0.5f * direction.norm()));
 
@@ -460,16 +324,15 @@ BallStickObject::BallStickObject(
 
 		stickObject->SetFaces(stickObjCopy.faces);
 		stickObject->SetVertices(stickObjCopy.vertices);
+		stickObject->SetNormal(stickObjCopy.normals); 
 		stickObject->SetTransform(translation, rotation, 1.0f);
-		// stickObject->SetColor(Eigen::Vector3f::Ones() - color);
 		stickObject->SetColor(color); 
-
 		objectPtrs.push_back(stickObject);
 	}
 }
 
 BallStickObject::BallStickObject( // point clouds 
-	const ObjData& ballObj, 
+	const MeshEigen& ballObj, 
 	const std::vector<Eigen::Vector3f>& balls, 
 	const std::vector<float> sizes, 
 	const std::vector<Eigen::Vector3f>& colors
@@ -480,20 +343,21 @@ BallStickObject::BallStickObject( // point clouds
 		// std::cout << balls[i].transpose() << std::endl; 
 		float ballSize = sizes[i]; 
 		Eigen::Vector3f color = colors[i]; 
-		ObjData ballObjCopy(ballObj);
-		ballObjCopy.Deform(Eigen::Vector3f(ballSize, ballSize, ballSize));
+		//ObjData ballObjCopy(ballObj);
+		//ballObjCopy.Deform(Eigen::Vector3f(ballSize, ballSize, ballSize));
 
 		RenderObjectColor* ballObject = new RenderObjectColor();
-		ballObject->SetFaces(ballObjCopy.faces);
-		ballObject->SetVertices(ballObjCopy.vertices);
-		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), 1.0f);
+		ballObject->SetFaces(ballObj.faces);
+		ballObject->SetVertices(ballObj.vertices);
+		ballObject->SetNormal(ballObj.normals); 
+		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), sizes[i]);
 		ballObject->SetColor(color);
 		objectPtrs.push_back(ballObject);
 	}
 }
 
 BallStickObject::BallStickObject(
-	const ObjData& ballObj, const ObjData& stickObj,
+	const MeshEigen& ballObj, const MeshEigen& stickObj,
 	const std::vector<Eigen::Vector3f>& balls,
 	const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 	float ballSize, float StickSize, const std::vector<Eigen::Vector3f>& colors)
@@ -501,21 +365,22 @@ BallStickObject::BallStickObject(
 	for (int i = 0; i < balls.size(); i++)
 	{
 		// std::cout << balls[i].transpose() << std::endl; 
-		ObjData ballObjCopy(ballObj);
+		//ObjData ballObjCopy(ballObj);
 		float current_size = ballSize; 
 		Eigen::Vector3f color = colors[i];
-		ballObjCopy.Deform(Eigen::Vector3f(current_size, current_size, current_size));
+		//ballObjCopy.Deform(Eigen::Vector3f(current_size, current_size, current_size));
 		RenderObjectColor* ballObject = new RenderObjectColor();
-		ballObject->SetFaces(ballObjCopy.faces);
-		ballObject->SetVertices(ballObjCopy.vertices);
-		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), 1.0f);
+		ballObject->SetFaces(ballObj.faces);
+		ballObject->SetVertices(ballObj.vertices);
+		ballObject->SetNormal(ballObj.normals); 
+		ballObject->SetTransform(balls[i], Eigen::Vector3f::Zero(), ballSize);
 		ballObject->SetColor(colors[i]);
 		objectPtrs.push_back(ballObject);
 	}
 
 	for (const std::pair<Eigen::Vector3f, Eigen::Vector3f>& stick : sticks)
 	{
-		ObjData stickObjCopy(stickObj);
+		MeshEigen stickObjCopy = stickObj;
 		Eigen::Vector3f direction = stick.first - stick.second;
 		stickObjCopy.Deform(Eigen::Vector3f(StickSize, StickSize, 0.5f * direction.norm()));
 
@@ -528,8 +393,8 @@ BallStickObject::BallStickObject(
 
 		stickObject->SetFaces(stickObjCopy.faces);
 		stickObject->SetVertices(stickObjCopy.vertices);
+		stickObject->SetNormal(stickObjCopy.normals); 
 		stickObject->SetTransform(translation, rotation, 1.0f);
-		// stickObject->SetColor(Eigen::Vector3f::Ones() - color);
 		stickObject->SetColor(colors[0]);
 
 		objectPtrs.push_back(stickObject);
@@ -538,12 +403,7 @@ BallStickObject::BallStickObject(
 
 BallStickObject::~BallStickObject()
 {
-	for (RenderObjectColor* ptr : objectPtrs)
-	{
-		if(ptr!=nullptr)
-			delete ptr;
-		ptr = nullptr;
-	}
+	deleteObjects();
 }
 
 void BallStickObject::deleteObjects()
