@@ -69,11 +69,12 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\OpenCV4.1.props" />
-    <Import Project="..\props\nanorenderer.props" />
     <Import Project="..\props\json.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\boost1.65.props" />
+    <Import Project="..\props\gl-pcl.props" />
+    <Import Project="..\props\nanorenderer.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -122,28 +123,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\associate\skel.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\renderer.cpp" />
     <ClCompile Include="..\render\render_object.cpp" />
     <ClCompile Include="..\render\render_utils.cpp" />
     <ClCompile Include="..\render\shader.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
-    <ClCompile Include="..\utils\dataconverter.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
-    <ClCompile Include="..\utils\model.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
+    <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
     <ClCompile Include="..\VAE\decoder.cpp" />
     <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pigmodel.cpp" />
     <ClCompile Include="pigmodeldevice.cpp" />
+    <ClCompile Include="pigsolverdevice.cpp" />
     <ClCompile Include="pigsolver_fitting.cpp" />
     <ClCompile Include="pigsolver_jacobi.cpp" />
-    <ClCompile Include="pigsolver_shape.cpp" />
+    <ClCompile Include="pigsolver_sil.cpp" />
     <ClCompile Include="test_fitting_model.cpp" />
     <ClCompile Include="test_gpu.cpp" />
     <ClCompile Include="test_render_model.cpp" />
@@ -159,6 +159,7 @@
     <ClInclude Include="pigmodel.h" />
     <ClInclude Include="pigmodeldevice.h" />
     <ClInclude Include="pigsolver.h" />
+    <ClInclude Include="pigsolverdevice.h" />
     <ClInclude Include="safe_call.hpp" />
     <ClInclude Include="test_main.h" />
     <ClInclude Include="vector_operations.hpp" />
@@ -170,8 +171,10 @@
     <None Include="smal_config.json" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
     <CudaCompile Include="gpuutils.cu" />
     <CudaCompile Include="pigmodeldevice.cu" />
+    <CudaCompile Include="pigsolverdevice.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

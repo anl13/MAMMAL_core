@@ -8,20 +8,16 @@
 #include <Eigen/Eigen>
 
 #include "pigmodel.h"
-#include "../associate/skel.h"
+#include "../utils/skel.h"
 #include "../utils/camera.h"
 #include "../utils/colorterminal.h"
 #include "../utils/image_utils.h"
 #include "../utils/math_utils.h"
-#include "../utils/model.h"
 #include "../utils/node_graph.h"
 #include "../utils/kdtree.h"
 #include "../utils/volume.h"
 #include "../nanorender/NanoRenderer.h"
 #include "../nanorender/RenderObject.h"
-#include "../utils/model.h" 
-#include "../utils/dataconverter.h"
-#include "../utils/objloader.h"
 
 //#define DEBUG_SIL
 
@@ -41,7 +37,7 @@ struct CorrPair
 	int target;
 	int type; 
 	int index;
-	double weight; 
+	float weight; 
 };
 class PigSolver : public PigModel
 {
@@ -55,101 +51,101 @@ public:
 	void setSource(const MatchedInstance& _source);
 	void setMapper(const std::vector<std::pair<int, int> > _mapper) { m_mapper = _mapper; }
 	void setCameras(const vector<Camera>& _cameras);
-	void setBodySize(const double _alpha) { m_scale = _alpha; }
-	void setFrameId(const double _frameid) { m_frameid = _frameid; }
+	void setBodySize(const float _alpha) { m_scale = _alpha; }
+	void setFrameId(const float _frameid) { m_frameid = _frameid; }
 	void setId(const int _id) { m_id = _id;  }
-	void setTargetVSameTopo(const Eigen::MatrixXd& _targetV) { m_targetVSameTopo = _targetV; }
+	void setTargetVSameTopo(const Eigen::MatrixXf& _targetV) { m_targetVSameTopo = _targetV; }
 
-	Eigen::MatrixXd              getZ() { return Z; }
-	double                       getBodySize() { return m_scale; }
-	std::vector<Eigen::Vector3d> getPivot() { return m_pivot;  }
-	BodyState&                   getBodyState() { return m_bodystate; }
+	Eigen::MatrixXf              getZ() { return Z; }
+	float                       getBodySize() { return m_scale; }
+	//std::vector<Eigen::Vector3f> getPivot() { return m_pivot;  }
+	//BodyState&                   getBodyState() { return m_bodystate; }
 
 	void readBodyState(std::string filename); 
 	void normalizeCamera();
 	void normalizeSource();
 
 	// Fit functions
-	Eigen::MatrixXd getRegressedSkel(); 
-	Eigen::MatrixXd getRegressedSkelTPose(); 
-	Eigen::MatrixXd getRegressedSkelbyPairs(); 
+	Eigen::MatrixXf getRegressedSkel(); 
+	Eigen::MatrixXf getRegressedSkelTPose(); 
+	Eigen::MatrixXf getRegressedSkelbyPairs(); 
 
 	void globalAlign(); 
 	
-	void optimizePose(const int maxIterTime = 100, const double terminal = 0.001);
-	void optimizeShapeToBoneLength(int maxIter, double terminal); 
-	Eigen::VectorXd getRegressedSkelProj(const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T);
+	void optimizePose(const int maxIterTime = 100, const float terminal = 0.001);
+	//void optimizeShapeToBoneLength(int maxIter, float terminal); 
+	Eigen::VectorXf getRegressedSkelProj(const Eigen::Matrix3f& K, const Eigen::Matrix3f& R, const Eigen::Vector3f& T);
 	void computePivot(); 
 
 	void CalcZ();
 
-	std::vector<Eigen::Vector4d> projectBoxes();
+	std::vector<Eigen::Vector4f> projectBoxes();
 
 	// targets to fit 
 	MatchedInstance m_source;
 	vector<Camera> m_cameras;
-	std::vector<double> m_weights;
-	Eigen::VectorXd m_weightsEigen;
+	std::vector<float> m_weights;
+	Eigen::VectorXf m_weightsEigen;
 
 
 	// fit pose to chamfer map, 20200430
 	vector<ROIdescripter> m_rois;
-	vector<BodyState>     m_bodies;
+	//vector<BodyState>     m_bodies;
 	vector<cv::Mat>       m_renders; 
 	void optimizePoseSilhouette(int maxIter);
-	void CalcSilhouettePoseTerm(const std::vector<cv::Mat>& renders, Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb, int iter);
+	void CalcSilhouettePoseTerm(const std::vector<cv::Mat>& renders, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter);
 	nanogui::ref<OffscreenRenderObject> animal_offscreen; 
 
 	std::vector<int> m_poseToOptimize;
 
-	// nodegraph deformation to point cloud
-	std::shared_ptr<Model> m_srcModel, m_tarModel;
-	std::shared_ptr<const KDTree<double>> m_tarTree;
-	Eigen::VectorXi m_corr;
-	Eigen::MatrixXd m_deltaTwist;
-	Eigen::VectorXd m_wDeform;
-	Model m_iterModel;
-	double m_wSmth = 0.1;
-	double m_wRegular = 1e-3;
-	double m_maxDist = 0.35;
-	double m_wSym = 0.01;
-	double m_maxAngle = double(EIGEN_PI) / 6;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
-	void CalcSmthTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
-	void CalcDeformTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
-	void setTargetModel(std::shared_ptr<Model> m_tarModel);
-	void updateWarpField();
-	void updateIterModel();
-	void solveNonrigidDeform(int maxIterTime, double updateThresh);
-	void totalSolveProcedure(); 
-	void solvePoseAndShape(int maxIterTime);
-	void findCorr();
-	void CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
-	void CalcShapeTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
-	void CalcSymTerm(Eigen::SparseMatrix<double>& ATA, Eigen::VectorXd& ATb);
-	// compute volume 
-	Volume m_V;
-	Model m_V_mesh; 
-	void computeVolume();
-	std::vector<cv::Mat> m_rawImgs; 
+	//// nodegraph deformation to point cloud
+	//std::shared_ptr<Model> m_srcModel, m_tarModel;
+	//std::shared_ptr<const KDTree<float>> m_tarTree;
+	//Eigen::VectorXi m_corr;
+	//Eigen::MatrixXd m_deltaTwist;
+	//Eigen::VectorXd m_wDeform;
+	//Model m_iterModel;
+	//float m_wSmth = 0.1;
+	//float m_wRegular = 1e-3;
+	//float m_maxDist = 0.35;
+	//float m_wSym = 0.01;
+	//float m_maxAngle = float(EIGEN_PI) / 6;
+	//Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
+	//void CalcSmthTerm(Eigen::SparseMatrix<float>& ATA, Eigen::VectorXd& ATb);
+	//void CalcDeformTerm(Eigen::SparseMatrix<float>& ATA, Eigen::VectorXd& ATb);
+	//void setTargetModel(std::shared_ptr<Model> m_tarModel);
+	//void updateWarpField();
+	//void updateIterModel();
+	//void solveNonrigidDeform(int maxIterTime, float updateThresh);
+	//void totalSolveProcedure(); 
+	//void solvePoseAndShape(int maxIterTime);
+	//void findCorr();
+	//void CalcPoseTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
+	//void CalcShapeTerm(Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
+	//void CalcSymTerm(Eigen::SparseMatrix<float>& ATA, Eigen::VectorXd& ATb);
+	//// compute volume 
+	//Volume m_V;
+	//Model m_V_mesh; 
+	//void computeVolume();
+	//std::vector<cv::Mat> m_rawImgs; 
 
-	Eigen::VectorXd theta_last; 
+	Eigen::VectorXf theta_last; 
 
 	void debug_numericJacobiLatent();
 	void debug_numericJacobiAA(); 
 
 	// debug: 20200801 
-	Eigen::MatrixXd m_targetVSameTopo;
+	Eigen::MatrixXf m_targetVSameTopo;
 	void globalAlignToVerticesSameTopo();
-	void FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal);
-	double FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal);
+	void FitShapeToVerticesSameTopo(const int maxIterTime, const float terminal);
+	float FitPoseToVerticesSameTopo(const int maxIterTime, const float terminal);
 	void FitPoseToVerticesSameTopoLatent(); 
-	double FitPoseToJointsSameTopo(Eigen::MatrixXd target); 
+	float FitPoseToJointsSameTopo(Eigen::MatrixXf target); 
 
 private: 
 	// control info 
 	int m_id; 
-	double m_frameid; 
+	float m_frameid; 
 	std::vector<std::pair<int, int> > m_mapper;
 	std::vector<CorrPair> m_optimPairs; 
 	SkelTopology m_topo;
@@ -157,39 +153,39 @@ private:
 
 	int m_symNum; 
 	std::vector<std::vector<int> > m_symIdx;
-	std::vector<std::vector<double> > m_symweights; 
+	std::vector<std::vector<float> > m_symweights; 
 
 	// inferred data
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
-	BodyState m_bodystate; 
-	std::vector<Eigen::Vector3d> m_pivot; // head, center, tail.
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> Z; // inferred 3d joints; [3, joint num]
+	//BodyState m_bodystate; 
+	//std::vector<Eigen::Vector3f> m_pivot; // head, center, tail.
 
 	
 	// Calculate Terms to solve theta 
-	void CalcPose2DTermByMapper(const int view, const Eigen::MatrixXd& skel2d,
-		const Eigen::MatrixXd& Jacobi3d, 
-		Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
-	void CalcPose2DTermByPairs(const int view, const Eigen::MatrixXd& skel2d,
-		const Eigen::MatrixXd& Jacobi3d,
-		Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb);
+	void CalcPose2DTermByMapper(const int view, const Eigen::MatrixXf& skel2d,
+		const Eigen::MatrixXf& Jacobi3d, 
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void CalcPose2DTermByPairs(const int view, const Eigen::MatrixXf& skel2d,
+		const Eigen::MatrixXf& Jacobi3d,
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
 	// Calculate Jacobi Matrix
-	void CalcShapeJacobi(Eigen::MatrixXd& jointJacobiShape, Eigen::MatrixXd& vertJacobiShape);
+	void CalcShapeJacobi(Eigen::MatrixXf& jointJacobiShape, Eigen::MatrixXf& vertJacobiShape);
 
-	void CalcShapeJacobiToSkel(Eigen::MatrixXd& J);
-	void CalcPoseJacobiFullTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, bool with_vert=true);
-	void CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, bool with_vert=true);
-	void CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J);
-	void CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J);
+	void CalcShapeJacobiToSkel(Eigen::MatrixXf& J);
+	void CalcPoseJacobiFullTheta(Eigen::MatrixXf& J_joint, Eigen::MatrixXf& J_vert, bool with_vert=true);
+	void CalcPoseJacobiPartTheta(Eigen::MatrixXf& J_joint, Eigen::MatrixXf& J_vert, bool with_vert=true);
+	void CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXf& J);
+	void CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXf& J);
 
 	// calc jacobi for latent code 
-	void CalcPoseJacobiLatent(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, bool is_joint_only=false); 
-	void CalcSkelJacobiByPairsLatent(Eigen::MatrixXd& J); 
+	void CalcPoseJacobiLatent(Eigen::MatrixXf& J_joint, Eigen::MatrixXf& J_vert, bool is_joint_only=false); 
+	void CalcSkelJacobiByPairsLatent(Eigen::MatrixXf& J); 
 	
 
 	// numeric, only for test
 	void CalcPoseJacobiNumeric();
 	void CalcShapeJacobiNumeric();
-	void Calc2DJacobiNumeric(const int k, const Eigen::MatrixXd& skel,
-		Eigen::MatrixXd& H, Eigen::VectorXd& b);
+	void Calc2DJacobiNumeric(const int k, const Eigen::MatrixXf& skel,
+		Eigen::MatrixXf& H, Eigen::VectorXf& b);
 };

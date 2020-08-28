@@ -18,16 +18,16 @@ public:
 	std::shared_ptr<ContinousRotation> p_dec_rot; 
 	
 
-	Eigen::VectorXd latent; // [32] latent code 
-	Eigen::VectorXd output; // [62*9] output rotation matrix in vector 
+	Eigen::VectorXf latent; // [32] latent code 
+	Eigen::VectorXf output; // [62*9] output rotation matrix in vector 
 
 	void forward(); 
 	void computeJacobi();
 
-	Eigen::MatrixXd J; 
+	Eigen::MatrixXf J; 
 
-	Eigen::VectorXd end_grad; // gradient on output, to backpropagate
-	Eigen::MatrixXd grad;     // grad = J.transpose() * end_grad 
+	Eigen::VectorXf end_grad; // gradient on output, to backpropagate
+	Eigen::MatrixXf grad;     // grad = J.transpose() * end_grad 
 	//Eigen::MatrixXd outrotmats; // [3, 3*62]
 
 };

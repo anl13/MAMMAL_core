@@ -644,3 +644,180 @@ std::vector<Eigen::Vector4d> PigSolver::projectBoxes()
 	}
 	return boxes; 
 }
+
+
+double PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal)
+{
+	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
+
+	int M = m_poseToOptimize.size();
+	int N = m_topo.joint_num;
+
+	double loss = 0;
+	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	{
+		UpdateVertices();
+		//std::stringstream ss; 
+		//ss << "E:/debug_pig3/shapeiter/pose_" << iterTime << ".obj";
+		//SaveObj(ss.str());
+
+		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
+
+		Eigen::VectorXd theta(3 + 3 * M);
+		theta.segment<3>(0) = m_translation;
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
+		}
+		Eigen::VectorXd theta0 = theta;
+		// solve
+		Eigen::MatrixXd H_view;
+		Eigen::VectorXd b_view;
+		Eigen::MatrixXd J; // J_vert
+		Eigen::MatrixXd J_joint;
+		CalcPoseJacobiPartTheta(J_joint, J);
+		Eigen::MatrixXd H1 = J.transpose() * J;
+		Eigen::MatrixXd b1 = -J.transpose() * r;
+
+		double lambda = 0.0001;
+		double w1 = 1;
+		double w_reg = 0.01;
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXd H_reg = DTD;  // reg term 
+		Eigen::VectorXd b_reg = -theta; // reg term 
+
+		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+
+		Eigen::VectorXd delta = H.ldlt().solve(b);
+
+		// update 
+		m_translation += delta.segment<3>(0);
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
+		}
+		// if(iterTime == 1) break; 
+		loss = delta.norm();
+		if (loss < terminal) break;
+	}
+	return loss;
+}
+
+double PigSolver::FitPoseToJointsSameTopo(Eigen::MatrixXd target)
+{
+	int maxIterTime = 100;
+	double terminal = 0.000000001;
+	TimerUtil::Timer<std::chrono::milliseconds> TT;
+
+	int M = m_poseToOptimize.size();
+	double loss = 0;
+	int iterTime = 0;
+	Eigen::VectorXd target_vec = Eigen::Map<Eigen::VectorXd>(target.data(), m_jointNum * 3);
+
+	TT.Start();
+	for (; iterTime < maxIterTime; iterTime++)
+	{
+		UpdateJoints();
+		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_jointsFinal.data(), 3 * m_jointNum) - target_vec;
+
+		Eigen::VectorXd theta(3 + 3 * M);
+		theta.segment<3>(0) = m_translation;
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
+		}
+		Eigen::VectorXd theta0 = theta;
+		// solve
+		Eigen::MatrixXd H_view;
+		Eigen::VectorXd b_view;
+		Eigen::MatrixXd J_vert; // J_vert
+		Eigen::MatrixXd J_joint;
+		CalcPoseJacobiPartTheta(J_joint, J_vert, false);
+		Eigen::MatrixXd H1 = J_joint.transpose() * J_joint;
+		Eigen::MatrixXd b1 = -J_joint.transpose() * r;
+
+		double lambda = 0.0001;
+		double w1 = 1;
+		double w_reg = 0.01;
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXd H_reg = DTD;  // reg term 
+		Eigen::VectorXd b_reg = -theta; // reg term 
+
+		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+
+		Eigen::VectorXd delta = H.ldlt().solve(b);
+
+		// update 
+		m_translation += delta.segment<3>(0);
+		for (int i = 0; i < M; i++)
+		{
+			int jIdx = m_poseToOptimize[i];
+			m_poseParam.segment<3>(3 * jIdx) += delta.segment<3>(3 + 3 * i);
+		}
+		// if(iterTime == 1) break; 
+		loss = delta.norm();
+		if (loss < terminal) break;
+	}
+
+	double time = TT.Elapsed();
+
+	std::cout << "iter : " << iterTime << "  loss: " << loss << "  tpi: " << time / iterTime << std::endl;
+	return loss;
+}
+
+
+
+void PigSolver::FitPoseToVerticesSameTopoLatent()
+{
+	int maxIterTime = 100;
+	double terminal = 0.0001;
+	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
+
+	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	{
+		std::cout << "iter: " << iterTime << std::endl;
+		UpdateVertices();
+		std::stringstream ss;
+		ss << "G:/debug_pig4/poseiter/pose_" << iterTime << ".obj";
+		SaveObj(ss.str());
+
+		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
+
+		Eigen::VectorXd theta(3 + 3 + 32);
+		theta.segment<3>(0) = m_translation;
+		theta.segment<3>(3) = m_poseParam.segment<3>(0);
+		theta.segment<32>(6) = m_latentCode;
+
+		Eigen::VectorXd theta0 = theta;
+
+		Eigen::MatrixXd J_joint, J_vert;
+		CalcPoseJacobiLatent(J_joint, J_vert);
+		Eigen::MatrixXd H1 = J_vert.transpose() * J_vert;
+		Eigen::MatrixXd b1 = -J_vert.transpose() * r;
+
+		double lambda = 0.001;
+		double w1 = 1;
+		double w_reg = 0.01;
+		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(38, 38);
+		Eigen::MatrixXd H_reg = DTD;  // reg term 
+		Eigen::VectorXd b_reg = -theta; // reg term 
+
+		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+
+		Eigen::VectorXd delta = H.ldlt().solve(b);
+
+		// update 
+		m_translation += delta.segment<3>(0);
+		m_poseParam.segment<3>(0) += delta.segment<3>(3);
+		m_latentCode += delta.segment<32>(6);
+
+		// if(iterTime == 1) break; 
+		if (delta.norm() < terminal) break;
+	}
+}

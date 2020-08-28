@@ -1,18 +1,17 @@
 #pragma once
+/*
+Pure cpu version of articulation model. 
+For algorithm demonstration. 
 
+News: 
+2020.08.28: transfer to float version. 
+*/
 #include <string>
 #include <vector>
 #include <Eigen/Core>
 #include <opencv2/opencv.hpp>
 #include "../utils/node_graph.h"
 #include "../VAE/decoder.h"
-
-// gpu include 
-#include "vector_operations.hpp"
-#include <vector_functions.h>
-#include <vector_types.h>
-#include <pcl/gpu/containers/device_array.h>
-#include <pcl/gpu/containers/kernel_containers.h>
 #include "common.h"
 
 class PigModel
@@ -26,36 +25,34 @@ public:
 
 	void saveState(std::string state_file="state.txt"); 
     void readState(std::string state_file="state.txt");
-	void saveScale(std::string state_file = "scale.txt");
-	void readScale(std::string state_file = "scale.txt");
 
-	void SetPose(Eigen::VectorXd _poseParam) { m_poseParam = _poseParam; }
-	void SetShape(Eigen::VectorXd _shapeParam) { m_shapeParam = _shapeParam; }
-	void SetTranslation(Eigen::VectorXd _translation) { m_translation = _translation; }
-	void SetScale(double _scale) { m_scale = _scale; }
+	void SetPose(Eigen::VectorXf _poseParam) { m_poseParam = _poseParam; }
+	void SetShape(Eigen::VectorXf _shapeParam) { m_shapeParam = _shapeParam; }
+	void SetTranslation(Eigen::VectorXf _translation) { m_translation = _translation; }
+	void SetScale(float _scale) { m_scale = _scale; }
 	void ResetPose() { m_poseParam.setZero();}
 	void ResetShape() { m_shapeParam.setZero(); }
 	void ResetTranslation() { m_translation.setZero(); }
 
-	Eigen::MatrixXd GetJoints() const { return m_jointsFinal; }
-	Eigen::MatrixXd GetVertices() const { return m_verticesFinal; }
+	Eigen::MatrixXf GetJoints() const { return m_jointsFinal; }
+	Eigen::MatrixXf GetVertices() const { return m_verticesFinal; }
 	Eigen::Matrix<unsigned int,-1,-1,Eigen::ColMajor> GetFacesTex() { return m_facesTex; }
 	Eigen::Matrix<unsigned int, -1, -1, Eigen::ColMajor> GetFacesVert() { return m_facesVert; }
-	Eigen::MatrixXd GetVerticesTex()const { return m_verticesTex; }
-	Eigen::Vector3d GetTranslation() { return m_translation; }
-	Eigen::VectorXd GetShape() { return m_shapeParam; }
-	Eigen::VectorXd GetPose() { return m_poseParam; }
+	Eigen::MatrixXf GetVerticesTex()const { return m_verticesTex; }
+	Eigen::Vector3f GetTranslation() { return m_translation; }
+	Eigen::VectorXf GetShape() { return m_shapeParam; }
+	Eigen::VectorXf GetPose() { return m_poseParam; }
 	Eigen::VectorXi GetParents() {return m_parent; }
-	double GetScale() { return m_scale; }
+	float GetScale() { return m_scale; }
 	cv::Mat getTexImg() { return m_texImgBody; }
-	Eigen::MatrixXd GetTexcoords() { return m_texcoords; }
+	Eigen::MatrixXf GetTexcoords() { return m_texcoords; }
 	std::string GetFolder() { return m_folder; }
 	int GetVertexNum() { return m_vertexNum; }
 	int GetJointNum() { return m_jointNum; }
 	int GetFaceNum() { return m_faceNum; }
-	Eigen::MatrixXd GetShapeBlendV() { return m_shapeBlendV; }
-	Eigen::MatrixXd GetJRegressor() { return m_jregressor; }
-	Eigen::MatrixXd GetLBSWeights() { return m_lbsweights; }
+	Eigen::MatrixXf GetShapeBlendV() { return m_shapeBlendV; }
+	Eigen::MatrixXf GetJRegressor() { return m_jregressor; }
+	Eigen::MatrixXf GetLBSWeights() { return m_lbsweights; }
 	std::vector<std::vector<int> > GetWeightsNoneZero() { return m_weightsNoneZero; }
 	std::vector<std::vector<int> > GetRegressorNoneZero() { return m_regressorNoneZero; }
 	std::vector<BODY_PART> GetBodyPart() { return m_bodyParts; }
@@ -67,7 +64,7 @@ public:
 	void UpdateNormalShaped();
 	void UpdateNormalFinal();
 
-	void RescaleOriginVertices(double alpha);
+	void RescaleOriginVertices(float alpha);
 	void UpdateVerticesTex(); 
 
 	void SaveObj(const std::string& filename) const;
@@ -86,11 +83,11 @@ public:
 	void testReadJoint(std::string filename);
 
 	// public methods for latent code
-	void setLatent(Eigen::VectorXd _l) { m_latentCode = _l; }
+	void setLatent(Eigen::VectorXf _l) { m_latentCode = _l; }
 	void setIsLatent(bool _is_latent) { m_isLatent = _is_latent;  }
 	
 protected:
-	Eigen::VectorXd m_latentCode; 
+	Eigen::VectorXf m_latentCode; 
 	Decoder m_decoder; 
 	bool m_isLatent; 
 
@@ -105,46 +102,46 @@ protected:
 	cv::Mat m_texImgBody; 
 	std::vector<BODY_PART> m_bodyParts; // body part label of each vertex
 	std::vector<int> m_texToVert; // [texNum, vertNum], map tex indices to vert indices
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesTex; 
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_verticesTex; 
 	std::shared_ptr<NodeGraph> mp_nodeGraph; 
-	Eigen::Matrix4Xd m_warpField; 
+	Eigen::Matrix4Xf m_warpField; 
 
 	// shape deformation
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalOrigin; 
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalShaped;
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_normalFinal;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_normalOrigin; 
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_normalShaped;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_normalFinal;
 
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsOrigin;
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsShaped;
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsDeformed;
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_jointsFinal;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_jointsOrigin;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_jointsShaped;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_jointsDeformed;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_jointsFinal;
 
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesOrigin;
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesShaped;
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesDeformed; 
-	Eigen::Matrix<double, 3, -1, Eigen::ColMajor> m_verticesFinal;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_verticesOrigin;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_verticesShaped;
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_verticesDeformed; 
+	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_verticesFinal;
 
 	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> m_facesTex;
 	Eigen::Matrix<unsigned int, 3, -1, Eigen::ColMajor> m_facesVert;
-	Eigen::Matrix<double, 2, -1, Eigen::ColMajor> m_texcoords; 
+	Eigen::Matrix<float, 2, -1, Eigen::ColMajor> m_texcoords; 
 
 	Eigen::VectorXi m_parent;
 
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_lbsweights;     // jointnum * vertexnum
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_jregressor;  // vertexnum * jointnum
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_shapeBlendV;  // (vertexnum*3) * shapenum
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_shapeBlendJ; // (jointnum*3) * shapenum
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_lbsweights;     // jointnum * vertexnum
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_jregressor;  // vertexnum * jointnum
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_shapeBlendV;  // (vertexnum*3) * shapenum
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_shapeBlendJ; // (jointnum*3) * shapenum
 	std::vector<std::vector<int> > m_weightsNoneZero;
 	 
 	std::vector<std::vector<int> > m_regressorNoneZero;
 
-	Eigen::VectorXd m_poseParam;
-	Eigen::VectorXd m_shapeParam;
-	Eigen::Vector3d m_translation;
+	Eigen::VectorXf m_poseParam;
+	Eigen::VectorXf m_shapeParam;
+	Eigen::Vector3f m_translation;
 
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_singleAffine;
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> m_globalAffine;
-	double m_scale; 
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_singleAffine;
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_globalAffine;
+	float m_scale; 
 	std::string m_folder; 
 
 

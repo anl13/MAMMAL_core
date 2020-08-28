@@ -32,7 +32,6 @@
     <ClCompile Include="..\associate\mce\Algorithm.cpp" />
     <ClCompile Include="..\associate\mce\MemoryManager.cpp" />
     <ClCompile Include="..\associate\mce\Tools.cpp" />
-    <ClCompile Include="..\associate\skel.cpp" />
     <ClCompile Include="..\associate\tracking.cpp" />
     <ClCompile Include="..\calibration\BASolver.cpp" />
     <ClCompile Include="..\calibration\calibration.cpp" />
@@ -76,7 +75,6 @@
     <ClInclude Include="..\associate\mce\Algorithm.h" />
     <ClInclude Include="..\associate\mce\MemoryManager.h" />
     <ClInclude Include="..\associate\mce\Tools.h" />
-    <ClInclude Include="..\associate\skel.h" />
     <ClInclude Include="..\associate\tracking.h" />
     <ClInclude Include="..\calibration\BASolver.h" />
     <ClInclude Include="..\calibration\calibration.h" />

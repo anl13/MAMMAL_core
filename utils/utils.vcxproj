@@ -129,6 +129,7 @@
     <ClCompile Include="math_utils.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="node_graph.cpp" />
+    <ClCompile Include="skel.cpp" />
     <ClCompile Include="test_main.cpp" />
     <ClCompile Include="volume.cpp" />
   </ItemGroup>
@@ -144,6 +145,7 @@
     <ClInclude Include="nanoflann.hpp" />
     <ClInclude Include="node_graph.h" />
     <ClInclude Include="safe_call.hpp" />
+    <ClInclude Include="skel.h" />
     <ClInclude Include="test_main.h" />
     <ClInclude Include="timer_util.h" />
     <ClInclude Include="volume.h" />

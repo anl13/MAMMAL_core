@@ -54,9 +54,6 @@
     <ClCompile Include="..\associate\matching.cpp">
       <Filter>associate</Filter>
     </ClCompile>
-    <ClCompile Include="..\associate\skel.cpp">
-      <Filter>associate</Filter>
-    </ClCompile>
     <ClCompile Include="..\associate\tracking.cpp">
       <Filter>associate</Filter>
     </ClCompile>
@@ -189,9 +186,6 @@
       <Filter>associate</Filter>
     </ClInclude>
     <ClInclude Include="..\associate\matching.h">
-      <Filter>associate</Filter>
-    </ClInclude>
-    <ClInclude Include="..\associate\skel.h">
       <Filter>associate</Filter>
     </ClInclude>
     <ClInclude Include="..\associate\tracking.h">

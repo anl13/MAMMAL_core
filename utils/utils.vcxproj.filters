@@ -42,6 +42,9 @@
     <ClCompile Include="hungarian.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="skel.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h">
@@ -84,6 +87,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="hungarian.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="skel.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -7,7 +7,7 @@
 
 
 
-Eigen::VectorXd readinput(int i)
+Eigen::VectorXf readinput(int i)
 {
 	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
 	std::stringstream ss;
@@ -18,7 +18,7 @@ Eigen::VectorXd readinput(int i)
 		std::cout << "unit test error: cannot open " << ss.str() << std::endl;
 		exit(-1);
 	}
-	Eigen::VectorXd latent;
+	Eigen::VectorXf latent;
 	latent.resize(32);
 	for (int k = 0; k < 32; k++)
 	{
@@ -28,7 +28,7 @@ Eigen::VectorXd readinput(int i)
 	return latent;
 }
 
-Eigen::MatrixXd readoutput(int sample_id)
+Eigen::MatrixXf readoutput(int sample_id)
 {
 	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
 	std::stringstream ss;
@@ -39,7 +39,7 @@ Eigen::MatrixXd readoutput(int sample_id)
 		std::cout << "unit test error: cannot open " << ss.str() << std::endl;
 		exit(-1);
 	}
-	Eigen::MatrixXd output;
+	Eigen::MatrixXf output;
 	output.resize(62, 9);
 	for (int i = 0; i < 62; i++)
 	{
@@ -52,7 +52,7 @@ Eigen::MatrixXd readoutput(int sample_id)
 	return output;
 }
 
-void readrelu(Eigen::VectorXd& r1, Eigen::VectorXd& r2)
+void readrelu(Eigen::VectorXf& r1, Eigen::VectorXf& r2)
 {
 	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
 	std::string relu1file = folder + "lrelu1_out.txt";
@@ -67,7 +67,7 @@ void readrelu(Eigen::VectorXd& r1, Eigen::VectorXd& r2)
 	stream2.close();
 }
 
-void readmiddleoutput(Eigen::VectorXd& out)
+void readmiddleoutput(Eigen::VectorXf& out)
 {
 	out.resize(372);
 	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
@@ -77,19 +77,19 @@ void readmiddleoutput(Eigen::VectorXd& out)
 	stream.close(); 
 }
 
-bool compare_output(Eigen::MatrixXd pred, Eigen::MatrixXd gt)
+bool compare_output(Eigen::MatrixXf pred, Eigen::MatrixXf gt)
 {
 	//std::cout << "gt   cols: " << gt.cols() << " rows: " << gt.rows() << std::endl;
 	//std::cout << "pred cols: " << pred.cols() << " rows: " << pred.rows() << std::endl;
 
-	double max_err = 0;
+	float max_err = 0;
 	for (int i = 0; i < 62; i++)
 	{
 		for (int j = 0; j < 9; j++)
 		{
-			double gt_value = gt(i, j);
-			double pred_value = pred(i * 9 + j);
-			double diff = fabs(gt_value - pred_value);
+			float gt_value = gt(i, j);
+			float pred_value = pred(i * 9 + j);
+			float diff = fabs(gt_value - pred_value);
 			if (diff > max_err) max_err = diff;
 		}
 	}
@@ -101,10 +101,10 @@ bool compare_output(Eigen::MatrixXd pred, Eigen::MatrixXd gt)
 	return false;
 }
 
-bool compare_reluout(Eigen::VectorXd pred, Eigen::VectorXd gt)
+bool compare_reluout(Eigen::VectorXf pred, Eigen::VectorXf gt)
 {
-	Eigen::VectorXd diff = pred - gt;
-	double err = diff.norm();
+	Eigen::VectorXf diff = pred - gt;
+	float err = diff.norm();
 	std::cout << "l2 error: " << err << std::endl;
 	return false;
 
@@ -118,12 +118,12 @@ int unittest_forward()
 	int sample_id = 0;
 	for (sample_id = 0; sample_id < 30; sample_id++)
 	{
-		Eigen::VectorXd input = readinput(sample_id);
-		Eigen::MatrixXd output_gt = readoutput(sample_id);
+		Eigen::VectorXf input = readinput(sample_id);
+		Eigen::MatrixXf output_gt = readoutput(sample_id);
 
 		dec.latent = input;
 		dec.forward();
-		Eigen::VectorXd output = dec.output;
+		Eigen::VectorXf output = dec.output;
 	
 		//Eigen::Matrix<double, 9, 62, Eigen::ColMajor> output_mat =
 		//	Eigen::Map < Eigen::Matrix<double, 9, 62, Eigen::ColMajor> >(output.data()); 
@@ -148,7 +148,7 @@ int unittest_forward()
 	return 0;
 }
 
-Eigen::VectorXd readgrad(int sample_id)
+Eigen::VectorXf readgrad(int sample_id)
 {
 	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
 	std::stringstream ss;
@@ -159,7 +159,7 @@ Eigen::VectorXd readgrad(int sample_id)
 		std::cout << "unit test error: cannot open " << ss.str() << std::endl;
 		exit(-1);
 	}
-	Eigen::VectorXd latent;
+	Eigen::VectorXf latent;
 	latent.resize(32);
 	for (int k = 0; k < 32; k++)
 	{
@@ -169,9 +169,9 @@ Eigen::VectorXd readgrad(int sample_id)
 	return latent;
 }
 
-Eigen::VectorXd compute_endgrad(Eigen::VectorXd output)
+Eigen::VectorXf compute_endgrad(Eigen::VectorXf output)
 {
-	Eigen::VectorXd grad = output;
+	Eigen::VectorXf grad = output;
 	for (int i = 0; i < grad.rows(); i++)
 	{
 		grad(i) = 2 * (output(i) - 1);
@@ -187,17 +187,17 @@ int unittest_backward()
 
 	for (sample_id = 0; sample_id < 20; sample_id++)
 	{
-		Eigen::VectorXd input = readinput(sample_id);
-		Eigen::VectorXd grad = readgrad(sample_id);
+		Eigen::VectorXf input = readinput(sample_id);
+		Eigen::VectorXf grad = readgrad(sample_id);
 		
 		dec.latent = input;
 		dec.forward();
-		Eigen::MatrixXd output = dec.output;
+		Eigen::MatrixXf output = dec.output;
 
 		dec.end_grad = compute_endgrad(output);
 		dec.computeJacobi(); 
-		Eigen::VectorXd grad_est = dec.J.transpose() * dec.end_grad; 
-		Eigen::VectorXd diff = grad_est - grad; 
+		Eigen::VectorXf grad_est = dec.J.transpose() * dec.end_grad; 
+		Eigen::VectorXf diff = grad_est - grad; 
 		std::cout << "err: " << diff.norm() << std::endl;
 	}
 
@@ -207,9 +207,9 @@ int unittest_backward()
 
 int unittest_cr()
 {
-	Eigen::VectorXd input = Eigen::VectorXd::Zero(6); 
-	Eigen::VectorXd output_gt = Eigen::VectorXd::Zero(9); 
-	Eigen::VectorXd grad_gt = Eigen::VectorXd::Zero(6); 
+	Eigen::VectorXf input = Eigen::VectorXf::Zero(6); 
+	Eigen::VectorXf output_gt = Eigen::VectorXf::Zero(9); 
+	Eigen::VectorXf grad_gt = Eigen::VectorXf::Zero(6); 
 	std::string folder = "F:/projects/model_preprocess/designed_pig/pig_prior/unittest/";
 	std::ifstream inputstream(folder + "/rotinput.txt");
 	for (int i = 0; i < 6; i++)inputstream >> input(i); 
@@ -234,8 +234,8 @@ int unittest_cr()
 	std::cout << output_gt.transpose() << std::endl; 
 
 	CR.backward(); 
-	Eigen::VectorXd diff = compute_endgrad(CR.output); 
-	Eigen::VectorXd grad = CR.J.transpose() * diff; 
+	Eigen::VectorXf diff = compute_endgrad(CR.output); 
+	Eigen::VectorXf grad = CR.J.transpose() * diff; 
 
 	std::cout << std::endl; 
 	std::cout << "grad est: " << std::endl
@@ -251,28 +251,28 @@ int unittest_numeric()
 	Decoder dec;
 	int sample_id = 0;
 
-	Eigen::VectorXd input = readinput(sample_id);
-	Eigen::VectorXd grad = readgrad(sample_id);
+	Eigen::VectorXf input = readinput(sample_id);
+	Eigen::VectorXf grad = readgrad(sample_id);
 
 	dec.latent = input;
 	dec.forward();
-	Eigen::MatrixXd output = dec.output;
+	Eigen::MatrixXf output = dec.output;
 
 	dec.end_grad = compute_endgrad(output);
 	dec.computeJacobi();
-	Eigen::VectorXd grad_est = dec.J.transpose() * dec.end_grad;
-	Eigen::VectorXd diff = grad_est - grad;
+	Eigen::VectorXf grad_est = dec.J.transpose() * dec.end_grad;
+	Eigen::VectorXf diff = grad_est - grad;
 	std::cout << "err: " << diff.norm() << std::endl;
 
 	dec.latent = input; 
 	dec.forward(); 
-	Eigen::VectorXd output0 = dec.output;
+	Eigen::VectorXf output0 = dec.output;
 	dec.computeJacobi(); 
-	Eigen::MatrixXd J = dec.J; 
+	Eigen::MatrixXf J = dec.J; 
 
-	Eigen::MatrixXd J_numeric = Eigen::MatrixXd::Zero(9 * 62, 32);
-	double alpha = 0.0001; 
-	double inv_alpha = 1 / alpha; 
+	Eigen::MatrixXf J_numeric = Eigen::MatrixXf::Zero(9 * 62, 32);
+	float alpha = 0.00001; 
+	float inv_alpha = 1 / alpha; 
 	for (int i = 0; i < 32; i++)
 	{
 		input(i) += alpha; 
@@ -282,7 +282,7 @@ int unittest_numeric()
 		input(i) -= alpha; 
 	}
 	
-	Eigen::MatrixXd D = J - J_numeric; 
+	Eigen::MatrixXf D = J - J_numeric; 
 	std::cout << "diff.norm(): " << D.norm() << std::endl; 
 	std::cout << "J block: " << std::endl  << J.block<10, 10>(0, 0) << std::endl; 
 	std::cout << "J_numeric block: "  << std::endl << J_numeric.block<10, 10>(0, 0) << std::endl; 

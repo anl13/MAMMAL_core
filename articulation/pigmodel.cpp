@@ -7,8 +7,6 @@
 #include "pigmodel.h"
 #include "../utils/math_utils.h"
 #include "../utils/colorterminal.h"
-#include "../utils/obj_reader.h"
-#include "../utils/model.h"
 #include <json/json.h>
 
 PigModel::PigModel(const std::string &_configfile)
@@ -146,7 +144,7 @@ PigModel::PigModel(const std::string &_configfile)
 	{
 		if (weightsfile.eof()) break; 
 		int row, col; 
-		double value; 
+		float value; 
 		weightsfile >> row; 
 		if (weightsfile.eof()) break; 
 		weightsfile >> col >> value;
@@ -167,8 +165,8 @@ PigModel::PigModel(const std::string &_configfile)
 		m_jregressor.setZero();
 		m_regressorNoneZero.resize(m_jointNum); 
 
-		double jregressorRow, jregressorCol;
-		double jregressorValue;
+		float jregressorRow, jregressorCol;
+		float jregressorValue;
 
 		while (true)
 		{
@@ -203,8 +201,8 @@ PigModel::PigModel(const std::string &_configfile)
 			m_shapeBlendJ.resize(3 * m_jointNum, m_shapeNum);
 			for (int i = 0; i < m_shapeNum; i++)
 			{
-				const Eigen::Map<const Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shapeBlendCol(m_shapeBlendV.col(i).data(), 3, m_vertexNum);
-				Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>> shape2JointCol(m_shapeBlendJ.col(i).data(), 3, m_jointNum);
+				const Eigen::Map<const Eigen::Matrix<float, -1, -1, Eigen::ColMajor>> shapeBlendCol(m_shapeBlendV.col(i).data(), 3, m_vertexNum);
+				Eigen::Map<Eigen::Matrix<float, -1, -1, Eigen::ColMajor>> shape2JointCol(m_shapeBlendJ.col(i).data(), 3, m_jointNum);
 				shape2JointCol = shapeBlendCol * m_jregressor;
 			}
 		}
@@ -233,7 +231,6 @@ PigModel::PigModel(const std::string &_configfile)
 	if (!partFile.is_open())
 	{
 		std::cout << "no body parts file! Please run determineBodyPartsByWeight()" << std::endl;
-		//determineBodyPartsByWeight();
 	}
 	else
 	{
@@ -248,9 +245,9 @@ PigModel::PigModel(const std::string &_configfile)
 	partFile.close();
 
 	// init params
-	m_translation = Eigen::Vector3d::Zero(); 
-	m_poseParam = Eigen::VectorXd::Zero(3 * m_jointNum); 
-	if (m_shapeNum > 0) m_shapeParam = Eigen::VectorXd::Zero(m_shapeNum); 
+	m_translation = Eigen::Vector3f::Zero(); 
+	m_poseParam = Eigen::VectorXf::Zero(3 * m_jointNum); 
+	if (m_shapeNum > 0) m_shapeParam = Eigen::VectorXf::Zero(m_shapeNum); 
 	m_scale = 1; 
 
 	m_singleAffine.resize(4, 4 * m_jointNum); 
@@ -269,15 +266,7 @@ PigModel::PigModel(const std::string &_configfile)
 
 	m_verticesTex.resize(3, m_texNum); 
 	m_verticesTex.setZero(); 
-	m_latentCode = Eigen::VectorXd::Zero(32); 
-
-	// for gpu 
-	//Eigen::MatrixXf weights_float = m_lbsweights.cast<float>();
-	//m_device_skinning_weights.upload(
-	//	weights_float.data(), m_jointNum * sizeof(float), m_vertexNum, m_jointNum
-	//);
-	//m_device_parents.upload(m_parent.data(), m_parent.size() * sizeof(int));
-
+	m_latentCode = Eigen::VectorXf::Zero(32); 
 
 	UpdateVertices();
 }
@@ -297,7 +286,7 @@ void PigModel::UpdateSingleAffine()
 		m_decoder.forward(); 
 		for (int jointid = 0; jointid < m_jointNum; jointid++)
 		{
-			Eigen::Matrix4d matrix; 
+			Eigen::Matrix4f matrix; 
 			matrix.setIdentity();
 			for (int i = 0; i < 9; i++)
 			{
@@ -317,7 +306,7 @@ void PigModel::UpdateSingleAffine()
 			m_singleAffine.block<4, 4>(0, 4 * jointid) = matrix;
 			if (jointid == 0)
 			{
-				Eigen::Vector3d pose = m_poseParam.segment<3>(0); // global rotation 
+				Eigen::Vector3f pose = m_poseParam.segment<3>(0); // global rotation 
 				m_singleAffine.block<3, 3>(0, 0) = GetRodrigues(pose); 
 			}
 		}
@@ -326,12 +315,11 @@ void PigModel::UpdateSingleAffine()
 	{ // use axis-angle to get local rotation 
 		for (int jointId = 0; jointId < m_jointNum; jointId++)
 		{
-			const Eigen::Vector3d& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
-			Eigen::Matrix4d matrix;
+			const Eigen::Vector3f& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
+			Eigen::Matrix4f matrix;
 			matrix.setIdentity();
 
 			matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
-			//matrix.block<3, 3>(0, 0) = EulerToRotRadD(pose);
 			if (jointId == 0)
 				matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) + m_translation;
 			else
@@ -366,8 +354,8 @@ void PigModel::UpdateJointsShaped()
 	}
 	else
 	{
-		Eigen::VectorXd jointsOffset = m_shapeBlendJ * m_shapeParam;
-		m_jointsShaped = m_jointsOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(jointsOffset.data(), 3, m_jointNum);
+		Eigen::VectorXf jointsOffset = m_shapeBlendJ * m_shapeParam;
+		m_jointsShaped = m_jointsOrigin + Eigen::Map<Eigen::Matrix<float, -1, -1, Eigen::ColMajor>>(jointsOffset.data(), 3, m_jointNum);
 	}
 }
 
@@ -390,14 +378,14 @@ void PigModel::UpdateVerticesShaped()
 	}
 	else
 	{
-		Eigen::VectorXd verticesOffset = m_shapeBlendV * m_shapeParam;
-		m_verticesShaped = m_verticesOrigin + Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(verticesOffset.data(), 3, m_vertexNum);
+		Eigen::VectorXf verticesOffset = m_shapeBlendV * m_shapeParam;
+		m_verticesShaped = m_verticesOrigin + Eigen::Map<Eigen::Matrix<float, -1, -1, Eigen::ColMajor>>(verticesOffset.data(), 3, m_vertexNum);
 	}
 }
 
 void PigModel::UpdateVerticesFinal()
 {
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> globalAffineNormalized = m_globalAffine;
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> globalAffineNormalized = m_globalAffine;
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
 		globalAffineNormalized.block<3, 1>(0, jointId * 4 + 3) -= (m_globalAffine.block<3, 3>(0, jointId * 4)*m_jointsDeformed.col(jointId));
@@ -405,17 +393,11 @@ void PigModel::UpdateVerticesFinal()
 
 	for (int vertexId = 0; vertexId < m_vertexNum; vertexId++)
 	{
-		Eigen::Matrix<double, 4, 4, Eigen::ColMajor> globalAffineAverage;
-		Eigen::Map<Eigen::VectorXd>(globalAffineAverage.data(), 16)
-			= Eigen::Map<Eigen::Matrix<double, -1, -1, Eigen::ColMajor>>(globalAffineNormalized.data(), 16, m_jointNum) * (m_lbsweights.col(vertexId) );
+		Eigen::Matrix<float, 4, 4, Eigen::ColMajor> globalAffineAverage;
+		Eigen::Map<Eigen::VectorXf>(globalAffineAverage.data(), 16)
+			= Eigen::Map<Eigen::Matrix<float, -1, -1, Eigen::ColMajor>>(globalAffineNormalized.data(), 16, m_jointNum) * (m_lbsweights.col(vertexId) );
 		m_verticesFinal.col(vertexId) = globalAffineAverage.block<3, 4>(0, 0)*(m_verticesDeformed.col(vertexId).homogeneous());
 	}
-
-	//std::vector<Eigen::Matrix4f> host_normalized_affine; 
-	//host_normalized_affine.resize(m_jointNum); 
-	//for (int i = 0; i < m_jointNum; i++)host_normalized_affine[i] = globalAffineNormalized.block<4, 4>(0, 4 * i).cast<float>();
-	//m_device_normalized_affine.upload(host_normalized_affine); 
-	//updateVerticesFinalDevice(); 
 }
 
 void PigModel::UpdateVertices()
@@ -492,30 +474,6 @@ void PigModel::readState(std::string state_file)
 	is.close(); 
 }
 
-void PigModel::saveScale(std::string state_file)
-{
-	std::ofstream os(state_file);
-	if (!os.is_open())
-	{
-		std::cout << "cant not open " << state_file << std::endl;
-		return;
-	}
-	os << m_scale;
-	os.close();
-}
-
-void PigModel::readScale(std::string state_file)
-{
-	std::ifstream is(state_file);
-	if (!is.is_open())
-	{
-		std::cout << "cant not open " << state_file << std::endl;
-		return;
-	}
-	is >> m_scale; 
-	is.close();
-}
-
 void PigModel::UpdateNormalOrigin()
 {
 	for (int fid = 0; fid < m_faceNum; fid++)
@@ -523,10 +481,10 @@ void PigModel::UpdateNormalOrigin()
 		int x = m_facesVert(0, fid); 
 		int y = m_facesVert(1, fid); 
 		int z = m_facesVert(2, fid); 
-		Eigen::Vector3d px = m_verticesOrigin.col(x); 
-		Eigen::Vector3d py = m_verticesOrigin.col(y);
-		Eigen::Vector3d pz = m_verticesOrigin.col(z); 
-		Eigen::Vector3d norm = (py - px).cross(pz - px);
+		Eigen::Vector3f px = m_verticesOrigin.col(x); 
+		Eigen::Vector3f py = m_verticesOrigin.col(y);
+		Eigen::Vector3f pz = m_verticesOrigin.col(z); 
+		Eigen::Vector3f norm = (py - px).cross(pz - px);
 		m_normalOrigin.col(x) += norm;
 		m_normalOrigin.col(y) += norm;
 		m_normalOrigin.col(z) += norm; 
@@ -544,10 +502,10 @@ void PigModel::UpdateNormalShaped()
 		int x = m_facesVert(0, fid);
 		int y = m_facesVert(1, fid);
 		int z = m_facesVert(2, fid);
-		Eigen::Vector3d px = m_verticesShaped.col(x);
-		Eigen::Vector3d py = m_verticesShaped.col(y);
-		Eigen::Vector3d pz = m_verticesShaped.col(z);
-		Eigen::Vector3d norm = (py - px).cross(pz - px);
+		Eigen::Vector3f px = m_verticesShaped.col(x);
+		Eigen::Vector3f py = m_verticesShaped.col(y);
+		Eigen::Vector3f pz = m_verticesShaped.col(z);
+		Eigen::Vector3f norm = (py - px).cross(pz - px);
 		m_normalShaped.col(x) += norm;
 		m_normalShaped.col(y) += norm;
 		m_normalShaped.col(z) += norm;
@@ -565,10 +523,10 @@ void PigModel::UpdateNormalFinal()
 		int x = m_facesVert(0, fid);
 		int y = m_facesVert(1, fid);
 		int z = m_facesVert(2, fid);
-		Eigen::Vector3d px = m_verticesFinal.col(x);
-		Eigen::Vector3d py = m_verticesFinal.col(y);
-		Eigen::Vector3d pz = m_verticesFinal.col(z);
-		Eigen::Vector3d norm = (py - px).cross(pz - px);
+		Eigen::Vector3f px = m_verticesFinal.col(x);
+		Eigen::Vector3f py = m_verticesFinal.col(y);
+		Eigen::Vector3f pz = m_verticesFinal.col(z);
+		Eigen::Vector3f norm = (py - px).cross(pz - px);
 		m_normalFinal.col(x) += norm;
 		m_normalFinal.col(y) += norm;
 		m_normalFinal.col(z) += norm;
@@ -586,7 +544,7 @@ void PigModel::UpdateNormals()
 	UpdateNormalFinal();
 }
 
-void PigModel::RescaleOriginVertices(double alpha)
+void PigModel::RescaleOriginVertices(float alpha)
 {
 	if (alpha == 0 || alpha == 1) return; 
 	m_verticesOrigin = m_verticesOrigin * alpha;
@@ -648,7 +606,7 @@ void PigModel::determineBodyPartsByWeight2()
 	for (int i = 0; i < m_vertexNum; i++)
 	{
 		int maxid = -1; 
-		double maxvalue = 0; 
+		float maxvalue = 0; 
 		for (int jid = 0; jid < m_jointNum; jid++)
 		{
 			if (m_lbsweights(jid, i) > maxvalue) {
@@ -665,7 +623,7 @@ void PigModel::UpdateModelShapedByKNN()
 {
 	for (int sIdx = 0; sIdx < m_vertexNum; sIdx++)
 	{
-		Eigen::Matrix4d T = Eigen::Matrix4d::Zero();
+		Eigen::Matrix4f T = Eigen::Matrix4f::Zero();
 
 		for (int i = 0; i < mp_nodeGraph->knn.rows(); i++) {
 			const int ni = mp_nodeGraph->knn(i, sIdx);

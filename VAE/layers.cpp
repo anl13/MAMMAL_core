@@ -59,7 +59,7 @@ void LeakyReLU::forward()
 void LeakyReLU::backward()
 {
 	int rows = input.rows(); 
-	J = Eigen::MatrixXd::Zero(rows, rows);
+	J = Eigen::MatrixXf::Zero(rows, rows);
 	for (int i = 0; i < input.rows(); i++)
 	{
 		if (input(i) > 0) J(i,i) = 1; 
@@ -78,7 +78,7 @@ void Tanh::forward()
 
 void Tanh::backward()
 {
-	J = Eigen::MatrixXd::Identity(558, 558);
+	J = Eigen::MatrixXf::Identity(558, 558);
 	for (int i = 0; i < 558; i++)
 	{
 		J(i, i) = 1 - output(i)*output(i); 
@@ -92,25 +92,25 @@ void ContinousRotation::forward()
 	output.setZero(); 
 	for (int jid = 0; jid < jointnum; jid++)
 	{
-		Eigen::VectorXd vec = input.segment<6>(jid * 6); 
+		Eigen::VectorXf vec = input.segment<6>(jid * 6); 
 
 		output.segment<9>(jid * 9) = computey(vec); 
 	}
 }
 
-Eigen::VectorXd ContinousRotation::computey(Eigen::VectorXd x)
+Eigen::VectorXf ContinousRotation::computey(Eigen::VectorXf x)
 {
-	Eigen::Matrix<double, 2, 3, Eigen::ColMajor> vec_mat = Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::ColMajor>>(x.data());
-	Eigen::Vector3d r1 = vec_mat.row(0);
-	Eigen::VectorXd y = Eigen::VectorXd::Zero(9);
+	Eigen::Matrix<float, 2, 3, Eigen::ColMajor> vec_mat = Eigen::Map<Eigen::Matrix<float, 2, 3, Eigen::ColMajor>>(x.data());
+	Eigen::Vector3f r1 = vec_mat.row(0);
+	Eigen::VectorXf y = Eigen::VectorXf::Zero(9);
 	if (r1.norm() < 1e-6) return y;
-	Eigen::Vector3d r2 = vec_mat.row(1);
-	Eigen::Vector3d r1_norm = r1.normalized();
-	double dot = r2.dot(r1_norm);
-	Eigen::Vector3d r2_norm = r2 - dot * r1_norm;
+	Eigen::Vector3f r2 = vec_mat.row(1);
+	Eigen::Vector3f r1_norm = r1.normalized();
+	float dot = r2.dot(r1_norm);
+	Eigen::Vector3f r2_norm = r2 - dot * r1_norm;
 	r2_norm.normalize();
-	Eigen::Vector3d r3_norm = r1_norm.cross(r2_norm);
-	Eigen::Matrix3d R;
+	Eigen::Vector3f r3_norm = r1_norm.cross(r2_norm);
+	Eigen::Matrix3f R;
 	R.col(0) = r1_norm;
 	R.col(1) = r2_norm;
 	R.col(2) = r3_norm;
@@ -122,11 +122,11 @@ Eigen::VectorXd ContinousRotation::computey(Eigen::VectorXd x)
 }
 
 
-Eigen::Matrix3d ContinousRotation::computeJVecNorm(Eigen::Vector3d x)
+Eigen::Matrix3f ContinousRotation::computeJVecNorm(Eigen::Vector3f x)
 {
-	double n = x.norm();
-	Eigen::Matrix3d J; 
-	double n3 = n * n*n;
+	float n = x.norm();
+	Eigen::Matrix3f J; 
+	float n3 = n * n*n;
 	J(0, 0) = 1 / n - x[0] * x[0] / n3;
 	J(0, 1) = -x[0] * x[1] / n3;
 	J(0, 2) = -x[0] * x[2] / n3; 
@@ -141,8 +141,8 @@ Eigen::Matrix3d ContinousRotation::computeJVecNorm(Eigen::Vector3d x)
 
 // c = a - (a.dot(b))b (assume b is normalized)
 // return dc/da^T, dc/db^T
-void ContinousRotation::computeJr2(Eigen::Vector3d a,
-	Eigen::Vector3d b, Eigen::Matrix3d& Ja, Eigen::Matrix3d& Jb)
+void ContinousRotation::computeJr2(Eigen::Vector3f a,
+	Eigen::Vector3f b, Eigen::Matrix3f& Ja, Eigen::Matrix3f& Jb)
 {
 	Ja(0, 0) = 1 - b[0] * b[0];
 	Ja(0, 1) = -b[1] * b[0];
@@ -154,7 +154,7 @@ void ContinousRotation::computeJr2(Eigen::Vector3d a,
 	Ja(2, 1) = -b[1] * b[2];
 	Ja(2, 2) = 1 - b[2] * b[2];
 
-	double d = a.dot(b); 
+	float d = a.dot(b); 
 	Jb(0, 0) = -d -a[0] * b[0];
 	Jb(0, 1) = -a[1] * b[0];
 	Jb(0, 2) = -a[2] * b[0];
@@ -166,11 +166,11 @@ void ContinousRotation::computeJr2(Eigen::Vector3d a,
 	Jb(2, 2) = -d -a[2] * b[2];
 }
 
-void ContinousRotation::computeJCross(Eigen::Vector3d a,
-	Eigen::Vector3d b,Eigen::Matrix3d d_b_d_a, Eigen::Matrix3d& Ja, Eigen::Matrix3d& Jb)
+void ContinousRotation::computeJCross(Eigen::Vector3f a,
+	Eigen::Vector3f b,Eigen::Matrix3f d_b_d_a, Eigen::Matrix3f& Ja, Eigen::Matrix3f& Jb)
 {
-	Ja = Eigen::Matrix3d::Zero(); 
-	Jb = Eigen::Matrix3d::Zero(); 
+	Ja = Eigen::Matrix3f::Zero(); 
+	Jb = Eigen::Matrix3f::Zero(); 
 	Ja(0, 1) = b[2];
 	Ja(0, 2) = -b[1];
 	Ja(1, 0) = -b[2];
@@ -188,45 +188,45 @@ void ContinousRotation::computeJCross(Eigen::Vector3d a,
 	Ja = Ja + Jb * d_b_d_a;
 }
 
-Eigen::MatrixXd ContinousRotation::computeJBlock(Eigen::VectorXd x)
+Eigen::MatrixXf ContinousRotation::computeJBlock(Eigen::VectorXf x)
 {
 	// x: 6
 	// y: 9
 	// y: r1n(0), r2n(0), r3n(0), r1n(1) ...
 	// x: r1(0), r2(0), r1(1) ..
-	Eigen::Matrix<double, 9, 6> J; 
+	Eigen::Matrix<float, 9, 6> J; 
 	J.setZero();
 	if (x.norm() < 1e-6) return J; 
 	
-	Eigen::Matrix<double, 2, 3, Eigen::ColMajor> vec_mat = Eigen::Map<Eigen::Matrix<double, 2, 3, Eigen::ColMajor>>(x.data());
-	Eigen::Vector3d r1 = vec_mat.row(0);
-	Eigen::VectorXd y = Eigen::VectorXd::Zero(9);
+	Eigen::Matrix<float, 2, 3, Eigen::ColMajor> vec_mat = Eigen::Map<Eigen::Matrix<float, 2, 3, Eigen::ColMajor>>(x.data());
+	Eigen::Vector3f r1 = vec_mat.row(0);
+	Eigen::VectorXf y = Eigen::VectorXf::Zero(9);
 	
-	Eigen::Vector3d r2 = vec_mat.row(1);
-	Eigen::Vector3d r1_norm = r1.normalized();
-	double dot = r2.dot(r1_norm);
-	Eigen::Vector3d r2_nonorm = r2 - dot * r1_norm;
-	Eigen::Vector3d r2_norm = r2_nonorm.normalized();
-	Eigen::Vector3d r3_norm = r1_norm.cross(r2_norm);
+	Eigen::Vector3f r2 = vec_mat.row(1);
+	Eigen::Vector3f r1_norm = r1.normalized();
+	float dot = r2.dot(r1_norm);
+	Eigen::Vector3f r2_nonorm = r2 - dot * r1_norm;
+	Eigen::Vector3f r2_norm = r2_nonorm.normalized();
+	Eigen::Vector3f r3_norm = r1_norm.cross(r2_norm);
 	
-	Eigen::Matrix3d d_r2n_d_r2nn = computeJVecNorm(r2_nonorm);
-	Eigen::Matrix3d d_r2nn_d_r2, d_r2nn_d_r1n;
+	Eigen::Matrix3f d_r2n_d_r2nn = computeJVecNorm(r2_nonorm);
+	Eigen::Matrix3f d_r2nn_d_r2, d_r2nn_d_r1n;
 	computeJr2(r2, r1_norm, d_r2nn_d_r2, d_r2nn_d_r1n);
-	Eigen::Matrix3d d_r1n_d_r1 = computeJVecNorm(r1);
-	Eigen::Matrix3d d_r2n_d_r1n = d_r2n_d_r2nn * d_r2nn_d_r1n;
+	Eigen::Matrix3f d_r1n_d_r1 = computeJVecNorm(r1);
+	Eigen::Matrix3f d_r2n_d_r1n = d_r2n_d_r2nn * d_r2nn_d_r1n;
 
-	Eigen::Matrix3d d_r3n_d_r1n, d_r3n_d_r2n;
+	Eigen::Matrix3f d_r3n_d_r1n, d_r3n_d_r2n;
 	computeJCross(r1_norm, r2_norm, d_r2n_d_r1n, d_r3n_d_r1n, d_r3n_d_r2n);
 	
-	Eigen::Matrix3d d_r2n_d_r1 = d_r2n_d_r2nn * d_r2nn_d_r1n * d_r1n_d_r1;
-	Eigen::Matrix3d d_r2n_d_r2 = d_r2n_d_r2nn * d_r2nn_d_r2;
-	Eigen::Matrix3d d_r3n_d_r1 = d_r3n_d_r1n * d_r1n_d_r1 /*+ d_r3n_d_r2n * d_r2n_d_r1*/;
-	Eigen::Matrix3d d_r3n_d_r2 = d_r3n_d_r2n * d_r2n_d_r2;
+	Eigen::Matrix3f d_r2n_d_r1 = d_r2n_d_r2nn * d_r2nn_d_r1n * d_r1n_d_r1;
+	Eigen::Matrix3f d_r2n_d_r2 = d_r2n_d_r2nn * d_r2nn_d_r2;
+	Eigen::Matrix3f d_r3n_d_r1 = d_r3n_d_r1n * d_r1n_d_r1 /*+ d_r3n_d_r2n * d_r2n_d_r1*/;
+	Eigen::Matrix3f d_r3n_d_r2 = d_r3n_d_r2n * d_r2n_d_r2;
 
 	// reoder: 
 	// y: r1n(0), r1n(1), r1n(2), r2n(0), ...
 	// x: r1(0), r1(1), r1(2) ...
-	Eigen::Matrix<double, 9, 6> J_reorder; 
+	Eigen::Matrix<float, 9, 6> J_reorder; 
 	J_reorder.setZero(); 
 	J_reorder.block<3, 3>(0, 0) = d_r1n_d_r1;
 	J_reorder.block<3, 3>(3, 0) = d_r2n_d_r1;
@@ -243,7 +243,7 @@ Eigen::MatrixXd ContinousRotation::computeJBlock(Eigen::VectorXd x)
 
 
 
-	Eigen::Matrix<double, 9, 6> J_roworder; 
+	Eigen::Matrix<float, 9, 6> J_roworder; 
 	std::vector<int> row_order = { 0, 3,6,1,4,7,2,5,8 };
 	for (int i = 0; i < 9; i++)J_roworder.row(i) = J_reorder.row(row_order[i]);
 	std::vector<int> col_order = { 0,3,1,4,2,5 };

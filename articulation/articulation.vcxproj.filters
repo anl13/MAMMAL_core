@@ -18,16 +18,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pigmodel.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="pigsolver_fitting.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="pigsolver_jacobi.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="pigsolver_shape.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\camera.cpp">
@@ -40,9 +34,6 @@
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\math_utils.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\model.cpp">
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\render\camviewer.cpp">
@@ -66,13 +57,7 @@
     <ClCompile Include="..\utils\node_graph.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\dataconverter.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\volume.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\associate\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\VAE\decoder.cpp">
@@ -99,14 +84,20 @@
     <ClCompile Include="test_gpu.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="pigsolverdevice.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pigmodel.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="pigsolver_sil.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\skel.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="pigmodel.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="pigsolver.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\nanoflann.hpp">
       <Filter>other</Filter>
     </ClInclude>
@@ -134,6 +125,15 @@
     <ClInclude Include="common.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="pigsolverdevice.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pigmodel.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="pigsolver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="pigmodel_config.json" />
@@ -146,6 +146,12 @@
       <Filter>源文件</Filter>
     </CudaCompile>
     <CudaCompile Include="gpuutils.cu">
+      <Filter>源文件</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\render\cuda_utils_render.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="pigsolverdevice.cu">
       <Filter>源文件</Filter>
     </CudaCompile>
   </ItemGroup>

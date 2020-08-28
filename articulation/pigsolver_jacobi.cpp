@@ -1,6 +1,6 @@
 #include "pigsolver.h"
 
-void PigSolver::CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J)
+void PigSolver::CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXf& J)
 {
 	/*
 	AN Liang. 20191227 comments. This function was written by ZHANG Yuxiang.
@@ -11,18 +11,18 @@ void PigSolver::CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J)
 	*/
 	int N = m_topo.joint_num;
 	int M = m_poseToOptimize.size();
-	J = Eigen::MatrixXd::Zero(3 * N, 3 + 3 * M);
+	J = Eigen::MatrixXf::Zero(3 * N, 3 + 3 * M);
 
 	// calculate delta rodrigues
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
-		const Eigen::Vector3d& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
-		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiD(pose);
+		const Eigen::Vector3f& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
+		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
 	}
 
 	//dJ_dtheta
-	Eigen::MatrixXd m_jointJacobiPose = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
+	Eigen::MatrixXf m_jointJacobiPose = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
 	for (int jointDerivativeId = 0; jointDerivativeId < m_jointNum; jointDerivativeId++)
 	{
 		// update translation term
@@ -31,7 +31,7 @@ void PigSolver::CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J)
 		// update poseParam term
 		for (int axisDerivativeId = 0; axisDerivativeId < 3; axisDerivativeId++)
 		{
-			std::vector<std::pair<bool, Eigen::Matrix4d>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4d::Zero()));
+			std::vector<std::pair<bool, Eigen::Matrix4f>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4f::Zero()));
 			globalAffineDerivative[jointDerivativeId].first = true;
 			auto& affine = globalAffineDerivative[jointDerivativeId].second;
 			affine.block<3, 3>(0, 0) = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jointDerivativeId + axisDerivativeId));
@@ -64,22 +64,22 @@ void PigSolver::CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J)
 	// this version was deduced by AN Liang, 20191231
 	// assume that you have computed Pose Jacobi
 	// O(n^2)
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
 	RP.setZero();
 	LP.setZero();
 	for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
 	{
 		for (int aIdx = 0; aIdx < 3; aIdx++)
 		{
-			Eigen::Matrix3d dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
+			Eigen::Matrix3f dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
 			if (jIdx > 0)
 			{
 				dR = m_globalAffine.block<3, 3>(0, 4 * m_parent(jIdx)) * dR;
 			}
 			RP.block<3, 3>(9 * jIdx + 3 * aIdx, 0) = dR;
 		}
-		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3d::Identity();
+		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3f::Identity();
 		for (int child = jIdx + 1; child < m_jointNum; child++)
 		{
 			int father = m_parent(child);
@@ -87,24 +87,24 @@ void PigSolver::CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J)
 		}
 	}
 
-	Eigen::MatrixXd m_vertJacobiPose = Eigen::MatrixXd::Zero(3, 3 + 3 * m_jointNum);
+	Eigen::MatrixXf m_vertJacobiPose = Eigen::MatrixXf::Zero(3, 3 + 3 * m_jointNum);
 	for (int i = 0; i<N; i++)
 	{
 		if (m_mapper[i].first != 1) continue;
 		int vIdx = m_mapper[i].second;
-		Eigen::Vector3d v0 = m_verticesDeformed.col(vIdx);
+		Eigen::Vector3f v0 = m_verticesDeformed.col(vIdx);
 		m_vertJacobiPose.setZero();
 		for (int jIdx = 0; jIdx<m_jointNum; jIdx++)
 		{
 			if (m_lbsweights(jIdx, vIdx) < 0.00001) continue;
-			Eigen::Vector3d j0 = m_jointsDeformed.col(jIdx);
+			Eigen::Vector3f j0 = m_jointsDeformed.col(jIdx);
 			m_vertJacobiPose += (m_lbsweights(jIdx, vIdx) * m_jointJacobiPose.middleRows(3 * jIdx, 3));
 			for (int pIdx = jIdx; pIdx>-1; pIdx = m_parent(pIdx)) // poseParamIdx to derive
 			{
-				Eigen::Matrix3d T = Eigen::Matrix3d::Zero();
+				Eigen::Matrix3f T = Eigen::Matrix3f::Zero();
 				for (int axis_id = 0; axis_id<3; axis_id++)
 				{
-					Eigen::Matrix3d dR1 = RP.block<3, 3>(9 * pIdx + 3 * axis_id, 0) * LP.block<3, 3>(3 * jIdx, 3 * pIdx);
+					Eigen::Matrix3f dR1 = RP.block<3, 3>(9 * pIdx + 3 * axis_id, 0) * LP.block<3, 3>(3 * jIdx, 3 * pIdx);
 					T.col(axis_id) = dR1 * (v0 - j0) * m_lbsweights(jIdx, vIdx);
 				}
 				m_vertJacobiPose.block<3, 3>(0, 3 + 3 * pIdx) += T;
@@ -119,36 +119,36 @@ void PigSolver::CalcSkelJacobiPartThetaByMapper(Eigen::MatrixXd& J)
 	}
 }
 
-void PigSolver::CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J)
+void PigSolver::CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXf& J)
 {
-	Eigen::MatrixXd J_jointfull, J_joint;
+	Eigen::MatrixXf J_jointfull, J_joint;
 	int N = m_optimPairs.size();
 	int M = m_poseToOptimize.size();
-	J = Eigen::MatrixXd::Zero(3 * N, 3 + 3 * M);
+	J = Eigen::MatrixXf::Zero(3 * N, 3 + 3 * M);
 	
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
-		const Eigen::Vector3d& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
-		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiD(pose);
+		const Eigen::Vector3f& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
+		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
 	}
 
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
 	RP.setZero();
 	LP.setZero();
 	for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
 	{
 		for (int aIdx = 0; aIdx < 3; aIdx++)
 		{
-			Eigen::Matrix3d dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
+			Eigen::Matrix3f dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
 			if (jIdx > 0)
 			{
 				dR = m_globalAffine.block<3, 3>(0, 4 * m_parent(jIdx)) * dR;
 			}
 			RP.block<3, 3>(9 * jIdx + 3 * aIdx, 0) = dR;
 		}
-		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3d::Identity();
+		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3f::Identity();
 		for (int child = jIdx + 1; child < m_jointNum; child++)
 		{
 			int father = m_parent(child);
@@ -157,7 +157,7 @@ void PigSolver::CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J)
 	}
 
 	//dJ_dtheta
-	J_jointfull = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
+	J_jointfull = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
 	for (int jointDerivativeId = 0; jointDerivativeId < m_jointNum; jointDerivativeId++)
 	{
 		// update translation term
@@ -166,7 +166,7 @@ void PigSolver::CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J)
 		// update poseParam term
 		for (int axisDerivativeId = 0; axisDerivativeId < 3; axisDerivativeId++)
 		{
-			std::vector<std::pair<bool, Eigen::Matrix4d>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4d::Zero()));
+			std::vector<std::pair<bool, Eigen::Matrix4f>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4f::Zero()));
 			globalAffineDerivative[jointDerivativeId].first = true;
 			auto& affine = globalAffineDerivative[jointDerivativeId].second;
 			affine.block<3, 3>(0, 0) = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jointDerivativeId + axisDerivativeId));
@@ -195,7 +195,7 @@ void PigSolver::CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J)
 		}
 	}
 
-	Eigen::MatrixXd block = Eigen::MatrixXd::Zero(3, 3 + 3 * m_jointNum);
+	Eigen::MatrixXf block = Eigen::MatrixXf::Zero(3, 3 + 3 * m_jointNum);
 	for (int i = 0; i < N; i++)
 	{
 		CorrPair P = m_optimPairs[i];
@@ -210,19 +210,19 @@ void PigSolver::CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J)
 		{
 			block.setZero();
 			int vIdx = P.index; 
-			Eigen::Vector3d v0 = m_verticesDeformed.col(vIdx);
+			Eigen::Vector3f v0 = m_verticesDeformed.col(vIdx);
 			block.setZero();
 			for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
 			{
 				if (m_lbsweights(jIdx, vIdx) < 0.00001) continue;
-				Eigen::Vector3d j0 = m_jointsDeformed.col(jIdx);
+				Eigen::Vector3f j0 = m_jointsDeformed.col(jIdx);
 				block += (m_lbsweights(jIdx, vIdx) * J_jointfull.middleRows(3 * jIdx, 3));
 				for (int pIdx = jIdx; pIdx > -1; pIdx = m_parent(pIdx)) // poseParamIdx to derive
 				{
-					Eigen::Matrix3d T = Eigen::Matrix3d::Zero();
+					Eigen::Matrix3f T = Eigen::Matrix3f::Zero();
 					for (int axis_id = 0; axis_id < 3; axis_id++)
 					{
-						Eigen::Matrix3d dR1 = RP.block<3, 3>(9 * pIdx + 3 * axis_id, 0) * LP.block<3, 3>(3 * jIdx, 3 * pIdx);
+						Eigen::Matrix3f dR1 = RP.block<3, 3>(9 * pIdx + 3 * axis_id, 0) * LP.block<3, 3>(3 * jIdx, 3 * pIdx);
 						T.col(axis_id) = dR1 * (v0 - j0) * m_lbsweights(jIdx, vIdx);
 					}
 					block.block<3, 3>(0, 3 + 3 * pIdx) += T;
@@ -240,34 +240,34 @@ void PigSolver::CalcSkelJacobiPartThetaByPairs(Eigen::MatrixXd& J)
 
 void PigSolver::CalcPose2DTermByMapper(
 	const int k,
-	const Eigen::MatrixXd& skel,
-	const Eigen::MatrixXd& Jacobi3d,
-	Eigen::MatrixXd& ATA,
-	Eigen::VectorXd& ATb
+	const Eigen::MatrixXf& skel,
+	const Eigen::MatrixXf& Jacobi3d,
+	Eigen::MatrixXf& ATA,
+	Eigen::VectorXf& ATb
 )
 {
 	int view = m_source.view_ids[k];
 	Camera cam = m_cameras[view];
 	const DetInstance& det = m_source.dets[k];
-	Eigen::Matrix3d R = cam.R;
-	Eigen::Matrix3d K = cam.K;
-	Eigen::Vector3d T = cam.T;
+	Eigen::Matrix3f R = cam.R;
+	Eigen::Matrix3f K = cam.K;
+	Eigen::Vector3f T = cam.T;
 
 	int N = m_topo.joint_num;
 	int M = m_poseToOptimize.size();
-	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(2 * N, 3 + 3 * M);
-	Eigen::VectorXd r = Eigen::VectorXd::Zero(2 * N);
+	Eigen::MatrixXf J = Eigen::MatrixXf::Zero(2 * N, 3 + 3 * M);
+	Eigen::VectorXf r = Eigen::VectorXf::Zero(2 * N);
 
 	for (int i = 0; i < N; i++)
 	{
-		Eigen::Vector3d x_local = K * (R * skel.col(i) + T);
-		Eigen::MatrixXd D = Eigen::MatrixXd::Zero(2, 3);
+		Eigen::Vector3f x_local = K * (R * skel.col(i) + T);
+		Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 		D(0, 0) = 1 / x_local(2);
 		D(1, 1) = 1 / x_local(2);
 		D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
 		D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
 		J.middleRows(2 * i, 2) = D * K * R * Jacobi3d.middleRows(3 * i, 3);
-		Eigen::Vector2d u;
+		Eigen::Vector2f u;
 		u(0) = x_local(0) / x_local(2);
 		u(1) = x_local(1) / x_local(2);
 
@@ -284,30 +284,30 @@ void PigSolver::CalcPose2DTermByMapper(
 
 void PigSolver::CalcPose2DTermByPairs(
 	const int viewindex,
-	const Eigen::MatrixXd& skel2d,
-	const Eigen::MatrixXd& Jacobi3d,
-	Eigen::MatrixXd& ATA,
-	Eigen::VectorXd& ATb
+	const Eigen::MatrixXf& skel2d,
+	const Eigen::MatrixXf& Jacobi3d,
+	Eigen::MatrixXf& ATA,
+	Eigen::VectorXf& ATb
 )
 {
 	int view = m_source.view_ids[viewindex];
 	Camera cam = m_cameras[view];
 	const DetInstance& det = m_source.dets[viewindex];
-	Eigen::Matrix3d R = cam.R;
-	Eigen::Matrix3d K = cam.K;
-	Eigen::Vector3d T = cam.T;
+	Eigen::Matrix3f R = cam.R;
+	Eigen::Matrix3f K = cam.K;
+	Eigen::Vector3f T = cam.T;
 
 	int N = m_optimPairs.size();
 	int M = m_poseToOptimize.size();
-	Eigen::VectorXd r = Eigen::VectorXd::Zero(2 * N);
-	Eigen::MatrixXd J; 
+	Eigen::VectorXf r = Eigen::VectorXf::Zero(2 * N);
+	Eigen::MatrixXf J; 
 	if (m_isLatent)
 	{
-		J = Eigen::MatrixXd::Zero(2 * N, 38); 
+		J = Eigen::MatrixXf::Zero(2 * N, 38); 
 	}
 	else
 	{
-		J = Eigen::MatrixXd::Zero(2 * N, 3 + 3 * M);
+		J = Eigen::MatrixXf::Zero(2 * N, 3 + 3 * M);
 	}
 
 	for (int i = 0; i < N; i++)
@@ -316,14 +316,14 @@ void PigSolver::CalcPose2DTermByPairs(
 		int t = P.target; 
 		if (det.keypoints[t](2) < m_topo.kpt_conf_thresh[t]) continue;
 		
-		Eigen::Vector3d x_local = K * (R * skel2d.col(t) + T);
-		Eigen::MatrixXd D = Eigen::MatrixXd::Zero(2, 3);
+		Eigen::Vector3f x_local = K * (R * skel2d.col(t) + T);
+		Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 		D(0, 0) = 1 / x_local(2);
 		D(1, 1) = 1 / x_local(2);
 		D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
 		D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
 		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3);
-		Eigen::Vector2d u;
+		Eigen::Vector2f u;
 		u(0) = x_local(0) / x_local(2);
 		u(1) = x_local(1) / x_local(2);
 
@@ -338,15 +338,15 @@ void PigSolver::CalcPose2DTermByPairs(
 
 void PigSolver::CalcPoseJacobiNumeric()
 {	/*
-	auto m_jointJacobiPoseNumeric = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
-	auto m_vertJacobiPoseNumeric = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_vertexNum, 3 + 3 * m_jointNum);
+	auto m_jointJacobiPoseNumeric = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
+	auto m_vertJacobiPoseNumeric = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_vertexNum, 3 + 3 * m_jointNum);
 
 	UpdateVertices();
 	Eigen::MatrixXd previousJ = m_jointsFinal;
 	Eigen::MatrixXd previousV = m_verticesFinal;
 	Eigen::VectorXd delta_x = Eigen::VectorXd::Zero(3 * m_jointNum);
-	double alpha = 0.000001;
-	double inv_alpha = 1.0 / alpha;
+	float alpha = 0.000001;
+	float inv_alpha = 1.0 / alpha;
 	for (int i = 0; i < 3; i++)
 	{
 		Eigen::Vector3d delta_t = Eigen::Vector3d::Zero();
@@ -378,14 +378,14 @@ void PigSolver::CalcPoseJacobiNumeric()
 void PigSolver::CalcShapeJacobiNumeric()
 {
 	/*
-	auto m_jointJacobiShapeNumeric = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, m_shapeNum);
-	auto m_vertJacobiShapeNumeric = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_vertexNum, m_shapeNum);
+	auto m_jointJacobiShapeNumeric = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, m_shapeNum);
+	auto m_vertJacobiShapeNumeric = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_vertexNum, m_shapeNum);
 	UpdateVertices();
 	Eigen::MatrixXd previousJ = m_jointsFinal;
 	Eigen::MatrixXd previousV = m_verticesFinal;
 	Eigen::VectorXd delta_x = Eigen::VectorXd::Zero(m_shapeNum);
-	double alpha = 0.0001;
-	double inv_alpha = 1.0 / alpha;
+	float alpha = 0.0001;
+	float inv_alpha = 1.0 / alpha;
 	for (int i = 0; i < m_shapeNum; i++)
 	{
 		delta_x.setZero();
@@ -402,8 +402,8 @@ void PigSolver::CalcShapeJacobiNumeric()
 }
 
 void PigSolver::CalcShapeJacobi(
-Eigen::MatrixXd& jointJacobiShape, 
-Eigen::MatrixXd& vertJacobiShape
+Eigen::MatrixXf& jointJacobiShape, 
+Eigen::MatrixXf& vertJacobiShape
 )
 { // this function c2338 error 20200430
 	/*
@@ -439,33 +439,33 @@ Eigen::MatrixXd& vertJacobiShape
 	*/
 }
 
-void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen::MatrixXd& J_vert, 
+void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXf& jointJacobiPose, Eigen::MatrixXf& J_vert, 
 	bool with_vert)
 {
 	// calculate delta rodrigues
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
-		const Eigen::Vector3d& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
-		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiD(pose);
+		const Eigen::Vector3f& pose = m_poseParam.block<3, 1>(jointId * 3, 0);
+		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
 	}
 
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
 	RP.setZero();
 	LP.setZero();
 	for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
 	{
 		for (int aIdx = 0; aIdx < 3; aIdx++)
 		{
-			Eigen::Matrix3d dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
+			Eigen::Matrix3f dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
 			if (jIdx > 0)
 			{
 				dR = m_globalAffine.block<3, 3>(0, 4 * m_parent(jIdx)) * dR;
 			}
 			RP.block<3, 3>(9 * jIdx + 3 * aIdx, 0) = dR;
 		}
-		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3d::Identity();
+		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3f::Identity();
 		for (int child = jIdx + 1; child < m_jointNum; child++)
 		{
 			int father = m_parent(child);
@@ -474,7 +474,7 @@ void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen:
 	}
 
 	//dJ_dtheta
-	jointJacobiPose = Eigen::Matrix<double, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
+	jointJacobiPose = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
 	for (int jointDerivativeId = 0; jointDerivativeId < m_jointNum; jointDerivativeId++)
 	{
 		// update translation term
@@ -483,7 +483,7 @@ void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen:
 		// update poseParam term
 		for (int axisDerivativeId = 0; axisDerivativeId < 3; axisDerivativeId++)
 		{
-			std::vector<std::pair<bool, Eigen::Matrix4d>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4d::Zero()));
+			std::vector<std::pair<bool, Eigen::Matrix4f>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4f::Zero()));
 			globalAffineDerivative[jointDerivativeId].first = true;
 			auto& affine = globalAffineDerivative[jointDerivativeId].second;
 			affine.block<3, 3>(0, 0) = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jointDerivativeId + axisDerivativeId));
@@ -503,23 +503,23 @@ void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen:
 	}
 
 	if (!with_vert) return; 
-	J_vert = Eigen::MatrixXd::Zero(3 * m_vertexNum, 3 + 3 * m_jointNum);
-	Eigen::MatrixXd block = Eigen::MatrixXd::Zero(3, 3 + 3 * m_jointNum);
+	J_vert = Eigen::MatrixXf::Zero(3 * m_vertexNum, 3 + 3 * m_jointNum);
+	Eigen::MatrixXf block = Eigen::MatrixXf::Zero(3, 3 + 3 * m_jointNum);
 	for (int vIdx = 0; vIdx < m_vertexNum; vIdx++)
 	{
-		Eigen::Vector3d v0 = m_verticesDeformed.col(vIdx);
+		Eigen::Vector3f v0 = m_verticesDeformed.col(vIdx);
 		block.setZero();
 		for (int jIdx = 0; jIdx<m_jointNum; jIdx++)
 		{
 			if (m_lbsweights(jIdx, vIdx) < 0.00001) continue;
-			Eigen::Vector3d j0 = m_jointsDeformed.col(jIdx);
+			Eigen::Vector3f j0 = m_jointsDeformed.col(jIdx);
 			block += (m_lbsweights(jIdx, vIdx) * jointJacobiPose.middleRows(3 * jIdx, 3));
 			for (int pIdx = jIdx; pIdx>-1; pIdx = m_parent(pIdx)) // poseParamIdx to derive
 			{
-				Eigen::Matrix3d T = Eigen::Matrix3d::Zero();
+				Eigen::Matrix3f T = Eigen::Matrix3f::Zero();
 				for (int axis_id = 0; axis_id<3; axis_id++)
 				{
-					Eigen::Matrix3d dR1 = RP.block<3, 3>(9 * pIdx + 3 * axis_id, 0) * LP.block<3, 3>(3 * jIdx, 3 * pIdx);
+					Eigen::Matrix3f dR1 = RP.block<3, 3>(9 * pIdx + 3 * axis_id, 0) * LP.block<3, 3>(3 * jIdx, 3 * pIdx);
 					T.col(axis_id) = dR1 * (v0 - j0) * m_lbsweights(jIdx, vIdx);
 				}
 				block.block<3, 3>(0, 3 + 3 * pIdx) += T;
@@ -529,10 +529,10 @@ void PigSolver::CalcPoseJacobiFullTheta(Eigen::MatrixXd& jointJacobiPose, Eigen:
 	}
 }
 
-void PigSolver::CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixXd& J_vert, 
+void PigSolver::CalcPoseJacobiPartTheta(Eigen::MatrixXf& J_joint, Eigen::MatrixXf& J_vert, 
 	bool with_vert)
 {
-	Eigen::MatrixXd J_jointfull, J_vertfull;
+	Eigen::MatrixXf J_jointfull, J_vertfull;
 	CalcPoseJacobiFullTheta(J_jointfull, J_vertfull, with_vert);
 	int M = m_poseToOptimize.size();
 	J_joint.resize(3 * m_jointNum, 3 + 3 * M);
@@ -554,8 +554,8 @@ void PigSolver::CalcPoseJacobiPartTheta(Eigen::MatrixXd& J_joint, Eigen::MatrixX
 }
 
 void PigSolver::Calc2DJacobiNumeric(
-	const int k, const Eigen::MatrixXd& skel,
-	Eigen::MatrixXd& H, Eigen::VectorXd& b)
+	const int k, const Eigen::MatrixXf& skel,
+	Eigen::MatrixXf& H, Eigen::VectorXf& b)
 {
 	/*
 	int view = m_source.view_ids[k];
@@ -574,8 +574,8 @@ void PigSolver::Calc2DJacobiNumeric(
 
 	int M = m_poseToOptimize.size();
 	Eigen::MatrixXd J = Eigen::MatrixXd::Zero(2 * N, 3 + 3 * M);
-	double alpha = 0.0001;
-	double inv_alpha = 1 / alpha;
+	float alpha = 0.0001;
+	float inv_alpha = 1 / alpha;
 	Eigen::VectorXd previous_proj = getRegressedSkelProj(K, R, T);
 	Eigen::VectorXd delta_x = Eigen::VectorXd::Zero(3 * m_jointNum);
 
@@ -617,7 +617,7 @@ void PigSolver::Calc2DJacobiNumeric(
 }
 
 
-void PigSolver::CalcShapeJacobiToSkel(Eigen::MatrixXd& J)
+void PigSolver::CalcShapeJacobiToSkel(Eigen::MatrixXf& J)
 {
 	/*
 	Eigen::MatrixXd jointJacobiShape, vertJacobiShape;
@@ -642,17 +642,17 @@ void PigSolver::CalcShapeJacobiToSkel(Eigen::MatrixXd& J)
 }
 
 void PigSolver::CalcPoseJacobiLatent(
-	Eigen::MatrixXd& J_joint,
-	Eigen::MatrixXd& J_vert,
+	Eigen::MatrixXf& J_joint,
+	Eigen::MatrixXf& J_vert,
 	bool is_joint_only
 )
 {
 	m_decoder.computeJacobi();
-	Eigen::MatrixXd& RJ = m_decoder.J; // [(62*9) * 32]
+	Eigen::MatrixXf& RJ = m_decoder.J; // [(62*9) * 32]
 	// calculate delta rodrigues (global rotation)
-	Eigen::Matrix<double, 3, 9, Eigen::ColMajor> globalRJ = RodriguesJacobiD(m_poseParam.segment<3>(0));
+	Eigen::Matrix<float, 3, 9, Eigen::ColMajor> globalRJ = RodriguesJacobiF(m_poseParam.segment<3>(0));
 
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
 	LP.setZero();
 	for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
 	{
@@ -683,7 +683,7 @@ void PigSolver::CalcPoseJacobiLatent(
 			{
 				if (paramId < 3) dR = Eigen::Matrix3d::Zero(); 
 				else 
-				    dR = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(RJ.block<9, 1>(9 * i, paramId - 3).data());
+				    dR = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(RJ.block<9, 1>(9 * i, paramId - 3).data());
 			}
 
 			if (i == 0)
@@ -744,9 +744,9 @@ void PigSolver::CalcSkelJacobiByPairsLatent(Eigen::MatrixXd& J)
 	m_decoder.computeJacobi();
 	Eigen::MatrixXd& RJ = m_decoder.J; // [(62*9) * 32]
 									   // calculate delta rodrigues (global rotation)
-	Eigen::Matrix<double, 3, 9, Eigen::ColMajor> globalRJ = RodriguesJacobiD(m_poseParam.segment<3>(0));
+	Eigen::Matrix<float, 3, 9, Eigen::ColMajor> globalRJ = RodriguesJacobiD(m_poseParam.segment<3>(0));
 
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
 	LP.setZero();
 	for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
 	{
@@ -777,7 +777,7 @@ void PigSolver::CalcSkelJacobiByPairsLatent(Eigen::MatrixXd& J)
 			{
 				if (paramId < 3) dR = Eigen::Matrix3d::Zero();
 				else
-					dR = Eigen::Map<Eigen::Matrix<double, 3, 3, Eigen::RowMajor>>(RJ.block<9, 1>(9 * i, paramId - 3).data());
+					dR = Eigen::Map<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(RJ.block<9, 1>(9 * i, paramId - 3).data());
 			}
 
 			if (i == 0)
@@ -856,16 +856,16 @@ void PigSolver::debug_numericJacobiLatent()
 	Eigen::MatrixXd V0 = m_verticesFinal; 
 	Eigen::MatrixXd J0 = m_jointsFinal;
 	Eigen::MatrixXd Q0 = m_globalAffine;
-	double alpha = 0.00001;
-	double inv_alpha = 1 / alpha; 
+	float alpha = 0.00001;
+	float inv_alpha = 1 / alpha; 
 	for (int i = 0; i < 3; i++)
 	{
 		m_translation(i) += alpha; 
 		UpdateVertices();
 		Eigen::MatrixXd delta_J = m_jointsFinal - J0;
 		Eigen::MatrixXd delta_V = m_verticesFinal - V0; 
-		J_joint_numeric.col(i) = Eigen::Map < Eigen::Matrix<double, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
-		J_vert_numeric.col(i) = Eigen::Map< Eigen::Matrix<double, 3 * 11239, 1> >(delta_V.data()) * inv_alpha; 
+		J_joint_numeric.col(i) = Eigen::Map < Eigen::Matrix<float, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
+		J_vert_numeric.col(i) = Eigen::Map< Eigen::Matrix<float, 3 * 11239, 1> >(delta_V.data()) * inv_alpha; 
 		m_translation(i) -= alpha; 
 	}
 	for (int i = 0; i < 3; i++)
@@ -874,8 +874,8 @@ void PigSolver::debug_numericJacobiLatent()
 		UpdateVertices(); 
 		Eigen::MatrixXd delta_J = m_jointsFinal - J0;
 		Eigen::MatrixXd delta_V = m_verticesFinal - V0;
-		J_joint_numeric.col(i+3) = Eigen::Map < Eigen::Matrix<double, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
-		J_vert_numeric.col(i+3) = Eigen::Map< Eigen::Matrix<double, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
+		J_joint_numeric.col(i+3) = Eigen::Map < Eigen::Matrix<float, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
+		J_vert_numeric.col(i+3) = Eigen::Map< Eigen::Matrix<float, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
 		for (int jid = 0; jid < m_jointNum; jid++)
 			dQ_numeric.block<3, 3>(3 * jid, 3 * i) = (m_globalAffine.block<3, 3>(0, 4 * jid)
 				- Q0.block<3, 3>(0, 4 * jid)) * inv_alpha; 
@@ -887,8 +887,8 @@ void PigSolver::debug_numericJacobiLatent()
 		UpdateVertices();
 		Eigen::MatrixXd delta_J = m_jointsFinal - J0;
 		Eigen::MatrixXd delta_V = m_verticesFinal - V0;
-		J_joint_numeric.col(i+6) = Eigen::Map< Eigen::Matrix<double, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
-		J_vert_numeric.col(i+6) = Eigen::Map< Eigen::Matrix<double, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
+		J_joint_numeric.col(i+6) = Eigen::Map< Eigen::Matrix<float, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
+		J_vert_numeric.col(i+6) = Eigen::Map< Eigen::Matrix<float, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
 		for (int jid = 0; jid < m_jointNum; jid++)
 			dQ_numeric.block<3, 3>(3 * jid, 3 * (i+3)) = (m_globalAffine.block<3, 3>(0, 4 * jid)
 				- Q0.block<3, 3>(0, 4 * jid)) * inv_alpha;
@@ -913,16 +913,16 @@ void PigSolver::debug_numericJacobiAA()
 	Eigen::MatrixXd J_vert_numeric = Eigen::MatrixXd::Zero(3 * m_vertexNum, 3+62*3);
 	Eigen::MatrixXd V0 = m_verticesFinal;
 	Eigen::MatrixXd J0 = m_jointsFinal;
-	double alpha = 0.001;
-	double inv_alpha = 1 / alpha;
+	float alpha = 0.001;
+	float inv_alpha = 1 / alpha;
 	for (int i = 0; i < 3; i++)
 	{
 		m_translation(i) += alpha;
 		UpdateVertices();
 		Eigen::MatrixXd delta_J = m_jointsFinal - J0;
 		Eigen::MatrixXd delta_V = m_verticesFinal - V0;
-		J_joint_numeric.col(i) = Eigen::Map < Eigen::Matrix<double, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
-		J_vert_numeric.col(i) = Eigen::Map< Eigen::Matrix<double, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
+		J_joint_numeric.col(i) = Eigen::Map < Eigen::Matrix<float, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
+		J_vert_numeric.col(i) = Eigen::Map< Eigen::Matrix<float, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
 		m_translation(i) -= alpha;
 	}
 	for (int i = 0; i < 62*3; i++)
@@ -931,8 +931,8 @@ void PigSolver::debug_numericJacobiAA()
 		UpdateVertices();
 		Eigen::MatrixXd delta_J = m_jointsFinal - J0;
 		Eigen::MatrixXd delta_V = m_verticesFinal - V0;
-		J_joint_numeric.col(i + 3) = Eigen::Map < Eigen::Matrix<double, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
-		J_vert_numeric.col(i + 3) = Eigen::Map< Eigen::Matrix<double, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
+		J_joint_numeric.col(i + 3) = Eigen::Map < Eigen::Matrix<float, 3 * 62, 1> >(delta_J.data()) * inv_alpha;
+		J_vert_numeric.col(i + 3) = Eigen::Map< Eigen::Matrix<float, 3 * 11239, 1> >(delta_V.data()) * inv_alpha;
 		m_poseParam(i) -= alpha;
 	}
 
