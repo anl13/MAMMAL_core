@@ -123,6 +123,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="camviewer.h" />
+    <ClInclude Include="cuda_utils_render.h" />
     <ClInclude Include="renderer.h" />
     <ClInclude Include="render_object.h" />
     <ClInclude Include="render_utils.h" />
@@ -144,6 +145,7 @@
     <ClCompile Include="shader.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="cuda_utils_render.cu" />
     <CudaCompile Include="test_kernel.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

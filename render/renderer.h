@@ -68,21 +68,26 @@ public:
 	}
 
 	// offscreen rendering 
-	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources; 
-	 
-	void initResource(); 
-
-	bool is_useResource; 
-	GLuint m_renderbuffers[2]; 
-	GLuint m_framebuffer; 
-	cudaArray_t m_colorArray;
-	void beginOffscreenRender(); 
-	void endOffscreenRender(); 
+	float* renderDepthDevice();
+	void beginOffscreenRender();
+	void endOffscreenRender();
 	void mapRenderingResults();
-	void unmapRenderingResults(); 
+	void unmapRenderingResults();
 
-	void releaseResource(); 
+	float4 * m_device_renderData;
 private:
+	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;
+
+	void initResource();
+	bool is_useResource;
+	GLuint m_renderbuffers[2];
+	GLuint m_framebuffer;
+	cudaArray_t m_colorArray; // tmp array, could not directly use in kernel
+	
+	float * m_device_depth;
+	void releaseResource();
+
+
 	static MOUSE_ACTION s_mouseAction;
 	static Eigen::Vector2f s_beforePos; 
 	static float s_arcballRadius; 

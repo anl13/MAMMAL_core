@@ -39,6 +39,9 @@
     <ClInclude Include="test_kernel.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="cuda_utils_render.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="camviewer.cpp">
@@ -77,6 +80,9 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="test_kernel.cu">
+      <Filter>源文件</Filter>
+    </CudaCompile>
+    <CudaCompile Include="cuda_utils_render.cu">
       <Filter>源文件</Filter>
     </CudaCompile>
   </ItemGroup>

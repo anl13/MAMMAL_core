@@ -6,6 +6,8 @@
 #include <cfloat> 
 #include <opencv2/opencv.hpp>
 
+#include "cuda_utils_render.h"
+
 CamViewer               Renderer::s_camViewer;
 GLFWwindow*             Renderer::s_windowPtr;
 Renderer::MOUSE_ACTION  Renderer::s_mouseAction;
@@ -293,11 +295,13 @@ Renderer::Renderer(const std::string &shaderFolder):m_shaderFolder(shaderFolder)
 	InitShader();
 
 	is_useResource = false; 
+	initResource(); 
 }
 
 
 Renderer::~Renderer()
 {
+	releaseResource(); 
 	glfwTerminate();
 }
 
@@ -435,10 +439,15 @@ void Renderer::initResource()
 
 	cudaGraphicsGLRegisterImage(&m_cuda_gl_resources[0], m_renderbuffers[0],
 		GL_RENDERBUFFER, cudaGraphicsRegisterFlagsReadOnly);
+
+	cudaMalloc((void**)&m_device_depth, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float));
+	cudaMalloc((void**)&m_device_renderData, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float4)); 
 }
 
 void Renderer::releaseResource()
 {
+	if (m_device_renderData != nullptr) cudaFree(m_device_renderData); 
+	if (m_device_depth != nullptr) cudaFree(m_device_depth); 
 	glDeleteRenderbuffers(2, m_renderbuffers);
 	glDeleteFramebuffers(1, &m_framebuffer); 
 	is_useResource = false; 
@@ -457,7 +466,6 @@ void Renderer::endOffscreenRender()
 void Renderer::mapRenderingResults()
 {
 	cudaGraphicsMapResources(m_cuda_gl_resources.size(), &m_cuda_gl_resources[0]); 
-	
 	cudaGraphicsSubResourceGetMappedArray(&m_colorArray, m_cuda_gl_resources[0], 0, 0);
 }
 
@@ -466,3 +474,16 @@ void Renderer::unmapRenderingResults()
 	cudaGraphicsUnmapResources(m_cuda_gl_resources.size(), &m_cuda_gl_resources[0]); 
 }
 
+float * Renderer::renderDepthDevice()
+{
+	beginOffscreenRender(); 
+	Draw("depth"); 
+	mapRenderingResults(); 
+	cudaMemcpy2DFromArray(m_device_renderData, WINDOW_WIDTH * sizeof(float4),
+		m_colorArray, 0, 0, WINDOW_WIDTH * sizeof(float4), WINDOW_HEIGHT, cudaMemcpyDeviceToDevice);
+	extract_depth_channel(m_device_renderData, WINDOW_WIDTH, WINDOW_HEIGHT, m_device_depth); 
+	unmapRenderingResults(); 
+	endOffscreenRender(); 
+
+	return m_device_depth;
+}

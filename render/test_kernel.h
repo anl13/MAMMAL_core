@@ -10,4 +10,10 @@
 #include "../utils/safe_call.hpp"
 
 void gpupseudo_color(float4* imgdata, int W, int H, float maxv, float minv, cv::Mat & imgout, 
-	cv::Mat &depthout); 
+	cv::Mat &depthout, float* depth_device); 
+
+
+void check_visibility(float* imgdata, int W, int H,
+	pcl::gpu::DeviceArray<Eigen::Vector3f> points,
+	Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
+	std::vector<uchar>& V); 

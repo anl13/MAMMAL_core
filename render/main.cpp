@@ -178,7 +178,7 @@ void test_depth()
 	Eigen::Vector3f center = Eigen::Vector3f::Zero();
 
 	// init renderer 
-	Renderer::s_Init(true);
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
@@ -197,85 +197,55 @@ void test_depth()
 	m_renderer.meshObjs.push_back(p_model); 
 
 	m_renderer.s_camViewer.SetExtrinsic(cams[0].R, cams[0].T);
+
+	//float * depth_device; 
+	//cudaMalloc((void**)&depth_device, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float));
+	//m_renderer.renderDepthDevice(); 
+	//cv::Mat pseudo_out, depth_out; 
+	//gpupseudo_color(m_renderer.m_device_renderData, WINDOW_WIDTH, WINDOW_HEIGHT, 2.9, 0, pseudo_out, depth_out, depth_device);
+	float * depth_device = m_renderer.renderDepthDevice(); 
+
 	// render depth 
-	m_renderer.initResource();
-	cv::Mat img;
-	img.create(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_32FC4);
 	cv::Mat depth;
 	depth.create(cv::Size(WINDOW_WIDTH, WINDOW_HEIGHT), CV_32FC1);
-	
-	float4 * imgdata; 
-	cudaMalloc( (void**)&imgdata, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float4));
+	cudaMemcpy(depth.data, depth_device, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float), cudaMemcpyDeviceToHost);  
 
-	m_renderer.beginOffscreenRender();
-	m_renderer.Draw("depth");
-	m_renderer.mapRenderingResults();
+	cv::Mat depth_pseudo = pseudoColor(depth); 
 
-	TimerUtil::Timer<std::chrono::microseconds> tt; 
-	tt.Start(); 
-	cudaMemcpy2DFromArray(
-		img.data, img.cols * img.elemSize(),
-		m_renderer.m_colorArray, 0, 0, img.cols*img.elemSize(),
-		img.rows,
-		cudaMemcpyDeviceToHost
-	);
-	std::cout << tt.Elapsed() << std::endl; 
-	tt.Start(); 
-	cudaMemcpy2DFromArray(imgdata, WINDOW_WIDTH * sizeof(float4), m_renderer.m_colorArray,
-		0, 0, WINDOW_WIDTH * sizeof(float4), WINDOW_HEIGHT, cudaMemcpyDeviceToDevice);
-	std::cout << tt.Elapsed() << std::endl; 
-
-	cv::Mat depth_pseudo2;
-	cv::Mat depth_out; 
-	gpupseudo_color(imgdata, 1920, 1080, 2.48504, 0, depth_pseudo2, depth_out);
-
-	//deviceimg.download(img); 
-	cv::flip(img, img, 0);
-	cv::extractChannel(img, depth, 2);
-	cv::Mat depth_pseudo = pseudoColor(depth_out);
-	m_renderer.unmapRenderingResults();
-	m_renderer.endOffscreenRender();
-	m_renderer.releaseResource();
-
-	MeshEigen objeigen(obj);
-	cv::Mat mask = drawCVDepth(objeigen.vertices, objeigen.faces, cams[0]);
-	cv::Mat blend = blend_images(depth_pseudo, mask, 0.5);
-
-	cv::imshow("depth", depth_pseudo2);
-	cv::imshow("mask", mask);
-	cv::imshow("blend", blend);
-	cv::imwrite("E:/render_test/vis_align.png", depth_pseudo);
-	cv::imwrite("E:/render_test/mask_align.png", mask);
-	cv::imwrite("E:/render_test/blend_align.png", blend);
+	cv::imshow("depth", depth_pseudo);
 
 	cv::waitKey();
 	cv::destroyAllWindows();
 
-	return; 
+	
+
+	std::vector<uchar> visibility(obj.vertex_num, 0); 
+	pcl::gpu::DeviceArray<Eigen::Vector3f> points_device; 
+	points_device.upload(obj.vertices_vec); 
+	check_visibility(depth_device, WINDOW_WIDTH, WINDOW_HEIGHT, points_device,
+		cams[0].K, cams[0].R, cams[0].T, visibility);
 
 	int vertexNum = obj.vertex_num; 
 	std::vector<Eigen::Vector3f> colors(vertexNum, Eigen::Vector3f(1.0f, 1.0f, 1.0f));
-	//std::vector<float> sizes(vertexNum, 0.006);
-	//std::vector<Eigen::Vector3f> balls = obj.vertices_vec;
-	//std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
 
 	for (int i = 0; i < vertexNum; i++)
 	{
-		Eigen::Vector3f v = obj.vertices_vec[i]; 
-		Eigen::Vector3f uv = project(cams[0], v);
-		float d = -queryDepth(depth, uv(0), uv(1));
-		v = cams[0].R * v + cams[0].T; 
-		std::cout << "d: " << d << "  gt: " << v(2) << std::endl;
-		if (d > 0 && abs(d - v(2)) < 0.02f)
-		{
-			colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
-		}
-		else
-		{
-			colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f);
-		}
+		//Eigen::Vector3f v = obj.vertices_vec[i]; 
+		//Eigen::Vector3f uv = project(cams[0], v);
+		//float d = -queryDepth(depth, uv(0), uv(1));
+		//v = cams[0].R * v + cams[0].T; 
+		//std::cout << "d: " << d << "  gt: " << v(2) << std::endl;
+		//if (d > 0 && abs(d - v(2)) < 0.02f)
+		//{
+		//	colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
+		//}
+		//else
+		//{
+		//	colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f);
+		//}
+		if (visibility[i] > 0) colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f); 
+		else colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f); 
 	}
-	//BallStickObject* pc = new BallStickObject(ballObj, balls, sizes, colors);
 	
 	m_renderer.meshObjs.clear(); 
 
