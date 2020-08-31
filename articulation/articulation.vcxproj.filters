@@ -102,6 +102,9 @@
     <ClCompile Include="test_compare_cpugpu.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="show_gpu_param.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">

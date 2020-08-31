@@ -142,6 +142,9 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 	setConstant2D_device(J_joint, m_jointNum * 3, cpucols, 0);
 	setConstant2D_device(J_vert, m_vertexNum * 3, cpucols, 0); 
 
+	TimerUtil::Timer<std::chrono::microseconds> tt; 
+	tt.Start(); 
+
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
@@ -202,6 +205,9 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 		}
 	}
 
+	std::cout << "compute J_joint on cpu takes: " << tt.Elapsed() << " mcs" << std::endl; 
+	tt.Start(); 
+
 	J_joint.upload(jointJacobiPose.data(), (3*m_jointNum) * sizeof(float), cpucols, 3 * m_jointNum);
 	m_device_jointsDeformed.upload(m_host_jointsDeformed); 
 	pcl::gpu::DeviceArray2D<float> RP_device, LP_device;
@@ -230,6 +236,8 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 
 	RP_device.release();
 	LP_device.release(); 
+
+	std::cout << "compute J_vert on gpu takes:  " << tt.Elapsed() << std::endl; 
 }
 
 
@@ -243,6 +251,9 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 
 	pcl::gpu::DeviceArray2D<float> J_joint_full, J_vert_full;
 	calcPoseJacobiFullTheta_device(J_joint_full, J_vert_full); 
+
+	TimerUtil::Timer<std::chrono::microseconds> tt; 
+	tt.Start(); 
 
 	if (J_joint.empty())
 	{
@@ -268,4 +279,6 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 
 	J_joint_full.release(); 
 	J_vert_full.release(); 
+
+	std::cout << "compute partial jacobi on gpu takes: " << tt.Elapsed() << std::endl; 
 }

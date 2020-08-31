@@ -28,3 +28,5 @@ int test_body_part();
 void test_gpu(); 
 
 void test_compare_cpugpu(); 
+
+void show_gpu_param(); 

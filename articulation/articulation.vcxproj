@@ -145,6 +145,7 @@
     <ClCompile Include="pigsolver_fitting.cpp" />
     <ClCompile Include="pigsolver_jacobi.cpp" />
     <ClCompile Include="pigsolver_sil.cpp" />
+    <ClCompile Include="show_gpu_param.cpp" />
     <ClCompile Include="test_compare_cpugpu.cpp" />
     <ClCompile Include="test_fitting_model.cpp" />
     <ClCompile Include="test_gpu.cpp" />
