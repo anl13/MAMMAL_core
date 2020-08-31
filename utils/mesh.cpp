@@ -188,3 +188,20 @@ void Mesh::Save(const std::string &filename) const
 	}
 	f.close();
 }
+
+
+void MeshEigen::CalcNormal()
+{
+	normals.resize(3, vertices.cols());
+	normals.setZero();
+	for (int fIdx = 0; fIdx < faces.cols(); fIdx++) {
+		const Eigen::Vector3u face = faces.col(fIdx);
+		Eigen::Vector3f normal = ((vertices.col(face.x()) - vertices.col(face.y())).cross(
+			vertices.col(face.y()) - vertices.col(face.z()))).normalized();
+
+		normals.col(face.x()) += normal;
+		normals.col(face.y()) += normal;
+		normals.col(face.z()) += normal;
+	}
+	for (int i = 0; i < normals.cols(); i++) normals.col(i).normalize();
+}

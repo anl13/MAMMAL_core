@@ -13,13 +13,12 @@
 
 #include "pigmodel.h"
 #include "pigsolver.h"
-#include "../utils/obj_reader.h"
 
 #include "test_main.h"
 #include "../utils/timer_util.h"
 
 // 20200808: reduce data dimension 
-std::vector<Eigen::VectorXd> loadData()
+std::vector<Eigen::VectorXf> loadData()
 {
 	std::string filename = "F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\data\\samples.txt";
 	std::ifstream is(filename);
@@ -30,7 +29,7 @@ std::vector<Eigen::VectorXd> loadData()
 	}
 	int sample_num = 5452;
 	int dim = 183;
-	std::vector<Eigen::VectorXd> data(sample_num, Eigen::VectorXd::Zero(dim));
+	std::vector<Eigen::VectorXf> data(sample_num, Eigen::VectorXf::Zero(dim));
 	for (int i = 0; i < sample_num; i++)
 	{
 		for (int j = 0; j < dim; j++)
@@ -47,21 +46,21 @@ void test_fitting()
 	PigModel gtpig(pig_config);
 	PigSolver pig(pig_config);
 
-	std::vector<Eigen::VectorXd> data = loadData();
-	std::vector<Eigen::VectorXd> newdata;
-	Eigen::VectorXd lastpose = Eigen::VectorXd::Zero(62 * 3);
+	std::vector<Eigen::VectorXf> data = loadData();
+	std::vector<Eigen::VectorXf> newdata;
+	Eigen::VectorXf lastpose = Eigen::VectorXf::Zero(62 * 3);
 
 	std::ofstream log_stream("F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\tmp\\samples\\log.txt");
 
 	std::vector<int> elim = { 46, 47, 48, 49, 50, 51, 52, 53 };
 	for (int i = 0; i < 1; i++)
 	{
-		Eigen::VectorXd pose = Eigen::VectorXd::Zero(62 * 3);
+		Eigen::VectorXf pose = Eigen::VectorXf::Zero(62 * 3);
 		pose.segment<61 * 3>(3) = data[i];
 		for (int k = 0; k < elim.size(); k++)
 		{
 			int elim_num = elim[k]; 
-			pose.segment<3>(3 * elim_num) = Eigen::Vector3d::Zero(); 
+			pose.segment<3>(3 * elim_num) = Eigen::Vector3f::Zero(); 
 		}
 		gtpig.SetPose(pose);
 		gtpig.UpdateVertices();
@@ -72,8 +71,11 @@ void test_fitting()
 		pig.SetPose(lastpose);
 		//double loss = pig.FitPoseToJointsSameTopo(gtpig.GetJoints());
 		pig.m_targetVSameTopo = pig.GetVertices(); 
-		double loss = pig.FitPoseToVerticesSameTopo(100, 0.0001); 
-		Eigen::VectorXd newpose = pig.GetPose();
+		TimerUtil::Timer<std::chrono::milliseconds> tt; 
+		tt.Start(); 
+		float loss = pig.FitPoseToVerticesSameTopo(100, 0.0001); 
+		std::cout << tt.Elapsed() << std::endl; 
+		Eigen::VectorXf newpose = pig.GetPose();
 		pig.UpdateVertices(); 
 		newdata.push_back(newpose);
 		std::stringstream ss1;

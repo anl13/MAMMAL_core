@@ -26,19 +26,7 @@ Some Functions for nonrigid deformation borrows from
 https://github.com/zhangyux15/cpp_nonrigid_icp
 */
 
-struct CorrPair
-{
-	CorrPair() {
-		target = -1; 
-		type = 0; 
-		index = 0;
-		weight = 0; 
-	}
-	int target;
-	int type; 
-	int index;
-	float weight; 
-};
+
 class PigSolver : public PigModel
 {
 public:
@@ -61,7 +49,7 @@ public:
 	//std::vector<Eigen::Vector3f> getPivot() { return m_pivot;  }
 	//BodyState&                   getBodyState() { return m_bodystate; }
 
-	void readBodyState(std::string filename); 
+	//void readBodyState(std::string filename); 
 	void normalizeCamera();
 	void normalizeSource();
 
@@ -75,7 +63,7 @@ public:
 	void optimizePose(const int maxIterTime = 100, const float terminal = 0.001);
 	//void optimizeShapeToBoneLength(int maxIter, float terminal); 
 	Eigen::VectorXf getRegressedSkelProj(const Eigen::Matrix3f& K, const Eigen::Matrix3f& R, const Eigen::Vector3f& T);
-	void computePivot(); 
+	//void computePivot(); 
 
 	void CalcZ();
 
@@ -142,7 +130,7 @@ public:
 	void FitPoseToVerticesSameTopoLatent(); 
 	float FitPoseToJointsSameTopo(Eigen::MatrixXf target); 
 
-private: 
+//private: 
 	// control info 
 	int m_id; 
 	float m_frameid; 

@@ -105,8 +105,8 @@ void test_shader()
 	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
 	chess_floor->SetFaces(squareMesh.faces_v_vec);
 	chess_floor->SetVertices(squareMesh.vertices_vec);
-	chess_floor->SetNormal(squareMesh.normals_vec); 
-	chess_floor->SetTexcoords(squareMesh.textures_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec, 2); 
+	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
 	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 
@@ -222,31 +222,37 @@ void test_depth()
 	std::vector<uchar> visibility(obj.vertex_num, 0); 
 	pcl::gpu::DeviceArray<Eigen::Vector3f> points_device; 
 	points_device.upload(obj.vertices_vec); 
+
+	TimerUtil::Timer<std::chrono::microseconds> tt1;
+	tt1.Start();
 	check_visibility(depth_device, WINDOW_WIDTH, WINDOW_HEIGHT, points_device,
 		cams[0].K, cams[0].R, cams[0].T, visibility);
+	std::cout << tt1.Elapsed() << std::endl; 
 
 	int vertexNum = obj.vertex_num; 
 	std::vector<Eigen::Vector3f> colors(vertexNum, Eigen::Vector3f(1.0f, 1.0f, 1.0f));
 
+	TimerUtil::Timer<std::chrono::microseconds> tt; 
+	tt.Start(); 
 	for (int i = 0; i < vertexNum; i++)
 	{
-		//Eigen::Vector3f v = obj.vertices_vec[i]; 
-		//Eigen::Vector3f uv = project(cams[0], v);
-		//float d = -queryDepth(depth, uv(0), uv(1));
-		//v = cams[0].R * v + cams[0].T; 
+		Eigen::Vector3f v = obj.vertices_vec[i]; 
+		Eigen::Vector3f uv = project(cams[0], v);
+		float d = queryDepth(depth, uv(0), uv(1));
+		v = cams[0].R * v + cams[0].T; 
 		//std::cout << "d: " << d << "  gt: " << v(2) << std::endl;
-		//if (d > 0 && abs(d - v(2)) < 0.02f)
-		//{
-		//	colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
-		//}
-		//else
-		//{
-		//	colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f);
-		//}
+		if (d > 0 && abs(d - v(2)) < 0.02f)
+		{
+			colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
+		}
+		else
+		{
+			colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f);
+		}
 		if (visibility[i] > 0) colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f); 
 		else colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f); 
 	}
-	
+	std::cout << tt.Elapsed() << " mcs" << std::endl; 
 	m_renderer.meshObjs.clear(); 
 
 	RenderObjectMesh* meshcolor = new RenderObjectMesh(); 

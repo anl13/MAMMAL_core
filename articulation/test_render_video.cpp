@@ -13,7 +13,7 @@
 
 #include "pigmodel.h"
 #include "pigsolver.h"
-#include "../utils/obj_reader.h"
+#include "../utils/mesh.h"
 
 #include "test_main.h"
 
@@ -37,7 +37,7 @@ std::vector<Camera> readCameras()
 			std::cout << "can not open file " << ss.str() << std::endl;
 			exit(-1);
 		}
-		Vec3 rvec, tvec;
+		Eigen::Vector3f rvec, tvec;
 		for (int i = 0; i < 3; i++) {
 			double a;
 			camfile >> a;
@@ -50,7 +50,7 @@ std::vector<Camera> readCameras()
 			tvec(i) = a;
 		}
 
-		Camera camUndist = getDefaultCameraUndist();
+		Camera camUndist = Camera::getDefaultCameraUndist();
 		camUndist.SetRT(rvec, tvec);
 		cams.push_back(camUndist);
 		camfile.close();
@@ -158,16 +158,20 @@ int test_write_video()
 	//m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
 
 	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	// init element obj
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
 	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, false);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
+	chess_floor->SetFaces(squareMesh.faces_v_vec);
+	chess_floor->SetVertices(squareMesh.vertices_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec, 2);
+	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
 	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 

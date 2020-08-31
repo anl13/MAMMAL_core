@@ -270,19 +270,19 @@ int unittest_numeric()
 	dec.computeJacobi(); 
 	Eigen::MatrixXf J = dec.J; 
 
-	Eigen::MatrixXf J_numeric = Eigen::MatrixXf::Zero(9 * 62, 32);
-	float alpha = 0.00001; 
-	float inv_alpha = 1 / alpha; 
+	Eigen::MatrixXd J_numeric = Eigen::MatrixXd::Zero(9 * 62, 32);
+	double alpha = 0.001; 
+	double inv_alpha = 1 / alpha; 
 	for (int i = 0; i < 32; i++)
 	{
 		input(i) += alpha; 
 		dec.latent = input; 
 		dec.forward();
-		J_numeric.col(i) = (dec.output - output0) * inv_alpha; 
+		J_numeric.col(i) = (dec.output - output0).cast<double>() * inv_alpha; 
 		input(i) -= alpha; 
 	}
 	
-	Eigen::MatrixXf D = J - J_numeric; 
+	Eigen::MatrixXf D = J - J_numeric.cast<float>(); 
 	std::cout << "diff.norm(): " << D.norm() << std::endl; 
 	std::cout << "J block: " << std::endl  << J.block<10, 10>(0, 0) << std::endl; 
 	std::cout << "J_numeric block: "  << std::endl << J_numeric.block<10, 10>(0, 0) << std::endl; 

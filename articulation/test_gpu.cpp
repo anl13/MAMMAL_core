@@ -13,7 +13,7 @@
 #include "../utils/math_utils.h" 
 #include "../utils/image_utils.h" 
 
-#include "../utils/obj_reader.h"
+#include "../utils/mesh.h"
 
 #include "test_main.h"
 #include "../utils/timer_util.h"
@@ -47,17 +47,21 @@ void test_gpu()
 	m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
 
 	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	// init element obj
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
 	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, false);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	chess_floor->SetFaces(squareMesh.faces_v_vec);
+	chess_floor->SetVertices(squareMesh.vertices_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec, 2);
+	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
+	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 
 	// model data 
@@ -67,16 +71,22 @@ void test_gpu()
 	// smal random pose 
 	Eigen::VectorXf pose = Eigen::VectorXf::Random(smal.GetJointNum() * 3) * 0.3;
 	smal.SetPose(pose);
-	TimerUtil::Timer<std::chrono::milliseconds> tt;
+	TimerUtil::Timer<std::chrono::microseconds> tt;
 	tt.Start();
+	for(int i = 0; i < 10; i++)
 	smal.UpdateVertices();
-	std::cout << "Time elapsed: " << tt.Elapsed() << " ms" << std::endl;
+	std::cout << "Time elapsed: " << tt.Elapsed() / 10 << " mcs" << std::endl;
+	tt.Start(); 
+	smal.UpdateNormalsFinal(); 
+	std::cout << "Time elapsed normal : " << tt.Elapsed() <<  " mcs" << std::endl; 
 
 	RenderObjectColor* animal_model = new RenderObjectColor();
 	std::vector<Eigen::Vector3f> vertices_f = smal.GetVertices(); 
 	std::vector<Eigen::Vector3u> faces_u = smal.GetFacesVert();
+	std::vector<Eigen::Vector3f> normals = smal.GetNormals(); 
 	animal_model->SetFaces(faces_u);
 	animal_model->SetVertices(vertices_f);
+	animal_model->SetNormal(normals); 
 	animal_model->SetColor(Eigen::Vector3f(0.5, 0.5, 0.1));
 
 	m_renderer.colorObjs.push_back(animal_model);

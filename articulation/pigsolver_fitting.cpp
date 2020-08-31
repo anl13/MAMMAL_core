@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <fstream> 
 #include "../utils/colorterminal.h"
+#include "../utils/timer_util.h"
 #include <cstdlib> 
 #include <json/json.h>
 //#define DEBUG_SOLVER
@@ -125,10 +126,10 @@ void PigSolver::normalizeSource()
 void PigSolver::CalcZ()
 {
 	int N = m_topo.joint_num; 
-	Z = Eigen::MatrixXd::Zero(3, N);
+	Z = Eigen::MatrixXf::Zero(3, N);
 	for (int i = 0; i < N; i++)
 	{
-		Eigen::Vector3d X = Eigen::Vector3d::Zero(); // joint position to solve.  
+		Eigen::Vector3f X = Eigen::Vector3f::Zero(); // joint position to solve.  
 		int validnum = 0;
 		for (int k = 0; k < m_source.view_ids.size(); k++)
 		{
@@ -144,36 +145,36 @@ void PigSolver::CalcZ()
 		// usually, converge in 3 iteractions 
 		for (int iter = 0; iter < 100; iter++)
 		{
-			Eigen::Matrix3d H1 = Eigen::Matrix3d::Zero();
-			Eigen::Vector3d b1 = Eigen::Vector3d::Zero();
+			Eigen::Matrix3f H1 = Eigen::Matrix3f::Zero();
+			Eigen::Vector3f b1 = Eigen::Vector3f::Zero();
 			for (int k = 0; k < m_source.view_ids.size(); k++)
 			{
 				int view = m_source.view_ids[k];
 				Camera cam = m_cameras[view];
-				Eigen::Vector3d keypoint = m_source.dets[k].keypoints[i];
+				Eigen::Vector3f keypoint = m_source.dets[k].keypoints[i];
 				if (keypoint(2) < m_topo.kpt_conf_thresh[i]) continue;
-				Eigen::Vector3d x_local = cam.K * (cam.R * X + cam.T);
-				Eigen::MatrixXd D = Eigen::MatrixXd::Zero(2, 3);
+				Eigen::Vector3f x_local = cam.K * (cam.R * X + cam.T);
+				Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 				D(0, 0) = 1 / x_local(2);
 				D(1, 1) = 1 / x_local(2);
 				D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
 				D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
-				Eigen::MatrixXd J = Eigen::MatrixXd::Zero(2, 3);
+				Eigen::MatrixXf J = Eigen::MatrixXf::Zero(2, 3);
 				J = D * cam.K * cam.R;
-				Eigen::Vector2d u;
+				Eigen::Vector2f u;
 				u(0) = x_local(0) / x_local(2);
 				u(1) = x_local(1) / x_local(2);
-				Eigen::Vector2d r = u - keypoint.segment<2>(0);
+				Eigen::Vector2f r = u - keypoint.segment<2>(0);
 				H1 += J.transpose() * J;
 				b1 += -J.transpose() * r;
 			}
 
-			Eigen::Matrix3d DTD = Eigen::Matrix3d::Identity();
-			double w1 = 1;
-			double lambda = 0.0;
-			Eigen::Matrix3d H = H1 * w1 + DTD * lambda;
-			Eigen::Vector3d b = b1 * w1;
-			Eigen::Vector3d delta = H.ldlt().solve(b);
+			Eigen::Matrix3f DTD = Eigen::Matrix3f::Identity();
+			float w1 = 1;
+			float lambda = 0.0;
+			Eigen::Matrix3f H = H1 * w1 + DTD * lambda;
+			Eigen::Vector3f b = b1 * w1;
+			Eigen::Vector3f delta = H.ldlt().solve(b);
 			X = X + delta;
 			if (delta.norm() < 0.00001) break;
 			else
@@ -208,10 +209,10 @@ void PigSolver::CalcZ()
 	}
 }
 
-Eigen::MatrixXd PigSolver::getRegressedSkel()
+Eigen::MatrixXf PigSolver::getRegressedSkel()
 {
 	int N = m_topo.joint_num; 
-	Eigen::MatrixXd skel = Eigen::MatrixXd::Zero(3, N);
+	Eigen::MatrixXf skel = Eigen::MatrixXf::Zero(3, N);
 	for (int i = 0; i < N; i++)
 	{
 		if (m_mapper[i].first < 0) continue;
@@ -233,10 +234,10 @@ Eigen::MatrixXd PigSolver::getRegressedSkel()
 	return skel;
 }
 
-Eigen::MatrixXd PigSolver::getRegressedSkelbyPairs()
+Eigen::MatrixXf PigSolver::getRegressedSkelbyPairs()
 {
 	int N = m_topo.joint_num;
-	Eigen::MatrixXd joints = Eigen::MatrixXd::Zero(3, N);
+	Eigen::MatrixXf joints = Eigen::MatrixXf::Zero(3, N);
 	for (int i = 0; i < m_optimPairs.size(); i++)
 	{
 		CorrPair P = m_optimPairs[i];
@@ -259,23 +260,23 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	if (m_frameid > 0) return; 
 	int N = m_topo.joint_num; 
 	m_weights.resize(N);
-	m_weightsEigen = Eigen::VectorXd::Zero(N * 3);
-	Eigen::MatrixXd skel = getRegressedSkel(); 
+	m_weightsEigen = Eigen::VectorXf::Zero(N * 3);
+	Eigen::MatrixXf skel = getRegressedSkel(); 
 	// STEP 1: compute scale
-	std::vector<double> target_bone_lens;
-	std::vector<double> source_bone_lens;
+	std::vector<float> target_bone_lens;
+	std::vector<float> source_bone_lens;
 	for (int bid = 0; bid < m_topo.bones.size(); bid++)
 	{
 		int sid = m_topo.bones[bid](0);
 		int eid = m_topo.bones[bid](1);
 		if (Z.col(sid).norm() == 0 || Z.col(eid).norm() == 0) continue;
-		double target_len = (Z.col(sid) - Z.col(eid)).norm();
-		double source_len = (skel.col(sid) - skel.col(eid)).norm();
+		float target_len = (Z.col(sid) - Z.col(eid)).norm();
+		float source_len = (skel.col(sid) - skel.col(eid)).norm();
 		target_bone_lens.push_back(target_len);
 		source_bone_lens.push_back(source_len);
 	}
-	double a = 0;
-	double b = 0;
+	float a = 0;
+	float b = 0;
 	for (int i = 0; i < target_bone_lens.size(); i++)
 	{
 		a += target_bone_lens[i] * source_bone_lens[i];
@@ -283,7 +284,7 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	}
 
 	/*std::cout << "a: " << a << "  b: " << b << std::endl; */
-	double alpha = a / b;
+	float alpha = a / b;
 	m_scale = alpha * m_scale;
 	RescaleOriginVertices(alpha);
 
@@ -292,19 +293,19 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	m_frameid += 1;
 
 	// STEP 2: compute translation 
-	Eigen::Vector3d barycenter_target = Z.col(18);
+	Eigen::Vector3f barycenter_target = Z.col(18);
 	int center_id = m_mapper[18].second; 
-	Eigen::Vector3d barycenter_source = m_jointsDeformed.col(center_id);
+	Eigen::Vector3f barycenter_source = m_jointsDeformed.col(center_id);
 	m_translation += barycenter_target - barycenter_source;
 
 	// STEP 3 : compute global rotation 
-	Eigen::MatrixXd A, B;
+	Eigen::MatrixXf A, B;
 	int nonzero = 0;
 	for (int i = 0; i < N; i++) {
 		if (Z.col(i).norm() > 0) {
 			nonzero++;
 			m_weights[i] = 1;
-			m_weightsEigen.segment<3>(3 * i) = Eigen::Vector3d::Ones();
+			m_weightsEigen.segment<3>(3 * i) = Eigen::Vector3f::Ones();
 		}
 		else m_weights[i] = 0;
 	}
@@ -321,18 +322,18 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 			k++;
 		}
 	}
-	Eigen::MatrixXd V_target = A.colwise() - barycenter_target;
-	Eigen::MatrixXd V_source = B.colwise() - barycenter_source;
-	Eigen::Matrix3d S = V_source * V_target.transpose();
-	Eigen::JacobiSVD<Eigen::Matrix3d> svd(S, Eigen::ComputeFullU | Eigen::ComputeFullV);
+	Eigen::MatrixXf V_target = A.colwise() - barycenter_target;
+	Eigen::MatrixXf V_source = B.colwise() - barycenter_source;
+	Eigen::Matrix3f S = V_source * V_target.transpose();
+	Eigen::JacobiSVD<Eigen::Matrix3f> svd(S, Eigen::ComputeFullU | Eigen::ComputeFullV);
 #ifdef DEBUG_SOLVER
 	std::cout << BLUE_TEXT("svd singular values: ") << svd.singularValues().transpose() << std::endl;
 #endif 
-	Eigen::MatrixXd U = svd.matrixU();
-	Eigen::MatrixXd V = svd.matrixV();
-	Eigen::Matrix3d R = V * U.transpose();
-	Eigen::Matrix3d R0 = GetRodrigues(m_poseParam.segment<3>(0));
-	Eigen::AngleAxisd ax(R * R0);
+	Eigen::MatrixXf U = svd.matrixU();
+	Eigen::MatrixXf V = svd.matrixV();
+	Eigen::Matrix3f R = V * U.transpose();
+	Eigen::Matrix3f R0 = GetRodrigues(m_poseParam.segment<3>(0));
+	Eigen::AngleAxisf ax(R * R0);
 	m_poseParam.segment<3>(0) = ax.axis() * ax.angle();
 #ifdef DEBUG_SOLVER
 	std::cout << BLUE_TEXT("m_translation: ") << m_translation.transpose() << std::endl;
@@ -341,22 +342,22 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 }
 
 
-Eigen::VectorXd PigSolver::getRegressedSkelProj(
-	const Eigen::Matrix3d& K, const Eigen::Matrix3d& R, const Eigen::Vector3d& T)
+Eigen::VectorXf PigSolver::getRegressedSkelProj(
+	const Eigen::Matrix3f& K, const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
 {
 	int N = m_topo.joint_num;
-	Eigen::MatrixXd skel = getRegressedSkel();
-	Eigen::Matrix<double, -1, -1, Eigen::ColMajor> proj;
+	Eigen::MatrixXf skel = getRegressedSkel();
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> proj;
 	proj.resize(2, N); proj.setZero();
-	Eigen::MatrixXd local = K * ((R * skel).colwise() + T);
+	Eigen::MatrixXf local = K * ((R * skel).colwise() + T);
 	for (int i = 0; i < N; i++) proj.col(i) = local.block<2, 1>(0, i) / local(2, i);
-	Eigen::VectorXd proj_vec = Eigen::Map<Eigen::VectorXd>(proj.data(), 2 * N);
+	Eigen::VectorXf proj_vec = Eigen::Map<Eigen::VectorXf>(proj.data(), 2 * N);
 	return proj_vec;
 }
 
 
 
-void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance)
+void PigSolver::optimizePose(const int maxIterTime, const float updateTolerance)
 {
 	int M = m_poseToOptimize.size();
 	int paramNum = m_isLatent? 38: (3+3*M);
@@ -375,12 +376,12 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		//ss << "G:/pig_results/debug/fitting_" << iterTime << ".obj";
 		//SaveObj(ss.str()); 
 
-		Eigen::MatrixXd poseJ3d;
+		Eigen::MatrixXf poseJ3d;
 		if (m_isLatent) CalcSkelJacobiByPairsLatent(poseJ3d); 
 		else CalcSkelJacobiPartThetaByPairs(poseJ3d);
-		Eigen::MatrixXd skel = getRegressedSkelbyPairs();
+		Eigen::MatrixXf skel = getRegressedSkelbyPairs();
 
-		Eigen::VectorXd theta(paramNum);
+		Eigen::VectorXf theta(paramNum);
 		if (m_isLatent)
 		{
 			theta.segment<3>(0) = m_translation;
@@ -398,43 +399,43 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 		}
 
 		// solve
-		Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(paramNum, paramNum); // data term 
-		Eigen::VectorXd b1 = Eigen::VectorXd::Zero(paramNum);  // data term 
+		Eigen::MatrixXf H1 = Eigen::MatrixXf::Zero(paramNum, paramNum); // data term 
+		Eigen::VectorXf b1 = Eigen::VectorXf::Zero(paramNum);  // data term 
 		for (int k = 0; k < m_source.view_ids.size(); k++)
 		{
-			Eigen::MatrixXd H_view;
-			Eigen::VectorXd b_view;
+			Eigen::MatrixXf H_view;
+			Eigen::VectorXf b_view;
 			CalcPose2DTermByPairs(k, skel, poseJ3d, H_view, b_view);
 			H1 += H_view;
 			b1 += b_view;
 		}
-		double lambda = 0.0005;
-		double w1 = 1;
-		double w_reg = 0.01; 
-		double w_temp = 0.0; 
-		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(paramNum, paramNum);
-		Eigen::MatrixXd H_reg = DTD;  // reg term 
-		Eigen::VectorXd b_reg = -theta; // reg term 
+		float lambda = 0.0005;
+		float w1 = 1;
+		float w_reg = 0.01; 
+		float w_temp = 0.0; 
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
+		Eigen::MatrixXf H_reg = DTD;  // reg term 
+		Eigen::VectorXf b_reg = -theta; // reg term 
 
-		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+		Eigen::MatrixXf H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXf b = b1 * w1 + b_reg * w_reg;
 
 		if (m_frameid >= 0)
 		{
-			Eigen::MatrixXd H_temp = DTD; 
-			Eigen::VectorXd b_temp = theta_last - theta; 
+			Eigen::MatrixXf H_temp = DTD; 
+			Eigen::VectorXf b_temp = theta_last - theta; 
 			H += DTD * w_temp; 
 			b += b_temp * w_temp; 
 		}
 
-		Eigen::VectorXd delta = H.ldlt().solve(b);
+		Eigen::VectorXf delta = H.ldlt().solve(b);
 		//std::cout << "data term b: " << b1.norm() << std::endl;
 		//std::cout << "reg  term b: " << b_reg.norm() << std::endl; 
 
 		// update 
 		if (m_isLatent)
 		{
-			double learning_rate = 1; 
+			float learning_rate = 1; 
 			m_translation += delta.segment<3>(0) * learning_rate; 
 			m_poseParam.segment<3>(0) += delta.segment<3>(3) * learning_rate; 
 			m_latentCode += delta.segment<32>(6) * learning_rate; 
@@ -462,91 +463,91 @@ void PigSolver::optimizePose(const int maxIterTime, const double updateTolerance
 	}
 }
 
-void PigSolver::computePivot()
-{
-	// assume center is always observed 
-	Eigen::MatrixXd skel = getRegressedSkel(); 
-	//Eigen::Vector3d headz = Z.col(0); 
-	//Eigen::Vector3d centerz = Z.col(20);
-	//Eigen::Vector3d tailz = Z.col(18); 
-	Eigen::Vector3d heads = skel.col(0); 
-	Eigen::Vector3d centers = skel.col(20); 
-	Eigen::Vector3d tails = skel.col(18); 
+//void PigSolver::computePivot()
+//{
+//	// assume center is always observed 
+//	Eigen::MatrixXf skel = getRegressedSkel(); 
+//	//Eigen::Vector3d headz = Z.col(0); 
+//	//Eigen::Vector3d centerz = Z.col(20);
+//	//Eigen::Vector3d tailz = Z.col(18); 
+//	Eigen::Vector3d heads = skel.col(0); 
+//	Eigen::Vector3d centers = skel.col(20); 
+//	Eigen::Vector3d tails = skel.col(18); 
+//
+//	// m_pivot[0]: head(nose)
+//	// m_pivot[1]: center
+//	// m_pivot[2]: tail(tail root)
+//	m_pivot.resize(3);
+//	
+//	// choosing policy 
+//	m_pivot[1] = centers; 
+//	
+//	m_pivot[0] = heads; 
+//	m_pivot[2] = tails; 
+//	
+//	m_bodystate.trans = m_translation; 
+//	m_bodystate.pose = m_poseParam; 
+//	m_bodystate.frameid = m_frameid; 
+//	m_bodystate.id = m_id; 
+//	m_bodystate.points = m_pivot; 
+//	m_bodystate.center = m_pivot[1];
+//	m_bodystate.scale = m_scale;
+//}
 
-	// m_pivot[0]: head(nose)
-	// m_pivot[1]: center
-	// m_pivot[2]: tail(tail root)
-	m_pivot.resize(3);
-	
-	// choosing policy 
-	m_pivot[1] = centers; 
-	
-	m_pivot[0] = heads; 
-	m_pivot[2] = tails; 
-	
-	m_bodystate.trans = m_translation; 
-	m_bodystate.pose = m_poseParam; 
-	m_bodystate.frameid = m_frameid; 
-	m_bodystate.id = m_id; 
-	m_bodystate.points = m_pivot; 
-	m_bodystate.center = m_pivot[1];
-	m_bodystate.scale = m_scale;
-}
-
-void PigSolver::readBodyState(std::string filename)
-{
-	m_bodystate.loadState(filename); 
-	m_translation = m_bodystate.trans;
-	m_poseParam = m_bodystate.pose;
-	m_frameid = m_bodystate.frameid; 
-	m_id = m_bodystate.id;
-	m_pivot = m_bodystate.points; 
-	m_scale = m_bodystate.scale; 
-
-	//UpdateVertices(); 
-	//auto skel = getRegressedSkel(); 
-	//vector<Eigen::Vector3d> est(3); 
-	//est[0] = skel.col(0); 
-	//est[1] = skel.col(20); 
-	//est[2] = skel.col(18); 
-	//m_scale = ((m_pivot[0] - m_pivot[1]).norm() + (m_pivot[1] - m_pivot[2]).norm() + (m_pivot[2] - m_pivot[0]).norm())
-	//	/ ((est[0] - est[1]).norm() + (est[1] - est[2]).norm() + (est[2] - est[0]).norm());
-	
-	if (!tmp_init)
-	{
-		tmp_init = true; 
-		m_jointsOrigin *= m_scale;
-		m_verticesOrigin *= m_scale;
-	}
-
-	UpdateVertices(); 
-}
+//void PigSolver::readBodyState(std::string filename)
+//{
+//	m_bodystate.loadState(filename); 
+//	m_translation = m_bodystate.trans;
+//	m_poseParam = m_bodystate.pose;
+//	m_frameid = m_bodystate.frameid; 
+//	m_id = m_bodystate.id;
+//	m_pivot = m_bodystate.points; 
+//	m_scale = m_bodystate.scale; 
+//
+//	//UpdateVertices(); 
+//	//auto skel = getRegressedSkel(); 
+//	//vector<Eigen::Vector3d> est(3); 
+//	//est[0] = skel.col(0); 
+//	//est[1] = skel.col(20); 
+//	//est[2] = skel.col(18); 
+//	//m_scale = ((m_pivot[0] - m_pivot[1]).norm() + (m_pivot[1] - m_pivot[2]).norm() + (m_pivot[2] - m_pivot[0]).norm())
+//	//	/ ((est[0] - est[1]).norm() + (est[1] - est[2]).norm() + (est[2] - est[0]).norm());
+//	
+//	if (!tmp_init)
+//	{
+//		tmp_init = true; 
+//		m_jointsOrigin *= m_scale;
+//		m_verticesOrigin *= m_scale;
+//	}
+//
+//	UpdateVertices(); 
+//}
 
 
 // toy function: optimize shape without pose. 
-void PigSolver::FitShapeToVerticesSameTopo(const int maxIterTime, const double terminal)
+void PigSolver::FitShapeToVerticesSameTopo(const int maxIterTime, const float terminal)
 {
 	std::cout << GREEN_TEXT("solving shape ... ") << std::endl;
-	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
+	Eigen::VectorXf V_target = Eigen::Map<Eigen::VectorXf>(m_targetVSameTopo.data(), 3 * m_vertexNum);
 	int iter = 0;
 	for (; iter < maxIterTime; iter++)
 	{
 		UpdateVertices();
-		Eigen::MatrixXd jointJacobiShape, vertJacobiShape;
+		Eigen::MatrixXf jointJacobiShape, vertJacobiShape;
 		CalcShapeJacobi(jointJacobiShape, vertJacobiShape);
-		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
-		Eigen::MatrixXd H1 = vertJacobiShape.transpose() * vertJacobiShape;
-		Eigen::VectorXd b1 = -vertJacobiShape.transpose() * r;
-		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(m_shapeNum, m_shapeNum);  // Leveberg Marquart
-		Eigen::MatrixXd H_reg = DTD;
-		Eigen::VectorXd b_reg = -m_shapeParam;
-		double lambda = 0.001;
-		double w1 = 1;
-		double w_reg = 0.01;
-		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+		Eigen::VectorXf r = Eigen::Map<Eigen::VectorXf>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
+		Eigen::MatrixXf H1 = vertJacobiShape.transpose() * vertJacobiShape;
+		Eigen::VectorXf b1 = -vertJacobiShape.transpose() * r;
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(m_shapeNum, m_shapeNum);  // Leveberg Marquart
+		Eigen::MatrixXf H_reg = DTD;
+		Eigen::VectorXf b_reg = -m_shapeParam;
+		float lambda = 0.001;
+		float w1 = 1;
+		float w_reg = 0.01;
+		Eigen::MatrixXf H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXf b = b1 * w1 + b_reg * w_reg;
 
-		Eigen::VectorXd delta = H.ldlt().solve(b);
+		Eigen::VectorXf delta = H.ldlt().solve(b);
 		m_shapeParam = m_shapeParam + delta;
 #ifdef DEBUG_SOLVER
 		std::cout << "residual     : " << r.norm() << std::endl;
@@ -562,26 +563,26 @@ void PigSolver::FitShapeToVerticesSameTopo(const int maxIterTime, const double t
 void PigSolver::globalAlignToVerticesSameTopo()
 {
 	UpdateVertices();
-	Eigen::Vector3d barycenter_target = m_targetVSameTopo.rowwise().mean();
-	Eigen::Vector3d barycenter_source = m_verticesFinal.rowwise().mean();
+	Eigen::Vector3f barycenter_target = m_targetVSameTopo.rowwise().mean();
+	Eigen::Vector3f barycenter_source = m_verticesFinal.rowwise().mean();
 
 	m_translation = barycenter_target - barycenter_source;
-	Eigen::MatrixXd V_target = m_targetVSameTopo.colwise() - barycenter_target;
-	Eigen::MatrixXd V_source = m_verticesFinal.colwise() - barycenter_source;
-	Eigen::Matrix3d S = V_source * V_target.transpose();
-	Eigen::JacobiSVD<Eigen::Matrix3d> svd(S, Eigen::ComputeFullU | Eigen::ComputeFullV);
+	Eigen::MatrixXf V_target = m_targetVSameTopo.colwise() - barycenter_target;
+	Eigen::MatrixXf V_source = m_verticesFinal.colwise() - barycenter_source;
+	Eigen::Matrix3f S = V_source * V_target.transpose();
+	Eigen::JacobiSVD<Eigen::Matrix3f> svd(S, Eigen::ComputeFullU | Eigen::ComputeFullV);
 	std::cout << svd.singularValues() << std::endl;
-	Eigen::MatrixXd U = svd.matrixU();
-	Eigen::MatrixXd V = svd.matrixV();
-	Eigen::Matrix3d R = V * U.transpose();
-	Eigen::AngleAxisd ax(R);
+	Eigen::MatrixXf U = svd.matrixU();
+	Eigen::MatrixXf V = svd.matrixV();
+	Eigen::Matrix3f R = V * U.transpose();
+	Eigen::AngleAxisf ax(R);
 	m_poseParam.segment<3>(0) = ax.axis() * ax.angle();
 }
 
-Eigen::MatrixXd PigSolver::getRegressedSkelTPose()
+Eigen::MatrixXf PigSolver::getRegressedSkelTPose()
 {
 	int N = m_topo.joint_num;
-	Eigen::MatrixXd skel = Eigen::MatrixXd::Zero(3, N);
+	Eigen::MatrixXf skel = Eigen::MatrixXf::Zero(3, N);
 	for (int i = 0; i < N; i++)
 	{
 		if (m_mapper[i].first < 0) continue;
@@ -603,19 +604,19 @@ Eigen::MatrixXd PigSolver::getRegressedSkelTPose()
 	return skel;
 }
 
-std::vector<Eigen::Vector4d> PigSolver::projectBoxes()
+std::vector<Eigen::Vector4f> PigSolver::projectBoxes()
 {
-	std::vector<Eigen::Vector4d> boxes; 
+	std::vector<Eigen::Vector4f> boxes; 
 	for (int camid = 0; camid < m_cameras.size(); camid++)
 	{
 		double minx, miny, maxx, maxy;
-		Eigen::MatrixXd points = m_cameras[camid].R * m_verticesFinal;
+		Eigen::MatrixXf points = m_cameras[camid].R * m_verticesFinal;
 		points = points.colwise() + m_cameras[camid].T;
 		points = m_cameras[camid].K * points; 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
-			double x = points(0, i) / points(2, i) * 1920;
-			double y = points(1, i) / points(2, i) * 1080;
+			float x = points(0, i) / points(2, i) * 1920;
+			float y = points(1, i) / points(2, i) * 1080;
 			if (i == 0)
 			{
 				minx = maxx = x; 
@@ -631,7 +632,7 @@ std::vector<Eigen::Vector4d> PigSolver::projectBoxes()
 		}
 		if (maxx < 0 || maxy < 0 || minx >= 1920 || miny >= 1080)
 		{
-			boxes.emplace_back(Eigen::Vector4d::Zero()); 
+			boxes.emplace_back(Eigen::Vector4f::Zero()); 
 		}
 		else
 		{
@@ -639,21 +640,21 @@ std::vector<Eigen::Vector4d> PigSolver::projectBoxes()
 			miny = miny > 0 ? miny : 0;
 			maxx = maxx < 1920 ? maxx : 1920;
 			maxy = maxy < 1080 ? maxy : 1080;
-			boxes.emplace_back(Eigen::Vector4d(minx, miny, maxx, maxy));
+			boxes.emplace_back(Eigen::Vector4f(minx, miny, maxx, maxy));
 		}
 	}
 	return boxes; 
 }
 
 
-double PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double terminal)
+float PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const float terminal)
 {
-	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
+	Eigen::VectorXf V_target = Eigen::Map<Eigen::VectorXf>(m_targetVSameTopo.data(), 3 * m_vertexNum);
 
 	int M = m_poseToOptimize.size();
 	int N = m_topo.joint_num;
 
-	double loss = 0;
+	float loss = 0;
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
@@ -661,36 +662,36 @@ double PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double 
 		//ss << "E:/debug_pig3/shapeiter/pose_" << iterTime << ".obj";
 		//SaveObj(ss.str());
 
-		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
+		Eigen::VectorXf r = Eigen::Map<Eigen::VectorXf>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
 
-		Eigen::VectorXd theta(3 + 3 * M);
+		Eigen::VectorXf theta(3 + 3 * M);
 		theta.segment<3>(0) = m_translation;
 		for (int i = 0; i < M; i++)
 		{
 			int jIdx = m_poseToOptimize[i];
 			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 		}
-		Eigen::VectorXd theta0 = theta;
+		Eigen::VectorXf theta0 = theta;
 		// solve
-		Eigen::MatrixXd H_view;
-		Eigen::VectorXd b_view;
-		Eigen::MatrixXd J; // J_vert
-		Eigen::MatrixXd J_joint;
+		Eigen::MatrixXf H_view;
+		Eigen::VectorXf b_view;
+		Eigen::MatrixXf J; // J_vert
+		Eigen::MatrixXf J_joint;
 		CalcPoseJacobiPartTheta(J_joint, J);
-		Eigen::MatrixXd H1 = J.transpose() * J;
-		Eigen::MatrixXd b1 = -J.transpose() * r;
+		Eigen::MatrixXf H1 = J.transpose() * J;
+		Eigen::MatrixXf b1 = -J.transpose() * r;
 
-		double lambda = 0.0001;
-		double w1 = 1;
-		double w_reg = 0.01;
-		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
-		Eigen::MatrixXd H_reg = DTD;  // reg term 
-		Eigen::VectorXd b_reg = -theta; // reg term 
+		float lambda = 0.0001;
+		float w1 = 1;
+		float w_reg = 0.01;
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXf H_reg = DTD;  // reg term 
+		Eigen::VectorXf b_reg = -theta; // reg term 
 
-		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+		Eigen::MatrixXf H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXf b = b1 * w1 + b_reg * w_reg;
 
-		Eigen::VectorXd delta = H.ldlt().solve(b);
+		Eigen::VectorXf delta = H.ldlt().solve(b);
 
 		// update 
 		m_translation += delta.segment<3>(0);
@@ -706,51 +707,51 @@ double PigSolver::FitPoseToVerticesSameTopo(const int maxIterTime, const double 
 	return loss;
 }
 
-double PigSolver::FitPoseToJointsSameTopo(Eigen::MatrixXd target)
+float PigSolver::FitPoseToJointsSameTopo(Eigen::MatrixXf target)
 {
 	int maxIterTime = 100;
-	double terminal = 0.000000001;
+	float terminal = 0.0001f;
 	TimerUtil::Timer<std::chrono::milliseconds> TT;
 
 	int M = m_poseToOptimize.size();
-	double loss = 0;
+	float loss = 0;
 	int iterTime = 0;
-	Eigen::VectorXd target_vec = Eigen::Map<Eigen::VectorXd>(target.data(), m_jointNum * 3);
+	Eigen::VectorXf target_vec = Eigen::Map<Eigen::VectorXf>(target.data(), m_jointNum * 3);
 
 	TT.Start();
 	for (; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateJoints();
-		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_jointsFinal.data(), 3 * m_jointNum) - target_vec;
+		Eigen::VectorXf r = Eigen::Map<Eigen::VectorXf>(m_jointsFinal.data(), 3 * m_jointNum) - target_vec;
 
-		Eigen::VectorXd theta(3 + 3 * M);
+		Eigen::VectorXf theta(3 + 3 * M);
 		theta.segment<3>(0) = m_translation;
 		for (int i = 0; i < M; i++)
 		{
 			int jIdx = m_poseToOptimize[i];
 			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 		}
-		Eigen::VectorXd theta0 = theta;
+		Eigen::VectorXf theta0 = theta;
 		// solve
-		Eigen::MatrixXd H_view;
-		Eigen::VectorXd b_view;
-		Eigen::MatrixXd J_vert; // J_vert
-		Eigen::MatrixXd J_joint;
+		Eigen::MatrixXf H_view;
+		Eigen::VectorXf b_view;
+		Eigen::MatrixXf J_vert; // J_vert
+		Eigen::MatrixXf J_joint;
 		CalcPoseJacobiPartTheta(J_joint, J_vert, false);
-		Eigen::MatrixXd H1 = J_joint.transpose() * J_joint;
-		Eigen::MatrixXd b1 = -J_joint.transpose() * r;
+		Eigen::MatrixXf H1 = J_joint.transpose() * J_joint;
+		Eigen::MatrixXf b1 = -J_joint.transpose() * r;
 
-		double lambda = 0.0001;
-		double w1 = 1;
-		double w_reg = 0.01;
-		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
-		Eigen::MatrixXd H_reg = DTD;  // reg term 
-		Eigen::VectorXd b_reg = -theta; // reg term 
+		float lambda = 0.0001;
+		float w1 = 1;
+		float w_reg = 0.01;
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXf H_reg = DTD;  // reg term 
+		Eigen::VectorXf b_reg = -theta; // reg term 
 
-		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+		Eigen::MatrixXf H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXf b = b1 * w1 + b_reg * w_reg;
 
-		Eigen::VectorXd delta = H.ldlt().solve(b);
+		Eigen::VectorXf delta = H.ldlt().solve(b);
 
 		// update 
 		m_translation += delta.segment<3>(0);
@@ -764,7 +765,7 @@ double PigSolver::FitPoseToJointsSameTopo(Eigen::MatrixXd target)
 		if (loss < terminal) break;
 	}
 
-	double time = TT.Elapsed();
+	float time = TT.Elapsed();
 
 	std::cout << "iter : " << iterTime << "  loss: " << loss << "  tpi: " << time / iterTime << std::endl;
 	return loss;
@@ -775,8 +776,8 @@ double PigSolver::FitPoseToJointsSameTopo(Eigen::MatrixXd target)
 void PigSolver::FitPoseToVerticesSameTopoLatent()
 {
 	int maxIterTime = 100;
-	double terminal = 0.0001;
-	Eigen::VectorXd V_target = Eigen::Map<Eigen::VectorXd>(m_targetVSameTopo.data(), 3 * m_vertexNum);
+	float terminal = 0.0001;
+	Eigen::VectorXf V_target = Eigen::Map<Eigen::VectorXf>(m_targetVSameTopo.data(), 3 * m_vertexNum);
 
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
@@ -786,31 +787,31 @@ void PigSolver::FitPoseToVerticesSameTopoLatent()
 		ss << "G:/debug_pig4/poseiter/pose_" << iterTime << ".obj";
 		SaveObj(ss.str());
 
-		Eigen::VectorXd r = Eigen::Map<Eigen::VectorXd>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
+		Eigen::VectorXf r = Eigen::Map<Eigen::VectorXf>(m_verticesFinal.data(), 3 * m_vertexNum) - V_target;
 
-		Eigen::VectorXd theta(3 + 3 + 32);
+		Eigen::VectorXf theta(3 + 3 + 32);
 		theta.segment<3>(0) = m_translation;
 		theta.segment<3>(3) = m_poseParam.segment<3>(0);
 		theta.segment<32>(6) = m_latentCode;
 
-		Eigen::VectorXd theta0 = theta;
+		Eigen::VectorXf theta0 = theta;
 
-		Eigen::MatrixXd J_joint, J_vert;
+		Eigen::MatrixXf J_joint, J_vert;
 		CalcPoseJacobiLatent(J_joint, J_vert);
-		Eigen::MatrixXd H1 = J_vert.transpose() * J_vert;
-		Eigen::MatrixXd b1 = -J_vert.transpose() * r;
+		Eigen::MatrixXf H1 = J_vert.transpose() * J_vert;
+		Eigen::MatrixXf b1 = -J_vert.transpose() * r;
 
-		double lambda = 0.001;
-		double w1 = 1;
-		double w_reg = 0.01;
-		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(38, 38);
-		Eigen::MatrixXd H_reg = DTD;  // reg term 
-		Eigen::VectorXd b_reg = -theta; // reg term 
+		float lambda = 0.001;
+		float w1 = 1;
+		float w_reg = 0.01;
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(38, 38);
+		Eigen::MatrixXf H_reg = DTD;  // reg term 
+		Eigen::VectorXf b_reg = -theta; // reg term 
 
-		Eigen::MatrixXd H = H1 * w1 + H_reg * w_reg + DTD * lambda;
-		Eigen::VectorXd b = b1 * w1 + b_reg * w_reg;
+		Eigen::MatrixXf H = H1 * w1 + H_reg * w_reg + DTD * lambda;
+		Eigen::VectorXf b = b1 * w1 + b_reg * w_reg;
 
-		Eigen::VectorXd delta = H.ldlt().solve(b);
+		Eigen::VectorXf delta = H.ldlt().solve(b);
 
 		// update 
 		m_translation += delta.segment<3>(0);

@@ -96,6 +96,12 @@
     <ClCompile Include="..\utils\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils\mesh.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="test_compare_cpugpu.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">

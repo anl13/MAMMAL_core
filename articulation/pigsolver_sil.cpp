@@ -1,5 +1,46 @@
 #include "pigsolver.h"
 
+std::vector<float4> convertVertices(const Eigen::Matrix3Xf& v)
+{
+	int N = v.cols(); 
+	std::vector<float4> vertices; 
+	vertices.resize(N);
+#pragma omp parallel for 
+	for (int i = 0; i < N; i++)
+	{
+		vertices[i].x = v(0, i); 
+		vertices[i].y = v(1, i);
+		vertices[i].z = v(2, i); 
+		vertices[i].w = 1; 
+	}
+	return vertices; 
+}
+
+std::vector<unsigned int> convertIndices(const Eigen::MatrixXu& f)
+{
+	int N = f.cols(); 
+	std::vector<unsigned int> indices(N * 3, 0); 
+	for (int i = 0; i < N; i++)
+	{
+		indices[3 * i + 0] = f(0, i); 
+		indices[3 * i + 1] = f(1, i); 
+		indices[3 * i + 2] = f(2, i); 
+	}
+	return indices; 
+}
+
+nanogui::Matrix4f eigen2nanoM4f(const Eigen::Matrix4f& mat)
+{
+	nanogui::Matrix4f M;
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			M.m[j][i] = mat(i, j);
+		}
+	}
+	return M;
+}
 
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
@@ -32,29 +73,26 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 #endif 
 
 		// calc joint term 
-		Eigen::MatrixXd poseJ3d;
+		Eigen::MatrixXf poseJ3d;
 		CalcSkelJacobiPartThetaByPairs(poseJ3d);
-		Eigen::MatrixXd skel = getRegressedSkelbyPairs();
-		Eigen::MatrixXd H1 = Eigen::MatrixXd::Zero(3 + 3 * M, 3 + 3 * M); // data term 
-		Eigen::VectorXd b1 = Eigen::VectorXd::Zero(3 + 3 * M);  // data term 
+		Eigen::MatrixXf skel = getRegressedSkelbyPairs();
+		Eigen::MatrixXf H1 = Eigen::MatrixXf::Zero(3 + 3 * M, 3 + 3 * M); // data term 
+		Eigen::VectorXf b1 = Eigen::VectorXf::Zero(3 + 3 * M);  // data term 
 		for (int k = 0; k < m_source.view_ids.size(); k++)
 		{
-			Eigen::MatrixXd H_view;
-			Eigen::VectorXd b_view;
+			Eigen::MatrixXf H_view;
+			Eigen::VectorXf b_view;
 			CalcPose2DTermByPairs(k, skel, poseJ3d, H_view, b_view);
 			H1 += H_view;
 			b1 += b_view;
 		}
 
 		// render images 
-		Model m3c;
-		m3c.vertices = m_verticesFinal;
-		m3c.faces = m_facesVert;
-		ObjModel m4c;
-		convert3CTo4C(m3c, m4c);
+		std::vector<unsigned int> indices = convertIndices(m_facesVert); 
+		std::vector<float4> vertices_float4 = convertVertices(m_verticesFinal); 
 
-		animal_offscreen->SetIndices(m4c.indices);
-		animal_offscreen->SetBuffer("positions", m4c.vertices);
+		animal_offscreen->SetIndices(indices);
+		animal_offscreen->SetBuffer("positions", vertices_float4);
 
 		cv::Mat rendered_img(1920, 1080, CV_32FC4);
 		std::vector<cv::Mat> rendered_imgs;
@@ -80,7 +118,7 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			cv::split(rendered_imgs[0], channels);
 			cv::Mat depth = -channels[2];
 			renders.push_back(depth);
-			rend_bgr.emplace_back(fromDeptyToColorMask(depth));
+			rend_bgr.emplace_back(fromDepthToColorMask(depth));
 		}
 
 #ifdef DEBUG_SIL
@@ -100,7 +138,7 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		cv::imwrite(ss.str(), blended);
 #endif 
 		// compute terms
-		Eigen::VectorXd theta(3 + 3 * M);
+		Eigen::VectorXf theta(3 + 3 * M);
 		theta.segment<3>(0) = m_translation;
 		for (int i = 0; i < M; i++)
 		{
@@ -108,26 +146,26 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			theta.segment<3>(3 + 3 * i) = m_poseParam.segment<3>(3 * jIdx);
 		}
 
-		Eigen::MatrixXd ATA;
-		Eigen::VectorXd ATb;
+		Eigen::MatrixXf ATA;
+		Eigen::VectorXf ATb;
 		CalcSilhouettePoseTerm(renders, ATA, ATb, iter);
-		double lambda = 0.005;
-		double w_joint = 0.01;
-		double w1 = 1;
-		double w_reg = 1;
-		double w_temp = 0;
-		Eigen::MatrixXd DTD = Eigen::MatrixXd::Identity(3 + 3 * M, 3 + 3 * M);
-		Eigen::MatrixXd H_reg = DTD;  // reg term 
-		Eigen::VectorXd b_reg = -theta; // reg term 
-		Eigen::MatrixXd H_temp = DTD;
-		Eigen::VectorXd b_temp = theta_last - theta;
-		Eigen::MatrixXd H = ATA * w1 + H_reg * w_reg
+		float lambda = 0.005;
+		float w_joint = 0.01;
+		float w1 = 1;
+		float w_reg = 1;
+		float w_temp = 0;
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::MatrixXf H_reg = DTD;  // reg term 
+		Eigen::VectorXf b_reg = -theta; // reg term 
+		Eigen::MatrixXf H_temp = DTD;
+		Eigen::VectorXf b_temp = theta_last - theta;
+		Eigen::MatrixXf H = ATA * w1 + H_reg * w_reg
 			+ DTD * lambda + H_temp * w_temp
 			+ H1 * w_joint;
-		Eigen::VectorXd b = ATb * w1 + b_reg * w_reg
+		Eigen::VectorXf b = ATb * w1 + b_reg * w_reg
 			+ b_temp * w_temp
 			+ b1 * w_joint;
-		Eigen::VectorXd delta = H.ldlt().solve(b);
+		Eigen::VectorXf delta = H.ldlt().solve(b);
 
 		std::cout << "reg  term b: " << b_reg.norm() << std::endl;
 		std::cout << "temp term b: " << b_temp.norm() << std::endl;
@@ -151,12 +189,12 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 
 void PigSolver::CalcSilhouettePoseTerm(
 	const std::vector<cv::Mat>& depths,
-	Eigen::MatrixXd& ATA, Eigen::VectorXd& ATb, int iter)
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter)
 {
 	int M = 3 + 3 * m_poseToOptimize.size();
-	ATA = Eigen::MatrixXd::Zero(M, M);
-	ATb = Eigen::VectorXd::Zero(M);
-	Eigen::MatrixXd J_joint, J_vert;
+	ATA = Eigen::MatrixXf::Zero(M, M);
+	ATb = Eigen::VectorXf::Zero(M);
+	Eigen::MatrixXf J_joint, J_vert;
 	CalcPoseJacobiPartTheta(J_joint, J_vert);
 
 	//// visualize 
@@ -168,7 +206,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 	//std::vector<cv::Mat> diff_xvis; 
 	//std::vector<cv::Mat> diff_yvis;
 
-	double total_r = 0;
+	float total_r = 0;
 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
@@ -176,8 +214,8 @@ void PigSolver::CalcSilhouettePoseTerm(
 			std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
 			continue;
 		}
-		Eigen::MatrixXd A = Eigen::MatrixXd::Zero(m_vertexNum, M);
-		Eigen::VectorXd r = Eigen::VectorXd::Zero(m_vertexNum);
+		Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, M);
+		Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
 		cv::Mat P = computeSDF2dFromDepthf(depths[roiIdx]);
 		//chamfers_vis.emplace_back(visualizeSDF2d(P));
 		//chamfers_vis_det.emplace_back(visualizeSDF2d(m_rois[roiIdx].chamfer));
@@ -191,23 +229,23 @@ void PigSolver::CalcSilhouettePoseTerm(
 		//diff_yvis.emplace_back(visualizeSDF2d(Pdy - m_rois[roiIdx].grady, 32));
 
 		auto cam = m_rois[roiIdx].cam;
-		Eigen::Matrix3d R = cam.R;
-		Eigen::Matrix3d K = cam.K;
-		Eigen::Vector3d T = cam.T;
+		Eigen::Matrix3f R = cam.R;
+		Eigen::Matrix3f K = cam.K;
+		Eigen::Vector3f T = cam.T;
 
-		double wc = 200.0 / m_rois[roiIdx].area;
+		float wc = 200.0 / m_rois[roiIdx].area;
 		//std::cout << "wc " << roiIdx << " : " << wc << std::endl; 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
-			double w;
+			float w;
 			if (m_bodyParts[i] == R_F_LEG || m_bodyParts[i] == R_B_LEG ||
 				m_bodyParts[i] == L_F_LEG || m_bodyParts[i] == L_B_LEG) w = 5;
 			else w = 1;
-			Eigen::Vector3d x0 = m_verticesFinal.col(i);
+			Eigen::Vector3f x0 = m_verticesFinal.col(i);
 			// check visibiltiy 
 			Camera & cam = m_rois[roiIdx].cam;
 			float depth_value = queryPixel(depths[roiIdx], x0, cam);
-			Eigen::Vector3d x0_local = cam.R * x0 + cam.T;
+			Eigen::Vector3f x0_local = cam.R * x0 + cam.T;
 			bool visible;
 			if (abs(x0_local(2) - depth_value) < 0.02) visible = true;
 			else visible = false;
@@ -226,9 +264,9 @@ void PigSolver::CalcSilhouettePoseTerm(
 			float pdy = queryPixel(Pdy, x0, m_rois[roiIdx].cam);
 			if (p > 10) continue; // only consider contours for loss 
 
-			Eigen::MatrixXd block2d = Eigen::MatrixXd::Zero(2, M);
-			Eigen::Vector3d x_local = K * (R * x0 + T);
-			Eigen::MatrixXd D = Eigen::MatrixXd::Zero(2, 3);
+			Eigen::MatrixXf block2d = Eigen::MatrixXf::Zero(2, M);
+			Eigen::Vector3f x_local = K * (R * x0 + T);
+			Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 			D(0, 0) = 1 / x_local(2);
 			D(1, 1) = 1 / x_local(2);
 			D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));

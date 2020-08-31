@@ -1,12 +1,13 @@
-#ifndef __PIG_MODEL_DEVICE__
-#define __PIG_MODEL_DEVICE__
-
+#pragma once 
 
 #include <string>
 #include <vector>
 #include <Eigen/Core>
 #include <opencv2/opencv.hpp>
 #include "../utils/node_graph.h"
+#include "../utils/math_utils.h"
+#include "../utils/image_utils.h"
+#include "../utils/timer_util.h"
 #include "../VAE/decoder.h"
 #include "common.h" 
 
@@ -48,6 +49,7 @@ public:
 	Eigen::Vector3f GetTranslation() { return m_host_translation; }
 	Eigen::VectorXf GetShape() { return m_host_shapeParam; }
 	std::vector<Eigen::Vector3f> GetPose() { return m_host_poseParam; }
+	std::vector<Eigen::Vector3f> GetNormals() { return m_host_normalsFinal; }
 	std::vector<int> GetParents() { return m_host_parents; }
 	float GetScale() { return m_host_scale; }
 	cv::Mat getTexImg() { return m_host_texImg; }
@@ -63,6 +65,7 @@ public:
 
 	void UpdateVertices();
 	void UpdateJoints();
+	void UpdateNormalsFinal(); 
 	//void UpdateNormals();
 
 	//void SaveObj(const std::string& filename) const;
@@ -98,6 +101,8 @@ protected:
 	std::vector<Eigen::Vector3f> m_host_jointsDeformed; 
 	std::vector<Eigen::Vector3f> m_host_jointsPosed; 
 
+	std::vector<Eigen::Vector3f> m_host_normalsFinal; 
+
 	// model fixed data 
 	std::vector<Eigen::Vector3u> m_host_facesTex;
 	std::vector<Eigen::Vector3u> m_host_facesVert;
@@ -123,7 +128,20 @@ protected:
 
 	pcl::gpu::DeviceArray<int> m_device_parents; 
 	pcl::gpu::DeviceArray2D<float> m_device_lbsweights; // vertexnum * jointnum, row major
-	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_vertices; 
+	pcl::gpu::DeviceArray<Eigen::Vector3u> m_device_faces; 
+	pcl::gpu::DeviceArray<BODY_PART> m_device_bodyParts;
+	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_verticesOrigin;
+
+	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_normals; 
+	
+	
+	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_verticesDeformed; 
+	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_verticesPosed;
+	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_jointsDeformed; 
+	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_jointsPosed;
+		
+
+	void UpdateNormalsFinal_device(); 
 
 	void UpdateLocalSE3_host();
 	void UpdateGlobalSE3_host();
@@ -140,6 +158,3 @@ protected:
 	void UpdateScaled_device(); 
 
 };
-
-
-#endif 

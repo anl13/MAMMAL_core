@@ -13,7 +13,7 @@
 
 #include "pigmodel.h"
 #include "pigsolver.h"
-#include "../utils/obj_reader.h"
+#include "../utils/mesh.h"
 
 #include "test_main.h"
 #include "../utils/timer_util.h"
@@ -49,17 +49,20 @@ int test_mean_pose()
 	m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
 
 	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
 	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, false);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
-	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	chess_floor->SetFaces(squareMesh.faces_v_vec);
+	chess_floor->SetVertices(squareMesh.vertices_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec, 2);
+	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
+	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 
 	// model data 
@@ -67,12 +70,17 @@ int test_mean_pose()
 	PigModel smal(smal_config);
 
 	// smal random pose 
-	Eigen::VectorXd pose = Eigen::VectorXd::Random(62 * 3) * 0.3;
+	Eigen::VectorXf pose = Eigen::VectorXf::Random(62 * 3) * 0.3;
 	smal.SetPose(pose);
 	TimerUtil::Timer<std::chrono::milliseconds> tt; 
 	tt.Start(); 
+	for(int i = 0 ; i< 10; i++)
 	smal.UpdateVertices(); 
-	std::cout << "Time elapsed: " <<  tt.Elapsed() << " ms" << std::endl; 
+	std::cout << "Time elapsed: " << tt.Elapsed() / 10 << " ms" << std::endl; 
+	tt.Start();
+	for(int i = 0; i < 10; i++)
+	smal.UpdateNormalFinal(); 
+	std::cout << "Time elapsed: " <<  tt.Elapsed() / 10 << " ms" << std::endl; 
 
 	RenderObjectColor* animal_model = new RenderObjectColor();
 	Eigen::MatrixXf vertices_f = smal.GetVertices().cast<float>();
@@ -80,8 +88,10 @@ int test_mean_pose()
 
 	
 	Eigen::MatrixXu faces_u = smal.GetFacesVert();
+	Eigen::MatrixXf normals = smal.GetNormals(); 
 	animal_model->SetFaces(faces_u);
 	animal_model->SetVertices(vertices_f);
+	animal_model->SetNormal(normals); 
 	animal_model->SetColor(Eigen::Vector3f(0.5, 0.5, 0.1));
 
 	//smal.testReadJoint("F:/projects/model_preprocess/designed_pig/extracted/framedata/joints_4.txt");
@@ -107,7 +117,7 @@ int test_mean_pose()
 	std::vector<Eigen::Vector3f> colors;
 	colors.resize(jointnum, CM[0]);
 	for (int i = 0; i < color_ids.size(); i++)colors[i] = CM[color_ids[i]];
-	BallStickObject* p_skel = new BallStickObject(ballObj, stickObj, balls, sticks, 0.01, 0.005, colors);
+	BallStickObject* p_skel = new BallStickObject(ballMeshEigen, ballMeshEigen, balls, sticks, 0.01, 0.005, colors);
 
 	//smal.testReadJoint("F:/projects/model_preprocess/designed_pig/extracted/framedata/joints_diff.txt");
 	smal.testReadJoint("F:/projects/model_preprocess/designed_pig/pig_prior/tmp/testjoint.txt");
@@ -120,7 +130,7 @@ int test_mean_pose()
 	{
 		colors[i] = colors[i] * 0.5;
 	}
-	BallStickObject* p_skel2 = new BallStickObject(ballObj, stickObj, balls2, sticks2, 0.01, 0.005, colors);
+	BallStickObject* p_skel2 = new BallStickObject(ballMeshEigen, stickMeshEigen, balls2, sticks2, 0.01, 0.005, colors);
 
 	m_renderer.colorObjs.push_back(animal_model);
 	//m_renderer.skels.push_back(p_skel); 
@@ -166,16 +176,20 @@ int test_body_part()
 	m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
 
 	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	// init element obj
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
 	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, false);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
+	chess_floor->SetFaces(squareMesh.faces_v_vec);
+	chess_floor->SetVertices(squareMesh.vertices_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec, 2);
+	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
 	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 
@@ -204,7 +218,7 @@ int test_body_part()
 		if (parts[i] == HEAD) colors[i] = CM[0]; 
 		else colors[i] = CM[1]; 
 	}
-	BallStickObject* pointcloud = new  BallStickObject(ballObj, balls, sizes, colors);
+	BallStickObject* pointcloud = new  BallStickObject(ballMeshEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(pointcloud); 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;

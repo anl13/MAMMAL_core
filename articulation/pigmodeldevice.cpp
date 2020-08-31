@@ -234,7 +234,13 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 		m_host_lbsweights.data(), m_jointNum * sizeof(float), m_vertexNum, m_jointNum
 	);
 	m_device_parents.upload(m_host_parents);
+	m_device_verticesOrigin.upload(m_host_verticesOrigin); 
+	m_device_faces.upload(m_host_facesVert); 
+	m_device_bodyParts.upload(m_host_bodyParts);
 
+	m_device_verticesPosed.upload(m_host_verticesPosed); 
+	m_device_verticesDeformed.upload(m_host_verticesDeformed); 
+	
 }
 
 void PigModelDevice::UpdateLocalSE3_host()
@@ -245,7 +251,7 @@ void PigModelDevice::UpdateLocalSE3_host()
 		Eigen::Matrix4f matrix;
 		matrix.setIdentity();
 
-		matrix.block<3, 3>(0, 0) = GetRodriguesF(pose);
+		matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
 		if (jointId == 0)
 			matrix.block<3, 1>(0, 3) = m_host_jointsDeformed[jointId] + m_host_translation;
 		else
@@ -307,7 +313,7 @@ void PigModelDevice::UpdateJointsShaped()
 void PigModelDevice::UpdateVerticesDeformed()
 {
 	m_host_verticesDeformed = m_host_verticesShaped; 
-
+	m_device_verticesDeformed.upload(m_host_verticesDeformed); 
 	// TODO: add surface deformation 
 }
 
@@ -332,10 +338,18 @@ void PigModelDevice::UpdateJoints()
 
 void PigModelDevice::UpdateVertices()
 {
+	//TimerUtil::Timer<std::chrono::milliseconds> tt;
+	//tt.Start(); 
 	UpdateJoints(); 
 	UpdateNormalizedSE3_host(); 
 	UpdateVerticesShaped(); 
 	UpdateVerticesDeformed(); 
-	
+	//std::cout << "elapsed: " << tt.Elapsed() << std::endl; 
+
 	UpdateVerticesPosed_device(); 
+}
+
+void PigModelDevice::UpdateNormalsFinal()
+{
+	UpdateNormalsFinal_device(); 
 }

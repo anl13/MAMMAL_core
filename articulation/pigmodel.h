@@ -50,6 +50,7 @@ public:
 	int GetVertexNum() { return m_vertexNum; }
 	int GetJointNum() { return m_jointNum; }
 	int GetFaceNum() { return m_faceNum; }
+	Eigen::MatrixXf GetNormals() { return m_normalFinal; }
 	Eigen::MatrixXf GetShapeBlendV() { return m_shapeBlendV; }
 	Eigen::MatrixXf GetJRegressor() { return m_jregressor; }
 	Eigen::MatrixXf GetLBSWeights() { return m_lbsweights; }

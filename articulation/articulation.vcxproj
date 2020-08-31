@@ -132,6 +132,7 @@
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
+    <ClCompile Include="..\utils\mesh.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
@@ -144,6 +145,7 @@
     <ClCompile Include="pigsolver_fitting.cpp" />
     <ClCompile Include="pigsolver_jacobi.cpp" />
     <ClCompile Include="pigsolver_sil.cpp" />
+    <ClCompile Include="test_compare_cpugpu.cpp" />
     <ClCompile Include="test_fitting_model.cpp" />
     <ClCompile Include="test_gpu.cpp" />
     <ClCompile Include="test_render_model.cpp" />

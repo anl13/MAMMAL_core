@@ -50,6 +50,7 @@ public:
 	Eigen::Matrix2Xf textures;
 
 	void Deform(const Eigen::Vector3f &xyzScale);
+	void CalcNormal(); 
 };
 
 class MeshFloat4

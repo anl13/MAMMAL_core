@@ -16,3 +16,17 @@ enum BODY_PART
 	NECK,
 	OTHERS
 };
+
+struct CorrPair
+{
+	CorrPair() {
+		target = -1;
+		type = 0;
+		index = 0;
+		weight = 0;
+	}
+	int target;
+	int type;
+	int index;
+	float weight;
+};

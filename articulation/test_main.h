@@ -17,7 +17,7 @@ int test_write_video();
 
 int test_vae();
 
-std::vector<Eigen::VectorXd> loadData();
+std::vector<Eigen::VectorXf> loadData();
 
 void test_fitting();
 
@@ -26,3 +26,5 @@ int test_body_part();
 // gpu 
 
 void test_gpu(); 
+
+void test_compare_cpugpu(); 
