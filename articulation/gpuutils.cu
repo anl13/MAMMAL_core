@@ -54,6 +54,19 @@ __global__ void set_constant2d_kernel(
 	}
 }
 
+__global__ void set_constant1D_kernel(
+	pcl::gpu::PtrSz<float> data,
+	const int H,
+	const float value
+)
+{
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x; 
+	if (x < H)
+	{
+		data[x] = value; 
+	}
+}
+
 //            dim: y
 // | * --- = | | |
 // |         | | |  dim: z
@@ -108,13 +121,34 @@ __global__ void computeA_plus_AT_kernel(
 	}
 }
 
-
+__global__ void computeATb_kernel(
+	const pcl::gpu::PtrStepSz<float> AT,//[paramnum, vertexnum*3]
+	const int W, const int H,
+	const pcl::gpu::PtrSz<Eigen::Vector3f> source,
+	const pcl::gpu::PtrSz<Eigen::Vector3f> target,
+	pcl::gpu::PtrSz<float> ATb
+)
+{
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x; 
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y; 
+	if (x < W && y < H)
+	{
+		int vIdx = x / 3; 
+		int aIdx = x % 3; 
+		float r = - (source[vIdx](aIdx) - target[vIdx](aIdx));
+		float value = AT(y, x) * r;
+		atomicAdd(&ATb[y], value);
+	}
+}
 // ======
 // interface function 
 // ======
 
-void setConstant2D_device(pcl::gpu::DeviceArray2D<float> &data, const int W, const int H, const float value)
+void setConstant2D_device(pcl::gpu::DeviceArray2D<float> &data, const float value)
 {
+	const int W = data.cols(); 
+	const int H = data.rows(); 
+	if (W == 0 || H == 0) return; 
 	dim3 blocksize(32, 32); 
 	dim3 gridsize(pcl::device::divUp(W, 32), pcl::device::divUp(H, 32)); 
 	set_constant2d_kernel << <gridsize, blocksize >> > (data, W, H, value); 
@@ -123,15 +157,30 @@ void setConstant2D_device(pcl::gpu::DeviceArray2D<float> &data, const int W, con
 	cudaSafeCall(cudaDeviceSynchronize());
 }
 
-void computeATA_device(const pcl::gpu::DeviceArray2D<float> &A, const int W, const int H, pcl::gpu::DeviceArray2D<float> &ATA)
+void setConstant1D_device(pcl::gpu::DeviceArray<float> & data, const float value)
+{
+	const int H = data.size();
+	if (H == 0) return; 
+	dim3 blocksize(32); 
+	dim3 gridsize(pcl::device::divUp(H, 32));
+
+	set_constant1D_kernel << <gridsize, blocksize >> > (
+		data, H, value);
+	cudaSafeCall(cudaGetLastError());
+	cudaSafeCall(cudaDeviceSynchronize());
+}
+
+void computeATA_device(const pcl::gpu::DeviceArray2D<float> &A, pcl::gpu::DeviceArray2D<float> &ATA)
 {
 	// infact, ATA here is AAT, [H, H]
+	const int W = A.cols(); 
+	const int H = A.rows(); 
 	if (ATA.empty())
 	{
 		ATA.create(H, H);
 	}
 
-	setConstant2D_device(ATA, H, H, 0); 
+	setConstant2D_device(ATA, 0); 
 
 	dim3 blocksize2(2, 16, 32);
 	dim3 gridsize2(pcl::device::divUp(W, blocksize2.x),
@@ -153,4 +202,27 @@ void computeATA_device(const pcl::gpu::DeviceArray2D<float> &A, const int W, con
 
 	cudaSafeCall(cudaGetLastError());
 	cudaSafeCall(cudaDeviceSynchronize());
+}
+
+void computeATb_device(const pcl::gpu::DeviceArray2D<float> &AT,
+	const pcl::gpu::DeviceArray<Eigen::Vector3f> source,
+	const pcl::gpu::DeviceArray<Eigen::Vector3f> target,
+	pcl::gpu::DeviceArray<float>& ATb
+)
+{
+	if (ATb.empty()) ATb.create(AT.rows()); 
+	setConstant1D_device(ATb, 0); 
+
+	int W = AT.cols(); 
+	int H = AT.rows(); 
+	
+	dim3 blocksize(32,32); 
+	dim3 gridsize(pcl::device::divUp(W, blocksize.x), pcl::device::divUp(H, blocksize.y));
+	
+	computeATb_kernel << < gridsize, blocksize >> > (
+		AT, W, H, source, target, ATb
+		);
+	cudaSafeCall(cudaGetLastError()); 
+	cudaSafeCall(cudaDeviceSynchronize()); 
+
 }

@@ -14,7 +14,7 @@
 
 #include "../utils/image_utils.h"
 #include "../utils/math_utils.h" 
-
+#include "gpuutils.h"
 
 class PigSolverDevice : public PigModelDevice
 {
@@ -41,6 +41,7 @@ public:
 		pcl::gpu::DeviceArray2D<float> &J_vertices);
 	void calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
 		pcl::gpu::DeviceArray2D<float> &J_vert); 
+	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
 
 private:
 	// constant gpu attributes 

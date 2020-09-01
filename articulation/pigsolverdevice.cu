@@ -139,11 +139,8 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 		J_joint.create(cpucols, m_jointNum * 3); // J_joint_cpu.T, with same storage array  
 	if (J_vert.empty())
 		J_vert.create(cpucols, m_vertexNum * 3); // J_vert_cpu.T 
-	setConstant2D_device(J_joint, m_jointNum * 3, cpucols, 0);
-	setConstant2D_device(J_vert, m_vertexNum * 3, cpucols, 0); 
-
-	TimerUtil::Timer<std::chrono::microseconds> tt; 
-	tt.Start(); 
+	setConstant2D_device(J_joint, 0);
+	setConstant2D_device(J_vert, 0); 
 
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
@@ -205,8 +202,6 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 		}
 	}
 
-	std::cout << "compute J_joint on cpu takes: " << tt.Elapsed() << " mcs" << std::endl; 
-	tt.Start(); 
 
 	J_joint.upload(jointJacobiPose.data(), (3*m_jointNum) * sizeof(float), cpucols, 3 * m_jointNum);
 	m_device_jointsDeformed.upload(m_host_jointsDeformed); 
@@ -236,8 +231,6 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 
 	RP_device.release();
 	LP_device.release(); 
-
-	std::cout << "compute J_vert on gpu takes:  " << tt.Elapsed() << std::endl; 
 }
 
 
@@ -245,15 +238,11 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 	pcl::gpu::DeviceArray2D<float> &J_vert)
 {
 	dim3 blocksize(32, 32); 
-	std::cout << "lines: " << m_host_paramLines.size() << std::endl; 
 	dim3 gridsize1(pcl::device::divUp(3 * m_jointNum, blocksize.x), pcl::device::divUp(m_host_paramLines.size(), blocksize.y));
 	dim3 gridsize2(pcl::device::divUp(3 * m_vertexNum, blocksize.x), pcl::device::divUp(m_host_paramLines.size(), blocksize.y)); 
 
 	pcl::gpu::DeviceArray2D<float> J_joint_full, J_vert_full;
 	calcPoseJacobiFullTheta_device(J_joint_full, J_vert_full); 
-
-	TimerUtil::Timer<std::chrono::microseconds> tt; 
-	tt.Start(); 
 
 	if (J_joint.empty())
 	{
@@ -279,6 +268,4 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 
 	J_joint_full.release(); 
 	J_vert_full.release(); 
-
-	std::cout << "compute partial jacobi on gpu takes: " << tt.Elapsed() << std::endl; 
 }

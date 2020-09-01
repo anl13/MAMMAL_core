@@ -187,3 +187,54 @@ void PigSolverDevice::globalAlign()
 
 }
 
+void PigSolverDevice::fitPoseToVSameTopo(
+	const std::vector<Eigen::Vector3f> &_tv
+)
+{
+	pcl::gpu::DeviceArray<Eigen::Vector3f> target_device; 
+	target_device.upload(_tv); 
+	int M = m_poseToOptimize.size(); 
+	int maxIterTime = 100;
+	float terminal = 0.0001; 
+
+	Eigen::VectorXf theta0(3 + 3 * M); 
+	theta0.segment<3>(0) = m_host_translation;
+	for (int i = 0; i < M; i++) theta0.segment<3>(3 + 3 * i) = m_host_poseParam[m_poseToOptimize[i]];
+
+	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	{
+		UpdateVertices(); 
+		Eigen::VectorXf theta(3 + 3 * M);
+		theta.segment<3>(0) = m_host_translation;
+		for (int i = 0; i < M; i++) theta.segment<3>(3 + 3 * i) = m_host_poseParam[m_poseToOptimize[i]];
+
+		pcl::gpu::DeviceArray2D<float> AT_joint, AT_vert, ATA;
+		pcl::gpu::DeviceArray<float> ATb; 
+		calcPoseJacobiPartTheta_device(AT_joint, AT_vert); 
+		computeATA_device(AT_vert, ATA);
+
+		computeATb_device(AT_vert, m_device_verticesPosed, target_device, ATb);
+
+		Eigen::MatrixXf ATA_eigen = Eigen::MatrixXf::Zero(3 + 3 * M, 3 + 3 * M); 
+		Eigen::VectorXf ATb_eigen = Eigen::VectorXf::Zero(3 + 3 * M);
+		ATA.download(ATA_eigen.data(), ATA_eigen.rows()*sizeof(float)); 
+
+		ATb.download(ATb_eigen.data()); 
+
+		float lambda = 0.0001;
+		float w1 = 1;
+		float w_reg = 0.01; 
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
+		Eigen::VectorXf b_reg = -theta; 
+		Eigen::MatrixXf H = ATA_eigen * w1 + DTD * w_reg + DTD * lambda;
+		Eigen::VectorXf b = ATb_eigen * w1 + b_reg * w_reg; 
+		Eigen::VectorXf delta = H.ldlt().solve(b); 
+		
+		m_host_translation += delta.segment<3>(0);
+		for (int i = 0; i < M; i++)m_host_poseParam[m_poseToOptimize[i]] += delta.segment<3>(3 + 3 * i);
+		
+		float grad_norm = delta.norm(); 
+		if (grad_norm < terminal) break;
+	}
+
+}
