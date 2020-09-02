@@ -41,10 +41,10 @@ AN Liang 20191129 Fri
 */
 
 void EpipolarMatching::epipolarWholeBody(const Camera& cam1, const Camera& cam2, 
-        const vector<Eigen::Vector3d>& pig1, const vector<Eigen::Vector3d>& pig2,
+        const vector<Eigen::Vector3f>& pig1, const vector<Eigen::Vector3f>& pig2,
         double& avg_loss, int& matched_num)
 {
-    double (*distfunc)(const Camera&, const Camera&, const Eigen::Vector3d&, const Eigen::Vector3d&); 
+    float (*distfunc)(const Camera&, const Camera&, const Eigen::Vector3f&, const Eigen::Vector3f&); 
     double dist_thres = 0; 
     if(m_epi_type == "p2l")
     {
@@ -66,13 +66,13 @@ void EpipolarMatching::epipolarWholeBody(const Camera& cam1, const Camera& cam2,
     matched_num = 0; 
     for(int i = 0; i < m_topo.joint_num; i++)
     {
-        Eigen::Vector3d v1 = pig1[i];
-        Eigen::Vector3d v2 = pig2[i];
+        Eigen::Vector3f v1 = pig1[i];
+        Eigen::Vector3f v2 = pig2[i];
         if(v1(2) < m_topo.kpt_conf_thresh[i] || v2(2) < m_topo.kpt_conf_thresh[i])
         {
             continue; 
         }
-        double epi_dist = distfunc(cam1, cam2, v1, v2); 
+        float epi_dist = distfunc(cam1, cam2, v1, v2); 
 		if (i == 20)
 		{
 			total_loss += epi_dist * 1; 
@@ -176,7 +176,7 @@ void EpipolarMatching::epipolarSimilarity()
 void EpipolarMatching::epipolarClustering()
 {
     ClusterClique CC; 
-    CC.G = m_G; 
+    CC.G = m_G.cast<double>(); 
     CC.table = m_table; 
     CC.invTable = m_inv_table; 
     CC.vertexNum = m_total_detection_num;
@@ -216,25 +216,25 @@ void EpipolarMatching::compute3dRANSAC()
     m_skels3d.clear(); 
     for(int i = 0; i < m_clusters.size(); i++)
     {
-        std::vector<Eigen::Vector3d> joints3d; 
-        joints3d.resize(m_topo.joint_num, Eigen::Vector3d::Zero()); 
+        std::vector<Eigen::Vector3f> joints3d; 
+        joints3d.resize(m_topo.joint_num, Eigen::Vector3f::Zero()); 
         for(int kptid = 0; kptid < m_topo.joint_num; kptid++)
         {
             std::vector<Camera> cams_visible; 
-            vector<Eigen::Vector3d> joints2d; // [associated cams]
+            vector<Eigen::Vector3f> joints2d; // [associated cams]
             for(int camid = 0; camid < m_cams.size(); camid++)
             {
                 if(m_clusters[i][camid] < 0) continue; 
                 int candid = m_clusters[i][camid]; 
                 if(m_dets[camid][candid].keypoints[kptid](2) < m_topo.kpt_conf_thresh[kptid]) continue; 
-                Eigen::Vector3d p = m_dets[camid][candid].keypoints[kptid]; 
+                Eigen::Vector3f p = m_dets[camid][candid].keypoints[kptid]; 
                 joints2d.push_back(p);
                 cams_visible.push_back(m_cams[camid]);
             }
             if(cams_visible.size() < 2) continue; 
             if(cams_visible.size() >= 5)
             {
-                joints3d[kptid] = triangulate_ceres(cams_visible, joints2d); 
+                joints3d[kptid] = triangulate_ceres(cams_visible, joints2d).cast<float>(); 
             }
             else 
             {
@@ -251,8 +251,8 @@ void EpipolarMatching::compute3dRANSAC()
             double mean_err = 0; 
             for(int j = 0; j < joints2d.size(); j++)
             {
-                Eigen::Vector3d x_local  = project(cams_visible[j], joints3d[kptid]); 
-                Eigen::Vector2d err_vec = x_local.segment<2>(0) - joints2d[j].segment<2>(0); 
+                Eigen::Vector3f x_local  = project(cams_visible[j], joints3d[kptid]); 
+                Eigen::Vector2f err_vec = x_local.segment<2>(0) - joints2d[j].segment<2>(0); 
                 double err = err_vec.norm(); 
                 if(err > max_err) max_err = err;  
                 mean_err += err; 
@@ -266,8 +266,8 @@ void EpipolarMatching::compute3dRANSAC()
     }
 }
 
-Eigen::Vector3d triangulate_ransac(
-    const vector<Camera>& _cams, const vector<Eigen::Vector3d>& _xs, double sigma1, double sigma2)
+Eigen::Vector3f triangulate_ransac(
+    const vector<Camera>& _cams, const vector<Eigen::Vector3f>& _xs, double sigma1, double sigma2)
 {
     // build init concensus
     // generate all init proposals: 3 points from different views 
@@ -293,26 +293,26 @@ Eigen::Vector3d triangulate_ransac(
     {
         ConcensusData data; 
         vector<Camera> cams_visible; 
-        vector<Eigen::Vector3d> joints2d; 
+        vector<Eigen::Vector3f> joints2d; 
         for(int j = 0; j < init[i].size(); j++)
         {
             int camid   = init[i][j];
             cams_visible.push_back(_cams[camid]); 
-            Eigen::Vector3d p  = _xs[camid]; 
+            Eigen::Vector3f p  = _xs[camid]; 
             joints2d.push_back(p); 
         }
-        Eigen::Vector3d X = triangulate_ceres(cams_visible, joints2d); 
+        Eigen::Vector3f X = triangulate_ceres(cams_visible, joints2d).cast<float>(); 
         
-        vector<Eigen::Vector3d> reprojs;
-        double max_err = 0;
-        double mean_err = 0; 
-        std::vector<double> errs; 
+        vector<Eigen::Vector3f> reprojs;
+        float max_err = 0;
+        float mean_err = 0; 
+        std::vector<float> errs; 
         for(int j = 0; j < init[i].size(); j++)
         {
-            Eigen::Vector3d x_local  = project(cams_visible[j], X); 
+            Eigen::Vector3f x_local  = project(cams_visible[j], X); 
             reprojs.push_back(x_local); 
-            Eigen::Vector2d err_vec = x_local.segment<2>(0) - joints2d[j].segment<2>(0); 
-            double err = err_vec.norm(); 
+            Eigen::Vector2f err_vec = x_local.segment<2>(0) - joints2d[j].segment<2>(0); 
+            float err = err_vec.norm(); 
             if(err > max_err) max_err = err;  
             mean_err += err; 
             errs.push_back(err); 
@@ -342,16 +342,16 @@ Eigen::Vector3d triangulate_ransac(
             //// expand concensus kernel 
             ConcensusData initdata = concensus_0[kid];
             ConcensusData data; 
-            Eigen::Vector3d X = initdata.X; 
+            Eigen::Vector3f X = initdata.X; 
 
             std::vector<int> concensus_ids; 
             std::vector<Camera> concensus_cameras; 
-            std::vector<Eigen::Vector3d> concensus_2ds; 
+            std::vector<Eigen::Vector3f> concensus_2ds; 
             for(int cid = 0; cid < _cams.size(); cid++)
             {
                 Camera cam = _cams[cid]; 
-                Eigen::Vector3d proj = project(cam, X); 
-                double dist;
+                Eigen::Vector3f proj = project(cam, X); 
+                float dist;
                 dist = (proj.segment<2>(0) - _xs[cid].segment<2>(0)).norm(); 
                 if(dist > sigma2 )continue; // this view has no nearby detection
                 concensus_cameras.push_back(cam); 
@@ -360,20 +360,23 @@ Eigen::Vector3d triangulate_ransac(
             }
 
             Joint3DSolver solver; 
-            solver.SetInit(X); 
-            solver.SetParam(concensus_cameras, concensus_2ds); 
+            solver.SetInit(X.cast<double>()); 
+			std::vector<Eigen::Vector3d> con2ds_d(concensus_2ds.size()); 
+			for (int k = 0; k < concensus_2ds.size(); k++)con2ds_d[k] = concensus_2ds[k].cast<double>(); 
+            solver.SetParam(concensus_cameras, con2ds_d); 
             solver.SetVerbose(false); 
             solver.Solve3D(); 
             Eigen::Vector3d con_3d = solver.GetX(); 
-            std::vector<double> errs; 
+			Eigen::Vector3f con_3f = con_3d.cast<float>(); 
+            std::vector<float> errs; 
 
             // check expansion is valid or not  
             double max_err = 0; 
             double mean_err = 0; 
             for(int c = 0; c < concensus_2ds.size(); c++)
             {
-                Eigen::Vector3d proj = project(concensus_cameras[c], con_3d); 
-                Eigen::Vector2d err_vec = proj.segment<2>(0) - concensus_2ds[c].segment<2>(0); 
+                Eigen::Vector3f proj = project(concensus_cameras[c], con_3f); 
+                Eigen::Vector2f err_vec = proj.segment<2>(0) - concensus_2ds[c].segment<2>(0); 
                 double err = err_vec.norm(); 
                 if(max_err < err) max_err = err; 
                 errs.push_back(err);
@@ -385,7 +388,7 @@ Eigen::Vector3d triangulate_ransac(
                 continue; 
             }
             // update concensus
-            data.X = con_3d; 
+            data.X = con_3f; 
             data.joints2d = concensus_2ds;
             data.ids = concensus_ids; 
             data.errs = errs; 
@@ -424,7 +427,7 @@ Eigen::Vector3d triangulate_ransac(
         }
     }
     // std::cout << "final concensus num: " << concensus_1.size() << std::endl; 
-    if(concensus_1.size() == 0) return Eigen::Vector3d::Zero(); 
+    if(concensus_1.size() == 0) return Eigen::Vector3f::Zero(); 
     return concensus_1[0].X; 
 }
 
@@ -433,7 +436,7 @@ void EpipolarMatching::truncate(int _clusternum)
     assert(_clusternum>=0); 
     vector<vector<int> > trunc_cliques; 
     vector<vector<int> > trunc_clusters; 
-    vector<vector<Eigen::Vector3d> > trunc_skels; 
+    vector<vector<Eigen::Vector3f> > trunc_skels; 
     for(int i = 0; i < _clusternum && i < m_skels3d.size(); i++)
     {
         trunc_cliques.push_back(m_cliques[i]);
@@ -472,11 +475,11 @@ void EpipolarMatching::project_all()
 			m_skels_proj_t_1[camid][j].resize(pointNum);
 			for (int jid = 0; jid < pointNum; jid++)
 			{
-				Eigen::Vector3d j3d = m_skels_t_1[j][jid];
+				Eigen::Vector3f j3d = m_skels_t_1[j][jid];
 				if (j3d.norm() > 0) m_skels_proj_t_1[camid][j][jid] = project(m_cams[camid], j3d);
 				else
 				{
-					m_skels_proj_t_1[camid][j][jid] = Eigen::Vector3d::Zero();
+					m_skels_proj_t_1[camid][j][jid] = Eigen::Vector3f::Zero();
 				}
 			}
 		}
@@ -495,12 +498,12 @@ void EpipolarMatching::projectLoss(
     matched_num = 0;
     for(int kptid = 0; kptid < m_topo.joint_num; kptid++)
     {
-        Eigen::Vector3d j2d = det.keypoints[kptid];
+        Eigen::Vector3f j2d = det.keypoints[kptid];
         if(j2d(2) >= m_topo.kpt_conf_thresh[kptid]) continue; 
-        Eigen::Vector3d j_proj = m_skels_proj_t_1[camid][pig_id][kptid]; 
+        Eigen::Vector3f j_proj = m_skels_proj_t_1[camid][pig_id][kptid]; 
         if(j_proj.norm() > 0) 
         {
-            double dist = (j_proj.segment<2>(0) - j2d.segment<2>(0)).norm();
+            float dist = (j_proj.segment<2>(0) - j2d.segment<2>(0)).norm();
             mean_err += dist; 
             validnum += 1; 
             if(dist < dist_thres) matched_num += 1; 
@@ -615,7 +618,7 @@ void EpipolarMatching::trackingSimilarity()
 void EpipolarMatching::trackingClustering()
 {
 	ClusterClique CC;
-	CC.G = m_G;
+	CC.G = m_G.cast<double>();
 	CC.table = m_table;
 	CC.invTable = m_inv_table;
 	CC.vertexNum = m_total_detection_num + 4;

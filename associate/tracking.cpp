@@ -2,15 +2,15 @@
 
  #define DEBUG_TRACK
 
-double distBetweenSkel3D(const vector<Eigen::Vector3d>& S1, const vector<Eigen::Vector3d>& S2)
+double distBetweenSkel3D(const vector<Eigen::Vector3f>& S1, const vector<Eigen::Vector3f>& S2)
 {
     if(S1.size()==0 || S2.size()==0) return 10000; 
     int overlay = 0; 
-    double total_dist = 0; 
+    float total_dist = 0; 
     for(int i = 0; i < S1.size(); i++)
     {
         if(S1[i].norm() < 0.00001 || S2[i].norm() < 0.00001) continue; 
-        Eigen::Vector3d vec = S1[i] - S2[i];
+        Eigen::Vector3f vec = S1[i] - S2[i];
         total_dist += vec.norm(); 
         overlay += 1; 
     }
@@ -24,7 +24,7 @@ void NaiveTracker::track()
     int last_num = m_skels_last.size(); 
     int curr_num = m_skels_curr.size(); 
 
-    Eigen::MatrixXd G(last_num, curr_num); 
+    Eigen::MatrixXf G(last_num, curr_num); 
     for(int i = 0; i < last_num; i++)
     {
         for(int j = 0; j < curr_num; j++)
@@ -35,7 +35,7 @@ void NaiveTracker::track()
 #ifdef DEBUG_TRACK
     std::cout << G << std::endl; 
 #endif 
-    assignments_t assign = solveHungarian(G); 
+    std::vector<int> assign = solveHungarian(G); 
     m_map = assign; 
     m_skels_curr_track.clear(); 
     for(int i = 0; i < last_num; i++)

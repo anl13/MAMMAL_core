@@ -196,16 +196,18 @@ Eigen::Vector3f project(const Camera& cam, const Eigen::Vector3f& p3d)
     return p2d; 
 }
 
-Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d)
+Eigen::Vector3f triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3f> joints2d)
 {
     Joint3DSolver solver; 
     Eigen::Vector3d init = Eigen::Vector3d::Zero(); 
     solver.SetInit(init); 
-    solver.SetParam(cams, joints2d); 
+	std::vector<Eigen::Vector3d> joints(joints2d.size()); 
+	for (int i = 0; i < joints.size(); i++) joints[i] = joints2d[i].cast<double>(); 
+    solver.SetParam(cams, joints); 
     solver.SetVerbose(false); 
     solver.Solve3D(); 
     Eigen::Vector3d X = solver.GetX(); 
-    return X; 
+    return X.cast<float>(); 
 }
 
 

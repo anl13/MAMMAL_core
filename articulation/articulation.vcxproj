@@ -74,7 +74,6 @@
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\gl-pcl.props" />
-    <Import Project="..\props\nanorenderer.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />

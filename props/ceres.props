@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalDependencies>ceres.lib;gflags.lib;gflags_nothreads.lib;glog.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ceres.lib;gflags.lib;gflags_nothreads.lib;glog.lib</AdditionalDependencies>
     </Link>
     <ClCompile>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;GLOG_NO_ABBREVIATED_SEVERITIES;%(PreprocessorDefinitions)</PreprocessorDefinitions>

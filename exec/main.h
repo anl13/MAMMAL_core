@@ -10,13 +10,7 @@ int run_on_sequence();
 int run_shape();
 int run_pose(); 
 
-// run_render.cpp
-int render_smal_test(); 
-int test_depth();
-int test_nanogui();
-
 // saml_fitting.cpp
-int TestVerticesAlign();
 int removeSmalTail();
 int ComputeSymmetry();
 

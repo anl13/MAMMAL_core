@@ -11,8 +11,8 @@
 #include "../utils/camera.h"
 #include "../utils/image_utils.h"
 #include "../utils/geometry.h" 
-#include "../utils/Hungarian.h"
-#include "skel.h" 
+#include "../utils/hungarian.h"
+#include "../utils/skel.h" 
 #include "clusterclique.h"
 
 using std::vector; 
@@ -22,15 +22,15 @@ struct ConcensusData{
     ConcensusData() {
         num = 0; 
         metric = 0; 
-        X = Eigen::Vector3d::Zero(); 
+        X = Eigen::Vector3f::Zero(); 
     }
     std::vector<Camera> cams; 
     std::vector<int> ids; 
-    std::vector<Eigen::Vector3d> joints2d; 
-    Eigen::Vector3d X; 
+    std::vector<Eigen::Vector3f> joints2d; 
+    Eigen::Vector3f X; 
     int num; 
-    std::vector<double> errs; 
-    double metric; 
+    std::vector<float> errs; 
+    float metric; 
 }; 
 
 bool equal_concensus(const ConcensusData& data1, const ConcensusData& data2); 
@@ -48,9 +48,9 @@ public:
     void set_cams(const vector<Camera>& _cams){m_cams = _cams;}
     void set_epi_type(std::string _epi_type){m_epi_type = _epi_type;}
     void set_epi_thres(double _epi_thres){m_epi_thres = _epi_thres;}
-	void set_skels_t_1(vector<vector<Eigen::Vector3d> > _skels_t_1) { m_skels_t_1 = _skels_t_1; }
+	void set_skels_t_1(vector<vector<Eigen::Vector3f> > _skels_t_1) { m_skels_t_1 = _skels_t_1; }
     void get_clusters(vector<vector<int> > &_clusters){_clusters=m_clusters;}
-    void get_skels3d(vector<vector<Eigen::Vector3d> >&_skels3d){
+    void get_skels3d(vector<vector<Eigen::Vector3f> >&_skels3d){
         _skels3d.clear(); _skels3d=m_skels3d;}
     
 	// single view matching 
@@ -66,29 +66,29 @@ private:
     void epipolarClustering();
     void compute3dRANSAC(); 
     void epipolarWholeBody(const Camera& cam1, const Camera& cam2, 
-        const vector<Eigen::Vector3d>& pig1, const vector<Eigen::Vector3d>& pig2,
+        const vector<Eigen::Vector3f>& pig1, const vector<Eigen::Vector3f>& pig2,
         double &avg_loss, int &matched_num);
     // input data 
     SkelTopology                              m_topo;
     vector<vector<DetInstance> >              m_dets; //[camid, candid]
     vector<Camera>                            m_cams; 
     std::string                               m_epi_type; 
-    double                                    m_epi_thres; 
+    float                                     m_epi_thres; 
     // variables for clique clustering
-    Eigen::MatrixXd                   m_G; 
+    Eigen::MatrixXf                   m_G; 
     std::vector<std::pair<int,int> >  m_table;     // <camid, candid>
     std::vector<std::vector<int>>     m_inv_table; // inverse table. 
     int                               m_total_detection_num;
     // cluster output 
     std::vector< std::vector<int> >   m_cliques; // [cliqueid, vertexid] 
     vector<vector<int> >              m_clusters; // [clusterid, camid]
-    vector<vector<Eigen::Vector3d> >  m_skels3d;  // [clusterid, jointnum]
+    vector<vector<Eigen::Vector3f> >  m_skels3d;  // [clusterid, jointnum]
 
     /// t-1 
-    vector<vector<Eigen::Vector3d> >  m_skels_t_1; 
+    vector<vector<Eigen::Vector3f> >  m_skels_t_1; 
 	vector<vector<DetInstance> >      m_dets_t_1; 
 	vector<vector<int> >              m_clusters_t_1; 
-	vector < vector<vector<Eigen::Vector3d> > > m_skels_proj_t_1; 
+	vector < vector<vector<Eigen::Vector3f> > > m_skels_proj_t_1; 
     void trackingSimilarity(); 
     void trackingClustering(); 
 	void projectLoss(int pig_id, int camid,
@@ -96,8 +96,8 @@ private:
 	void project_all(); 
 }; 
 
-Eigen::Vector3d triangulate_ransac(
-    const vector<Camera>& cams, const vector<Eigen::Vector3d>& xs,
+Eigen::Vector3f triangulate_ransac(
+    const vector<Camera>& cams, const vector<Eigen::Vector3f>& xs,
     double sigma1=20, double sigma2=50); 
 
 

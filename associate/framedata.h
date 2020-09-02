@@ -14,14 +14,10 @@
 #include "../utils/Hungarian.h"
 #include "../articulation/pigsolver.h"
 #include "clusterclique.h"
-#include "skel.h" 
-#include "../annotator/annotator.h"
-#include "../nanorender/NanoRenderer.h"
+#include "../utils/skel.h" 
 
 
 using std::vector; 
-
-typedef vector<vector<Eigen::Vector3d> > PIGS3D;
 
 // data of a frame, together with matching process
 class FrameData{
@@ -46,7 +42,7 @@ public:
     int get_frame_num(){return m_framenum;}
 	vector<cv::Mat> get_imgs_undist() { return m_imgsUndist; }
     SkelTopology get_topo(){return m_topo;}
-    PIGS3D get_skels3d(){return m_skels3d;}
+	vector<vector<Eigen::Vector3f> >  get_skels3d(){return m_skels3d;}
     vector<MatchedInstance> get_matched() {return m_matched; }
     vector<Camera> get_cameras(){return m_camsUndist; }
 	vector<std::shared_ptr<PigSolver> > get_models() { return mp_bodysolver; }
@@ -73,7 +69,7 @@ public:
 	void read_parametric_data(); 
 	void save_parametric_data(); 
 
-	void load_labeled_data();
+	//void load_labeled_data();
 	void save_clusters();
 	void load_clusters(); 
 
@@ -96,10 +92,11 @@ public:
 	void extractFG(); 
 
 	void pureTracking(); 
-	nanogui::ref<OffscreenRenderObject> m_animal_render; 
+
+	Renderer* mp_renderEngine; 
 
 	vector<std::shared_ptr<PigSolver> >       mp_bodysolver;
-	vector<vector<Eigen::Vector4d> > m_projectedBoxesLast; // pigid, camid
+	vector<vector<Eigen::Vector4f> > m_projectedBoxesLast; // pigid, camid
 	std::vector<cv::Mat> m_rawMaskImgs;
 	void drawRawMaskImgs();
 	std::string result_folder; 
@@ -109,11 +106,11 @@ protected:
     void setCamIds(std::vector<int> _camids); 
     void assembleDets(); 
     void detNMS(); 
-    int _compareSkel(const vector<Vec3>& skel1, const vector<Vec3>& skel2); 
-    int _countValid(const vector<Vec3>& skel); 
+    int _compareSkel(const vector<Eigen::Vector3f>& skel1, const vector<Eigen::Vector3f>& skel2); 
+    int _countValid(const vector<Eigen::Vector3f>& skel); 
 
-    void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, int colorid);
-	void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
+    void drawSkel(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid);
+	void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d);
 	vector<cv::Mat> drawMask();  // can only be used after association 
 	void getChamferMap(int pid, int viewid, cv::Mat& chamfer);
 
@@ -123,7 +120,7 @@ protected:
     int m_camNum; 
     std::vector<int>                          m_camids;
     std::vector<Eigen::Vector3i>              m_CM;
-    vector<vector<vector<Eigen::Vector3d> > > m_projs; // [viewid, candid, kptid]
+    vector<vector<vector<Eigen::Vector3f> > > m_projs; // [viewid, candid, kptid]
 
     std::vector<Camera>                       m_cams; 
     std::vector<cv::Mat>                      m_imgs; 
@@ -140,26 +137,26 @@ protected:
 
     // matching & 3d data 
     vector<vector<int> > m_clusters; // pigid, camid [candid]
-    vector<vector<Eigen::Vector3d> > m_skels3d; 
-    vector<vector<Eigen::Vector3d> > m_skels3d_last;
+    vector<vector<Eigen::Vector3f> > m_skels3d; 
+    vector<vector<Eigen::Vector3f> > m_skels3d_last;
 
     // config data, set by confByJson() 
     std::string m_sequence; 
-    double      m_epi_thres; 
+    float       m_epi_thres; 
     std::string m_epi_type;
-    double      m_boxExpandRatio; 
+    float       m_boxExpandRatio; 
     std::string m_skelType; 
     SkelTopology m_topo; 
     int m_startid;
     int m_framenum; 
 
     // io function and tmp data
-    vector<vector<vector<Eigen::Vector3d> > > m_keypoints; // [viewid, candid, kptid]
-    vector<vector<Eigen::Vector4d> >          m_boxes_raw; // xyxy
-    vector<vector<vector<vector<Eigen::Vector2d> > > > m_masks; // mask in contours 
-    vector<vector<vector<Eigen::Vector3d> > > m_keypoints_undist; 
-    vector<vector<Eigen::Vector4d> >          m_boxes_processed; // camid, candid
-    vector<vector<vector<vector<Eigen::Vector2d> > > > m_masksUndist; 
+    vector<vector<vector<Eigen::Vector3f> > > m_keypoints; // [viewid, candid, kptid]
+    vector<vector<Eigen::Vector4f> >          m_boxes_raw; // xyxy
+    vector<vector<vector<vector<Eigen::Vector2f> > > > m_masks; // mask in contours 
+    vector<vector<vector<Eigen::Vector3f> > > m_keypoints_undist; 
+    vector<vector<Eigen::Vector4f> >          m_boxes_processed; // camid, candid
+    vector<vector<vector<vector<Eigen::Vector2f> > > > m_masksUndist; 
     std::string m_boxDir; 
     std::string m_maskDir;  
     std::string m_keypointsDir; 

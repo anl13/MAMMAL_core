@@ -487,3 +487,15 @@ float * Renderer::renderDepthDevice()
 
 	return m_device_depth;
 }
+
+void Renderer::clearAllObjs()
+{
+	for (int i = 0; i < meshObjs.size(); i++) delete meshObjs[i];
+	meshObjs.clear(); 
+	for (int i = 0; i < colorObjs.size(); i++) delete colorObjs[i];
+	colorObjs.clear(); 
+	for (int i = 0; i < texObjs.size(); i++) delete texObjs[i];
+	texObjs.clear();
+	for (int i = 0; i < skels.size(); i++)skels[i]->deleteObjects();
+	skels.clear(); 
+}

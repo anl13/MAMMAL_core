@@ -3,7 +3,6 @@
 #include <math.h> 
 #include <algorithm>
 #include <json/writer.h> 
-#include "../utils/colorterminal.h"
 
 void FrameData::setCamIds(std::vector<int> _camids)
 {
@@ -37,7 +36,7 @@ void FrameData::configByJson(std::string jsonfile)
     m_imgExtension = root["imgExtension"].asString(); 
     m_startid      = root["startid"].asInt(); 
     m_framenum     = root["framenum"].asInt(); 
-    m_epi_thres    = root["epipolar_threshold"].asDouble(); 
+	m_epi_thres = root["epipolar_threshold"].asDouble();
     m_epi_type     = root["epipolartype"].asString(); 
     m_boxExpandRatio = root["box_expand_ratio"].asDouble(); 
     m_skelType     = root["skel_type"].asString(); 
@@ -109,17 +108,17 @@ void FrameData::readSceneMask()
 		std::string key = std::to_string(camid); 
 		Json::Value c = root[key];
 		int id_num = c.size();
-		vector<vector<Eigen::Vector2d> > masks;
+		vector<vector<Eigen::Vector2f> > masks;
 		for (int bid = 0; bid < id_num; bid++)
 		{
 			//if(bid >= 4) break; // remain only 4 top boxes 
 			Json::Value mask_parts = c[bid]["points"];
-			std::vector<Eigen::Vector2d> mask;
+			std::vector<Eigen::Vector2f> mask;
 			for (auto m : mask_parts)
 			{
 				double x = m[0].asDouble();
 				double y = m[1].asDouble(); 
-				mask.emplace_back(Eigen::Vector2d(x, y));
+				mask.emplace_back(Eigen::Vector2f((float)x, (float)y));
 			}
 			masks.push_back(mask);
 		}
@@ -187,23 +186,23 @@ void FrameData::readKeypoints() // load hrnet keypoints
     for(int camid = 0; camid < m_camNum; camid++)
     {
         Json::Value c = root[std::to_string(m_camids[camid])]; 
-        vector<vector<Eigen::Vector3d> > aframe; 
+        vector<vector<Eigen::Vector3f> > aframe; 
         int cand_num = c.size(); 
         for(int candid = 0; candid < cand_num; candid++)
         {
             if(candid >=4) break; 
-            vector<Eigen::Vector3d> pig; 
+            vector<Eigen::Vector3f> pig; 
             pig.resize(m_topo.joint_num); 
             for(int pid = 0; pid < m_topo.joint_num; pid++)
             {
-                Eigen::Vector3d v;
+                Eigen::Vector3f v;
                 for(int idx = 0; idx < 3; idx++)
                 {
                     v(idx) = c[candid][pid*3+idx].asDouble(); 
                 }
 				if(v(2) > m_topo.kpt_conf_thresh[pid])
 					pig[pid] = v; 
-				else pig[pid] = Eigen::Vector3d::Zero(); 
+				else pig[pid] = Eigen::Vector3f::Zero(); 
             }
             aframe.push_back(pig);
         }
@@ -242,12 +241,12 @@ void FrameData::readBoxes()
         int camid = m_camids[i]; 
         Json::Value c = root[std::to_string(camid)]; 
         int boxnum = c.size(); 
-        std::vector<Eigen::Vector4d> bb; 
+        std::vector<Eigen::Vector4f> bb; 
         for(int bid = 0; bid < boxnum; bid++)
         {
             if(bid >= 4) break; // remain only 4 top boxes 
             Json::Value box_jv = c[bid]; 
-            Eigen::Vector4d B; 
+            Eigen::Vector4f B; 
             for(int k = 0; k < 4; k++)
             {
                 double x = box_jv[k].asDouble(); 
@@ -269,7 +268,7 @@ void FrameData::processBoxes()
         m_boxes_processed[cid].resize(boxnum); 
         for(int bid = 0; bid < boxnum; bid++)
         {
-            Eigen::Vector4d box = my_undistort_box(
+            Eigen::Vector4f box = my_undistort_box(
                 m_boxes_raw[cid][bid], m_cams[cid], m_camsUndist[cid]
             ); 
             m_boxes_processed[cid][bid] = expand_box(box, m_boxExpandRatio); 
@@ -336,7 +335,7 @@ void FrameData::readCameras()
             std::cout << "can not open file " << ss.str() << std::endl; 
             exit(-1); 
         }
-        Vec3 rvec, tvec; 
+        Eigen::Vector3f rvec, tvec; 
         for(int i = 0; i < 3; i++) {
             double a;
             camfile >> a; 
@@ -348,9 +347,9 @@ void FrameData::readCameras()
             camfile >> a; 
             tvec(i) = a; 
         }
-        Camera cam = getDefaultCameraRaw(); 
+        Camera cam = Camera::getDefaultCameraRaw(); 
         cam.SetRT(rvec,  tvec); 
-        Camera camUndist = getDefaultCameraUndist(); 
+        Camera camUndist = Camera::getDefaultCameraUndist(); 
         camUndist.SetRT(rvec, tvec); 
         m_cams.push_back(cam); 
         m_camsUndist.push_back(camUndist); 
@@ -370,11 +369,11 @@ void FrameData::reproject_skels()
     {
         for(int id = 0; id < pig_num; id++)
         {
-            m_projs[camid][id].resize(m_topo.joint_num, Eigen::Vector3d::Zero()); 
+            m_projs[camid][id].resize(m_topo.joint_num, Eigen::Vector3f::Zero()); 
             for(int kpt_id = 0; kpt_id < m_topo.joint_num; kpt_id++)
             {
                 if(m_skels3d[id][kpt_id].norm() == 0) continue; 
-                Eigen::Vector3d p = m_skels3d[id][kpt_id]; 
+                Eigen::Vector3f p = m_skels3d[id][kpt_id]; 
                 m_projs[camid][id][kpt_id] = project(m_camsUndist[camid], p); 
             }
         }
@@ -525,14 +524,14 @@ void FrameData::readSkel3DfromJson(std::string jsonfile)
     m_skels3d.clear(); 
     for(auto const &pig: root["pigs"])
     {
-        vector<Vec3> a_pig; 
+        std::vector<Eigen::Vector3f> a_pig; 
         a_pig.resize(m_topo.joint_num); 
         for(int index=0; index < m_topo.joint_num; index++)
         {
             double x = pig[index * 3 + 0].asDouble(); 
             double y = pig[index * 3 + 1].asDouble();
             double z = pig[index * 3 + 2].asDouble(); 
-            Eigen::Vector3d vec(x,y,z);
+            Eigen::Vector3f vec(x,y,z);
             a_pig[index] = vec; 
         }
         m_skels3d.push_back(a_pig);
@@ -548,7 +547,7 @@ cv::Mat FrameData::test()
     return output; 
 }
 
-void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, int colorid)
+void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid)
 {
     Eigen::Vector3i color = m_CM[colorid];
     cv::Scalar cv_color(color(0), color(1), color(2)); 
@@ -562,8 +561,8 @@ void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, i
     for(int k = 0; k < m_topo.bone_num; k++)
     {
         Eigen::Vector2i b = m_topo.bones[k]; 
-        Eigen::Vector3d p1 = _skel2d[b(0)];
-        Eigen::Vector3d p2 = _skel2d[b(1)]; 
+        Eigen::Vector3f p1 = _skel2d[b(0)];
+        Eigen::Vector3f p2 = _skel2d[b(1)]; 
         if(p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue; 
         cv::Point2d p1_cv(p1(0), p1(1)); 
         cv::Point2d p2_cv(p2(0), p2(1)); 
@@ -571,21 +570,21 @@ void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d, i
     }
 }
 
-int FrameData::_compareSkel(const vector<Vec3>& skel1, const vector<Vec3>& skel2)
+int FrameData::_compareSkel(const std::vector<Eigen::Vector3f>& skel1, const std::vector<Eigen::Vector3f>& skel2)
 {
     int overlay = 0; 
     for(int i = 0; i < m_topo.joint_num; i++)
     {
-        Vec3 p1 = skel1[i];
-        Vec3 p2 = skel2[i];
+        Eigen::Vector3f p1 = skel1[i];
+        Eigen::Vector3f p2 = skel2[i];
         if(p1(2) < m_topo.kpt_conf_thresh[i] || p2(2) < m_topo.kpt_conf_thresh[i])continue; 
-        Vec2 diff = p1.segment<2>(0) - p2.segment<2>(0); 
-        double dist = diff.norm(); 
+        Eigen::Vector2f diff = p1.segment<2>(0) - p2.segment<2>(0); 
+        float dist = diff.norm(); 
         if(dist < 10) overlay ++; 
     }
     return overlay; 
 } 
-int FrameData::_countValid(const vector<Vec3>& skel)
+int FrameData::_countValid(const std::vector<Eigen::Vector3f>& skel)
 {
     int valid = 0; 
     for(int i = 0; i < skel.size(); i++) 
@@ -604,7 +603,7 @@ void FrameData::detNMS()
     {
         // do nms on each view 
         int cand_num = m_detUndist[camid].size(); 
-        vector<int> is_discard(cand_num, 0); 
+        std::vector<int> is_discard(cand_num, 0); 
         for(int i = 0; i < cand_num; i++)
         {
             for(int j = i+1; j < cand_num; j++)
@@ -614,7 +613,7 @@ void FrameData::detNMS()
                     m_detUndist[camid][i].keypoints); 
                 int validi = _countValid(m_detUndist[camid][i].keypoints); 
                 int validj = _countValid(m_detUndist[camid][j].keypoints); 
-                double iou, iou1, iou2;
+                float iou, iou1, iou2;
                 IoU_xyxy_ratio(m_detUndist[camid][i].box,m_detUndist[camid][j].box,
                     iou, iou1, iou2); 
                 if(overlay >= 3 && (iou1 > 0.8 || iou2>0.8) )
@@ -624,7 +623,7 @@ void FrameData::detNMS()
                 }
             }
         }
-        vector<DetInstance> clean_dets; 
+        std::vector<DetInstance> clean_dets; 
         for(int i = 0; i < cand_num; i++)
         {
             if(is_discard[i] > 0) continue; 
@@ -653,8 +652,8 @@ void FrameData::detNMS()
 			for (int i = 0; i < all_legs.size(); i++)
 			{
 				DetInstance& det = m_detUndist[camid][candid];
-				Eigen::Vector3d& point = det.keypoints[all_legs[i]];
-				Eigen::Vector2d uv = point.segment<2>(0);
+				Eigen::Vector3f& point = det.keypoints[all_legs[i]];
+				Eigen::Vector2f uv = point.segment<2>(0);
 				if (!in_box_test(uv, det.box))
 				{
 					point(2) = 0; continue; 
@@ -671,8 +670,8 @@ void FrameData::detNMS()
 			{
 				int p1_index = legs[i].first;
 				int p2_index = legs[i].second;
-				Eigen::Vector3d& p1 = m_detUndist[camid][candid].keypoints[p1_index];
-				Eigen::Vector3d& p2 = m_detUndist[camid][candid].keypoints[p2_index];
+				Eigen::Vector3f& p1 = m_detUndist[camid][candid].keypoints[p1_index];
+				Eigen::Vector3f& p2 = m_detUndist[camid][candid].keypoints[p2_index];
 				if (p1(2) > m_topo.kpt_conf_thresh[p1_index] &&
 					p2(2) > m_topo.kpt_conf_thresh[p2_index])
 				{
@@ -726,21 +725,21 @@ void FrameData::readMask()
         int camid = m_camids[i]; 
         Json::Value c = root[std::to_string(camid)]; 
         int id_num = c.size(); 
-        vector<vector<vector<Eigen::Vector2d> > > masks; 
+        std::vector<std::vector<std::vector<Eigen::Vector2f> > > masks; 
         for(int bid = 0; bid < id_num; bid++)
         {
             //if(bid >= 4) break; // remain only 4 top boxes 
             Json::Value mask_parts = c[bid]; 
-            vector<vector<Eigen::Vector2d> > M_a_pig;  
+            std::vector<std::vector<Eigen::Vector2f> > M_a_pig;  
             for(int k = 0; k < mask_parts.size(); k++)
             {
-                vector<Eigen::Vector2d> M_a_part;
+                std::vector<Eigen::Vector2f> M_a_part;
                 Json::Value mask_a_part = mask_parts[k];  
                 for(int p = 0; p < mask_a_part.size(); p++)
                 {
                     double x = mask_a_part[p][0][0].asDouble(); 
                     double y = mask_a_part[p][0][1].asDouble(); 
-                    M_a_part.push_back(Eigen::Vector2d(x,y)); 
+                    M_a_part.push_back(Eigen::Vector2f(x,y)); 
                 }
                 M_a_pig.push_back(M_a_part); 
             }
@@ -759,12 +758,12 @@ void FrameData::undistMask()
         {
             for(int partid = 0; partid < m_masks[camid][cid].size(); partid++)
             {
-                vector<Eigen::Vector3d> points_homo; 
+                std::vector<Eigen::Vector3f> points_homo; 
                 for(int pid = 0; pid < m_masks[camid][cid][partid].size(); pid++)
                 {
                     points_homo.push_back(ToHomogeneous(m_masks[camid][cid][partid][pid]));
                 }
-                vector<Eigen::Vector3d> points_undist; 
+                std::vector<Eigen::Vector3f> points_undist; 
                 my_undistort_points(points_homo, points_undist, m_cams[camid], m_camsUndist[camid]);
                 for(int pid = 0; pid < m_masksUndist[camid][cid][partid].size(); pid++)
                 {
@@ -793,7 +792,7 @@ void FrameData::assembleDets()
     }
 }
 
-void FrameData::drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d)
+void FrameData::drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d)
 {
 	for (int i = 0; i < _skel2d.size(); i++)
 	{
@@ -814,8 +813,8 @@ void FrameData::drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3d>& _skel
 		cv::Scalar cv_color(color(0), color(1), color(2));
 
 		Eigen::Vector2i b = m_topo.bones[k];
-		Eigen::Vector3d p1 = _skel2d[b(0)];
-		Eigen::Vector3d p2 = _skel2d[b(1)];
+		Eigen::Vector3f p1 = _skel2d[b(0)];
+		Eigen::Vector3f p2 = _skel2d[b(1)];
 		if (p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue;
 		cv::Point2d p1_cv(p1(0), p1(1));
 		cv::Point2d p2_cv(p2(0), p2(1));
@@ -873,27 +872,27 @@ void FrameData::view_dependent_clean()
 // and note that, on image coordinate, to_left_test result should be reverse. 
 void FrameData::to_left_clean(DetInstance& det)
 {
-	vector<int> left_front_leg = { 5,7,9 };
-	vector<int> right_front_leg = { 6,8,10 };
-	vector<int> left_back_leg = { 11,13,15 };
-	vector<int> right_back_leg = { 12,14,16 };
-	vector<int> left = { 5,7,9,11,13,15 };
-	vector<int> right = { 6,8,10,12,14,16 };
-	Eigen::Vector3d center = det.keypoints[20];
-	Eigen::Vector3d tail = det.keypoints[18];
+	std::vector<int> left_front_leg = { 5,7,9 };
+	std::vector<int> right_front_leg = { 6,8,10 };
+	std::vector<int> left_back_leg = { 11,13,15 };
+	std::vector<int> right_back_leg = { 12,14,16 };
+	std::vector<int> left = { 5,7,9,11,13,15 };
+	std::vector<int> right = { 6,8,10,12,14,16 };
+	Eigen::Vector3f center = det.keypoints[20];
+	Eigen::Vector3f tail = det.keypoints[18];
 	for (int i = 0; i < 6; i++)
 	{
 		int kid = left[i];
 		auto kpt = det.keypoints[kid];
 		if (kpt(2) < m_topo.kpt_conf_thresh[kid])
 		{
-			det.keypoints[kid] = Eigen::Vector3d::Zero();
+			det.keypoints[kid] = Eigen::Vector3f::Zero();
 			continue;
 		}
 		else
 		{
 			bool is_left = to_left_test(tail, center, kpt);
-			if (is_left)det.keypoints[kid] = Eigen::Vector3d::Zero();
+			if (is_left)det.keypoints[kid] = Eigen::Vector3f::Zero();
 		}
 	}
 	for (int i = 0; i < 6; i++)
@@ -902,20 +901,20 @@ void FrameData::to_left_clean(DetInstance& det)
 		auto kpt = det.keypoints[kid];
 		if (kpt(2) < m_topo.kpt_conf_thresh[kid])
 		{
-			det.keypoints[kid] = Eigen::Vector3d::Zero();
+			det.keypoints[kid] = Eigen::Vector3f::Zero();
 			continue;
 		}
 		else
 		{
 			bool is_left = to_left_test(tail, center, kpt);
-			if (!is_left)det.keypoints[kid] = Eigen::Vector3d::Zero();
+			if (!is_left)det.keypoints[kid] = Eigen::Vector3f::Zero();
 		}
 	}
 }
 void FrameData::top_view_clean(DetInstance& det)
 {
-	Eigen::Vector3d center = det.keypoints[20];
-	Eigen::Vector3d tail = det.keypoints[18];
+	Eigen::Vector3f center = det.keypoints[20];
+	Eigen::Vector3f tail = det.keypoints[18];
 	if (tail(2) < m_topo.kpt_conf_thresh[18] || tail(2) < m_topo.kpt_conf_thresh[20]) return;
 	
 	to_left_clean(det); 
@@ -923,21 +922,21 @@ void FrameData::top_view_clean(DetInstance& det)
 
 void FrameData::side_view_clean(DetInstance& det)
 {
-	vector<int> left_front_leg = { 5,7,9 };
-	vector<int> right_front_leg = { 6,8,10 };
-	vector<int> left_back_leg = { 11,13,15 };
-	vector<int> right_back_leg = { 12,14,16 };
-	vector<int> left = { 5,7,9,11,13,15 };
-	vector<int> right = { 6,8,10,12,14,16 };
-	vector<int> front = { 5,7,9,6,8,10 };
-	vector<int> back = { 11,13,15,12,14,16 };
-	Eigen::Vector3d center = det.keypoints[20];
-	Eigen::Vector3d tail = det.keypoints[18];
+	std::vector<int> left_front_leg = { 5,7,9 };
+	std::vector<int> right_front_leg = { 6,8,10 };
+	std::vector<int> left_back_leg = { 11,13,15 };
+	std::vector<int> right_back_leg = { 12,14,16 };
+	std::vector<int> left = { 5,7,9,11,13,15 };
+	std::vector<int> right = { 6,8,10,12,14,16 };
+	std::vector<int> front = { 5,7,9,6,8,10 };
+	std::vector<int> back = { 11,13,15,12,14,16 };
+	Eigen::Vector3f center = det.keypoints[20];
+	Eigen::Vector3f tail = det.keypoints[18];
 	if (tail(2) < m_topo.kpt_conf_thresh[18] || tail(2) < m_topo.kpt_conf_thresh[20]) return;
-	Eigen::Vector2d vec = (center - tail).segment<2>(0);
-	double angle = vec2angle(vec);
+	Eigen::Vector2f vec = (center - tail).segment<2>(0);
+	float angle = vec2angle(vec);
 	// if tail-center is nearly perpendicular to x-axis, use to_left_test
-	double angle_range = 30;
+	float angle_range = 30;
 	if (angle > 90-angle_range && angle < 90+angle_range)
 	{
 		to_left_clean(det);
@@ -964,7 +963,7 @@ void FrameData::side_view_clean(DetInstance& det)
 	// 7:  right back 
 	// 11: left back 
 	// others: leave un-handled
-	vector<int> vis_count(4, 0);
+	std::vector<int> vis_count(4, 0);
 	for (int i = 0; i < 3; i++)
 	{
 		int kid = left_front_leg[i];
@@ -981,7 +980,7 @@ void FrameData::side_view_clean(DetInstance& det)
 	{
 		if (vis_count[i] == 3)state += (1 << i);
 	}
-	vector<int> invisible_list; 
+	std::vector<int> invisible_list; 
 	switch (state)
 	{
 	case 12: invisible_list = front; break; 
@@ -997,19 +996,19 @@ void FrameData::side_view_clean(DetInstance& det)
 	for (int i = 0; i < invisible_list.size(); i++)
 	{
 		int kid = invisible_list[i];
-		det.keypoints[kid] = Eigen::Vector3d::Zero(); 
+		det.keypoints[kid] = Eigen::Vector3f::Zero(); 
 	}
 }
 
 
-void FrameData::load_labeled_data()
-{
-	Annotator A;
-	A.result_folder = "E:/my_labels/";
-	A.frameid = m_frameid;
-	A.m_cams = m_camsUndist;
-	A.m_rawCams = m_cams;
-	A.m_camNum = m_camNum;
-	A.read_label_result();
-	A.getMatchedData(m_matched);
-}
+//void FrameData::load_labeled_data()
+//{
+//	Annotator A;
+//	A.result_folder = "E:/my_labels/";
+//	A.frameid = m_frameid;
+//	A.m_cams = m_camsUndist;
+//	A.m_rawCams = m_cams;
+//	A.m_camNum = m_camNum;
+//	A.read_label_result();
+//	A.getMatchedData(m_matched);
+//}

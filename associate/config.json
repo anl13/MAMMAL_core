@@ -7,12 +7,12 @@
   "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust/",
   "startid": 0,
   "epipolartype": "p2l", // "p2l" or "l2l"
-  "framenum": 300,
+  "framenum": 1,
   "epipolar_threshold": 25,
   "box_expand_ratio": 0.01,
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   //"pig_config": "D:/Projects/animal_calib/smal/smal2_config.json"
-  //"pig_config": "D:/Projects/animal_calib/articulation/pigmodel_config.json"
-  "pig_config": "D:/Projects/animal_calib/articulation/artist_config.json"
+  "pig_config": "D:/Projects/animal_calib/articulation/pigmodel_config.json"
+  //"pig_config": "D:/Projects/animal_calib/articulation/artist_config.json"
 }

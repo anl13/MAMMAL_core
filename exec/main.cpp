@@ -8,10 +8,8 @@ int main(int argc, char** argv)
 	//test_nanogui();
 
 	//render_smal_test(); 
-	//test_depth();
 	//run_shape();
-	run_pose_render();	
-	//run_pose();
+	run_pose();
 	//run_on_sequence();
 
 	//removeSmalTail();

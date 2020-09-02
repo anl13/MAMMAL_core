@@ -5,6 +5,10 @@
   <PropertyGroup>
     <IncludePath>../3rdparty/eigen;$(IncludePath)</IncludePath>
   </PropertyGroup>
-  <ItemDefinitionGroup />
+  <ItemDefinitionGroup>
+    <Link>
+      <AdditionalDependencies />
+    </Link>
+  </ItemDefinitionGroup>
   <ItemGroup />
 </Project>

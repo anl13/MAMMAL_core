@@ -74,15 +74,13 @@ void FrameData::solve_parametric_model()
 			mp_bodysolver[i]->normalizeCamera();
 			mp_bodysolver[i]->setId(i); 
 			//mp_bodysolver[i]->InitNodeAndWarpField();
-			//mp_bodysolver[i]->animal_offscreen = m_animal_render;
+			mp_bodysolver[i]->mp_renderEngine = mp_renderEngine;
 			std::cout << "init model " << i << std::endl; 
 		}
 	}
 
 	m_skels3d.resize(4); 
-	//m_projectedBoxesLast.resize(4); 
-#pragma omp parallel for 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		mp_bodysolver[i]->setSource(m_matched[i]); 
 		mp_bodysolver[i]->normalizeSource(); 
@@ -93,15 +91,17 @@ void FrameData::solve_parametric_model()
 		mp_bodysolver[i]->optimizePose(50, 0.001); 
 		std::cout << "solve pose " << timer.Elapsed() << "  ms" << std::endl; 
 
-		//if (i < 2) {
-		//	mp_bodysolver[i]->m_rois = getROI(i);
-		//	mp_bodysolver[i]->m_rawImgs = m_imgsUndist;
-		//	mp_bodysolver[i]->optimizePoseSilhouette(18);
-		//}
+		if (i < 1) {
+			mp_bodysolver[i]->m_rois = getROI(i);
+			mp_bodysolver[i]->m_rawImgs = m_imgsUndist;
+			timer.Start(); 
+			mp_bodysolver[i]->optimizePoseSilhouette(18);
+			std::cout << "solve by sil 18 iters: " << timer.Elapsed() << std::endl; 
+		}
 
 		//m_projectedBoxesLast[i] = mp_bodysolver[i]->projectBoxes();
 
-		auto skels = mp_bodysolver[i]->getRegressedSkel();
+		Eigen::MatrixXf skels = mp_bodysolver[i]->getRegressedSkel();
 		m_skels3d[i] = convertMatToVec(skels); 
 	}
 }
@@ -367,7 +367,7 @@ void FrameData::debug_fitting(int pig_id)
 	std::vector<cv::Mat> crop_list; 
 	for (int i = 0; i < m_matched[pig_id].dets.size(); i++)
 	{
-		Eigen::Vector4d box = m_matched[pig_id].dets[i].box;
+		Eigen::Vector4f box = m_matched[pig_id].dets[i].box;
 		int view_id = m_matched[pig_id].view_ids[i];
 		cv::Mat raw_img = m_imgsDetect[view_id];
 		cv::Rect2i roi(box[0], box[1], box[2] - box[0], box[3] - box[1]);

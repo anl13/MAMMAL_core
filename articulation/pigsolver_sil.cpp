@@ -1,46 +1,6 @@
 #include "pigsolver.h"
 
-std::vector<float4> convertVertices(const Eigen::Matrix3Xf& v)
-{
-	int N = v.cols(); 
-	std::vector<float4> vertices; 
-	vertices.resize(N);
-#pragma omp parallel for 
-	for (int i = 0; i < N; i++)
-	{
-		vertices[i].x = v(0, i); 
-		vertices[i].y = v(1, i);
-		vertices[i].z = v(2, i); 
-		vertices[i].w = 1; 
-	}
-	return vertices; 
-}
-
-std::vector<unsigned int> convertIndices(const Eigen::MatrixXu& f)
-{
-	int N = f.cols(); 
-	std::vector<unsigned int> indices(N * 3, 0); 
-	for (int i = 0; i < N; i++)
-	{
-		indices[3 * i + 0] = f(0, i); 
-		indices[3 * i + 1] = f(1, i); 
-		indices[3 * i + 2] = f(2, i); 
-	}
-	return indices; 
-}
-
-nanogui::Matrix4f eigen2nanoM4f(const Eigen::Matrix4f& mat)
-{
-	nanogui::Matrix4f M;
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			M.m[j][i] = mat(i, j);
-		}
-	}
-	return M;
-}
+#define DEBUG_SIL 
 
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
@@ -53,7 +13,6 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 	{
 		int camid = m_rois[view].viewid;
 		raw_ims.push_back(m_rawImgs[camid]);
-		//cv::Mat img = m_rawImgs[camid].clone();
 		cv::Mat img(cv::Size(1920, 1080), CV_8UC3); img.setTo(255);
 		my_draw_mask(img, m_rois[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
 		color_mask_dets.push_back(img);
@@ -68,7 +27,7 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		UpdateVertices();
 #ifdef DEBUG_SIL
 		std::stringstream ss_obj;
-		ss_obj << "E:/pig_results/debug/sil_" << iter << ".obj";
+		ss_obj << "G:/pig_results/debug/sil_" << iter << ".obj";
 		SaveObj(ss_obj.str());
 #endif 
 
@@ -87,16 +46,18 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			b1 += b_view;
 		}
 
+		UpdateNormalFinal(); 
 		// render images 
-		std::vector<unsigned int> indices = convertIndices(m_facesVert); 
-		std::vector<float4> vertices_float4 = convertVertices(m_verticesFinal); 
+		mp_renderEngine->meshObjs.clear();
+		RenderObjectMesh* p_model = new RenderObjectMesh(); 
+		p_model->SetVertices(m_verticesFinal); 
+		p_model->SetFaces(m_facesVert); 
+		p_model->SetNormal(m_normalFinal); 
+		p_model->SetColors(m_normalFinal); 
+		mp_renderEngine->meshObjs.push_back(p_model); 
 
-		animal_offscreen->SetIndices(indices);
-		animal_offscreen->SetBuffer("positions", vertices_float4);
-
-		cv::Mat rendered_img(1920, 1080, CV_32FC4);
-		std::vector<cv::Mat> rendered_imgs;
-		rendered_imgs.push_back(rendered_img);
+		cv::Mat depth_img; 
+		depth_img.create(cv::Size(1920, 1080), CV_32FC1); 
 		const auto& cameras = m_cameras;
 		std::vector<cv::Mat> renders;
 		std::vector<cv::Mat> rend_bgr;
@@ -105,20 +66,14 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			auto cam = m_rois[view].cam;
 			Eigen::Matrix3f R = cam.R.cast<float>();
 			Eigen::Vector3f T = cam.T.cast<float>();
+			mp_renderEngine->s_camViewer.SetExtrinsic(R, T); 
 
-			animal_offscreen->_SetViewByCameraRT(cam.R, cam.T);
-			Eigen::Matrix4f camview = Eigen::Matrix4f::Identity();
-			camview.block<3, 3>(0, 0) = cam.R.cast<float>();
-			camview.block<3, 1>(0, 3) = cam.T.cast<float>();
-			nanogui::Matrix4f camview_nano = eigen2nanoM4f(camview);
-			animal_offscreen->SetUniform("view", camview_nano);
-			animal_offscreen->DrawOffscreen();
-			animal_offscreen->DownloadRenderingResults(rendered_imgs);
-			std::vector<cv::Mat> channels(4);
-			cv::split(rendered_imgs[0], channels);
-			cv::Mat depth = -channels[2];
-			renders.push_back(depth);
-			rend_bgr.emplace_back(fromDepthToColorMask(depth));
+			float * depth_device = mp_renderEngine->renderDepthDevice();
+			cudaMemcpy(depth_img.data, depth_device, depth_img.cols * depth_img.rows * sizeof(float),
+				cudaMemcpyDeviceToHost);
+			
+			renders.push_back(depth_img);
+			rend_bgr.emplace_back(fromDepthToColorMask(depth_img));
 		}
 
 #ifdef DEBUG_SIL
@@ -133,7 +88,7 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		packImgBlock(color_mask_dets, pack_det);
 		blended = pack_render * 0.5 + pack_det * 0.5;
 		std::stringstream ss;
-		ss << "E:/pig_results/debug/" << std::setw(6) << std::setfill('0')
+		ss << "G:/pig_results/debug/" << std::setw(6) << std::setfill('0')
 			<< iter << ".jpg";
 		cv::imwrite(ss.str(), blended);
 #endif 
@@ -195,7 +150,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 	ATA = Eigen::MatrixXf::Zero(M, M);
 	ATb = Eigen::VectorXf::Zero(M);
 	Eigen::MatrixXf J_joint, J_vert;
-	CalcPoseJacobiPartTheta(J_joint, J_vert);
+	CalcPoseJacobiPartTheta(J_joint, J_vert, true);
 
 	//// visualize 
 	//std::vector<cv::Mat> chamfers_vis; 
@@ -208,6 +163,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 
 	float total_r = 0;
 
+	std::cout << "m_rois.size() : " << m_rois.size() << std::endl; 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
 		if (m_rois[roiIdx].valid < 0.6) {
@@ -233,14 +189,18 @@ void PigSolver::CalcSilhouettePoseTerm(
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
 
-		float wc = 200.0 / m_rois[roiIdx].area;
-		//std::cout << "wc " << roiIdx << " : " << wc << std::endl; 
+		//float wc = 200.0 / m_rois[roiIdx].area;
+		float wc = 0.01; 
+		std::cout << "wc " << roiIdx << " : " << wc << std::endl; 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
-			float w;
-			if (m_bodyParts[i] == R_F_LEG || m_bodyParts[i] == R_B_LEG ||
-				m_bodyParts[i] == L_F_LEG || m_bodyParts[i] == L_B_LEG) w = 5;
-			else w = 1;
+			//float w;
+			//if (m_bodyParts[i] == R_F_LEG || m_bodyParts[i] == R_B_LEG ||
+			//	m_bodyParts[i] == L_F_LEG || m_bodyParts[i] == L_B_LEG) w = 5;
+			//else w = 1;
+			if(m_bodyParts[i] == TAIL || m_bodyParts[i]==L_EAR || m_bodyParts[i] == R_EAR) continue; 
+			float w = 1;
+
 			Eigen::Vector3f x0 = m_verticesFinal.col(i);
 			// check visibiltiy 
 			Camera & cam = m_rois[roiIdx].cam;

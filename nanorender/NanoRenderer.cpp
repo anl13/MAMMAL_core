@@ -74,7 +74,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	//return; 
 	screen->initialize(window, true);
 
-	m_screen_image.create(m_window_height /* * screen->pixel_ratio()*/, m_window_width/* * screen->pixel_ratio()*/, CV_8UC4);
+	m_screen_image.create(m_window_height  * screen->pixel_ratio(), m_window_width * screen->pixel_ratio(), CV_8UC4);
 
 	glfwSetCursorPosCallback(window,
 		[](GLFWwindow *, double x, double y) {

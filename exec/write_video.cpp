@@ -8,17 +8,13 @@
 #include <opencv2/opencv.hpp>
 
 #include "../utils/colorterminal.h" 
-#include "../utils/obj_reader.h"
 #include "../utils/timer_util.h"
 #include "../articulation/pigmodel.h"
 #include "../articulation/pigsolver.h"
 #include "../associate/framedata.h"
 #include "../utils/volume.h"
-#include "../utils/model.h"
-#include "../utils/dataconverter.h" 
 #include "../nanorender/NanoRenderer.h"
 #include <vector_functions.hpp>
-#include "../utils/timer.hpp" 
 
 
 int write_video()

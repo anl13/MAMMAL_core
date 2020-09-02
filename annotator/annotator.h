@@ -4,7 +4,7 @@
 #include <Eigen/Eigen> 
 #include "../utils/image_utils.h"
 #include "../utils/math_utils.h"
-#include "../associate/skel.h"
+#include "../utils/skel.h"
 #include <json/json.h>
 #include "../utils/camera.h"
 #include <sstream>

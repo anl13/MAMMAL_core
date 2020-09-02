@@ -58,12 +58,12 @@ void project(const Camera& cam, const vector<Eigen::Vector3f> &points3d, vector<
 void project(const Camera& cam, const Eigen::Vector3f& p3d, Eigen::Vector3f &p2d);
 Eigen::Vector3f project(const Camera& cam, const Eigen::Vector3f& p3d);
 
-Eigen::Vector3d triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3d> joints2d); 
+Eigen::Vector3f triangulate_ceres(const std::vector<Camera> cams, const std::vector<Eigen::Vector3f> joints2d); 
 
 void test_epipolar(
     const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2d> > &joints2d, 
+    const std::vector< std::vector<Eigen::Vector2f> > &joints2d, 
     int camid0, 
     int camid1,
     int jid); 

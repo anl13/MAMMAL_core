@@ -14,6 +14,48 @@
 #include "../utils/math_utils.h"
 #include "NanoRenderer.h"
 
+std::vector<float4> convertVertices(const Eigen::Matrix3Xf& v)
+{
+	int N = v.cols();
+	std::vector<float4> vertices;
+	vertices.resize(N);
+#pragma omp parallel for 
+	for (int i = 0; i < N; i++)
+	{
+		vertices[i].x = v(0, i);
+		vertices[i].y = v(1, i);
+		vertices[i].z = v(2, i);
+		vertices[i].w = 1;
+	}
+	return vertices;
+}
+
+std::vector<unsigned int> convertIndices(const Eigen::MatrixXu& f)
+{
+	int N = f.cols();
+	std::vector<unsigned int> indices(N * 3, 0);
+	for (int i = 0; i < N; i++)
+	{
+		indices[3 * i + 0] = f(0, i);
+		indices[3 * i + 1] = f(1, i);
+		indices[3 * i + 2] = f(2, i);
+	}
+	return indices;
+}
+
+nanogui::Matrix4f eigen2nanoM4f(const Eigen::Matrix4f& mat)
+{
+	nanogui::Matrix4f M;
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			M.m[j][i] = mat(i, j);
+		}
+	}
+	return M;
+}
+
 int test_datatype()
 {
 	
@@ -215,6 +257,8 @@ int test_depth()
 
 	std::vector<Camera> cams = readCameras(); 
 	Camera cam = cams[0]; 
+
+
 
 	NanoRenderer renderer;
 	renderer.Init(1920, 1080, float(cam.K(0, 0)), float(cam.K(1, 1)), float(cam.K(0, 2)), float(cam.K(1, 2)), -2.0f);

@@ -22,7 +22,7 @@
     <ClCompile Include="..\articulation\pigmodel.cpp" />
     <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
     <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
-    <ClCompile Include="..\articulation\pigsolver_shape.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_sil.cpp" />
     <ClCompile Include="..\associate\clusterclique.cpp" />
     <ClCompile Include="..\associate\framedata.cpp" />
     <ClCompile Include="..\associate\framedata_PMT.cpp" />
@@ -33,34 +33,22 @@
     <ClCompile Include="..\associate\mce\MemoryManager.cpp" />
     <ClCompile Include="..\associate\mce\Tools.cpp" />
     <ClCompile Include="..\associate\tracking.cpp" />
-    <ClCompile Include="..\calibration\BASolver.cpp" />
-    <ClCompile Include="..\calibration\calibration.cpp" />
-    <ClCompile Include="..\exec\annotate.cpp" />
-    <ClCompile Include="..\exec\compute_sym.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
     <ClCompile Include="..\exec\run_pose.cpp" />
-    <ClCompile Include="..\exec\run_pose_render.cpp" />
-    <ClCompile Include="..\exec\run_shape.cpp" />
-    <ClCompile Include="..\exec\testfunc.cpp" />
     <ClCompile Include="..\exec\write_video.cpp" />
-    <ClCompile Include="..\nanorender\NanoRenderer.cpp" />
-    <ClCompile Include="..\nanorender\RenderObject.cpp" />
-    <ClCompile Include="..\nanorender\shader_file.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\renderer.cpp" />
     <ClCompile Include="..\render\render_object.cpp" />
     <ClCompile Include="..\render\render_utils.cpp" />
     <ClCompile Include="..\render\shader.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
-    <ClCompile Include="..\utils\dataconverter.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
-    <ClCompile Include="..\utils\model.cpp" />
+    <ClCompile Include="..\utils\mesh.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
-    <ClCompile Include="..\utils\objloader.cpp" />
-    <ClCompile Include="..\utils\obj_reader.cpp" />
+    <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
     <ClCompile Include="..\VAE\decoder.cpp" />
     <ClCompile Include="..\VAE\layers.cpp" />
@@ -76,12 +64,7 @@
     <ClInclude Include="..\associate\mce\MemoryManager.h" />
     <ClInclude Include="..\associate\mce\Tools.h" />
     <ClInclude Include="..\associate\tracking.h" />
-    <ClInclude Include="..\calibration\BASolver.h" />
-    <ClInclude Include="..\calibration\calibration.h" />
     <ClInclude Include="..\exec\main.h" />
-    <ClInclude Include="..\nanorender\NanoRenderer.h" />
-    <ClInclude Include="..\nanorender\RenderObject.h" />
-    <ClInclude Include="..\nanorender\shader_file.h" />
     <ClInclude Include="..\render\camviewer.h" />
     <ClInclude Include="..\render\renderer.h" />
     <ClInclude Include="..\render\render_object.h" />
@@ -90,19 +73,15 @@
     <ClInclude Include="..\render\stb_image.h" />
     <ClInclude Include="..\utils\camera.h" />
     <ClInclude Include="..\utils\colorterminal.h" />
-    <ClInclude Include="..\utils\dataconverter.h" />
     <ClInclude Include="..\utils\geometry.h" />
     <ClInclude Include="..\utils\Hungarian.h" />
     <ClInclude Include="..\utils\image_utils.h" />
     <ClInclude Include="..\utils\kdtree.h" />
     <ClInclude Include="..\utils\math_utils.h" />
-    <ClInclude Include="..\utils\model.h" />
+    <ClInclude Include="..\utils\mesh.h" />
     <ClInclude Include="..\utils\nanoflann.hpp" />
     <ClInclude Include="..\utils\node_graph.h" />
-    <ClInclude Include="..\utils\objloader.h" />
-    <ClInclude Include="..\utils\obj_reader.h" />
     <ClInclude Include="..\utils\safe_call.hpp" />
-    <ClInclude Include="..\utils\timer.hpp" />
     <ClInclude Include="..\utils\timer_util.h" />
     <ClInclude Include="..\utils\volume.h" />
   </ItemGroup>
@@ -113,6 +92,9 @@
     <None Include="..\articulation\smal2_config.json" />
     <None Include="..\articulation\smal_config.json" />
     <None Include="..\associate\config.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}</ProjectGuid>
@@ -163,8 +145,12 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="animal_calib.props" />
-    <Import Project="nanorenderer.props" />
+    <Import Project="..\props\json.props" />
+    <Import Project="..\props\OpenCV4.1.props" />
+    <Import Project="..\props\ceres.props" />
+    <Import Project="..\props\boost1.65.props" />
+    <Import Project="..\props\eigen.props" />
+    <Import Project="..\props\gl-pcl.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

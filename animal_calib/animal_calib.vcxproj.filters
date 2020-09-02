@@ -25,20 +25,14 @@
     <Filter Include="exec">
       <UniqueIdentifier>{07d708d4-d665-42f0-af08-d8df9e911d67}</UniqueIdentifier>
     </Filter>
-    <Filter Include="nanorender">
-      <UniqueIdentifier>{eb5f9722-17dd-4e41-aee9-d4598ec4a98b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="render">
       <UniqueIdentifier>{09d719a1-ccfa-44ff-9493-52f9420c26de}</UniqueIdentifier>
     </Filter>
     <Filter Include="articulation">
       <UniqueIdentifier>{38965ab8-4187-418f-af33-c8c611331a87}</UniqueIdentifier>
     </Filter>
-    <Filter Include="calibration">
-      <UniqueIdentifier>{730e39a9-bd77-4a3b-809b-3c4bf6b9882e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="VAE">
-      <UniqueIdentifier>{ce603c42-3566-487f-8e06-5d7c4f5bedc0}</UniqueIdentifier>
+    <Filter Include="others">
+      <UniqueIdentifier>{da31139b-e3e2-43da-ae0e-3ee328152139}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -84,9 +78,6 @@
     <ClCompile Include="..\utils\math_utils.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\obj_reader.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\associate\framedata_shape.cpp">
       <Filter>associate</Filter>
     </ClCompile>
@@ -96,40 +87,10 @@
     <ClCompile Include="..\utils\volume.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\model.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\objloader.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
     <ClCompile Include="..\exec\main.cpp">
       <Filter>exec</Filter>
     </ClCompile>
-    <ClCompile Include="..\exec\testfunc.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\dataconverter.cpp">
-      <Filter>utils</Filter>
-    </ClCompile>
-    <ClCompile Include="..\nanorender\NanoRenderer.cpp">
-      <Filter>nanorender</Filter>
-    </ClCompile>
-    <ClCompile Include="..\nanorender\RenderObject.cpp">
-      <Filter>nanorender</Filter>
-    </ClCompile>
-    <ClCompile Include="..\nanorender\shader_file.cpp">
-      <Filter>nanorender</Filter>
-    </ClCompile>
     <ClCompile Include="..\exec\run_pose.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\compute_sym.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\run_shape.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\annotate.cpp">
       <Filter>exec</Filter>
     </ClCompile>
     <ClCompile Include="..\exec\write_video.cpp">
@@ -159,23 +120,20 @@
     <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_shape.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\calibration\BASolver.cpp">
-      <Filter>calibration</Filter>
-    </ClCompile>
-    <ClCompile Include="..\calibration\calibration.cpp">
-      <Filter>calibration</Filter>
-    </ClCompile>
-    <ClCompile Include="..\exec\run_pose_render.cpp">
-      <Filter>exec</Filter>
-    </ClCompile>
-    <ClCompile Include="..\VAE\layers.cpp">
-      <Filter>VAE</Filter>
+    <ClCompile Include="..\utils\mesh.cpp">
+      <Filter>utils</Filter>
     </ClCompile>
     <ClCompile Include="..\VAE\decoder.cpp">
-      <Filter>VAE</Filter>
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VAE\layers.cpp">
+      <Filter>others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\skel.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_sil.cpp">
+      <Filter>articulation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -221,16 +179,10 @@
     <ClInclude Include="..\utils\math_utils.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\utils\obj_reader.h">
-      <Filter>utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\timer_util.h">
       <Filter>utils</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\kdtree.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\model.h">
       <Filter>utils</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\nanoflann.hpp">
@@ -242,29 +194,11 @@
     <ClInclude Include="..\utils\volume.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="..\utils\objloader.h">
-      <Filter>utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\safe_call.hpp">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\timer.hpp">
       <Filter>utils</Filter>
     </ClInclude>
     <ClInclude Include="..\exec\main.h">
       <Filter>exec</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\dataconverter.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\nanorender\NanoRenderer.h">
-      <Filter>nanorender</Filter>
-    </ClInclude>
-    <ClInclude Include="..\nanorender\RenderObject.h">
-      <Filter>nanorender</Filter>
-    </ClInclude>
-    <ClInclude Include="..\nanorender\shader_file.h">
-      <Filter>nanorender</Filter>
     </ClInclude>
     <ClInclude Include="..\render\camviewer.h">
       <Filter>render</Filter>
@@ -290,11 +224,8 @@
     <ClInclude Include="..\articulation\pigsolver.h">
       <Filter>articulation</Filter>
     </ClInclude>
-    <ClInclude Include="..\calibration\BASolver.h">
-      <Filter>calibration</Filter>
-    </ClInclude>
-    <ClInclude Include="..\calibration\calibration.h">
-      <Filter>calibration</Filter>
+    <ClInclude Include="..\utils\mesh.h">
+      <Filter>utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -314,5 +245,10 @@
     <None Include="..\articulation\artist_config.json">
       <Filter>articulation</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\render\cuda_utils_render.cu">
+      <Filter>render</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

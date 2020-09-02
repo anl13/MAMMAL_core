@@ -59,6 +59,8 @@ public:
 	std::vector<RenderObjectTexture*> texObjs; 
 	std::vector<BallStickObject*> skels; 
 
+	void clearAllObjs(); 
+
 	void Draw(std::string type="color"); 
 	cv::Mat GetImage(); 
 	cv::Mat GetFloatImage();
@@ -69,14 +71,15 @@ public:
 
 	// offscreen rendering 
 	float* renderDepthDevice();
+
+private:
+	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;
 	void beginOffscreenRender();
 	void endOffscreenRender();
 	void mapRenderingResults();
 	void unmapRenderingResults();
 
 	float4 * m_device_renderData;
-private:
-	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;
 
 	void initResource();
 	bool is_useResource;

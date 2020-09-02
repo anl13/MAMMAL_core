@@ -16,8 +16,8 @@
 #include "../utils/node_graph.h"
 #include "../utils/kdtree.h"
 #include "../utils/volume.h"
-#include "../nanorender/NanoRenderer.h"
-#include "../nanorender/RenderObject.h"
+
+#include "../render/renderer.h"
 
 //#define DEBUG_SIL
 
@@ -82,7 +82,8 @@ public:
 	vector<cv::Mat>       m_renders; 
 	void optimizePoseSilhouette(int maxIter);
 	void CalcSilhouettePoseTerm(const std::vector<cv::Mat>& renders, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter);
-	nanogui::ref<OffscreenRenderObject> animal_offscreen; 
+	
+	Renderer* mp_renderEngine; 
 
 	std::vector<int> m_poseToOptimize;
 
@@ -115,7 +116,7 @@ public:
 	//Volume m_V;
 	//Model m_V_mesh; 
 	//void computeVolume();
-	//std::vector<cv::Mat> m_rawImgs; 
+	std::vector<cv::Mat> m_rawImgs; 
 
 	Eigen::VectorXf theta_last; 
 
