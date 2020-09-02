@@ -1,6 +1,6 @@
 #include "pigsolver.h"
 
-#define DEBUG_SIL 
+//#define DEBUG_SIL 
 
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
@@ -22,10 +22,10 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 	int M = m_poseToOptimize.size();
 	for (; iter < maxIter; iter++)
 	{
-		std::cout << "ITER: " << iter << std::endl;
-
 		UpdateVertices();
+		
 #ifdef DEBUG_SIL
+		std::cout << "ITER: " << iter << std::endl;
 		std::stringstream ss_obj;
 		ss_obj << "G:/pig_results/debug/sil_" << iter << ".obj";
 		SaveObj(ss_obj.str());
@@ -60,10 +60,12 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		depth_img.create(cv::Size(1920, 1080), CV_32FC1); 
 		const auto& cameras = m_cameras;
 		std::vector<cv::Mat> renders;
+#ifdef DEBUG_SIL
 		std::vector<cv::Mat> rend_bgr;
+#endif 
 		for (int view = 0; view < m_rois.size(); view++)
 		{
-			auto cam = m_rois[view].cam;
+			Camera cam = m_rois[view].cam;
 			Eigen::Matrix3f R = cam.R.cast<float>();
 			Eigen::Vector3f T = cam.T.cast<float>();
 			mp_renderEngine->s_camViewer.SetExtrinsic(R, T); 
@@ -71,19 +73,34 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			float * depth_device = mp_renderEngine->renderDepthDevice();
 			cudaMemcpy(depth_img.data, depth_device, depth_img.cols * depth_img.rows * sizeof(float),
 				cudaMemcpyDeviceToHost);
-			
-			renders.push_back(depth_img);
+			renders.push_back(depth_img.clone());
+
+#ifdef DEBUG_SIL
 			rend_bgr.emplace_back(fromDepthToColorMask(depth_img));
+#endif 
 		}
+
+
 
 #ifdef DEBUG_SIL
 		// test 
+		//std::vector<cv::Mat> pseudos;
+		//for (int view = 0; view < renders.size(); view++)
+		//{
+		//	cv::Mat colored = pseudoColor(renders[view]);
+		//	pseudos.push_back(colored);
+		//}
+		//cv::Mat pack_pseudo;
+		//packImgBlock(pseudos,pack_pseudo);
+		//std::stringstream ss_pseudo;
+		//ss_pseudo << "G:/pig_results/debug/" << std::setw(6) << std::setfill('0') << iter << "_depth.jpg";
+		//cv::imwrite(ss_pseudo.str(), pack_pseudo); 
+
 		cv::Mat pack_render;
 		packImgBlock(rend_bgr, pack_render);
 		cv::Mat rawpack;
 		packImgBlock(raw_ims, rawpack);
 		cv::Mat blended;
-		//blended = overlay_renders(rawpack, pack_render, 0);
 		cv::Mat pack_det;
 		packImgBlock(color_mask_dets, pack_det);
 		blended = pack_render * 0.5 + pack_det * 0.5;
@@ -163,7 +180,9 @@ void PigSolver::CalcSilhouettePoseTerm(
 
 	float total_r = 0;
 
+#ifdef DEBUG_SIL
 	std::cout << "m_rois.size() : " << m_rois.size() << std::endl; 
+#endif 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
 		if (m_rois[roiIdx].valid < 0.6) {
@@ -191,7 +210,10 @@ void PigSolver::CalcSilhouettePoseTerm(
 
 		//float wc = 200.0 / m_rois[roiIdx].area;
 		float wc = 0.01; 
+#ifdef DEBUG_SIL
 		std::cout << "wc " << roiIdx << " : " << wc << std::endl; 
+		int visible_num = 0; 
+#endif 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
 			//float w;
@@ -210,6 +232,9 @@ void PigSolver::CalcSilhouettePoseTerm(
 			if (abs(x0_local(2) - depth_value) < 0.02) visible = true;
 			else visible = false;
 			if (!visible) continue;
+#ifdef DEBUG_SIL
+			visible_num++;
+#endif 
 
 			int m = m_rois[roiIdx].queryMask(x0);
 			// TODO: 20200602 check occlusion
@@ -235,6 +260,9 @@ void PigSolver::CalcSilhouettePoseTerm(
 			r(i) = w * (p - d);
 			A.row(i) = w * (block2d.row(0) * (ddx)+block2d.row(1) * (ddy));
 		}
+#ifdef DEBUG_SIL
+		std::cout << "visible num  of view " << roiIdx << " is: " << visible_num << std::endl; 
+#endif 
 		A = wc * A;
 		r = wc * r;
 		//std::cout << "r.norm() : " << r.norm() << std::endl;
@@ -243,7 +271,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 		ATb += A.transpose() * r;
 	}
 
-	std::cout << "sil  term b: " << total_r << std::endl;
+	//std::cout << "sil  term b: " << total_r << std::endl;
 	//cv::Mat packP;
 	//packImgBlock(chamfers_vis, packP);
 	//cv::Mat packD;

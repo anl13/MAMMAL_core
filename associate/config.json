@@ -13,6 +13,6 @@
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   //"pig_config": "D:/Projects/animal_calib/smal/smal2_config.json"
-  "pig_config": "D:/Projects/animal_calib/articulation/pigmodel_config.json"
-  //"pig_config": "D:/Projects/animal_calib/articulation/artist_config.json"
+  //"pig_config": "D:/Projects/animal_calib/articulation/pigmodel_config.json"
+  "pig_config": "D:/Projects/animal_calib/articulation/artist_config.json"
 }
