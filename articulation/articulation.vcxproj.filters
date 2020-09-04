@@ -102,8 +102,8 @@
     <ClCompile Include="test_compare_cpugpu.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="show_gpu_param.cpp">
-      <Filter>源文件</Filter>
+    <ClCompile Include="..\utils\image_utils_gpu.cpp">
+      <Filter>other</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -162,6 +162,9 @@
     </CudaCompile>
     <CudaCompile Include="pigsolverdevice.cu">
       <Filter>源文件</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>other</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

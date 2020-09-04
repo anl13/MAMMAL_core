@@ -27,8 +27,9 @@ public:
 	PigModelDevice(const PigModelDevice& _) = delete;
 	PigModelDevice& operator=(const PigModelDevice& _) = delete;
 
-	//void saveState(std::string state_file = "state.txt");
-	//void readState(std::string state_file = "state.txt");
+	void saveState(std::string state_file = "state.txt");
+	void readState(std::string state_file = "state.txt");
+	void saveObj(const std::string& filename) const; 
 
 	// all data interfaces are on host 
 	void SetPose(Eigen::VectorXf _poseParam) {
@@ -65,7 +66,7 @@ public:
 
 	void UpdateVertices();
 	void UpdateJoints();
-	void UpdateNormalsFinal(); 
+	void UpdateNormalFinal(); 
 	//void UpdateNormals();
 
 	//void SaveObj(const std::string& filename) const;

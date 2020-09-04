@@ -19,10 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\articulation\pigmodel.cpp" />
-    <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
-    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
-    <ClCompile Include="..\articulation\pigsolver_sil.cpp" />
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
     <ClCompile Include="..\associate\clusterclique.cpp" />
     <ClCompile Include="..\associate\framedata.cpp" />
     <ClCompile Include="..\associate\framedata_PMT.cpp" />
@@ -54,8 +52,10 @@
     <ClCompile Include="..\VAE\layers.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\articulation\pigmodel.h" />
-    <ClInclude Include="..\articulation\pigsolver.h" />
+    <ClInclude Include="..\articulation\common.h" />
+    <ClInclude Include="..\articulation\gpuutils.h" />
+    <ClInclude Include="..\articulation\pigmodeldevice.h" />
+    <ClInclude Include="..\articulation\pigsolverdevice.h" />
     <ClInclude Include="..\associate\clusterclique.h" />
     <ClInclude Include="..\associate\framedata.h" />
     <ClInclude Include="..\associate\matching.h" />
@@ -94,6 +94,9 @@
     <None Include="..\associate\config.json" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="..\articulation\gpuutils.cu" />
+    <CudaCompile Include="..\articulation\pigmodeldevice.cu" />
+    <CudaCompile Include="..\articulation\pigsolverdevice.cu" />
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

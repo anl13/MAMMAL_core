@@ -45,6 +45,9 @@
     <ClCompile Include="skel.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="image_utils_gpu.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h">
@@ -92,5 +95,16 @@
     <ClInclude Include="skel.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="image_utils_gpu.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="show_gpu_param.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="image_utils_gpu.cu">
+      <Filter>源文件</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

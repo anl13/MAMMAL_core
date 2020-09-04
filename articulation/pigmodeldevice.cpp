@@ -349,7 +349,53 @@ void PigModelDevice::UpdateVertices()
 	UpdateVerticesPosed_device(); 
 }
 
-void PigModelDevice::UpdateNormalsFinal()
+void PigModelDevice::UpdateNormalFinal()
 {
 	UpdateNormalsFinal_device(); 
+}
+
+void PigModelDevice::saveObj(const std::string& filename) const
+{
+	std::ofstream f(filename);
+	for (int i = 0; i < m_vertexNum; i++)
+	{
+		f << "v " << m_host_verticesPosed[i].transpose() << std::endl;
+	}
+
+	for (int i = 0; i < m_faceNum; i++)
+	{
+		f << "f " << m_host_facesVert[i](0) + 1 << " " << m_host_facesVert[i](1) + 1 << " " << m_host_facesVert[i](2) + 1 << std::endl;
+	}
+	f.close();
+}
+
+
+void PigModelDevice::saveState(std::string state_file)
+{
+	std::ofstream os(state_file);
+	if (!os.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	for (int i = 0; i < 3; i++) os << m_host_translation(i) << std::endl;
+	for (int i = 0; i < m_jointNum; i++) for (int k = 0; k < 3; k++) os << m_host_poseParam[i](k) << std::endl;
+	os << m_host_scale;
+	os.close();
+}
+
+void PigModelDevice::readState(std::string state_file)
+{
+	std::ifstream is(state_file);
+	if (!is.is_open())
+	{
+		std::cout << "cant not open " << state_file << std::endl;
+		return;
+	}
+	for (int i = 0; i < 3; i++) is >> m_host_translation(i);
+	for (int i = 0; i < m_jointNum; i++) 
+		for (int k = 0; k < 3; k++) 
+			is >> m_host_poseParam[i](k);
+	is >> m_host_scale;
+	is.close();
 }

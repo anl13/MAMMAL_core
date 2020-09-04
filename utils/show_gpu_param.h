@@ -1,9 +1,10 @@
+#pragma once
 
 #include <stdio.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
-void show_gpu_param()
+inline void show_gpu_param()
 {
 	cudaDeviceProp prop;
 	int count;

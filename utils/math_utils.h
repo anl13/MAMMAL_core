@@ -34,6 +34,7 @@ namespace Eigen {
 	typedef Eigen::Matrix<float, 6, 1> Vector6d;
 	typedef Eigen::Matrix<float, 3, 4> Matrix34d;
 	typedef Eigen::Matrix<float, 3, 2> Matrix32d;
+	typedef Eigen::Matrix<float, 2, 3> Matrix23f;
 }
 
 /***************** homogeneous coordinate ************/ 

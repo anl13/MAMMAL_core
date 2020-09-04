@@ -84,10 +84,12 @@ __global__ void computeAAT_kernel(
 	if (xIdx < W && yIdx < H && zIdx <= yIdx)
 	{
 		float a_zy = A(zIdx, xIdx) *A(yIdx, xIdx);
-		atomicAdd(&AAT(zIdx, yIdx), a_zy);
+		if(a_zy>0)
+			atomicAdd(&AAT(zIdx, yIdx), a_zy);
 	}
 }
 
+#if 0
 __global__ void computeAAT_kernel2(
 	const pcl::gpu::PtrStepSz<float> A,
 	const int W, const int H,
@@ -107,6 +109,7 @@ __global__ void computeAAT_kernel2(
 		}
 	}
 }
+#endif
 
 __global__ void computeA_plus_AT_kernel(
 	pcl::gpu::PtrStepSz<float> A,
@@ -225,4 +228,84 @@ void computeATb_device(const pcl::gpu::DeviceArray2D<float> &AT,
 	cudaSafeCall(cudaGetLastError()); 
 	cudaSafeCall(cudaDeviceSynchronize()); 
 
+}
+
+
+__global__ void check_visibility_kernel(
+	float* depth, int W, int H,
+	pcl::gpu::PtrSz<Eigen::Vector3f> points,
+	int Num,
+	Eigen::Matrix3f K,
+	Eigen::Matrix3f R,
+	Eigen::Vector3f T,
+	pcl::gpu::PtrSz<unsigned char> V
+)
+{
+	unsigned int xIdx = blockIdx.x * blockDim.x + threadIdx.x;
+	if (xIdx < Num)
+	{
+		Eigen::Vector3f p = points[xIdx];
+		Eigen::Vector3f p_local = K * (R * p + T);
+		float d = p_local(2);
+		int u = int(p_local(0) / d + 0.5);
+		int v = int(p_local(1) / d + 0.5);
+		if (u < 0 || u >= W || v < 0 || v >= H) V[xIdx] = 0;
+		else
+		{
+			float d_img = depth[v*W + u];
+			float diff = d_img - d;
+			if (diff >= -0.02 && diff <= 0.02) V[xIdx] = 1;
+			else V[xIdx] = 0;
+		}
+	}
+}
+
+void check_visibility(float* imgdata_device, int W, int H,
+	pcl::gpu::DeviceArray<Eigen::Vector3f> points,
+	Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
+	std::vector<unsigned char>& visibility)
+{
+	int pointnum = points.size();
+	dim3 blocksize(32);
+	dim3 gridsize(pcl::device::divUp(pointnum, 32));
+
+	pcl::gpu::DeviceArray<unsigned char> visibility_device;
+	visibility_device.upload(visibility);
+
+	check_visibility_kernel << <gridsize, blocksize >> > (
+		imgdata_device, W, H, points, pointnum, K, R, T,
+		visibility_device
+		);
+	visibility_device.download(visibility);
+}
+
+// compute ATB
+// TODO(20200904): use reduction to further speed up matrix operation. 
+__global__ void multiply_AT_r_kernel(
+	pcl::gpu::PtrStepSz<float> d_AT,
+	pcl::gpu::PtrSz<float> d_r,
+	int rows, int cols,
+	pcl::gpu::PtrSz<float> output
+)
+{
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x; 
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y; 
+	if (x >= cols || y >= rows) return; 
+
+	float value = d_AT(y, x) * d_r[x];
+	atomicAdd(&output[y], value); 
+
+}
+
+void computeATb_device(const pcl::gpu::DeviceArray2D<float>& AT,
+	const pcl::gpu::DeviceArray<float> &r,
+	pcl::gpu::DeviceArray<float> ATb)
+{
+	int rows = AT.rows(); 
+	int cols = AT.cols(); 
+	dim3 blocksize(64, 16); 
+	dim3 gridsize(pcl::device::divUp(cols, blocksize.x), pcl::device::divUp(rows, blocksize.y));
+	multiply_AT_r_kernel << <gridsize, blocksize >> > (AT, r, rows, cols, ATb); 
+	cudaSafeCall(cudaGetLastError());
+	cudaSafeCall(cudaDeviceSynchronize()); 
 }

@@ -196,8 +196,8 @@ void PigSolver::CalcSilhouettePoseTerm(
 		//chamfers_vis_det.emplace_back(visualizeSDF2d(m_rois[roiIdx].chamfer));
 		//diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
 
-		cv::Mat Pdx, Pdy;
-		computeGradient(P, Pdx, Pdy);
+		//cv::Mat Pdx, Pdy;
+		//computeGradient(P, Pdx, Pdy);
 		//gradx_vis.emplace_back(visualizeSDF2d(Pdx, 32));
 		//grady_vis.emplace_back(visualizeSDF2d(Pdy, 32));
 		//diff_xvis.emplace_back(visualizeSDF2d(Pdx - m_rois[roiIdx].gradx, 32));
@@ -227,9 +227,9 @@ void PigSolver::CalcSilhouettePoseTerm(
 			// check visibiltiy 
 			Camera & cam = m_rois[roiIdx].cam;
 			float depth_value = queryPixel(depths[roiIdx], x0, cam);
-			Eigen::Vector3f x0_local = cam.R * x0 + cam.T;
+			Eigen::Vector3f x_local = K*( R * x0 + T);
 			bool visible;
-			if (abs(x0_local(2) - depth_value) < 0.02) visible = true;
+			if (abs(x_local(2) - depth_value) < 0.02) visible = true;
 			else visible = false;
 			if (!visible) continue;
 #ifdef DEBUG_SIL
@@ -245,12 +245,11 @@ void PigSolver::CalcSilhouettePoseTerm(
 			float ddx = queryPixel(m_rois[roiIdx].gradx, x0, m_rois[roiIdx].cam);
 			float ddy = queryPixel(m_rois[roiIdx].grady, x0, m_rois[roiIdx].cam);
 			float p = queryPixel(P, x0, m_rois[roiIdx].cam);
-			float pdx = queryPixel(Pdx, x0, m_rois[roiIdx].cam);
-			float pdy = queryPixel(Pdy, x0, m_rois[roiIdx].cam);
+			//float pdx = queryPixel(Pdx, x0, m_rois[roiIdx].cam);
+			//float pdy = queryPixel(Pdy, x0, m_rois[roiIdx].cam);
 			if (p > 10) continue; // only consider contours for loss 
 
 			Eigen::MatrixXf block2d = Eigen::MatrixXf::Zero(2, M);
-			Eigen::Vector3f x_local = K * (R * x0 + T);
 			Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 			D(0, 0) = 1 / x_local(2);
 			D(1, 1) = 1 / x_local(2);

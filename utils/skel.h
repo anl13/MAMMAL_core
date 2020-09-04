@@ -31,7 +31,6 @@ struct DetInstance // class storing data of an instance
 
 struct MatchedInstance{
     vector<int> view_ids; 
-    //vector<int> cand_ids; 
     vector<DetInstance> dets; 
 }; 
 

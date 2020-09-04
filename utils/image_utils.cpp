@@ -497,8 +497,6 @@ cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)
 // assume render is black background with non-black foreground. 
 cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float a)
 {
-
-
 	cv::Mat mask_fore;
 	cv::Mat mask_back;
 	cv::threshold(render, mask_fore, 1, 1, cv::THRESH_BINARY);
@@ -566,7 +564,7 @@ cv::Mat get_dist_trans(cv::Mat input)
 	else gray = input; 
 	//cv::threshold(gray, gray, 40, 255, cv::/*THRESH_BINARY*/ | cv::THRESH_OTSU);
 	cv::Mat chamfer; 
-	cv::distanceTransform(gray, chamfer, cv::DIST_L2, 3);
+	cv::distanceTransform(gray, chamfer, cv::DIST_L2, 5);
 	return chamfer; 
 }
 

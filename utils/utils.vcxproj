@@ -72,8 +72,8 @@
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\json.props" />
-    <Import Project="..\props\nanorenderer.props" />
     <Import Project="..\props\OpenCV4.1.props" />
+    <Import Project="..\props\gl-pcl.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -126,6 +126,7 @@
     <ClCompile Include="geometry.cpp" />
     <ClCompile Include="hungarian.cpp" />
     <ClCompile Include="image_utils.cpp" />
+    <ClCompile Include="image_utils_gpu.cpp" />
     <ClCompile Include="math_utils.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="node_graph.cpp" />
@@ -139,16 +140,21 @@
     <ClInclude Include="geometry.h" />
     <ClInclude Include="hungarian.h" />
     <ClInclude Include="image_utils.h" />
+    <ClInclude Include="image_utils_gpu.h" />
     <ClInclude Include="kdtree.h" />
     <ClInclude Include="math_utils.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="nanoflann.hpp" />
     <ClInclude Include="node_graph.h" />
     <ClInclude Include="safe_call.hpp" />
+    <ClInclude Include="show_gpu_param.h" />
     <ClInclude Include="skel.h" />
     <ClInclude Include="test_main.h" />
     <ClInclude Include="timer_util.h" />
     <ClInclude Include="volume.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="image_utils_gpu.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

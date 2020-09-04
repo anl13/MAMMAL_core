@@ -20,6 +20,7 @@
 
 #include <Eigen/Core>
 #include "gpuutils.h"
+#include "../utils/image_utils_gpu.h"
 
 // ========
 // compute jacobi full pose 
@@ -241,31 +242,149 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 	dim3 gridsize1(pcl::device::divUp(3 * m_jointNum, blocksize.x), pcl::device::divUp(m_host_paramLines.size(), blocksize.y));
 	dim3 gridsize2(pcl::device::divUp(3 * m_vertexNum, blocksize.x), pcl::device::divUp(m_host_paramLines.size(), blocksize.y)); 
 
-	pcl::gpu::DeviceArray2D<float> J_joint_full, J_vert_full;
-	calcPoseJacobiFullTheta_device(J_joint_full, J_vert_full); 
+	calcPoseJacobiFullTheta_device(d_J_joint_full, d_J_vert_full); 
 
-	if (J_joint.empty())
-	{
-		J_joint.create(m_host_paramLines.size(), 3 * m_jointNum);
-	}
-	if (J_vert.empty())
-	{
-		J_vert.create(m_host_paramLines.size(), 3 * m_vertexNum); 
-	}
 	extract_jacobi_lines_kernel << <gridsize1, blocksize >> > (
-		J_joint_full, m_device_paramLines, m_host_paramLines.size(),
+		d_J_joint_full, m_device_paramLines, m_host_paramLines.size(),
 		3 * m_jointNum, J_joint
 		);
 	cudaSafeCall(cudaGetLastError()); 
 	cudaSafeCall(cudaDeviceSynchronize()); 
 
 	extract_jacobi_lines_kernel << <gridsize2, blocksize >> > (
-		J_vert_full, m_device_paramLines, m_host_paramLines.size(),
+		d_J_vert_full, m_device_paramLines, m_host_paramLines.size(),
 		3 * m_vertexNum, J_vert
 		);
 	cudaSafeCall(cudaGetLastError()); 
 	cudaSafeCall(cudaDeviceSynchronize()); 
-
-	J_joint_full.release(); 
-	J_vert_full.release(); 
 }
+
+__global__ void construct_sil_A(
+	pcl::gpu::PtrStepSz<float> d_J_vert, // [paramNum, 3*vertexnum]
+	pcl::gpu::PtrSz<BODY_PART> d_parts,
+	pcl::gpu::PtrSz<Eigen::Vector3f> d_points3d,
+	Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
+	float* d_depth,
+	pcl::gpu::PtrStepSz<uchar> d_mask, // mask for all pigs
+	pcl::gpu::PtrStepSz<uchar> d_scene_mask, // mask for scene staff
+	pcl::gpu::PtrStepSz<uchar> d_distort_mask, // mask for distortion area
+	pcl::gpu::PtrStepSz<float> d_det_sdf, // sdf for detection 
+	pcl::gpu::PtrStepSz<float> d_det_gradx,
+	pcl::gpu::PtrStepSz<float> d_det_grady,
+	pcl::gpu::PtrStepSz<float> d_rend_sdf, // sdf for rendering
+	int W, int H, int pointNum, int paramNum, int id,
+	pcl::gpu::PtrStepSz<float> AT, // [paramNum, pointNum]
+	pcl::gpu::PtrSz<float> b //[pointnum]
+)
+{
+	unsigned int vIdx = blockIdx.x * blockDim.x + threadIdx.x; 
+	unsigned int paramIdx = blockIdx.y * blockDim.y + threadIdx.y; 
+	if (vIdx >= pointNum || paramIdx>=paramNum) return; 
+	
+	if (d_parts[vIdx] == TAIL) return; 
+	if (d_parts[vIdx] == L_EAR) return;
+	if (d_parts[vIdx] == R_EAR) return; 
+	Eigen::Vector3f point2d = K * (R*d_points3d[vIdx] + T);
+	int u = int(point2d(0) / point2d(2) + 0.5);
+	int v = int(point2d(1) / point2d(2) + 0.5);
+	if (u < 0 || v < 0 || u >= W || v >= H)return; //out of image
+	int index = v * W + u;
+	float rend_sdf_value = d_rend_sdf(v,u);
+	if (rend_sdf_value > 10)return; // only consider contours 
+	float depth_value = point2d(2);
+	if (d_distort_mask(v,u) == 0) return; // out of image
+	if (d_scene_mask(v,u) > 0)return;// occluded by scene
+	if (fabsf(d_depth[index] - depth_value) >= 0.02)return; // invisible
+
+	uchar code = d_mask(v,u);
+	if (code > 0 && code != id)return; // occlued by other pig
+
+	float det_sdf_value = d_det_sdf(v,u);
+	
+	Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
+	D(0, 0) = 1 / point2d(2);
+	D(1, 1) = 1 / point2d(2);
+	D(0, 2) = -point2d(0) / (point2d(2)*point2d(2));
+	D(1, 2) = -point2d(1) / (point2d(2) * point2d(2)); 
+	Eigen::Vector3f dp;
+	dp(0) = d_J_vert(paramIdx, 3 * vIdx + 0);
+	dp(1) = d_J_vert(paramIdx, 3 * vIdx + 1);
+	dp(2) = d_J_vert(paramIdx, 3 * vIdx + 2);
+	Eigen::Vector2f dpsil;
+	dpsil = D * K*R*dp;
+	float dx = d_det_gradx(v,u);
+	float dy = d_det_grady(v,u);
+	b[vIdx] = rend_sdf_value - det_sdf_value;
+	AT(paramIdx, vIdx) = dpsil(0) * dx + dpsil(1) * dy;
+}
+
+void PigSolverDevice::CalcSilhouettePoseTerm(
+	const std::vector<ROIdescripter>& rois,
+	const std::vector<float*>& depths,
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
+
+	float total_r = 0;
+
+#ifdef DEBUG_SIL
+	std::cout << "m_rois.size() : " << m_rois.size() << std::endl;
+#endif 
+	for (int roiIdx = 0; roiIdx < rois.size(); roiIdx++)
+	{
+		if (rois[roiIdx].valid < 0.6) {
+			std::cout << "view " << roiIdx << " is invalid. " << rois[roiIdx].valid << std::endl;
+			continue;
+		}
+		setConstant2D_device(d_JT_sil, 0); 
+		setConstant1D_device(d_r_sil, 0); 
+		setConstant2D_device(d_ATA_sil, 0); 
+		setConstant1D_device(d_ATb_sil, 0); 
+		cv::Mat P;
+		computeSDF2d_device(depths[roiIdx], P, 1920, 1080); 
+		d_rend_sdf.upload((float*)P.data, P.cols * sizeof(float), P.rows,P.cols); 
+		//chamfers_vis.emplace_back(visualizeSDF2d(P));
+		//chamfers_vis_det.emplace_back(visualizeSDF2d(m_rois[roiIdx].chamfer));
+		//diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
+
+		Camera cam = rois[roiIdx].cam;
+		Eigen::Matrix3f R = cam.R;
+		Eigen::Matrix3f K = cam.K;
+		Eigen::Vector3f T = cam.T;
+
+		//float wc = 200.0 / m_rois[roiIdx].area;
+		float wc = 0.0001;
+
+		d_det_sdf.upload(rois[roiIdx].chamfer.data, rois[roiIdx].chamfer.cols * sizeof(float), rois[roiIdx].chamfer.rows, rois[roiIdx].chamfer.cols); 
+		d_det_mask.upload(rois[roiIdx].mask.data, rois[roiIdx].mask.cols * sizeof(uchar), rois[roiIdx].mask.rows, rois[roiIdx].mask.cols);
+		d_det_gradx.upload(rois[roiIdx].gradx.data, rois[roiIdx].gradx.cols * sizeof(float), rois[roiIdx].gradx.rows, rois[roiIdx].gradx.cols); 
+		d_det_grady.upload(rois[roiIdx].grady.data, rois[roiIdx].grady.cols * sizeof(float), rois[roiIdx].grady.rows, rois[roiIdx].grady.cols); 
+		d_const_distort_mask.upload(rois[roiIdx].undist_mask.data, rois[roiIdx].undist_mask.cols * sizeof(uchar),
+			rois[roiIdx].undist_mask.rows, rois[roiIdx].undist_mask.cols);
+		d_const_scene_mask.upload(rois[roiIdx].scene_mask.data, rois[roiIdx].scene_mask.cols * sizeof(uchar), rois[roiIdx].scene_mask.rows,
+			rois[roiIdx].scene_mask.cols); 
+		
+		dim3 blocksize(32, 32); 
+		dim3 gridsize(pcl::device::divUp(m_vertexNum, blocksize.x), pcl::device::divUp(paramNum, blocksize.y)); 
+
+		construct_sil_A << <gridsize, blocksize >> > (
+			d_J_vert, m_device_bodyParts, m_device_verticesPosed, K, R, T,
+			depths[roiIdx], d_det_mask, d_const_scene_mask, d_const_distort_mask,
+			d_der_sdf, d_det_gradx, d_det_grady, d_rend_sdf,
+			1920, 1080, m_vertexNum, paramNum, rois[roiIdx].idcode,
+			d_JT_sil, d_r_sil
+			);
+		
+		computeATA_device(d_JT_sil, d_ATA_sil);
+		computeATb_device(d_JT_sil, d_r_sil, d_ATb_sil); 
+		
+		Eigen::MatrixXf ATA_view = Eigen::MatrixXf::Zero(paramNum, paramNum); 
+		Eigen::VectorXf ATb_view = Eigen::VectorXf::Zero(paramNum); 
+		d_ATA_sil.download(ATA_view.data(), ATA_view.cols() * sizeof(float)); 
+		d_ATb_sil.download(ATb_view.data()); 
+	}
+}
+

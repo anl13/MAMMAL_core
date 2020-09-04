@@ -12,7 +12,7 @@
 #include "../utils/image_utils.h"
 #include "../utils/geometry.h" 
 #include "../utils/Hungarian.h"
-#include "../articulation/pigsolver.h"
+#include "../articulation/pigsolverdevice.h"
 #include "clusterclique.h"
 #include "../utils/skel.h" 
 
@@ -45,7 +45,7 @@ public:
 	vector<vector<Eigen::Vector3f> >  get_skels3d(){return m_skels3d;}
     vector<MatchedInstance> get_matched() {return m_matched; }
     vector<Camera> get_cameras(){return m_camsUndist; }
-	vector<std::shared_ptr<PigSolver> > get_models() { return mp_bodysolver; }
+	vector<std::shared_ptr<PigSolverDevice> > get_solvers() { return mp_bodysolver; }
 	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
     void configByJson(std::string jsonfile); 
     void fetchData(); 
@@ -95,7 +95,7 @@ public:
 
 	Renderer* mp_renderEngine; 
 
-	vector<std::shared_ptr<PigSolver> >       mp_bodysolver;
+	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolver;
 	vector<vector<Eigen::Vector4f> > m_projectedBoxesLast; // pigid, camid
 	std::vector<cv::Mat> m_rawMaskImgs;
 	void drawRawMaskImgs();

@@ -69,12 +69,11 @@ void FrameData::solve_parametric_model()
 	{
 		if (mp_bodysolver[i] == nullptr)
 		{
-			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
+			mp_bodysolver[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
-			mp_bodysolver[i]->setId(i); 
 			//mp_bodysolver[i]->InitNodeAndWarpField();
-			mp_bodysolver[i]->mp_renderEngine = mp_renderEngine;
+			mp_bodysolver[i]->setRenderer(mp_renderEngine);
 			std::cout << "init model " << i << std::endl; 
 		}
 	}
@@ -88,21 +87,21 @@ void FrameData::solve_parametric_model()
 
 		TimerUtil::Timer<std::chrono::milliseconds> timer;
 		timer.Start(); 
-		mp_bodysolver[i]->optimizePose(50, 0.001); 
+		mp_bodysolver[i]->optimizePose(); 
 		std::cout << "solve pose " << timer.Elapsed() << "  ms" << std::endl; 
 
-		if (i < 1) {
-			mp_bodysolver[i]->m_rois = getROI(i);
-			mp_bodysolver[i]->m_rawImgs = m_imgsUndist;
-			timer.Start(); 
-			mp_bodysolver[i]->optimizePoseSilhouette(18);
-			std::cout << "solve by sil 18 iters: " << timer.Elapsed() << std::endl; 
-		}
+		//if (i < 1) {
+		//	mp_bodysolver[i]->m_rois = getROI(i);
+		//	mp_bodysolver[i]->m_rawImgs = m_imgsUndist;
+		//	timer.Start(); 
+		//	mp_bodysolver[i]->optimizePoseSilhouette(18);
+		//	std::cout << "solve by sil 18 iters: " << timer.Elapsed() << std::endl; 
+		//}
 
 		//m_projectedBoxesLast[i] = mp_bodysolver[i]->projectBoxes();
 
-		Eigen::MatrixXf skels = mp_bodysolver[i]->getRegressedSkel();
-		m_skels3d[i] = convertMatToVec(skels); 
+		std::vector<Eigen::Vector3f> skels = mp_bodysolver[i]->getRegressedSkel_host();
+		m_skels3d[i] = skels; 
 	}
 }
 
@@ -127,10 +126,9 @@ void FrameData::read_parametric_data()
 	{
 		if (mp_bodysolver[i] == nullptr)
 		{
-			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
+			mp_bodysolver[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
 			mp_bodysolver[i]->setCameras(m_camsUndist);
 			mp_bodysolver[i]->normalizeCamera();
-			mp_bodysolver[i]->setId(i);
 			std::cout << "init model " << i << std::endl;
 		}
 	}

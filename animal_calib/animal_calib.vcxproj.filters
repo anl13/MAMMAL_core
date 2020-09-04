@@ -111,15 +111,6 @@
     <ClCompile Include="..\render\shader.cpp">
       <Filter>render</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigmodel.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\mesh.cpp">
       <Filter>utils</Filter>
     </ClCompile>
@@ -132,7 +123,10 @@
     <ClCompile Include="..\utils\skel.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_sil.cpp">
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
   </ItemGroup>
@@ -218,14 +212,20 @@
     <ClInclude Include="..\render\stb_image.h">
       <Filter>render</Filter>
     </ClInclude>
-    <ClInclude Include="..\articulation\pigmodel.h">
-      <Filter>articulation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\articulation\pigsolver.h">
-      <Filter>articulation</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\mesh.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\common.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\gpuutils.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigmodeldevice.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolverdevice.h">
+      <Filter>articulation</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -249,6 +249,15 @@
   <ItemGroup>
     <CudaCompile Include="..\render\cuda_utils_render.cu">
       <Filter>render</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\gpuutils.cu">
+      <Filter>articulation</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigmodeldevice.cu">
+      <Filter>articulation</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigsolverdevice.cu">
+      <Filter>articulation</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

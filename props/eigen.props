@@ -6,9 +6,7 @@
     <IncludePath>../3rdparty/eigen;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
-    <Link>
-      <AdditionalDependencies />
-    </Link>
+    <Link />
   </ItemDefinitionGroup>
   <ItemGroup />
 </Project>
