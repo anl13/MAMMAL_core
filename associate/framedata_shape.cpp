@@ -1,48 +1,39 @@
 #include "framedata.h"
 
-vector<ROIdescripter> FrameData::getROI(int id)
+void FrameData::getROI(std::vector<ROIdescripter>& rois, int id)
 {
 	// assert(id >= 0 && id <= 3);
 	// This function is run after solving single
 	// frame pose 
 	std::vector<cv::Mat> masks = drawMask();
-	vector<ROIdescripter> rois; 
+	rois.resize(m_matched[id].view_ids.size()); 
 	for (int view = 0; view < m_matched[id].view_ids.size(); view++)
 	{
 		int camid = m_matched[id].view_ids[view];
-		ROIdescripter roi;
-		roi.setId(id);
-		roi.setT(m_frameid);
-		roi.viewid = camid;
-		roi.setCam(m_camsUndist[camid]);
-		roi.mask_list = m_matched[id].dets[view].mask;
-		roi.mask_norm = m_matched[id].dets[view].mask_norm;
-		roi.keypoints = m_matched[id].dets[view].keypoints;
+		rois[view].setId(id);
+		rois[view].setT(m_frameid);
+		rois[view].viewid = camid;
+		rois[view].setCam(m_camsUndist[camid]);
+		rois[view].mask_list = m_matched[id].dets[view].mask;
+		rois[view].mask_norm = m_matched[id].dets[view].mask_norm;
+		rois[view].keypoints = m_matched[id].dets[view].keypoints;
 		cv::Mat mask;
 		mask.create(cv::Size(m_imw, m_imh), CV_8UC1);
 		my_draw_mask_gray(mask,
 			m_matched[id].dets[view].mask, 255);
-		roi.area = cv::countNonZero(mask);
+		rois[view].area = cv::countNonZero(mask);
 
-		roi.chamfer = computeSDF2d(mask); 
-		roi.mask = masks[camid]; 
-		roi.box = m_matched[id].dets[view].box;
-		roi.undist_mask = m_undist_mask; // valid area for image distortion 
-		roi.scene_mask = m_scene_masks[camid];
-		roi.pid = id;
-		roi.idcode = 1 << id; 
-		roi.valid = roi.keypointsMaskOverlay(); 
-		computeGradient(roi.chamfer, roi.gradx, roi.grady);
-		rois.push_back(roi);
-		
+		rois[view].chamfer = computeSDF2d(mask);
+
+		rois[view].mask = masks[camid];
+		rois[view].box = m_matched[id].dets[view].box;
+		rois[view].undist_mask = m_undist_mask; // valid area for image distortion 
+		rois[view].scene_mask = m_scene_masks[camid];
+		rois[view].pid = id;
+		rois[view].idcode = 1 << id;
+		rois[view].valid = rois[view].keypointsMaskOverlay();
+		computeGradient(rois[view].chamfer, rois[view].gradx, rois[view].grady);
 	}
-	// debug 
-	//cv::Mat mask = masks[0];
-	//mask = mask * 128;
-	//cv::imshow("mask", mask);
-	//cv::waitKey();
-	//exit(-1);
-	return rois; 
 }
 
 void FrameData::extractFG()

@@ -84,8 +84,7 @@ __global__ void computeAAT_kernel(
 	if (xIdx < W && yIdx < H && zIdx <= yIdx)
 	{
 		float a_zy = A(zIdx, xIdx) *A(yIdx, xIdx);
-		if(a_zy>0)
-			atomicAdd(&AAT(zIdx, yIdx), a_zy);
+		atomicAdd(&AAT(zIdx, yIdx), a_zy);
 	}
 }
 
@@ -254,7 +253,7 @@ __global__ void check_visibility_kernel(
 		{
 			float d_img = depth[v*W + u];
 			float diff = d_img - d;
-			if (diff >= -0.02 && diff <= 0.02) V[xIdx] = 1;
+			if (diff > -0.02 && diff < 0.02) V[xIdx] = 1;
 			else V[xIdx] = 0;
 		}
 	}
@@ -277,6 +276,7 @@ void check_visibility(float* imgdata_device, int W, int H,
 		visibility_device
 		);
 	visibility_device.download(visibility);
+	visibility_device.release(); 
 }
 
 // compute ATB

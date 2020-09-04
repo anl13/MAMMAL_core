@@ -16,6 +16,7 @@
 #include "../nanorender/NanoRenderer.h"
 #include <vector_functions.hpp>
 #include "main.h"
+#include "../utils/image_utils_gpu.h"
 
 using std::vector;
 
@@ -156,6 +157,9 @@ int run_pose()
 	frame.result_folder = "G:/pig_results/";
 	frame.is_smth = false; 
 	int start = frame.get_start_id();
+	std::vector<cv::Mat> rawImgs = frame.get_imgs_undist(); 
+	cv::Mat pack_raw; 
+	packImgBlock(rawImgs, pack_raw); 
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
 		std::cout << "processing frame " << frameid << std::endl;
@@ -177,6 +181,8 @@ int run_pose()
 #ifndef RESUME
 			frame.matching_by_tracking(); 
 			frame.solve_parametric_model(); 
+			//frame.solve_parametric_model_cpu();
+
 			frame.save_clusters();
 			frame.save_parametric_data();
 #else 
@@ -195,12 +201,14 @@ int run_pose()
 			frame.matching_by_tracking();
 			//frame.pureTracking();
 			frame.solve_parametric_model();
+			
+
 			frame.save_clusters();
 			frame.save_parametric_data();
 		}
 
 #endif // READ_SMOOTH
-		auto solvers = frame.mp_bodysolver;
+		auto solvers = frame.mp_bodysolverdevice;
 
 		m_renderer.clearAllObjs(); 
 		RenderObjectColor* p_model = new RenderObjectColor();
@@ -222,6 +230,10 @@ int run_pose()
 		}
 		cv::Mat packed_render; 
 		packImgBlock(all_renders, packed_render);
+		
+		cv::Mat blend;
+		overlay_render_on_raw_gpu(packed_render, pack_raw, blend); 
+
 		std::stringstream all_render_file; 
 #ifndef READ_SMOOTH
 		all_render_file << "G:/pig_results/render_all/" << std::setw(6) << std::setfill('0')
@@ -230,7 +242,7 @@ int run_pose()
 		all_render_file << "G:/pig_results_level1_nosil/render_all_smth/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
 #endif // READ_SMOOTH
-		cv::imwrite(all_render_file.str(), packed_render); 
+		cv::imwrite(all_render_file.str(), blend); 
 	}
 
 	system("pause"); 

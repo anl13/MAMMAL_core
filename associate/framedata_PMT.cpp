@@ -64,16 +64,16 @@ void FrameData::tracking() // naive 3d 2 3d tracking
 
 void FrameData::solve_parametric_model()
 {
-	if(mp_bodysolver.empty()) mp_bodysolver.resize(4);
+	if(mp_bodysolverdevice.empty()) mp_bodysolverdevice.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
-		if (mp_bodysolver[i] == nullptr)
+		if (mp_bodysolverdevice[i] == nullptr)
 		{
-			mp_bodysolver[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
-			mp_bodysolver[i]->setCameras(m_camsUndist);
-			mp_bodysolver[i]->normalizeCamera();
+			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
+			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
+			mp_bodysolverdevice[i]->normalizeCamera();
 			//mp_bodysolver[i]->InitNodeAndWarpField();
-			mp_bodysolver[i]->setRenderer(mp_renderEngine);
+			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
 			std::cout << "init model " << i << std::endl; 
 		}
 	}
@@ -81,27 +81,74 @@ void FrameData::solve_parametric_model()
 	m_skels3d.resize(4); 
 	for (int i = 0; i < 1; i++)
 	{
-		mp_bodysolver[i]->setSource(m_matched[i]); 
-		mp_bodysolver[i]->normalizeSource(); 
-		mp_bodysolver[i]->globalAlign(); 
+		mp_bodysolverdevice[i]->setSource(m_matched[i]); 
+		mp_bodysolverdevice[i]->normalizeSource();
+		mp_bodysolverdevice[i]->globalAlign();
 
 		TimerUtil::Timer<std::chrono::milliseconds> timer;
 		timer.Start(); 
-		mp_bodysolver[i]->optimizePose(); 
+		mp_bodysolverdevice[i]->optimizePose(); 
 		std::cout << "solve pose " << timer.Elapsed() << "  ms" << std::endl; 
 
-		//if (i < 1) {
-		//	mp_bodysolver[i]->m_rois = getROI(i);
-		//	mp_bodysolver[i]->m_rawImgs = m_imgsUndist;
-		//	timer.Start(); 
-		//	mp_bodysolver[i]->optimizePoseSilhouette(18);
-		//	std::cout << "solve by sil 18 iters: " << timer.Elapsed() << std::endl; 
-		//}
+		if (i < 1) {
+			timer.Start(); 
+			std::vector<ROIdescripter> rois;
+			getROI(rois, 0);
+			std::cout << "get roi: " << timer.Elapsed() << " ms" << std::endl; 
 
-		//m_projectedBoxesLast[i] = mp_bodysolver[i]->projectBoxes();
+			mp_bodysolverdevice[i]->setROIs(&rois);
+			timer.Start(); 
+			mp_bodysolverdevice[i]->optimizePoseSilhouette(18);
+			std::cout << "solve by sil gpu: " << timer.Elapsed() << " ms" << std::endl; 
+		}
 
-		std::vector<Eigen::Vector3f> skels = mp_bodysolver[i]->getRegressedSkel_host();
+		std::vector<Eigen::Vector3f> skels = mp_bodysolverdevice[i]->getRegressedSkel_host();
 		m_skels3d[i] = skels; 
+	}
+}
+
+void FrameData::solve_parametric_model_cpu()
+{
+	if (mp_bodysolver.empty()) mp_bodysolver.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		if (mp_bodysolver[i] == nullptr)
+		{
+			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
+			mp_bodysolver[i]->setCameras(m_camsUndist);
+			mp_bodysolver[i]->normalizeCamera();
+			mp_bodysolver[i]->mp_renderEngine = (mp_renderEngine);
+			std::cout << "init model " << i << std::endl;
+		}
+	}
+
+	m_skels3d.resize(4);
+	for (int i = 0; i < 1; i++)
+	{
+		mp_bodysolver[i]->setSource(m_matched[i]);
+		mp_bodysolver[i]->normalizeSource();
+		mp_bodysolver[i]->globalAlign();
+
+		TimerUtil::Timer<std::chrono::milliseconds> timer;
+		timer.Start();
+		mp_bodysolver[i]->optimizePose();
+		std::cout << "solve pose " << timer.Elapsed() << "  ms" << std::endl;
+
+		if (i < 1) {
+			timer.Start();
+			std::vector<ROIdescripter> rois;
+			getROI(rois, 0);
+			std::cout << "get roi: " << timer.Elapsed() << " ms" << std::endl;
+
+			mp_bodysolver[i]->m_rois = rois;
+			timer.Start();
+			mp_bodysolver[i]->optimizePoseSilhouette(18);
+			std::cout << "solve by sil cpu: " << timer.Elapsed() << " ms"  << std::endl;
+		}
+
+		Eigen::MatrixXf skel_eigen = mp_bodysolver[i]->getRegressedSkel();
+		std::vector<Eigen::Vector3f> skels = convertMatToVec(skel_eigen);
+		m_skels3d[i] = skels;
 	}
 }
 
@@ -115,20 +162,20 @@ void FrameData::save_parametric_data()
 		ss << savefolder << "/pig_" << i << "_frame_" <<
 			std::setw(6) << std::setfill('0') << m_frameid
 			<< ".txt";
-		mp_bodysolver[i]->saveState(ss.str()); 
+		mp_bodysolverdevice[i]->saveState(ss.str()); 
 	}
 }
 
 void FrameData::read_parametric_data()
 {
-	if (mp_bodysolver.empty()) mp_bodysolver.resize(4);
+	if (mp_bodysolverdevice.empty()) mp_bodysolverdevice.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
-		if (mp_bodysolver[i] == nullptr)
+		if (mp_bodysolverdevice[i] == nullptr)
 		{
-			mp_bodysolver[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
-			mp_bodysolver[i]->setCameras(m_camsUndist);
-			mp_bodysolver[i]->normalizeCamera();
+			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
+			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
+			mp_bodysolverdevice[i]->normalizeCamera();
 			std::cout << "init model " << i << std::endl;
 		}
 	}
@@ -141,8 +188,8 @@ void FrameData::read_parametric_data()
 		ss << savefolder << "/pig_" << i << "_frame_" <<
 			std::setw(6) << std::setfill('0') << m_frameid
 			<< ".txt";
-		mp_bodysolver[i]->readState(ss.str()); 
-		mp_bodysolver[i]->UpdateVertices();
+		mp_bodysolverdevice[i]->readState(ss.str()); 
+		mp_bodysolverdevice[i]->UpdateVertices();
 	}
 }
 

@@ -15,7 +15,7 @@
 #include "../articulation/pigsolverdevice.h"
 #include "clusterclique.h"
 #include "../utils/skel.h" 
-
+#include "../articulation/pigsolver.h"
 
 using std::vector; 
 
@@ -45,7 +45,7 @@ public:
 	vector<vector<Eigen::Vector3f> >  get_skels3d(){return m_skels3d;}
     vector<MatchedInstance> get_matched() {return m_matched; }
     vector<Camera> get_cameras(){return m_camsUndist; }
-	vector<std::shared_ptr<PigSolverDevice> > get_solvers() { return mp_bodysolver; }
+	vector<std::shared_ptr<PigSolverDevice> > get_solvers() { return mp_bodysolverdevice; }
 	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
     void configByJson(std::string jsonfile); 
     void fetchData(); 
@@ -68,6 +68,7 @@ public:
 	void solve_parametric_model(); 
 	void read_parametric_data(); 
 	void save_parametric_data(); 
+	void solve_parametric_model_cpu(); 
 
 	//void load_labeled_data();
 	void save_clusters();
@@ -82,7 +83,7 @@ public:
     void readSkel3DfromJson(std::string jsonfile); 
 
 	// shape solver 
-	vector<ROIdescripter> getROI(int id = 0); 
+	void getROI(vector<ROIdescripter>& rois, int id = 0);
 	cv::Mat m_undist_mask; // mask for image undistortion valid area 
 	std::vector<cv::Mat> m_scene_masks; // mask for scene
 	vector<cv::Mat> m_backgrounds; 
@@ -95,7 +96,8 @@ public:
 
 	Renderer* mp_renderEngine; 
 
-	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolver;
+	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolverdevice;
+	vector<std::shared_ptr<PigSolver> > mp_bodysolver; 
 	vector<vector<Eigen::Vector4f> > m_projectedBoxesLast; // pigid, camid
 	std::vector<cv::Mat> m_rawMaskImgs;
 	void drawRawMaskImgs();

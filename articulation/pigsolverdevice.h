@@ -15,6 +15,8 @@
 #include "../utils/math_utils.h" 
 #include "gpuutils.h"
 
+//#define DEBUG_SIL
+
 class PigSolverDevice : public PigModelDevice
 {
 public: 
@@ -27,7 +29,7 @@ public:
 	void setSource(const MatchedInstance& _source) { m_source = _source; }
 	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams;  }
 	void setRenderer(Renderer * _p_render) { mp_renderEngine = _p_render; }
-	void setROIs(const std::vector<ROIdescripter>& _rois) { m_rois = _rois; }
+	void setROIs(std::vector<ROIdescripter>* _rois) { mp_rois = _rois; }
 
 	void directTriangulationHost(); // calc m_skel3d using direct triangulation
 	std::vector<Eigen::Vector3f> getRegressedSkel(); 
@@ -37,30 +39,9 @@ public:
 	void normalizeSource(); 
 	void optimizePose(); 
 	void optimizePoseSilhouette(
-		const std::vector<ROIdescripter>& rois,
 		int maxIter);
 
-	// term constructor 
-	void CalcSilhouettePoseTerm(
-		const std::vector<ROIdescripter>& rois,
-		const std::vector<float*>& renders, 
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
-	void Calc2dJointProjectionTerm(
-		const MatchedInstance& source,
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
-	void renderDepths(); 
 
-	// J_joint: [3*jontnum+3, 3*jointnum]
-	// J_vert: [3*jointnum+3, 3*vertexnum]
-	// 3*jointnum+3:  pose parameter to solve 
-	// 2d array on gpu are row major 
-	void calcPoseJacobiFullTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint, 
-		pcl::gpu::DeviceArray2D<float> &J_vertices);
-	void calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
-		pcl::gpu::DeviceArray2D<float> &J_vert); 
-	void calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J);
-	void calcPose2DTerm_host(const DetInstance& det, const Camera& cam, const std::vector<Eigen::Vector3f>& skel2d,
-		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
@@ -83,7 +64,7 @@ private:
 	// optimization source
 	MatchedInstance m_source; 
 	std::vector<Camera> m_cameras;
-	std::vector<ROIdescripter> m_rois; 
+	std::vector<ROIdescripter>* mp_rois; 
 
 	// output 
 	std::vector<Eigen::Vector3f> m_skel3d; 
@@ -107,4 +88,37 @@ private:
 	pcl::gpu::DeviceArray<float> d_r_sil;
 	pcl::gpu::DeviceArray2D<float> d_ATA_sil; 
 	pcl::gpu::DeviceArray<float> d_ATb_sil; 
+
+	Eigen::MatrixXf h_J_joint; 
+	Eigen::MatrixXf h_J_vert; 
+
+	// sil term constructor 
+	void CalcSilhouettePoseTerm(
+		const std::vector<float*>& renders,
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void calcSilhouetteJacobi_device(
+		Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
+		float* d_depth, int idcode, int paramNum
+	);
+
+	void CalcSilouettePoseTerm_cpu(
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+
+	void renderDepths();
+
+	// J_joint: [3*jontnum+3, 3*jointnum]
+	// J_vert: [3*jointnum+3, 3*vertexnum]
+	// 3*jointnum+3:  pose parameter to solve 
+	// 2d array on gpu are row major 
+	void calcPoseJacobiFullTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
+		pcl::gpu::DeviceArray2D<float> &J_vertices);
+	void calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
+		pcl::gpu::DeviceArray2D<float> &J_vert);
+	void calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J);
+	void calcPose2DTerm_host(const DetInstance& det, const Camera& cam, const std::vector<Eigen::Vector3f>& skel2d,
+		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+
+	void Calc2dJointProjectionTerm(
+		const MatchedInstance& source,
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 };

@@ -19,8 +19,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\articulation\pigmodel.cpp" />
     <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_sil.cpp" />
     <ClCompile Include="..\associate\clusterclique.cpp" />
     <ClCompile Include="..\associate\framedata.cpp" />
     <ClCompile Include="..\associate\framedata_PMT.cpp" />
@@ -43,6 +47,7 @@
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
+    <ClCompile Include="..\utils\image_utils_gpu.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
     <ClCompile Include="..\utils\mesh.cpp" />
     <ClCompile Include="..\utils\node_graph.cpp" />
@@ -65,25 +70,8 @@
     <ClInclude Include="..\associate\mce\Tools.h" />
     <ClInclude Include="..\associate\tracking.h" />
     <ClInclude Include="..\exec\main.h" />
-    <ClInclude Include="..\render\camviewer.h" />
-    <ClInclude Include="..\render\renderer.h" />
-    <ClInclude Include="..\render\render_object.h" />
-    <ClInclude Include="..\render\render_utils.h" />
-    <ClInclude Include="..\render\shader.h" />
-    <ClInclude Include="..\render\stb_image.h" />
-    <ClInclude Include="..\utils\camera.h" />
-    <ClInclude Include="..\utils\colorterminal.h" />
-    <ClInclude Include="..\utils\geometry.h" />
-    <ClInclude Include="..\utils\Hungarian.h" />
-    <ClInclude Include="..\utils\image_utils.h" />
-    <ClInclude Include="..\utils\kdtree.h" />
-    <ClInclude Include="..\utils\math_utils.h" />
-    <ClInclude Include="..\utils\mesh.h" />
     <ClInclude Include="..\utils\nanoflann.hpp" />
-    <ClInclude Include="..\utils\node_graph.h" />
     <ClInclude Include="..\utils\safe_call.hpp" />
-    <ClInclude Include="..\utils\timer_util.h" />
-    <ClInclude Include="..\utils\volume.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\.gitignore" />
@@ -98,6 +86,7 @@
     <CudaCompile Include="..\articulation\pigmodeldevice.cu" />
     <CudaCompile Include="..\articulation\pigsolverdevice.cu" />
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
+    <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6B2DF5C-CDEC-4CF9-A2EF-7FC2E202AD75}</ProjectGuid>

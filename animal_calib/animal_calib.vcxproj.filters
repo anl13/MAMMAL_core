@@ -129,6 +129,21 @@
     <ClCompile Include="..\articulation\pigsolverdevice.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils\image_utils_gpu.cpp">
+      <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_sil.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigmodel.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">
@@ -155,37 +170,7 @@
     <ClInclude Include="..\associate\mce\Tools.h">
       <Filter>associate\mce</Filter>
     </ClInclude>
-    <ClInclude Include="..\utils\camera.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\colorterminal.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\geometry.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\Hungarian.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\image_utils.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\math_utils.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\timer_util.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\kdtree.h">
-      <Filter>utils</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\nanoflann.hpp">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\node_graph.h">
-      <Filter>utils</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\volume.h">
       <Filter>utils</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\safe_call.hpp">
@@ -193,27 +178,6 @@
     </ClInclude>
     <ClInclude Include="..\exec\main.h">
       <Filter>exec</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\camviewer.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\render_object.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\render_utils.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\renderer.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\shader.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\render\stb_image.h">
-      <Filter>render</Filter>
-    </ClInclude>
-    <ClInclude Include="..\utils\mesh.h">
-      <Filter>utils</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\common.h">
       <Filter>articulation</Filter>
@@ -258,6 +222,9 @@
     </CudaCompile>
     <CudaCompile Include="..\articulation\pigsolverdevice.cu">
       <Filter>articulation</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>utils</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

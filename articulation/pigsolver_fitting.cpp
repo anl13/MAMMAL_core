@@ -382,7 +382,6 @@ void PigSolver::optimizePose(const int maxIterTime, const float updateTolerance)
 		tt.Start();
 		if (m_isLatent) CalcSkelJacobiByPairsLatent(poseJ3d); 
 		else CalcSkelJacobiPartThetaByPairs(poseJ3d);
-		std::cout << "CalcSkelJacobiPartThetaBy Pairs: " << tt.Elapsed() << "  ms" << std::endl; 
 		
 		Eigen::MatrixXf skel = getRegressedSkelbyPairs();
 

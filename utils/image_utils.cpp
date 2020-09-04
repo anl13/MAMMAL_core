@@ -495,6 +495,8 @@ cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)
 }
 
 // assume render is black background with non-black foreground. 
+// Comment: This function is not true overlay, It is still blend over channels. 
+// Comment date: 2020 09 04
 cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float a)
 {
 	cv::Mat mask_fore;

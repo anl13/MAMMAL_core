@@ -16,3 +16,5 @@ void computeSDF2d_device(float* input, cv::Mat& sdf, int W, int H);
 void convertDepthToMask_device(float* input, uchar* mask, int W, int H); 
 
 // interface with opencv 
+void overlay_render_on_raw_gpu(cv::Mat& render, cv::Mat &raw, cv::Mat& out);
+void overlay_render_on_raw_device(uchar* render, uchar* raw, int W, int H, uchar* out); 

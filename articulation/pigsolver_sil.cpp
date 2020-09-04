@@ -121,6 +121,9 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		Eigen::MatrixXf ATA;
 		Eigen::VectorXf ATb;
 		CalcSilhouettePoseTerm(renders, ATA, ATb, iter);
+
+		std::cout << "cpu: ATA: " << std::endl << ATA.block<9, 9>(0, 0) << std::endl; 
+		std::cout << "cpu: ATb: " << std::endl << ATb.transpose() << std::endl; 
 		float lambda = 0.005;
 		float w_joint = 0.01;
 		float w1 = 1;
@@ -210,10 +213,9 @@ void PigSolver::CalcSilhouettePoseTerm(
 
 		//float wc = 200.0 / m_rois[roiIdx].area;
 		float wc = 0.01; 
-#ifdef DEBUG_SIL
-		std::cout << "wc " << roiIdx << " : " << wc << std::endl; 
+
 		int visible_num = 0; 
-#endif 
+
 		for (int i = 0; i < m_vertexNum; i++)
 		{
 			//float w;
@@ -232,9 +234,9 @@ void PigSolver::CalcSilhouettePoseTerm(
 			if (abs(x_local(2) - depth_value) < 0.02) visible = true;
 			else visible = false;
 			if (!visible) continue;
-#ifdef DEBUG_SIL
-			visible_num++;
-#endif 
+
+			
+
 
 			int m = m_rois[roiIdx].queryMask(x0);
 			// TODO: 20200602 check occlusion
@@ -258,13 +260,18 @@ void PigSolver::CalcSilhouettePoseTerm(
 			block2d = D * K * R * J_vert.middleRows(3 * i, 3);
 			r(i) = w * (p - d);
 			A.row(i) = w * (block2d.row(0) * (ddx)+block2d.row(1) * (ddy));
+
+			visible_num++;
 		}
-#ifdef DEBUG_SIL
-		std::cout << "visible num  of view " << roiIdx << " is: " << visible_num << std::endl; 
-#endif 
+
+		std::cout << "visible: " << visible_num << std::endl; 
+
 		A = wc * A;
 		r = wc * r;
-		//std::cout << "r.norm() : " << r.norm() << std::endl;
+		
+		std::cout << "A.rows: " << A.rows() << "  A.cols: " << A.cols() << std::endl; 
+		//std::cout << "A cpu: " << A.block<9, 9>(30, 80) << std::endl; 
+
 		total_r += r.norm();
 		ATA += A.transpose() * A;
 		ATb += A.transpose() * r;
