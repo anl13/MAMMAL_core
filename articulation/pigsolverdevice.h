@@ -132,5 +132,10 @@ private:
 
 	void renderDepths();
 
-
+	void calcPoseJacobiFullTheta_V_device(
+		pcl::gpu::DeviceArray2D<float> J_vert,
+		pcl::gpu::DeviceArray2D<float> J_joint,
+		pcl::gpu::DeviceArray2D<float> d_RP,
+		pcl::gpu::DeviceArray2D<float> d_LP
+	);
 };

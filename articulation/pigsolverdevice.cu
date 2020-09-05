@@ -130,110 +130,6 @@ __global__ void extract_jacobi_lines_kernel(
 // Non-kernel functions 
 // ===========
 
-void PigSolverDevice::calcPoseJacobiFullTheta_device(
-	pcl::gpu::DeviceArray2D<float> &J_joint,
-	pcl::gpu::DeviceArray2D<float> &J_vert
-)
-{
-	int cpucols = 3 * m_jointNum + 3; // theta dimension 
-	if(J_joint.empty())
-		J_joint.create(cpucols, m_jointNum * 3); // J_joint_cpu.T, with same storage array  
-	if (J_vert.empty())
-		J_vert.create(cpucols, m_vertexNum * 3); // J_vert_cpu.T 
-	setConstant2D_device(J_joint, 0);
-	setConstant2D_device(J_vert, 0); 
-
-	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
-	for (int jointId = 0; jointId < m_jointNum; jointId++)
-	{
-		const Eigen::Vector3f& pose = m_host_poseParam[jointId];
-		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
-	}
-
-
-	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
-	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
-	RP.setZero();
-	LP.setZero();
-
-	for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
-	{
-		for (int aIdx = 0; aIdx < 3; aIdx++)
-		{
-			Eigen::Matrix3f dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
-			if (jIdx > 0)
-			{
-				dR = m_host_globalSE3[m_host_parents[jIdx]].block<3, 3>(0, 0) * dR;
-			}
-			RP.block<3, 3>(9 * jIdx + 3 * aIdx, 0) = dR;
-		}
-		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3f::Identity();
-		for (int child = jIdx + 1; child < m_jointNum; child++)
-		{
-			int father = m_host_parents[child];
-			LP.block<3, 3>(3 * child, 3 * jIdx) = LP.block<3, 3>(3 * father, 3 * jIdx) * m_host_localSE3[child].block<3,3>(0,0);
-		}
-	}
-
-	Eigen::MatrixXf jointJacobiPose = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
-	for (int jointDerivativeId = 0; jointDerivativeId < m_jointNum; jointDerivativeId++)
-	{
-		// update translation term
-		jointJacobiPose.block<3, 3>(jointDerivativeId * 3, 0).setIdentity();
-
-		// update poseParam term
-		for (int axisDerivativeId = 0; axisDerivativeId < 3; axisDerivativeId++)
-		{
-			std::vector<std::pair<bool, Eigen::Matrix4f>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4f::Zero()));
-			globalAffineDerivative[jointDerivativeId].first = true;
-			auto& affine = globalAffineDerivative[jointDerivativeId].second;
-			affine.block<3, 3>(0, 0) = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jointDerivativeId + axisDerivativeId));
-			affine = jointDerivativeId == 0 ? affine : (m_host_globalSE3[ m_host_parents[jointDerivativeId]] * affine);
-
-			for (int jointId = jointDerivativeId + 1; jointId < m_jointNum; jointId++)
-			{
-				if (globalAffineDerivative[m_host_parents[jointId]].first)
-				{
-					globalAffineDerivative[jointId].first = true;
-					globalAffineDerivative[jointId].second = globalAffineDerivative[m_host_parents[jointId]].second * m_host_localSE3[jointId];
-					// update jacobi for pose
-					jointJacobiPose.block<3, 1>(jointId * 3, 3 + jointDerivativeId * 3 + axisDerivativeId) = globalAffineDerivative[jointId].second.block<3, 1>(0, 3);
-				}
-			}
-		}
-	}
-
-	//std::ofstream out("G:/pig_results/J_joint_in.txt"); 
-	//out << jointJacobiPose;
-	//out.close(); 
-	std::cout << " we are the champione." << std::endl;
-		
-	J_joint.upload(jointJacobiPose.data(), (3*m_jointNum) * sizeof(float), cpucols, 3 * m_jointNum);
-	m_device_jointsDeformed.upload(m_host_jointsDeformed); 
-	m_device_verticesDeformed.upload(m_host_verticesDeformed); 
-	d_RP.upload(RP.data(), 9*m_jointNum * sizeof(float), 3, 9*m_jointNum); 
-	d_LP.upload(LP.data(), 3 * m_jointNum * sizeof(float), 3 * m_jointNum, 3*m_jointNum); 
-
-	dim3 blocksize(32);
-	dim3 gridsize(pcl::device::divUp(m_vertexNum, 32));
-
-	compute_jacobi_v_full_kernel << <gridsize, blocksize >> > (
-		J_vert,
-		m_device_verticesDeformed, // vertices of tpose
-		m_device_jointsDeformed, // joints of tpoose 
-		J_joint, // jacobi of joints
-		m_device_lbsweights, // skinning_weights
-		m_device_parents,
-		m_vertexNum,
-		m_jointNum,
-		d_RP,
-		d_LP
-		);
-
-	cudaSafeCall(cudaGetLastError());
-	cudaSafeCall(cudaDeviceSynchronize());
-}
-
 
 void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
 	pcl::gpu::DeviceArray2D<float> &J_vert)
@@ -347,4 +243,31 @@ void PigSolverDevice::calcSilhouetteJacobi_device(
 
 	d_count.download(h_count);
 	printf("visible: %f\n", h_count[0] / paramNum);
+}
+
+void PigSolverDevice::calcPoseJacobiFullTheta_V_device(
+	pcl::gpu::DeviceArray2D<float> J_vert,
+	pcl::gpu::DeviceArray2D<float> J_joint, 
+	pcl::gpu::DeviceArray2D<float> d_RP, 
+	pcl::gpu::DeviceArray2D<float> d_LP
+)
+{
+	dim3 blocksize(32);
+	dim3 gridsize(pcl::device::divUp(m_vertexNum, 32));
+
+	compute_jacobi_v_full_kernel << <gridsize, blocksize >> > (
+		J_vert,
+		m_device_verticesDeformed, // vertices of tpose
+		m_device_jointsDeformed, // joints of tpoose 
+		J_joint, // jacobi of joints
+		m_device_lbsweights, // skinning_weights
+		m_device_parents,
+		m_vertexNum,
+		m_jointNum,
+		d_RP,
+		d_LP
+		);
+
+	cudaSafeCall(cudaGetLastError());
+	cudaSafeCall(cudaDeviceSynchronize());
 }

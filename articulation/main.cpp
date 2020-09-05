@@ -11,4 +11,6 @@ void main()
 	//test_compare_cpugpu_jacobi(); 
 	//show_gpu_param(); 
 
-	test_pointer(); }
+	test_pointer(); 
+
+}
