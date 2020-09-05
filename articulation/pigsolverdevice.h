@@ -41,7 +41,7 @@ public:
 	void optimizePoseSilhouette(
 		int maxIter);
 
-
+	void debug(); 
 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);

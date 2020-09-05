@@ -126,6 +126,14 @@ std::vector<Camera> readCameras()
 
 int run_pose()
 {
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
+	std::shared_ptr<PigSolverDevice> p_smal = std::make_shared<PigSolverDevice>(smal_config);
+
+	//std::cout << "lalslslslsls: " << std::endl; 
+	p_smal->debug();
+	system("pause");
+	exit(-1);
+
 	//std::string pig_config = "D:/Projects/animal_calib/articulation/pigmodel_config.json";
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
@@ -141,6 +149,8 @@ int run_pose()
 	frame.fetchData();
 	auto cams = frame.get_cameras();
 	auto cam = cams[0];
+
+
 
 	// init renderer
 	Eigen::Matrix3f K = cam.K; 

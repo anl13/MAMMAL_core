@@ -320,7 +320,7 @@ void PigModelDevice::UpdateVerticesDeformed()
 void PigModelDevice::UpdateJointsDeformed()
 {
 	m_host_jointsDeformed = m_host_jointsShaped; 
-
+	m_device_jointsDeformed.upload(m_host_jointsDeformed);
 	// TODO: add surface deformation
 }
 

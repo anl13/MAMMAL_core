@@ -132,7 +132,7 @@ protected:
 	pcl::gpu::DeviceArray<Eigen::Vector3u> m_device_faces; 
 	pcl::gpu::DeviceArray<BODY_PART> m_device_bodyParts;
 	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_verticesOrigin;
-
+	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_verticesScaled; 
 	pcl::gpu::DeviceArray<Eigen::Vector3f> m_device_normals; 
 	
 	

@@ -6,10 +6,9 @@ void main()
 	//test_body_part(); 
 	//test_fitting();
 	//test_mean_pose(); 
-	test_gpu(); 
+	//test_gpu(); 
 	//test_compare_cpugpu(); 
+	//test_compare_cpugpu_jacobi(); 
 	//show_gpu_param(); 
 
-
-	system("pause"); 
-}
+	test_pointer(); }

@@ -28,11 +28,11 @@
     <Filter Include="render">
       <UniqueIdentifier>{09d719a1-ccfa-44ff-9493-52f9420c26de}</UniqueIdentifier>
     </Filter>
-    <Filter Include="articulation">
-      <UniqueIdentifier>{38965ab8-4187-418f-af33-c8c611331a87}</UniqueIdentifier>
-    </Filter>
     <Filter Include="others">
       <UniqueIdentifier>{da31139b-e3e2-43da-ae0e-3ee328152139}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="articulation">
+      <UniqueIdentifier>{9d55b9d4-b27e-4bf7-838e-b63ea07ab9c9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -123,14 +123,14 @@
     <ClCompile Include="..\utils\skel.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\image_utils_gpu.cpp">
       <Filter>utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigmodel.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
+      <Filter>articulation</Filter>
     </ClCompile>
     <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
       <Filter>articulation</Filter>
@@ -138,10 +138,22 @@
     <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_shape.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
     <ClCompile Include="..\articulation\pigsolver_sil.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigmodel.cpp">
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\test_compare_cpugpu.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\test_gpu.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\test_pointer.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
   </ItemGroup>
@@ -185,10 +197,22 @@
     <ClInclude Include="..\articulation\gpuutils.h">
       <Filter>articulation</Filter>
     </ClInclude>
+    <ClInclude Include="..\articulation\pigmodel.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
     <ClInclude Include="..\articulation\pigmodeldevice.h">
       <Filter>articulation</Filter>
     </ClInclude>
+    <ClInclude Include="..\articulation\pigsolver.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
     <ClInclude Include="..\articulation\pigsolverdevice.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\test_main.h">
+      <Filter>articulation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\vector_operations.hpp">
       <Filter>articulation</Filter>
     </ClInclude>
   </ItemGroup>
@@ -197,6 +221,9 @@
       <Filter>associate</Filter>
     </None>
     <None Include="..\.gitignore" />
+    <None Include="..\articulation\artist_config.json">
+      <Filter>articulation</Filter>
+    </None>
     <None Include="..\articulation\pigmodel_config.json">
       <Filter>articulation</Filter>
     </None>
@@ -206,13 +233,13 @@
     <None Include="..\articulation\smal2_config.json">
       <Filter>articulation</Filter>
     </None>
-    <None Include="..\articulation\artist_config.json">
-      <Filter>articulation</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\render\cuda_utils_render.cu">
       <Filter>render</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>utils</Filter>
     </CudaCompile>
     <CudaCompile Include="..\articulation\gpuutils.cu">
       <Filter>articulation</Filter>
@@ -222,9 +249,6 @@
     </CudaCompile>
     <CudaCompile Include="..\articulation\pigsolverdevice.cu">
       <Filter>articulation</Filter>
-    </CudaCompile>
-    <CudaCompile Include="..\utils\image_utils_gpu.cu">
-      <Filter>utils</Filter>
     </CudaCompile>
   </ItemGroup>
 </Project>

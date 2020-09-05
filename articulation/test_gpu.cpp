@@ -70,7 +70,16 @@ void test_gpu()
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 	PigSolverDevice smal(smal_config);
 
+
+	smal.debug(); 
+
+	system("pause"); 
+	return; 
+
+	smal.SetScale(0.01); 
+
 	PigSolver smalcpu(smal_config); 
+	smalcpu.RescaleOriginVertices(0.01); 
 
 	// smal random pose 
 	Eigen::VectorXf pose = Eigen::VectorXf::Random(smal.GetJointNum() * 3) * 0.3;
@@ -84,18 +93,20 @@ void test_gpu()
 	Eigen::MatrixXf h_J_joint_cpu, h_J_vert_cpu, h_J_joint_gpu, h_J_vert_gpu;
 	int jointNum = smal.GetJointNum(); 
 	int vertexNum = smal.GetVertexNum(); 
+
 	h_J_joint_cpu.resize(3 * jointNum, 3 + 3 * jointNum);
-	h_J_joint_gpu = h_J_joint_cpu;
+	h_J_joint_gpu.resize(3*jointNum, 3+3*jointNum);
 	h_J_vert_cpu.resize(3 * vertexNum, 3 + 3 * jointNum); 
-	h_J_vert_gpu = h_J_vert_cpu; 
+	h_J_vert_gpu.resize(3*vertexNum, 3+3*jointNum);
+
 	pcl::gpu::DeviceArray2D<float> d_J_joint, d_J_vert; 
 	d_J_joint.create(3 + 3 * jointNum, 3 * jointNum); 
 	d_J_vert.create(3 + 3 * jointNum, 3 * vertexNum); 
-	d_J_joint.upload(h_J_joint_gpu.data(), h_J_joint_gpu.rows() * sizeof(float), h_J_joint_gpu.cols(), h_J_joint_gpu.rows());
-	d_J_vert.upload(h_J_vert_gpu.data(), h_J_vert_gpu.rows() * sizeof(float), h_J_vert_gpu.cols(), h_J_vert_gpu.rows());
 
 	smal.calcPoseJacobiFullTheta_device(d_J_joint, d_J_vert); 
-	d_J_joint.download(h_J_joint_gpu.data(), h_J_joint_gpu.rows() * sizeof(float)); 
+	d_J_joint.download(h_J_joint_gpu.data(),3*jointNum * sizeof(float)); 
+	d_J_vert.download(h_J_vert_gpu.data(), 3 * vertexNum * sizeof(float)); 
+
 	smal.CalcPoseJacobiFullTheta_cpu(h_J_joint_cpu, h_J_vert_cpu, true);
 
 	Eigen::MatrixXf h_J_joint_2, h_J_vert_2;

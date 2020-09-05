@@ -59,3 +59,70 @@ void test_compare_cpugpu()
 	std::cout << "cpu: " << pose_est_cpu.transpose() << std::endl; 
 	std::cout << "gpu: " << pose_est_gpu.transpose() << std::endl; 
 }
+
+void test_compare_cpugpu_jacobi()
+{
+	std::vector<Camera> cams = readCameras();
+
+	// model data 
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
+	PigSolverDevice smalgpu(smal_config);
+
+	// smal random pose 
+	Eigen::VectorXf pose = Eigen::VectorXf::Random(smalgpu.GetJointNum() * 3) * 0.3;
+	smalgpu.SetPose(pose);
+	smalgpu.SetScale(0.1); 
+	smalgpu.UpdateVertices();
+	
+
+	PigSolver smalcpu(smal_config);
+	smalcpu.SetPose(pose);
+	smalcpu.SetScale(0.1);
+	smalcpu.RescaleOriginVertices(0.1);
+	smalcpu.UpdateVertices();
+
+	int jointnum = smalgpu.GetJointNum();
+	int vertexnum = smalgpu.GetVertexNum();
+
+	std::cout << "...... TEST Full Theta Jacobi ......" << std::endl;
+
+	Eigen::MatrixXf J_joint_cpu, J_vert_cpu, J_joint_gpu, J_vert_gpu;
+	pcl::gpu::DeviceArray2D<float> J_joint_device, J_vert_device;
+
+	TimerUtil::Timer<std::chrono::microseconds> tt;
+	tt.Start();
+	smalcpu.CalcPoseJacobiFullTheta(J_joint_cpu, J_vert_cpu, true);
+	std::cout << "cpu: " << tt.Elapsed() << " mcs" << std::endl;
+	tt.Start();
+	smalgpu.calcPoseJacobiFullTheta_device(J_joint_device, J_vert_device);
+	std::cout << "gpu: " << tt.Elapsed() << " mcs" << std::endl;
+	J_joint_gpu.resize(3*jointnum,3+3*jointnum);
+	J_vert_gpu.resize(3*vertexnum,3+3*jointnum);
+
+	J_joint_device.download(J_joint_gpu.data(), 3 * jointnum * sizeof(float));
+	J_vert_device.download(J_vert_gpu.data(), 3 * vertexnum * sizeof(float));
+
+	Eigen::MatrixXf J_joint_diff = J_joint_cpu - J_joint_gpu;
+	std::cout << "J_joint diff F-norm: " << J_joint_diff.norm() << std::endl;
+
+
+	Eigen::MatrixXf J_vert_diff = J_vert_cpu - J_vert_gpu;
+	std::cout << "J_vert diff F-norm: " << J_vert_diff.norm() << std::endl;
+
+
+
+	//std::cout << "...... TEST Part Theta Jacobi ......" << std::endl;
+	//Eigen::MatrixXf J_joint_part_cpu, J_vert_part_cpu, J_joint_part_gpu, J_vert_part_gpu;
+
+	//pcl::gpu::DeviceArray2D<float> J_joint_part_device, J_vert_part_device;
+	//smalcpu.CalcPoseJacobiPartTheta(J_joint_part_cpu, J_vert_part_cpu);
+	//smalgpu.calcPoseJacobiPartTheta_device(J_joint_part_device, J_vert_part_device);
+	//J_joint_part_gpu = J_joint_part_cpu; J_joint_part_gpu.setZero();
+	//J_vert_part_gpu = J_vert_part_cpu; J_joint_part_gpu.setZero();
+	//J_joint_part_device.download(J_joint_part_gpu.data(), 3 * jointnum * sizeof(float));
+	//J_vert_part_device.download(J_vert_part_gpu.data(), 3 * vertexnum * sizeof(float));
+	//Eigen::MatrixXf J_vert_part_diff = J_vert_part_cpu - J_vert_part_gpu;
+	//std::cout << "J_vert part diff F-norm: " << J_vert_part_diff.norm() << std::endl;
+
+	system("pause"); 
+}

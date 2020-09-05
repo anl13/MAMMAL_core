@@ -844,16 +844,54 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 	int M = 3 + 3 * m_poseToOptimize.size();
 	ATA = Eigen::MatrixXf::Zero(M, M);
 	ATb = Eigen::VectorXf::Zero(M);
-	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
-	d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float)); 
-	d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float)); 
-	Eigen::MatrixXf h_J_vert_gpu = h_J_vert;
-	Eigen::MatrixXf h_J_joint_gpu = h_J_joint; 
-	CalcPoseJacobiPartTheta_cpu(h_J_joint, h_J_vert, true); 
+	//calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
+	//d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float)); 
+	//d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float)); 
+	//Eigen::MatrixXf h_J_vert_gpu = h_J_vert;
+	//Eigen::MatrixXf h_J_joint_gpu = h_J_joint; 
 
-	std::cout << "cols: " << h_J_joint.cols() << " rows: " << h_J_joint.rows() << std::endl; 
-	std::cout << "hJ_Joint_gpu: " << std::endl << h_J_joint_gpu.middleRows<3>(6) << std::endl; 
-	std::cout << "h-J_joint cpu: " << std::endl << h_J_joint.middleRows<3>(6) << std::endl; 
+	//calcPoseJacobiFullTheta_device(d_J_joint_full, d_J_vert_full); 
+	//Eigen::MatrixXf h_J_vert_full_gpu, h_J_joint_full_gpu;
+	//h_J_joint_full_gpu.resize(3 * m_jointNum, 3 + 3 * m_jointNum);
+	//h_J_vert_full_gpu.resize(3 * m_vertexNum, 3 + 3 * m_jointNum);
+	//d_J_joint_full.download(h_J_joint_full_gpu.data(), 3 * m_jointNum * sizeof(float));
+	//d_J_vert_full.download(h_J_vert_full_gpu.data(), 3 * m_vertexNum * sizeof(float));
+
+	//Eigen::MatrixXf h_J_joint_cpu_full, h_J_joint_cpu_part, h_J_vert_cpu_full, h_J_vert_cpu_part;
+	//CalcPoseJacobiFullTheta_cpu(h_J_joint_cpu_full, h_J_vert_cpu_full, true); 
+	//
+	//Eigen::MatrixXf diff_j_full = h_J_joint_cpu_full - h_J_joint_full_gpu;
+	//Eigen::MatrixXf diff_v_full = h_J_vert_cpu_full - h_J_vert_full_gpu; 
+	////Eigen::MatrixXf diff_j_part = h_J_joint_gpu - h_J_joint_cpu_part; 
+	////Eigen::MatrixXf diff_v_part = h_J_vert_cpu_part - h_J_vert_gpu; 
+
+	//std::cout << "j full: " << diff_j_full.norm() << std::endl; 
+	//std::cout << "v full: " << diff_v_full.norm() << std::endl; 
+	////std::cout << "j part: " << diff_j_part.norm() << std::endl;
+	////std::cout << "v part: " << diff_v_part.norm() << std::endl;
+
+	Eigen::MatrixXf h_J_joint_cpu, h_J_vert_cpu, h_J_joint_gpu, h_J_vert_gpu;
+
+	h_J_joint_cpu.resize(3 * m_jointNum, 3 + 3 * m_jointNum);
+	h_J_joint_gpu.resize(3 * m_jointNum, 3 + 3 * m_jointNum);
+	h_J_vert_cpu.resize(3 * m_vertexNum, 3 + 3 * m_jointNum);
+	h_J_vert_gpu.resize(3 * m_vertexNum, 3 + 3 * m_jointNum);
+
+	pcl::gpu::DeviceArray2D<float> d_J_joint, d_J_vert;
+	d_J_joint.create(3 + 3 * m_jointNum, 3 * m_jointNum);
+	d_J_vert.create(3 + 3 * m_jointNum, 3 * m_vertexNum);
+
+	calcPoseJacobiFullTheta_device(d_J_joint, d_J_vert);
+	d_J_joint.download(h_J_joint_gpu.data(), 3 * m_jointNum * sizeof(float));
+	d_J_vert.download(h_J_vert_gpu.data(), 3 * m_vertexNum * sizeof(float));
+
+	CalcPoseJacobiFullTheta_cpu(h_J_joint_cpu, h_J_vert_cpu, true);
+
+	std::cout << "joint norm: " << (h_J_joint_cpu - h_J_joint_gpu).norm() << std::endl;
+	std::cout << "vert  norm: " << (h_J_vert_cpu - h_J_vert_gpu).norm() << std::endl;
+
+	system("pause");
+	exit(-1); 
 
 	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, M);
 	Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
@@ -1038,4 +1076,39 @@ void PigSolverDevice::CalcPoseJacobiPartTheta_cpu(Eigen::MatrixXf& J_joint, Eige
 		if (with_vert)
 			J_vert.middleCols(3 + 3 * i, 3) = J_vertfull.middleCols(3 + 3 * thetaid, 3);
 	}
+}
+
+void PigSolverDevice::debug()
+{
+	SetScale(0.01); 
+	Eigen::VectorXf pose = Eigen::VectorXf::Random(m_jointNum * 3) * 0.3;
+	SetPose(pose); 
+
+	UpdateVertices(); 
+	UpdateNormalFinal(); 
+
+	Eigen::MatrixXf h_J_joint_cpu, h_J_vert_cpu, h_J_joint_gpu, h_J_vert_gpu;
+
+	h_J_joint_cpu.resize(3 * m_jointNum, 3 + 3 * m_jointNum);
+	h_J_joint_gpu.resize(3 * m_jointNum, 3 + 3 * m_jointNum);
+	h_J_vert_cpu.resize(3 * m_vertexNum, 3 + 3 * m_jointNum);
+	h_J_vert_gpu.resize(3 * m_vertexNum, 3 + 3 * m_jointNum);
+
+	pcl::gpu::DeviceArray2D<float> d_J_joint, d_J_vert;
+	d_J_joint.create(3 + 3 * m_jointNum, 3 * m_jointNum);
+	d_J_vert.create(3 + 3 * m_jointNum, 3 * m_vertexNum);
+
+	calcPoseJacobiFullTheta_device(d_J_joint, d_J_vert);
+	d_J_joint.download(h_J_joint_gpu.data(), 3 * m_jointNum * sizeof(float));
+	d_J_vert.download(h_J_vert_gpu.data(), 3 * m_vertexNum * sizeof(float));
+
+	CalcPoseJacobiFullTheta_cpu(h_J_joint_cpu, h_J_vert_cpu, true);
+
+	std::ofstream joint_file1("G:/pig_results/joint_gpu.txt"); joint_file1 << h_J_joint_gpu; joint_file1.close(); 
+	std::ofstream joint_file2("G:/pig_results/joint_cpu.txt"); joint_file2 << h_J_joint_cpu; joint_file2.close();
+	std::ofstream joint_file3("G:/pig_results/vert_gpu.txt"); joint_file3 << h_J_vert_gpu; joint_file3.close();
+	std::ofstream joint_file4("G:/pig_results/vert_cpu.txt"); joint_file4 << h_J_vert_cpu; joint_file4.close();
+
+	std::cout << "joint norm: " << (h_J_joint_cpu - h_J_joint_gpu).norm() << std::endl;
+	std::cout << "vert  norm: " << (h_J_vert_cpu - h_J_vert_gpu).norm() << std::endl;
 }

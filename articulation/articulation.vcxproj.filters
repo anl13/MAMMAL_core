@@ -105,6 +105,9 @@
     <ClCompile Include="..\utils\image_utils_gpu.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="test_pointer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">

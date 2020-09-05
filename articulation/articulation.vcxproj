@@ -148,6 +148,7 @@
     <ClCompile Include="test_compare_cpugpu.cpp" />
     <ClCompile Include="test_fitting_model.cpp" />
     <ClCompile Include="test_gpu.cpp" />
+    <ClCompile Include="test_pointer.cpp" />
     <ClCompile Include="test_render_model.cpp" />
     <ClCompile Include="test_render_video.cpp" />
     <ClCompile Include="test_vae.cpp" />

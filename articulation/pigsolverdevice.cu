@@ -11,6 +11,7 @@
 #include <pcl/gpu/containers/device_array.h>
 #include <pcl/gpu/containers/kernel_containers.h>
 
+#include <fstream> 
 
 #ifdef __CUDACC__
 #define cuda_launch_bounds(x,y) __launch_bounds__(x,y)
@@ -202,16 +203,20 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 		}
 	}
 
-
+	//std::ofstream out("G:/pig_results/J_joint_in.txt"); 
+	//out << jointJacobiPose;
+	//out.close(); 
+	std::cout << " we are the champione." << std::endl;
+		
 	J_joint.upload(jointJacobiPose.data(), (3*m_jointNum) * sizeof(float), cpucols, 3 * m_jointNum);
 	m_device_jointsDeformed.upload(m_host_jointsDeformed); 
+	m_device_verticesDeformed.upload(m_host_verticesDeformed); 
 	d_RP.upload(RP.data(), 9*m_jointNum * sizeof(float), 3, 9*m_jointNum); 
 	d_LP.upload(LP.data(), 3 * m_jointNum * sizeof(float), 3 * m_jointNum, 3*m_jointNum); 
 
 	dim3 blocksize(32);
 	dim3 gridsize(pcl::device::divUp(m_vertexNum, 32));
 
-	
 	compute_jacobi_v_full_kernel << <gridsize, blocksize >> > (
 		J_vert,
 		m_device_verticesDeformed, // vertices of tpose
