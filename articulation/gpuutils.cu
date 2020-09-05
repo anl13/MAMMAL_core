@@ -275,6 +275,8 @@ void check_visibility(float* imgdata_device, int W, int H,
 		imgdata_device, W, H, points, pointnum, K, R, T,
 		visibility_device
 		);
+	cudaSafeCall(cudaGetLastError());
+	cudaSafeCall(cudaDeviceSynchronize()); 
 	visibility_device.download(visibility);
 	visibility_device.release(); 
 }

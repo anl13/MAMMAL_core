@@ -184,7 +184,7 @@ int run_pose()
 			//frame.solve_parametric_model_cpu();
 
 			frame.save_clusters();
-			frame.save_parametric_data();
+			//frame.save_parametric_data();
 #else 
 			frame.load_clusters();
 			//frame.solve_parametric_model(); 
@@ -209,10 +209,12 @@ int run_pose()
 
 #endif // READ_SMOOTH
 		auto solvers = frame.mp_bodysolverdevice;
+		//auto solvers = frame.mp_bodysolver;
 
 		m_renderer.clearAllObjs(); 
 		RenderObjectColor* p_model = new RenderObjectColor();
 		solvers[0]->UpdateNormalFinal();
+		
 		p_model->SetVertices(solvers[0]->GetVertices()); 
 		p_model->SetNormal(solvers[0]->GetNormals()); 
 		p_model->SetFaces(solvers[0]->GetFacesVert());
@@ -237,7 +239,7 @@ int run_pose()
 		std::stringstream all_render_file; 
 #ifndef READ_SMOOTH
 		all_render_file << "G:/pig_results/render_all/" << std::setw(6) << std::setfill('0')
-			<< frameid << ".png";
+			<< frameid << "_gpu.png";
 #else 
 		all_render_file << "G:/pig_results_level1_nosil/render_all_smth/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";

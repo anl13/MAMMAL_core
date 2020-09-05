@@ -96,9 +96,9 @@ void FrameData::solve_parametric_model()
 			getROI(rois, 0);
 			std::cout << "get roi: " << timer.Elapsed() << " ms" << std::endl; 
 
-			mp_bodysolverdevice[i]->setROIs(&rois);
+			mp_bodysolverdevice[i]->setROIs(rois);
 			timer.Start(); 
-			mp_bodysolverdevice[i]->optimizePoseSilhouette(18);
+			mp_bodysolverdevice[i]->optimizePoseSilhouette(1);
 			std::cout << "solve by sil gpu: " << timer.Elapsed() << " ms" << std::endl; 
 		}
 

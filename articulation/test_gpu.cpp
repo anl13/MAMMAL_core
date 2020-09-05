@@ -19,6 +19,8 @@
 #include "../utils/timer_util.h"
 
 #include "pigmodeldevice.h" 
+#include "pigsolverdevice.h"
+#include "pigsolver.h"
 
 void test_gpu()
 {
@@ -66,19 +68,42 @@ void test_gpu()
 
 	// model data 
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
-	PigModelDevice smal(smal_config);
+	PigSolverDevice smal(smal_config);
+
+	PigSolver smalcpu(smal_config); 
 
 	// smal random pose 
 	Eigen::VectorXf pose = Eigen::VectorXf::Random(smal.GetJointNum() * 3) * 0.3;
 	smal.SetPose(pose);
-	TimerUtil::Timer<std::chrono::microseconds> tt;
-	tt.Start();
-	for(int i = 0; i < 10; i++)
+	smalcpu.SetPose(pose); 
 	smal.UpdateVertices();
-	std::cout << "Time elapsed: " << tt.Elapsed() / 10 << " mcs" << std::endl;
-	tt.Start(); 
-	smal.UpdateNormalsFinal(); 
-	std::cout << "Time elapsed normal : " << tt.Elapsed() <<  " mcs" << std::endl; 
+	smal.UpdateNormalFinal(); 
+
+	smalcpu.UpdateVertices(); 
+
+	Eigen::MatrixXf h_J_joint_cpu, h_J_vert_cpu, h_J_joint_gpu, h_J_vert_gpu;
+	int jointNum = smal.GetJointNum(); 
+	int vertexNum = smal.GetVertexNum(); 
+	h_J_joint_cpu.resize(3 * jointNum, 3 + 3 * jointNum);
+	h_J_joint_gpu = h_J_joint_cpu;
+	h_J_vert_cpu.resize(3 * vertexNum, 3 + 3 * jointNum); 
+	h_J_vert_gpu = h_J_vert_cpu; 
+	pcl::gpu::DeviceArray2D<float> d_J_joint, d_J_vert; 
+	d_J_joint.create(3 + 3 * jointNum, 3 * jointNum); 
+	d_J_vert.create(3 + 3 * jointNum, 3 * vertexNum); 
+	d_J_joint.upload(h_J_joint_gpu.data(), h_J_joint_gpu.rows() * sizeof(float), h_J_joint_gpu.cols(), h_J_joint_gpu.rows());
+	d_J_vert.upload(h_J_vert_gpu.data(), h_J_vert_gpu.rows() * sizeof(float), h_J_vert_gpu.cols(), h_J_vert_gpu.rows());
+
+	smal.calcPoseJacobiFullTheta_device(d_J_joint, d_J_vert); 
+	d_J_joint.download(h_J_joint_gpu.data(), h_J_joint_gpu.rows() * sizeof(float)); 
+	smal.CalcPoseJacobiFullTheta_cpu(h_J_joint_cpu, h_J_vert_cpu, true);
+
+	Eigen::MatrixXf h_J_joint_2, h_J_vert_2;
+	smalcpu.CalcPoseJacobiFullTheta(h_J_joint_2, h_J_vert_2, true); 
+
+	std::cout << "joint norm: " << (h_J_joint_cpu - h_J_joint_gpu).norm() << std::endl; 
+	std::cout << "vert  norm: " << (h_J_vert_cpu - h_J_vert_gpu).norm() << std::endl; 
+	std::cout << "cpu comp: " << (h_J_joint_cpu - h_J_joint_2).norm() << ", " << (h_J_vert_cpu - h_J_vert_2).norm() << std::endl; 
 
 	RenderObjectColor* animal_model = new RenderObjectColor();
 	std::vector<Eigen::Vector3f> vertices_f = smal.GetVertices(); 

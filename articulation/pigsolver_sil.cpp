@@ -121,9 +121,8 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		Eigen::MatrixXf ATA;
 		Eigen::VectorXf ATb;
 		CalcSilhouettePoseTerm(renders, ATA, ATb, iter);
+		std::cout << "Atb: " << std::endl << ATb.transpose() << std::endl; 
 
-		std::cout << "cpu: ATA: " << std::endl << ATA.block<9, 9>(0, 0) << std::endl; 
-		std::cout << "cpu: ATb: " << std::endl << ATb.transpose() << std::endl; 
 		float lambda = 0.005;
 		float w_joint = 0.01;
 		float w1 = 1;
@@ -142,8 +141,6 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 			+ b1 * w_joint;
 		Eigen::VectorXf delta = H.ldlt().solve(b);
 
-		std::cout << "reg  term b: " << b_reg.norm() << std::endl;
-		std::cout << "temp term b: " << b_temp.norm() << std::endl;
 		// update 
 		m_translation += delta.segment<3>(0);
 		for (int i = 0; i < M; i++)
@@ -172,6 +169,8 @@ void PigSolver::CalcSilhouettePoseTerm(
 	Eigen::MatrixXf J_joint, J_vert;
 	CalcPoseJacobiPartTheta(J_joint, J_vert, true);
 
+	std::cout << "J_vert: " << std::endl; 
+	std::cout << J_vert.block<10, 10>(0, 0) << std::endl; 
 	//// visualize 
 	//std::vector<cv::Mat> chamfers_vis; 
 	//std::vector<cv::Mat> chamfers_vis_det; 
@@ -214,7 +213,6 @@ void PigSolver::CalcSilhouettePoseTerm(
 		//float wc = 200.0 / m_rois[roiIdx].area;
 		float wc = 0.01; 
 
-		int visible_num = 0; 
 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
@@ -234,9 +232,6 @@ void PigSolver::CalcSilhouettePoseTerm(
 			if (abs(x_local(2) - depth_value) < 0.02) visible = true;
 			else visible = false;
 			if (!visible) continue;
-
-			
-
 
 			int m = m_rois[roiIdx].queryMask(x0);
 			// TODO: 20200602 check occlusion
@@ -261,17 +256,12 @@ void PigSolver::CalcSilhouettePoseTerm(
 			r(i) = w * (p - d);
 			A.row(i) = w * (block2d.row(0) * (ddx)+block2d.row(1) * (ddy));
 
-			visible_num++;
 		}
 
-		std::cout << "visible: " << visible_num << std::endl; 
 
 		A = wc * A;
 		r = wc * r;
 		
-		std::cout << "A.rows: " << A.rows() << "  A.cols: " << A.cols() << std::endl; 
-		//std::cout << "A cpu: " << A.block<9, 9>(30, 80) << std::endl; 
-
 		total_r += r.norm();
 		ATA += A.transpose() * A;
 		ATb += A.transpose() * r;

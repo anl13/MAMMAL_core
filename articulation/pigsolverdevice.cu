@@ -48,7 +48,7 @@ __global__ void compute_jacobi_v_full_kernel(
 		Eigen::Vector3f v0 = tpose_v[vIdx];
 		for (int jIdx = 0; jIdx < jointNum; jIdx++)
 		{
-			if (weights(vIdx, jIdx) < 0.001)continue; 
+			if (weights(vIdx, jIdx) < 0.00001)continue; 
 			float w = weights(vIdx, jIdx); 
 			
 			// like: block += (m_lbsweights(jIdx, vIdx) * jointJacobiPose.middleRows(3 * jIdx, 3));
@@ -205,9 +205,8 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 
 	J_joint.upload(jointJacobiPose.data(), (3*m_jointNum) * sizeof(float), cpucols, 3 * m_jointNum);
 	m_device_jointsDeformed.upload(m_host_jointsDeformed); 
-	pcl::gpu::DeviceArray2D<float> RP_device, LP_device;
-	RP_device.upload(RP.data(), 9*m_jointNum * sizeof(float), 3, 9*m_jointNum); 
-	LP_device.upload(LP.data(), 3 * m_jointNum * sizeof(float), 3 * m_jointNum, 3*m_jointNum); 
+	d_RP.upload(RP.data(), 9*m_jointNum * sizeof(float), 3, 9*m_jointNum); 
+	d_LP.upload(LP.data(), 3 * m_jointNum * sizeof(float), 3 * m_jointNum, 3*m_jointNum); 
 
 	dim3 blocksize(32);
 	dim3 gridsize(pcl::device::divUp(m_vertexNum, 32));
@@ -222,15 +221,12 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 		m_device_parents,
 		m_vertexNum,
 		m_jointNum,
-		RP_device,
-		LP_device
+		d_RP,
+		d_LP
 		);
 
 	cudaSafeCall(cudaGetLastError());
 	cudaSafeCall(cudaDeviceSynchronize());
-
-	RP_device.release();
-	LP_device.release(); 
 }
 
 

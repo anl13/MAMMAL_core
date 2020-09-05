@@ -63,24 +63,27 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	int W = WINDOW_WIDTH;
 	for (int i = 0; i < 10; i++)
 		cudaMalloc((void**)&d_depth_renders[i], H * W * sizeof(float)); 
-	d_det_mask.create(H, W);
-	d_det_sdf.create(H, W);
-	d_rend_sdf.create(H, W); 
-	d_det_gradx.create(H, W); 
-	d_det_grady.create(H, W);
-	d_const_distort_mask.create(H, W); 
-	d_const_scene_mask.create(H, W); 
+	//d_det_mask.create(H, W);
+	//d_det_sdf.create(H, W);
+	//d_rend_sdf.create(H, W); 
+	//d_det_gradx.create(H, W); 
+	//d_det_grady.create(H, W);
+	//d_const_distort_mask.create(H, W); 
+	//d_const_scene_mask.create(H, W); 
 	d_J_vert.create(paramNum, 3 * m_vertexNum); 
 	d_J_joint.create(paramNum, 3 * m_jointNum); 
-	d_JT_sil.create(paramNum, m_vertexNum);
+	//d_JT_sil.create(paramNum, m_vertexNum);
 	d_J_joint_full.create(3 * m_jointNum + 3, 3 * m_jointNum);
 	d_J_vert_full.create(3 * m_jointNum + 3, 3 * m_vertexNum);
-	d_r_sil.create(m_vertexNum); 
+	//d_r_sil.create(m_vertexNum); 
 
-	d_ATA_sil.create(paramNum, paramNum);
-	d_ATb_sil.create(paramNum); 
+	//d_ATA_sil.create(paramNum, paramNum);
+	//d_ATb_sil.create(paramNum); 
 	h_J_joint.resize(3 * m_jointNum, paramNum); 
 	h_J_vert.resize(3 * m_vertexNum, paramNum); 
+
+	d_RP.create(3, 9 * m_jointNum); 
+	d_LP.create(3 * m_jointNum, 3 * m_jointNum); 
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -102,6 +105,8 @@ PigSolverDevice::~PigSolverDevice()
 	d_r_sil.release(); 
 	d_ATA_sil.release();
 	d_ATb_sil.release(); 
+	d_RP.release(); 
+	d_LP.release();
 }
 
 // Only point with more than 1 observations could be triangulated
@@ -579,9 +584,9 @@ void PigSolverDevice::renderDepths()
 
 	const auto& cameras = m_cameras;
 
-	for (int view = 0; view < mp_rois->size(); view++)
+	for (int view = 0; view < m_rois.size(); view++)
 	{
-		Camera cam = (*mp_rois)[view].cam;
+		Camera cam = m_rois[view].cam;
 		Eigen::Matrix3f R = cam.R.cast<float>();
 		Eigen::Vector3f T = cam.T.cast<float>();
 		mp_renderEngine->s_camViewer.SetExtrinsic(R, T);
@@ -592,20 +597,23 @@ void PigSolverDevice::renderDepths()
 	}
 }
 
+
+//#define DEBUG_SIL
+
 void PigSolverDevice::optimizePoseSilhouette(
 	int maxIter)
 {
 	int iter = 0;
 
 #ifdef DEBUG_SIL
-	//std::vector<cv::Mat> color_mask_dets;
-	//for (int view = 0; view < mp_rois->size(); view++)
-	//{
-	//	int camid = (*mp_rois)[view].viewid;
-	//	cv::Mat img(cv::Size(1920, 1080), CV_8UC3); img.setTo(255);
-	//	my_draw_mask(img, (*mp_rois)[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
-	//	color_mask_dets.push_back(img);
-	//}
+	std::vector<cv::Mat> color_mask_dets;
+	for (int view = 0; view < m_rois.size(); view++)
+	{
+		int camid = m_rois[view].viewid;
+		cv::Mat img(cv::Size(1920, 1080), CV_8UC3); img.setTo(255);
+		my_draw_mask(img,m_rois[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
+		color_mask_dets.push_back(img);
+	}
 #endif 
 
 	int M = m_poseToOptimize.size();
@@ -642,38 +650,39 @@ void PigSolverDevice::optimizePoseSilhouette(
 
 
 #ifdef DEBUG_SIL
-		//// test 
-		//std::vector<cv::Mat> pseudos;
-		//cv::Mat depth_cv(cv::Size(1920, 1080), CV_32FC1); 
-		//for (int view = 0; view < rois.size(); view++)
-		//{
-		//	cudaMemcpy(depth_cv.data, d_depth_renders[view], 1920 * 1080 * sizeof(float), cudaMemcpyDeviceToHost);
-		//	cv::Mat colored = pseudoColor(depth_cv);
-		//	pseudos.push_back(colored);
-		//}
-		//cv::Mat pack_pseudo;
-		//packImgBlock(pseudos,pack_pseudo);
-		//std::stringstream ss_pseudo;
-		//ss_pseudo << "G:/pig_results/debug/" << std::setw(6) << std::setfill('0') << iter << "_depth.jpg";
-		//cv::imwrite(ss_pseudo.str(), pack_pseudo); 
+		// test 
+		std::vector<cv::Mat> pseudos;
+		cv::Mat depth_cv(cv::Size(1920, 1080), CV_32FC1); 
+		for (int view = 0; view < m_rois.size(); view++)
+		{
+			cudaMemcpy(depth_cv.data, d_depth_renders[view], 1920 * 1080 * sizeof(float), cudaMemcpyDeviceToHost);
+			cv::Mat colored = pseudoColor(depth_cv);
+			pseudos.push_back(colored);
+		}
+		cv::Mat pack_pseudo;
+		packImgBlock(pseudos,pack_pseudo);
+		std::stringstream ss_pseudo;
+		ss_pseudo << "G:/pig_results/debug/" << std::setw(6) << std::setfill('0') << iter << "_depth.jpg";
+		cv::imwrite(ss_pseudo.str(), pack_pseudo); 
 
-		//cv::Mat blended;
-		//cv::Mat pack_det;
-		//packImgBlock(color_mask_dets, pack_det);
-		//blended = pack_pseudo * 0.5 + pack_det * 0.5;
-		//std::stringstream ss;
-		//ss << "G:/pig_results/debug/" << std::setw(6) << std::setfill('0')
-		//	<< iter << "_blend.jpg";
-		//cv::imwrite(ss.str(), blended);
+		cv::Mat blended;
+		cv::Mat pack_det;
+		packImgBlock(color_mask_dets, pack_det);
+		blended = pack_pseudo * 0.5 + pack_det * 0.5;
+		std::stringstream ss;
+		ss << "G:/pig_results/debug/blend/" << std::setw(6) << std::setfill('0')
+			<< iter << "_blend.jpg";
+		cv::imwrite(ss.str(), blended);
 #endif 
 		// compute terms
 		Eigen::MatrixXf ATA_sil;
 		Eigen::VectorXf ATb_sil;
 
 		//tt.Start(); 
-		CalcSilhouettePoseTerm(d_depth_renders, ATA_sil, ATb_sil);
+		//CalcSilhouettePoseTerm(d_depth_renders, ATA_sil, ATb_sil);
 		//std::cout << "construct ATA_sil gpu: " << tt.Elapsed() << " ms" << std::endl;
-		//CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil); 
+		CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil); 
+		std::cout << "ATb_sil: " << std::endl << ATb_sil.transpose() << std::endl; 
 
 		float lambda = 0.005;
 		float w_data = 0.01;
@@ -715,15 +724,15 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
 
 #ifdef DEBUG_SIL
-	//std::vector<cv::Mat> chamfers_vis;
-	//std::vector<cv::Mat> chamfers_vis_det;
-	//std::vector<cv::Mat> gradx_vis;
-	//std::vector<cv::Mat> grady_vis;
-	//std::vector<cv::Mat> diff_vis;
-	//std::vector<cv::Mat> diff_xvis;
-	//std::vector<cv::Mat> diff_yvis;
+	std::vector<cv::Mat> chamfers_vis;
+	std::vector<cv::Mat> chamfers_vis_det;
+	std::vector<cv::Mat> gradx_vis;
+	std::vector<cv::Mat> grady_vis;
+	std::vector<cv::Mat> diff_vis;
+	std::vector<cv::Mat> diff_xvis;
+	std::vector<cv::Mat> diff_yvis;
 #endif 
-	for (int roiIdx = 0; roiIdx < mp_rois->size(); roiIdx++)
+	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
 
 		setConstant2D_device(d_JT_sil, 0);
@@ -735,41 +744,41 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		d_rend_sdf.upload((float*)P.data, P.cols * sizeof(float), P.rows, P.cols);
 
 #ifdef DEBUG_SIL
-		//chamfers_vis.emplace_back(visualizeSDF2d(P));
+		chamfers_vis.emplace_back(visualizeSDF2d(P));
 
-		//cv::Mat chamfer_vis = visualizeSDF2d((*mp_rois)[roiIdx].chamfer);
-		////cv::imshow("chamfer", chamfer_vis);
-		////cv::waitKey();
-		////cv::destroyAllWindows();
-		////exit(-1);
+		cv::Mat chamfer_vis = visualizeSDF2d(m_rois[roiIdx].chamfer);
+		//cv::imshow("chamfer", chamfer_vis);
+		//cv::waitKey();
+		//cv::destroyAllWindows();
+		//exit(-1);
 
-		//chamfers_vis_det.push_back(chamfer_vis);
-		//diff_vis.emplace_back(visualizeSDF2d(P - (*mp_rois)[roiIdx].chamfer, 32));
+		chamfers_vis_det.push_back(chamfer_vis);
+		diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
 #endif 
 
-		Camera cam = (*mp_rois)[roiIdx].cam;
+		Camera cam = m_rois[roiIdx].cam;
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
 
 		float wc = 0.0001;
 
-		d_det_sdf.upload((*mp_rois)[roiIdx].chamfer.data, (*mp_rois)[roiIdx].chamfer.cols * sizeof(float),
-			(*mp_rois)[roiIdx].chamfer.rows, (*mp_rois)[roiIdx].chamfer.cols);
-		d_det_mask.upload((*mp_rois)[roiIdx].mask.data, (*mp_rois)[roiIdx].mask.cols * sizeof(uchar),
-			(*mp_rois)[roiIdx].mask.rows, (*mp_rois)[roiIdx].mask.cols);
-		d_det_gradx.upload((*mp_rois)[roiIdx].gradx.data, (*mp_rois)[roiIdx].gradx.cols * sizeof(float),
-			(*mp_rois)[roiIdx].gradx.rows, (*mp_rois)[roiIdx].gradx.cols);
-		d_det_grady.upload((*mp_rois)[roiIdx].grady.data, (*mp_rois)[roiIdx].grady.cols * sizeof(float),
-			(*mp_rois)[roiIdx].grady.rows, (*mp_rois)[roiIdx].grady.cols);
-		d_const_distort_mask.upload((*mp_rois)[roiIdx].undist_mask.data, (*mp_rois)[roiIdx].undist_mask.cols * sizeof(uchar),
-			(*mp_rois)[roiIdx].undist_mask.rows, (*mp_rois)[roiIdx].undist_mask.cols);
-		d_const_scene_mask.upload((*mp_rois)[roiIdx].scene_mask.data, (*mp_rois)[roiIdx].scene_mask.cols * sizeof(uchar),
-			(*mp_rois)[roiIdx].scene_mask.rows,
-			(*mp_rois)[roiIdx].scene_mask.cols);
+		d_det_sdf.upload(m_rois[roiIdx].chamfer.data, m_rois[roiIdx].chamfer.cols * sizeof(float),
+			m_rois[roiIdx].chamfer.rows, m_rois[roiIdx].chamfer.cols);
+		d_det_mask.upload(m_rois[roiIdx].mask.data, m_rois[roiIdx].mask.cols * sizeof(uchar),
+			m_rois[roiIdx].mask.rows, m_rois[roiIdx].mask.cols);
+		d_det_gradx.upload(m_rois[roiIdx].gradx.data, m_rois[roiIdx].gradx.cols * sizeof(float),
+			m_rois[roiIdx].gradx.rows, m_rois[roiIdx].gradx.cols);
+		d_det_grady.upload(m_rois[roiIdx].grady.data, m_rois[roiIdx].grady.cols * sizeof(float),
+			m_rois[roiIdx].grady.rows, m_rois[roiIdx].grady.cols);
+		d_const_distort_mask.upload(m_rois[roiIdx].undist_mask.data, m_rois[roiIdx].undist_mask.cols * sizeof(uchar),
+			m_rois[roiIdx].undist_mask.rows, m_rois[roiIdx].undist_mask.cols);
+		d_const_scene_mask.upload(m_rois[roiIdx].scene_mask.data, m_rois[roiIdx].scene_mask.cols * sizeof(uchar),
+			m_rois[roiIdx].scene_mask.rows,
+			m_rois[roiIdx].scene_mask.cols);
 
 		calcSilhouetteJacobi_device(K, R, T, depths[roiIdx],
-			(*mp_rois)[roiIdx].idcode, paramNum); 
+			m_rois[roiIdx].idcode, paramNum);
 
 		computeATA_device(d_JT_sil, d_ATA_sil);
 		computeATb_device(d_JT_sil, d_r_sil, d_ATb_sil);
@@ -791,39 +800,39 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	}
 
 #ifdef DEBUG_SIL
-	//cv::Mat packP;
-	//packImgBlock(chamfers_vis, packP);
-	//cv::Mat packD;
-	//packImgBlock(chamfers_vis_det, packD);
-	//std::stringstream ssp;
-	//ssp << "G:/pig_results/debug/" << 0 << "_rend_sdf.jpg";
-	//cv::imwrite(ssp.str(), packP);
-	//std::stringstream ssd;
-	//ssd << "G:/pig_results/debug/" << 0 << "_det_sdf.jpg";
-	//cv::imwrite(ssd.str(), packD);
-	////cv::Mat packX, packY;
-	////packImgBlock(gradx_vis, packX);
-	////packImgBlock(grady_vis, packY);
-	////std::stringstream ssx, ssy;
-	////ssx << "E:/debug_pig3/iters_p/gradx_" << 0 << ".jpg";
-	////ssy << "E:/debug_pig3/iters_p/grady_" << 0 << ".jpg";
-	////cv::imwrite(ssx.str(), packX);
-	////cv::imwrite(ssy.str(), packY);
+	cv::Mat packP;
+	packImgBlock(chamfers_vis, packP);
+	cv::Mat packD;
+	packImgBlock(chamfers_vis_det, packD);
+	std::stringstream ssp;
+	ssp << "G:/pig_results/debug/" << 0 << "_rend_sdf.jpg";
+	cv::imwrite(ssp.str(), packP);
+	std::stringstream ssd;
+	ssd << "G:/pig_results/debug/" << 0 << "_det_sdf.jpg";
+	cv::imwrite(ssd.str(), packD);
+	//cv::Mat packX, packY;
+	//packImgBlock(gradx_vis, packX);
+	//packImgBlock(grady_vis, packY);
+	//std::stringstream ssx, ssy;
+	//ssx << "E:/debug_pig3/iters_p/gradx_" << 0 << ".jpg";
+	//ssy << "E:/debug_pig3/iters_p/grady_" << 0 << ".jpg";
+	//cv::imwrite(ssx.str(), packX);
+	//cv::imwrite(ssy.str(), packY);
 
-	//cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
-	//std::stringstream ssdiff;
-	//ssdiff << "G:/pig_results/debug/diff_" << 0 << ".jpg";
-	//cv::imwrite(ssdiff.str(), packdiff);
+	cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
+	std::stringstream ssdiff;
+	ssdiff << "G:/pig_results/debug/diff_" << 0 << ".jpg";
+	cv::imwrite(ssdiff.str(), packdiff);
 
-	////cv::Mat packdiffx; packImgBlock(diff_xvis, packdiffx);
-	////std::stringstream ssdifx;
-	////ssdifx << "E:/debug_pig3/diff/diffx_" << 0 << ".jpg";
-	////cv::imwrite(ssdifx.str(), packdiffx);
+	//cv::Mat packdiffx; packImgBlock(diff_xvis, packdiffx);
+	//std::stringstream ssdifx;
+	//ssdifx << "E:/debug_pig3/diff/diffx_" << 0 << ".jpg";
+	//cv::imwrite(ssdifx.str(), packdiffx);
 
-	////cv::Mat packdiffy; packImgBlock(diff_yvis, packdiffy);
-	////std::stringstream ssdify;
-	////ssdify << "E:/debug_pig3/diff/diffy_" << 0 << ".jpg";
-	////cv::imwrite(ssdify.str(), packdiffy);
+	//cv::Mat packdiffy; packImgBlock(diff_yvis, packdiffy);
+	//std::stringstream ssdify;
+	//ssdify << "E:/debug_pig3/diff/diffy_" << 0 << ".jpg";
+	//cv::imwrite(ssdify.str(), packdiffy);
 #endif 
 }
 
@@ -837,26 +846,38 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 	ATb = Eigen::VectorXf::Zero(M);
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
 	d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float)); 
+	d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float)); 
+	Eigen::MatrixXf h_J_vert_gpu = h_J_vert;
+	Eigen::MatrixXf h_J_joint_gpu = h_J_joint; 
+	CalcPoseJacobiPartTheta_cpu(h_J_joint, h_J_vert, true); 
 
-	for (int roiIdx = 0; roiIdx < mp_rois->size(); roiIdx++)
+	std::cout << "cols: " << h_J_joint.cols() << " rows: " << h_J_joint.rows() << std::endl; 
+	std::cout << "hJ_Joint_gpu: " << std::endl << h_J_joint_gpu.middleRows<3>(6) << std::endl; 
+	std::cout << "h-J_joint cpu: " << std::endl << h_J_joint.middleRows<3>(6) << std::endl; 
+
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, M);
+	Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
+
+	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
-		if ((*mp_rois)[roiIdx].valid < 0.6) {
-			std::cout << "view " << roiIdx << " is invalid. " << (*mp_rois)[roiIdx].valid << std::endl;
+		if (m_rois[roiIdx].valid < 0.6) {
+			std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
 			continue;
 		}
-		Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, M);
-		Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
+		A.setZero(); 
+		r.setZero(); 
+
 		cv::Mat P;
 		computeSDF2d_device(d_depth_renders[roiIdx], P, 1920,1080);
 
-		Camera cam = (*mp_rois)[roiIdx].cam;
+		Camera cam = m_rois[roiIdx].cam;
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
 
 		float wc = 0.01;
 
-		int visible_num = 0;
+
 		std::vector<unsigned char> visibility(m_vertexNum, 0); 
 		check_visibility(d_depth_renders[roiIdx], 1920, 1080, m_device_verticesPosed,
 			K, R, T, visibility);
@@ -871,18 +892,18 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		
 			Eigen::Vector3f x_local = K * (R * x0 + T);
 
-			int m = (*mp_rois)[roiIdx].queryMask(x0);
+			int m = m_rois[roiIdx].queryMask(x0);
 			// TODO: 20200602 check occlusion
 			if (m == 2 || m == 3) continue;
 			// TODO: 20200501 use mask to check visibility 
-			float d = (*mp_rois)[roiIdx].queryChamfer(x0);
+			float d = m_rois[roiIdx].queryChamfer(x0);
 			if (d < -9999) continue;
 
-			float p = queryPixel(P, x0, (*mp_rois)[roiIdx].cam);
+			float p = queryPixel(P, x0, m_rois[roiIdx].cam);
 			if (p > 10) continue; // only consider contours for loss 
 
-			float ddx = queryPixel((*mp_rois)[roiIdx].gradx, x0, cam);
-			float ddy = queryPixel((*mp_rois)[roiIdx].grady, x0, cam);
+			float ddx = queryPixel(m_rois[roiIdx].gradx, x0, cam);
+			float ddy = queryPixel(m_rois[roiIdx].grady, x0, cam);
 
 			Eigen::MatrixXf block2d = Eigen::MatrixXf::Zero(2, M);
 			Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
@@ -903,3 +924,118 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 
 }
 
+
+void PigSolverDevice::CalcPoseJacobiFullTheta_cpu(Eigen::MatrixXf& jointJacobiPose, Eigen::MatrixXf& J_vert,
+	bool with_vert)
+{
+	// calculate delta rodrigues
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> rodriguesDerivative(3, 3 * 3 * m_jointNum);
+	for (int jointId = 0; jointId < m_jointNum; jointId++)
+	{
+		const Eigen::Vector3f& pose = m_host_poseParam[jointId];
+		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
+	}
+
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
+	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> LP(3 * m_jointNum, 3 * m_jointNum);
+	RP.setZero();
+	LP.setZero();
+	for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
+	{
+		for (int aIdx = 0; aIdx < 3; aIdx++)
+		{
+			Eigen::Matrix3f dR = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jIdx + aIdx));
+			if (jIdx > 0)
+			{
+				dR = m_host_globalSE3[m_host_parents[jIdx]].block<3, 3>(0, 0) * dR; 
+			}
+			RP.block<3, 3>(9 * jIdx + 3 * aIdx, 0) = dR;
+		}
+		LP.block<3, 3>(3 * jIdx, 3 * jIdx) = Eigen::Matrix3f::Identity();
+		for (int child = jIdx + 1; child < m_jointNum; child++)
+		{
+			int father = m_host_parents[child];
+			LP.block<3, 3>(3 * child, 3 * jIdx) = LP.block<3, 3>(3 * father, 3 * jIdx)
+				* m_host_localSE3[child].block<3, 3>(0, 0); 
+		}
+	}
+
+	//dJ_dtheta
+	jointJacobiPose = Eigen::Matrix<float, -1, -1, Eigen::ColMajor>::Zero(3 * m_jointNum, 3 + 3 * m_jointNum);
+	for (int jointDerivativeId = 0; jointDerivativeId < m_jointNum; jointDerivativeId++)
+	{
+		// update translation term
+		jointJacobiPose.block<3, 3>(jointDerivativeId * 3, 0).setIdentity();
+
+		// update poseParam term
+		for (int axisDerivativeId = 0; axisDerivativeId < 3; axisDerivativeId++)
+		{
+			std::vector<std::pair<bool, Eigen::Matrix4f>> globalAffineDerivative(m_jointNum, std::make_pair(false, Eigen::Matrix4f::Zero()));
+			globalAffineDerivative[jointDerivativeId].first = true;
+			auto& affine = globalAffineDerivative[jointDerivativeId].second;
+			affine.block<3, 3>(0, 0) = rodriguesDerivative.block<3, 3>(0, 3 * (3 * jointDerivativeId + axisDerivativeId));
+			affine = jointDerivativeId == 0 ? affine : (m_host_globalSE3[m_host_parents[jointDerivativeId]] * affine);
+			for (int jointId = jointDerivativeId + 1; jointId < m_jointNum; jointId++)
+			{
+				if (globalAffineDerivative[m_host_parents[jointId]].first)
+				{
+					globalAffineDerivative[jointId].first = true;
+					globalAffineDerivative[jointId].second = globalAffineDerivative[m_host_parents[jointId]].second * m_host_localSE3[jointId];
+					// update jacobi for pose
+					jointJacobiPose.block<3, 1>(jointId * 3, 3 + jointDerivativeId * 3 + axisDerivativeId) = globalAffineDerivative[jointId].second.block<3, 1>(0, 3);
+				}
+			}
+		}
+	}
+
+	if (!with_vert) return;
+	J_vert = Eigen::MatrixXf::Zero(3 * m_vertexNum, 3 + 3 * m_jointNum);
+	Eigen::MatrixXf block = Eigen::MatrixXf::Zero(3, 3 + 3 * m_jointNum);
+	for (int vIdx = 0; vIdx < m_vertexNum; vIdx++)
+	{
+		Eigen::Vector3f v0 = m_host_verticesDeformed[vIdx];
+		block.setZero();
+		for (int jIdx = 0; jIdx < m_jointNum; jIdx++)
+		{
+			if (m_host_lbsweights(jIdx, vIdx) < 0.00001) continue;
+			block += (m_host_lbsweights(jIdx, vIdx) * jointJacobiPose.middleRows(3 * jIdx, 3));
+			Eigen::Vector3f j0 = m_host_jointsDeformed[jIdx];
+			for (int pIdx = jIdx; pIdx > -1; pIdx = m_host_parents[pIdx]) // poseParamIdx to derive
+			{
+				Eigen::Matrix3f T = Eigen::Matrix3f::Zero();
+				for (int axis_id = 0; axis_id < 3; axis_id++)
+				{
+					Eigen::Matrix3f dR1 = RP.block<3, 3>(9 * pIdx + 3 * axis_id, 0) * LP.block<3, 3>(3 * jIdx, 3 * pIdx);
+					T.col(axis_id) = dR1 * (v0 - j0) * m_host_lbsweights(jIdx, vIdx);
+				}
+
+				block.block<3, 3>(0, 3 + 3 * pIdx) += T;
+			}
+		}
+		J_vert.middleRows(3 * vIdx, 3) = block;
+	}
+}
+
+void PigSolverDevice::CalcPoseJacobiPartTheta_cpu(Eigen::MatrixXf& J_joint, Eigen::MatrixXf& J_vert,
+	bool with_vert)
+{
+	Eigen::MatrixXf J_jointfull, J_vertfull;
+	CalcPoseJacobiFullTheta_cpu(J_jointfull, J_vertfull, with_vert);
+	int M = m_poseToOptimize.size();
+	J_joint.resize(3 * m_jointNum, 3 + 3 * M);
+	if (with_vert)
+	{
+		J_vert.resize(3 * m_vertexNum, 3 + 3 * M);
+		J_vert.middleCols(0, 3) = J_vertfull.middleCols(0, 3);
+	}
+
+	J_joint.middleCols(0, 3) = J_jointfull.middleCols(0, 3);
+
+	for (int i = 0; i < M; i++)
+	{
+		int thetaid = m_poseToOptimize[i];
+		J_joint.middleCols(3 + 3 * i, 3) = J_jointfull.middleCols(3 + 3 * thetaid, 3);
+		if (with_vert)
+			J_vert.middleCols(3 + 3 * i, 3) = J_vertfull.middleCols(3 + 3 * thetaid, 3);
+	}
+}
