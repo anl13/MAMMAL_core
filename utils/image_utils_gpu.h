@@ -11,7 +11,7 @@
 #include <opencv2/core/mat.hpp>
 
 
-void computeSDF2d_device(float* input, cv::Mat& sdf, int W, int H);
+void computeSDF2d_device(float* input, uchar* d_middle_mask, cv::Mat& sdf, int W, int H);
 
 void convertDepthToMask_device(float* input, uchar* mask, int W, int H); 
 

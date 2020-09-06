@@ -26,9 +26,6 @@
     <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\articulation\pigsolver_shape.cpp" />
     <ClCompile Include="..\articulation\pigsolver_sil.cpp" />
-    <ClCompile Include="..\articulation\test_compare_cpugpu.cpp" />
-    <ClCompile Include="..\articulation\test_gpu.cpp" />
-    <ClCompile Include="..\articulation\test_pointer.cpp" />
     <ClCompile Include="..\associate\clusterclique.cpp" />
     <ClCompile Include="..\associate\framedata.cpp" />
     <ClCompile Include="..\associate\framedata_PMT.cpp" />
@@ -67,7 +64,6 @@
     <ClInclude Include="..\articulation\pigmodeldevice.h" />
     <ClInclude Include="..\articulation\pigsolver.h" />
     <ClInclude Include="..\articulation\pigsolverdevice.h" />
-    <ClInclude Include="..\articulation\test_main.h" />
     <ClInclude Include="..\articulation\vector_operations.hpp" />
     <ClInclude Include="..\associate\clusterclique.h" />
     <ClInclude Include="..\associate\framedata.h" />
@@ -187,7 +183,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>Disabled</Optimization>
+      <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>false</SDLCheck>

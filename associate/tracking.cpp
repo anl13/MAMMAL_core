@@ -32,9 +32,10 @@ void NaiveTracker::track()
             G(i,j) = distBetweenSkel3D(m_skels_last[i], m_skels_curr[j]); 
         }
     }
-#ifdef DEBUG_TRACK
-    std::cout << G << std::endl; 
-#endif 
+//#ifdef DEBUG_TRACK
+//	std::cout << "NaiveTracker::track(): " << std::endl; 
+//    std::cout << G << std::endl; 
+//#endif 
     std::vector<int> assign = solveHungarian(G); 
     m_map = assign; 
     m_skels_curr_track.clear(); 

@@ -100,7 +100,11 @@ void PigSolver::setCameras(const vector<Camera>& _cameras)
 
 void PigSolver::setSource(const MatchedInstance& _source)
 {
-	m_source = _source;
+	//m_source = _source;
+	m_source.view_ids.clear(); 
+	m_source.dets.clear();
+	m_source.view_ids = _source.view_ids; 
+	m_source.dets = _source.dets; 
 }
 
 void PigSolver::normalizeCamera()

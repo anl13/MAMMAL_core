@@ -1,6 +1,5 @@
 #include "pigsolver.h"
 
-//#define DEBUG_SIL 
 
 void PigSolver::optimizePoseSilhouette(int maxIter)
 {
@@ -121,7 +120,6 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		Eigen::MatrixXf ATA;
 		Eigen::VectorXf ATb;
 		CalcSilhouettePoseTerm(renders, ATA, ATb, iter);
-		std::cout << "Atb: " << std::endl << ATb.transpose() << std::endl; 
 
 		float lambda = 0.005;
 		float w_joint = 0.01;
@@ -169,8 +167,6 @@ void PigSolver::CalcSilhouettePoseTerm(
 	Eigen::MatrixXf J_joint, J_vert;
 	CalcPoseJacobiPartTheta(J_joint, J_vert, true);
 
-	std::cout << "J_vert: " << std::endl; 
-	std::cout << J_vert.block<10, 10>(0, 0) << std::endl; 
 	//// visualize 
 	//std::vector<cv::Mat> chamfers_vis; 
 	//std::vector<cv::Mat> chamfers_vis_det; 

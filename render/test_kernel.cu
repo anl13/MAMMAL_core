@@ -106,4 +106,5 @@ void check_visibility(float* imgdata_device, int W, int H,
 		visibility_device
 		);
 	visibility_device.download(visibility); 
+	visibility_device.release(); 
 }

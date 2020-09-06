@@ -64,16 +64,12 @@ void FrameData::tracking() // naive 3d 2 3d tracking
 
 void FrameData::solve_parametric_model()
 {
-
 	if(mp_bodysolverdevice.empty()) mp_bodysolverdevice.resize(4);
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 4; i++)
 	{
 		if (mp_bodysolverdevice[i] == nullptr)
 		{
-			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
-			mp_bodysolverdevice[i]->debug();
-			system("pause");
-			exit(-1); 
+			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig); 
 			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
 			mp_bodysolverdevice[i]->normalizeCamera();
 			//mp_bodysolver[i]->InitNodeAndWarpField();
@@ -83,29 +79,20 @@ void FrameData::solve_parametric_model()
 	}
 
 	m_skels3d.resize(4); 
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i <4; i++)
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]); 
 		mp_bodysolverdevice[i]->normalizeSource();
 		mp_bodysolverdevice[i]->globalAlign();
 
-		TimerUtil::Timer<std::chrono::milliseconds> timer;
-		timer.Start(); 
 		mp_bodysolverdevice[i]->optimizePose(); 
-		std::cout << "solve pose " << timer.Elapsed() << "  ms" << std::endl; 
-		std::cout << "debug: " << std::endl; 
 		
 		if (i < 1) {
-			timer.Start(); 
 			std::vector<ROIdescripter> rois;
-			getROI(rois, 0);
-			std::cout << "get roi: " << timer.Elapsed() << " ms" << std::endl; 
+			getROI(rois, i);
 
 			mp_bodysolverdevice[i]->setROIs(rois);
-			timer.Start(); 
-			
-			mp_bodysolverdevice[i]->optimizePoseSilhouette(1);
-			std::cout << "solve by sil gpu: " << timer.Elapsed() << " ms" << std::endl; 
+			mp_bodysolverdevice[i]->optimizePoseSilhouette(18);
 		}
 
 		std::vector<Eigen::Vector3f> skels = mp_bodysolverdevice[i]->getRegressedSkel_host();
@@ -134,22 +121,13 @@ void FrameData::solve_parametric_model_cpu()
 		mp_bodysolver[i]->setSource(m_matched[i]);
 		mp_bodysolver[i]->normalizeSource();
 		mp_bodysolver[i]->globalAlign();
-
-		TimerUtil::Timer<std::chrono::milliseconds> timer;
-		timer.Start();
 		mp_bodysolver[i]->optimizePose();
-		std::cout << "solve pose " << timer.Elapsed() << "  ms" << std::endl;
 
 		if (i < 1) {
-			timer.Start();
 			std::vector<ROIdescripter> rois;
 			getROI(rois, 0);
-			std::cout << "get roi: " << timer.Elapsed() << " ms" << std::endl;
-
 			mp_bodysolver[i]->m_rois = rois;
-			timer.Start();
 			mp_bodysolver[i]->optimizePoseSilhouette(18);
-			std::cout << "solve by sil cpu: " << timer.Elapsed() << " ms"  << std::endl;
 		}
 
 		Eigen::MatrixXf skel_eigen = mp_bodysolver[i]->getRegressedSkel();

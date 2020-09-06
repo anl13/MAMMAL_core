@@ -126,14 +126,6 @@ std::vector<Camera> readCameras()
 
 int run_pose()
 {
-	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
-	std::shared_ptr<PigSolverDevice> p_smal = std::make_shared<PigSolverDevice>(smal_config);
-
-	//std::cout << "lalslslslsls: " << std::endl; 
-	p_smal->debug();
-	system("pause");
-	exit(-1);
-
 	//std::string pig_config = "D:/Projects/animal_calib/articulation/pigmodel_config.json";
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
@@ -150,8 +142,6 @@ int run_pose()
 	auto cams = frame.get_cameras();
 	auto cam = cams[0];
 
-
-
 	// init renderer
 	Eigen::Matrix3f K = cam.K; 
 	K.row(0) = K.row(0) / 1920.f;
@@ -167,59 +157,25 @@ int run_pose()
 	frame.result_folder = "G:/pig_results/";
 	frame.is_smth = false; 
 	int start = frame.get_start_id();
-	std::vector<cv::Mat> rawImgs = frame.get_imgs_undist(); 
-	cv::Mat pack_raw; 
-	packImgBlock(rawImgs, pack_raw); 
+
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
 		std::cout << "processing frame " << frameid << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
-		//frame.view_dependent_clean();
 
-#ifdef READ_SMOOTH 
-		frame.load_clusters();
-		frame.read_parametric_data(); 
-		//std::stringstream state_file;
-		//state_file << "G:/pig_results_level1_nosil/state_smth/pig_" << m_pid << "_frame_" <<
-		//	std::setw(6) << std::setfill('0') << frameid << ".txt";
-		//shapesolver.readState(state_file.str());
-		//shapesolver.UpdateVertices();
-#else 
-		if(frameid == start) // load state 
-		{
-#ifndef RESUME
-			frame.matching_by_tracking(); 
-			frame.solve_parametric_model(); 
-			//frame.solve_parametric_model_cpu();
 
-			frame.save_clusters();
-			//frame.save_parametric_data();
-#else 
-			frame.load_clusters();
-			//frame.solve_parametric_model(); 
-			frame.read_parametric_data();
-			std::stringstream init_state_file;
-			init_state_file << "E:/pig_results/state/pig_" << m_pid << "_frame_" <<
-				std::setw(6) << std::setfill('0') << frameid << ".txt";
-			shapesolver.readState(init_state_file.str());
-			shapesolver.UpdateVertices(); 
-			continue; 
-#endif // RESUME
-		}
-		else {
-			frame.matching_by_tracking();
-			//frame.pureTracking();
-			frame.solve_parametric_model();
-			
+		frame.matching_by_tracking(); 
+		TimerUtil::Timer<std::chrono::milliseconds> tt;
+		tt.Start();
+		frame.solve_parametric_model(); 
+		std::cout << "solve model: " << tt.Elapsed() << " ms" << std::endl; 
 
-			frame.save_clusters();
-			frame.save_parametric_data();
-		}
+		frame.save_clusters();
+		frame.save_parametric_data();
 
-#endif // READ_SMOOTH
+
 		auto solvers = frame.mp_bodysolverdevice;
-		//auto solvers = frame.mp_bodysolver;
 
 		m_renderer.clearAllObjs(); 
 		RenderObjectColor* p_model = new RenderObjectColor();
@@ -230,6 +186,11 @@ int run_pose()
 		p_model->SetFaces(solvers[0]->GetFacesVert());
 		p_model->SetColor(Eigen::Vector3f(0.8f, 0.6f, 0.4f));
 		m_renderer.colorObjs.push_back(p_model); 
+
+
+		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
+		cv::Mat pack_raw;
+		packImgBlock(rawImgs, pack_raw);
 
 		std::vector<cv::Mat> all_renders(cams.size());
 		for (int camid = 0; camid < cams.size(); camid++)
@@ -247,13 +208,14 @@ int run_pose()
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend); 
 
 		std::stringstream all_render_file; 
-#ifndef READ_SMOOTH
-		all_render_file << "G:/pig_results/render_all/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_gpu.png";
-#else 
-		all_render_file << "G:/pig_results_level1_nosil/render_all_smth/" << std::setw(6) << std::setfill('0')
+		all_render_file << "G:/pig_results/render_all/overlay/" << std::setw(6) << std::setfill('0')
+			<< frameid << "_overlay.png";
+		std::stringstream file2;
+		file2 << "G:/pig_results/render_all/render/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
-#endif // READ_SMOOTH
+
+		cv::imwrite(file2.str(), packed_render);
+
 		cv::imwrite(all_render_file.str(), blend); 
 	}
 

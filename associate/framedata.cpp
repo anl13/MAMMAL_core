@@ -79,8 +79,6 @@ void FrameData::configByJson(std::string jsonfile)
 	cv::cvtColor(m_undist_mask, m_undist_mask, cv::COLOR_BGR2GRAY);
 
 	readSceneMask();
-
-
 }
 
 void FrameData::readSceneMask()

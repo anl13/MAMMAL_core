@@ -26,7 +26,12 @@ public:
 	PigSolverDevice(const PigSolverDevice&) = delete; 
 	PigSolverDevice& operator=(const PigSolverDevice&) = delete; 
 
-	void setSource(const MatchedInstance& _source) { m_source = _source; }
+	void setSource(const MatchedInstance& _source) { 
+		m_source.view_ids.clear(); 
+		m_source.dets.clear(); 
+		m_source.view_ids = _source.view_ids;
+		m_source.dets = _source.dets; 
+	}
 	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams;  }
 	void setRenderer(Renderer * _p_render) { mp_renderEngine = _p_render; }
 	void setROIs(std::vector<ROIdescripter> _rois) { m_rois = _rois; }
@@ -74,6 +79,7 @@ public:
 	std::vector<int> m_host_paramLines;
 	pcl::gpu::DeviceArray<int> m_device_paramLines;
 
+	bool init_backgrounds; 
 private:
 
 	
@@ -114,6 +120,7 @@ private:
 	pcl::gpu::DeviceArray<float> d_ATb_sil; 
 	pcl::gpu::DeviceArray2D<float> d_RP;
 	pcl::gpu::DeviceArray2D<float> d_LP; 
+	uchar* d_middle_mask; 
 
 	Eigen::MatrixXf h_J_joint; 
 	Eigen::MatrixXf h_J_vert; 

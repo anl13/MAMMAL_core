@@ -147,15 +147,6 @@
     <ClCompile Include="..\articulation\pigsolverdevice.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\test_compare_cpugpu.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\test_gpu.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\test_pointer.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">
@@ -207,9 +198,6 @@
       <Filter>articulation</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\pigsolverdevice.h">
-      <Filter>articulation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\articulation\test_main.h">
       <Filter>articulation</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\vector_operations.hpp">

@@ -170,8 +170,7 @@ __global__ void construct_sil_A_kernel(
 	pcl::gpu::PtrStepSz<float> d_rend_sdf, // sdf for rendering
 	int W, int H, int pointNum, int paramNum, int id,
 	pcl::gpu::PtrStepSz<float> AT, // [paramNum, pointNum]
-	pcl::gpu::PtrSz<float> b, //[pointnum],
-	float* count
+	pcl::gpu::PtrSz<float> b //[pointnum],
 )
 {
 	unsigned int vIdx = blockIdx.x * blockDim.x + threadIdx.x; 
@@ -214,8 +213,6 @@ __global__ void construct_sil_A_kernel(
 	float dy = d_det_grady(v,u);
 	b[vIdx] = (rend_sdf_value - det_sdf_value) * 0.01;
 	AT(paramIdx, vIdx) = ( dpsil(0) * dx + dpsil(1) * dy ) * 0.01;
-
-	atomicAdd(count, 1); 
 }
 
 
@@ -227,22 +224,15 @@ void PigSolverDevice::calcSilhouetteJacobi_device(
 	dim3 blocksize(32, 32);
 	dim3 gridsize(pcl::device::divUp(m_vertexNum, blocksize.x), pcl::device::divUp(paramNum, blocksize.y));
 
-	pcl::gpu::DeviceArray<float> d_count; 
-	std::vector<float> h_count(1, 0); 
-	d_count.upload(h_count); 
-
 	construct_sil_A_kernel << <gridsize, blocksize >> > (
 		d_J_vert, m_device_bodyParts, m_device_verticesPosed, K, R, T,
 		d_depth, d_det_mask, d_const_scene_mask, d_const_distort_mask,
 		d_det_sdf, d_det_gradx, d_det_grady, d_rend_sdf,
 		1920, 1080, m_vertexNum, paramNum, idcode, 
-		d_JT_sil, d_r_sil, d_count
+		d_JT_sil, d_r_sil
 		);
 	cudaSafeCall(cudaGetLastError()); 
 	cudaSafeCall(cudaDeviceSynchronize()); 
-
-	d_count.download(h_count);
-	printf("visible: %f\n", h_count[0] / paramNum);
 }
 
 void PigSolverDevice::calcPoseJacobiFullTheta_V_device(
