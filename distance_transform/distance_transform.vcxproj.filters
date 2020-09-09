@@ -18,22 +18,19 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="distance_transform_cuda.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\utils\image_utils.h">
       <Filter>other</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\timer_util.h">
       <Filter>other</Filter>
     </ClInclude>
+    <ClInclude Include="..\utils\image_utils_gpu.h">
+      <Filter>other</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="distance_transform_cuda.cu">
-      <Filter>源文件</Filter>
-    </CudaCompile>
-    <CudaCompile Include="distance_transform2.cu">
-      <Filter>源文件</Filter>
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>other</Filter>
     </CudaCompile>
   </ItemGroup>
   <ItemGroup>

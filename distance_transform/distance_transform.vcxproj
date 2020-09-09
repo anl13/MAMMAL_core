@@ -130,12 +130,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\image_utils.h" />
+    <ClInclude Include="..\utils\image_utils_gpu.h" />
     <ClInclude Include="..\utils\timer_util.h" />
-    <ClInclude Include="distance_transform_cuda.h" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="distance_transform2.cu" />
-    <CudaCompile Include="distance_transform_cuda.cu" />
+    <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\utils\camera.cpp" />

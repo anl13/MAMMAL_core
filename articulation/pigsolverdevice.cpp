@@ -606,7 +606,7 @@ void PigSolverDevice::renderDepths()
 }
 
 
-#define DEBUG_SIL
+//#define DEBUG_SIL
 
 void PigSolverDevice::optimizePoseSilhouette(
 	int maxIter)
@@ -655,7 +655,6 @@ void PigSolverDevice::optimizePoseSilhouette(
 		Eigen::MatrixXf ATA_data; 
 		Eigen::VectorXf ATb_data; 
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data); 
-
 
 		renderDepths(); 
 
