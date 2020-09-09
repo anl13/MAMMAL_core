@@ -194,10 +194,10 @@ __global__ void construct_sil_A_kernel(
 	pcl::gpu::PtrStepSz<float> d_det_grady,
 	pcl::gpu::PtrStepSz<float> d_rend_sdf, // sdf for rendering
 	int W, int H, int pointNum, int paramNum, int id,
-	//pcl::gpu::PtrStepSz<float> d_ATA_sil, // [paramNum, paramNum]
-	//pcl::gpu::PtrSz<float> d_ATb_sil //[paramNum],
-	pcl::gpu::PtrStepSz<float> d_AT, // [paramNum, pointnum]
-	pcl::gpu::PtrSz<float> d_b //[pointnum],
+	pcl::gpu::PtrStepSz<float> d_ATA_sil, // [paramNum, paramNum]
+	pcl::gpu::PtrSz<float> d_ATb_sil //[paramNum],
+	//pcl::gpu::PtrStepSz<float> d_AT, // [paramNum, pointnum]
+	//pcl::gpu::PtrSz<float> d_b //[pointnum],
 )
 {
 	unsigned int vIdx = blockIdx.x * blockDim.x + threadIdx.x; 
@@ -317,17 +317,17 @@ __global__ void construct_sil_A_kernel(
 	}
 	float b = (rend_sdf_value - det_sdf_value) * 0.01;
 
-	for (int i = 0; i < paramNum; i++)d_AT(i, vIdx) = A_col[i];
-	d_b[vIdx] = b;
+	//for (int i = 0; i < paramNum; i++)d_AT(i, vIdx) = A_col[i];
+	//d_b[vIdx] = b;
 
-	//for (int i = 0; i < 75; i++)
-	//{
-	//	for (int j = 0; j < 75; j++)
-	//	{
-	//		atomicAdd(&d_ATA_sil(j, i), A_col[i] * A_col[j]);
-	//	}
-	//	atomicAdd(&d_ATb_sil[i], A_col[i] * b);
-	//}
+	for (int i = 0; i < 75; i++)
+	{
+		for (int j = 0; j < 75; j++)
+		{
+			atomicAdd(&d_ATA_sil(j, i), A_col[i] * A_col[j]);
+		}
+		atomicAdd(&d_ATb_sil[i], A_col[i] * b);
+	}
 
 }
 
@@ -356,8 +356,8 @@ void PigSolverDevice::calcSilhouetteJacobi_device(
 		d_depth, d_det_mask, d_const_scene_mask, d_const_distort_mask,
 		d_det_sdf, d_det_gradx, d_det_grady, d_rend_sdf,
 		1920, 1080, m_vertexNum, paramNum, idcode, 
-		//d_ATA_sil, d_ATb_sil
-		d_JT_sil, d_r_sil
+		d_ATA_sil, d_ATb_sil
+		//d_JT_sil, d_r_sil
 		);
 	cudaSafeCall(cudaGetLastError()); 
 	cudaSafeCall(cudaDeviceSynchronize()); 

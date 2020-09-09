@@ -741,36 +741,26 @@ cv::Mat computeSDF2d(const cv::Mat& render, int thresh)
 	{
 		gray = render; 
 	}
+
+	cv::Mat gray_half; 
+	cv::resize(gray, gray_half, cv::Size(960, 540)); 
 	cv::Mat inner, outer;
-	cv::Mat mask;
-	cv::Mat mask_inv;
-	cv::threshold(gray, mask, 1, 255, cv::THRESH_BINARY);
-	cv::threshold(gray, mask_inv, 1, 255, cv::THRESH_BINARY_INV);
+	cv::Mat mask_half, mask_inv_half; 
+	cv::threshold(gray, mask_half, 1, 255, cv::THRESH_BINARY);
+	mask_inv_half = 255 - mask_half; 
+	
 	//cv::imshow("mask", mask);
 	//cv::imshow("mask_inv", mask_inv); 
 	//cv::waitKey();
 	// innner
-	inner = get_dist_trans(mask);
-	if (thresh > 0)
-	{
-		cv::Mat inner_mask;
-		cv::threshold(inner, inner_mask, thresh, 1, cv::THRESH_BINARY);
-		cv::Mat tmp;
-		cv::multiply(inner, 1 - inner_mask, tmp);
-		inner = tmp + inner_mask * thresh;
-	}
+	cv::distanceTransform(mask_half, inner, cv::DIST_L2, 5); 
 	// outer 
-	outer = get_dist_trans(mask_inv);
-	if (thresh > 0)
-	{
-		cv::Mat outer_mask;
-		cv::threshold(outer, outer_mask, thresh, 1, cv::THRESH_BINARY);
-		cv::Mat tmp; 
-		cv::multiply(outer, 1 - outer_mask, tmp); 
-		outer = tmp + outer_mask * thresh;
-	}
+	cv::distanceTransform(mask_inv_half, outer, cv::DIST_L2, 5);
+
 	// final chamfer as sdf
 	cv::Mat sdf = inner - outer;
+	cv::resize(sdf, sdf, cv::Size(1920, 1080)); 
+	sdf = sdf * 2; 
 	return sdf;
 }
 

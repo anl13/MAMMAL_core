@@ -84,14 +84,12 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	d_det_grady.create(H, W);
 	d_const_distort_mask.create(H, W); 
 	d_const_scene_mask.create(H, W); 
-	d_r_sil.create(m_vertexNum); 
 	d_ATA_sil.create(paramNum, paramNum);
 	d_ATb_sil.create(paramNum); 
-	d_JT_sil.create(paramNum, m_vertexNum);
 
 	init_backgrounds = false; 
 
-	cudaMalloc((void**)&d_middle_mask, H*W * sizeof(uchar));
+	cudaMalloc((void**)&d_middle_mask, H/2*W /2* sizeof(uchar));
 
 	std::cout << "paramNum: " << paramNum << std::endl;
 }
@@ -109,10 +107,8 @@ PigSolverDevice::~PigSolverDevice()
 	d_const_scene_mask.release(); 
 	d_J_vert.release();
 	d_J_joint.release();
-	d_JT_sil.release(); 
 	d_J_joint_full.release();
 	d_J_vert_full.release(); 
-	d_r_sil.release(); 
 	d_ATA_sil.release();
 	d_ATb_sil.release(); 
 	d_RP.release(); 
@@ -504,7 +500,6 @@ void PigSolverDevice::optimizePose()
 		{
 			int jIdx = m_poseToOptimize[i];
 			theta.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
-			
 		}
 
 		// data term
@@ -611,7 +606,7 @@ void PigSolverDevice::renderDepths()
 }
 
 
-//#define DEBUG_SIL
+#define DEBUG_SIL
 
 void PigSolverDevice::optimizePoseSilhouette(
 	int maxIter)
@@ -661,6 +656,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		Eigen::VectorXf ATb_data; 
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data); 
 
+
 		renderDepths(); 
 
 #ifdef DEBUG_SIL
@@ -691,11 +687,9 @@ void PigSolverDevice::optimizePoseSilhouette(
 		// compute terms
 		Eigen::MatrixXf ATA_sil;
 		Eigen::VectorXf ATb_sil;
-		CalcSilhouettePoseTerm(d_depth_renders, ATA_sil, ATb_sil);
+		//CalcSilhouettePoseTerm(d_depth_renders, ATA_sil, ATb_sil);
 
-		//Eigen::MatrixXf ATA_sil2; 
-		//Eigen::VectorXf ATb_sil2;
-		//CalcSilouettePoseTerm_cpu(ATA_sil2, ATb_sil2); 
+		CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter); 
 		//std::cout << "ATA_difference: " << (ATA_sil - ATA_sil2).norm() << std::endl; 
 		//std::cout << "ATb_difference: " << (ATb_sil - ATb_sil2).norm() << std::endl;
 
@@ -760,8 +754,6 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 			std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
 			continue;
 		}
-		setConstant2D_device(d_JT_sil, 0);
-		setConstant1D_device(d_r_sil, 0);
 		setConstant2D_device(d_ATA_sil, 0);
 		setConstant1D_device(d_ATb_sil, 0);
 		cv::Mat P;
@@ -810,14 +802,6 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 
 		calcSilhouetteJacobi_device(K, R, T, depths[roiIdx],
 			m_rois[roiIdx].idcode, paramNum);
-
-		computeATA_device(d_JT_sil, d_ATA_sil);
-		computeATb_device(d_JT_sil, d_r_sil, d_ATb_sil);
-
-		Eigen::MatrixXf A = Eigen::MatrixXf::Zero( m_vertexNum, paramNum); 
-		d_JT_sil.download(A.data(), m_vertexNum * sizeof(float)); 
-		Eigen::VectorXf b = Eigen::VectorXf::Zero(m_vertexNum);
-		d_r_sil.download(b.data());
 
 		//// TODO: delete
 		//std::ofstream stream_cpu("G:/pig_results/debug/AT_gpu.txt");
@@ -874,7 +858,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 
 
 void PigSolverDevice::CalcSilouettePoseTerm_cpu(
-	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter)
 {
 	int M = 3 + 3 * m_poseToOptimize.size();
 	ATA = Eigen::MatrixXf::Zero(M, M);
@@ -894,6 +878,16 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, M);
 	Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
 
+#ifdef DEBUG_SIL
+	std::vector<cv::Mat> chamfers_vis;
+	std::vector<cv::Mat> chamfers_vis_det;
+	std::vector<cv::Mat> gradx_vis;
+	std::vector<cv::Mat> grady_vis;
+	std::vector<cv::Mat> diff_vis;
+	std::vector<cv::Mat> diff_xvis;
+	std::vector<cv::Mat> diff_yvis;
+#endif 
+
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
 		if (m_rois[roiIdx].valid < 0.6) {
@@ -907,6 +901,19 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 
 		computeSDF2d_device(d_depth_renders[roiIdx],d_middle_mask, P, 1920,1080);
 
+
+#ifdef DEBUG_SIL
+		chamfers_vis.emplace_back(visualizeSDF2d(P));
+
+		cv::Mat chamfer_vis = visualizeSDF2d(m_rois[roiIdx].chamfer);
+		//cv::imshow("chamfer", chamfer_vis);
+		//cv::waitKey();
+		//cv::destroyAllWindows();
+		//exit(-1);
+
+		chamfers_vis_det.push_back(chamfer_vis);
+		diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
+#endif 
 		Camera cam = m_rois[roiIdx].cam;
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
@@ -961,6 +968,41 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 
 		ATA += A.transpose() * A;
 		ATb += A.transpose() * r;
+#ifdef DEBUG_SIL
+		cv::Mat packP;
+		packImgBlock(chamfers_vis, packP);
+		cv::Mat packD;
+		packImgBlock(chamfers_vis_det, packD);
+		std::stringstream ssp;
+		ssp << "G:/pig_results/debug/" << iter << "_rend_sdf.jpg";
+		cv::imwrite(ssp.str(), packP);
+		std::stringstream ssd;
+		ssd << "G:/pig_results/debug/" << iter << "_det_sdf.jpg";
+		cv::imwrite(ssd.str(), packD);
+		//cv::Mat packX, packY;
+		//packImgBlock(gradx_vis, packX);
+		//packImgBlock(grady_vis, packY);
+		//std::stringstream ssx, ssy;
+		//ssx << "E:/debug_pig3/iters_p/gradx_" << 0 << ".jpg";
+		//ssy << "E:/debug_pig3/iters_p/grady_" << 0 << ".jpg";
+		//cv::imwrite(ssx.str(), packX);
+		//cv::imwrite(ssy.str(), packY);
+
+		cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
+		std::stringstream ssdiff;
+		ssdiff << "G:/pig_results/debug/diff_" << iter << ".jpg";
+		cv::imwrite(ssdiff.str(), packdiff);
+
+		//cv::Mat packdiffx; packImgBlock(diff_xvis, packdiffx);
+		//std::stringstream ssdifx;
+		//ssdifx << "E:/debug_pig3/diff/diffx_" << 0 << ".jpg";
+		//cv::imwrite(ssdifx.str(), packdiffx);
+
+		//cv::Mat packdiffy; packImgBlock(diff_yvis, packdiffy);
+		//std::stringstream ssdify;
+		//ssdify << "E:/debug_pig3/diff/diffy_" << 0 << ".jpg";
+		//cv::imwrite(ssdify.str(), packdiffy);
+#endif 
 	}
 
 }

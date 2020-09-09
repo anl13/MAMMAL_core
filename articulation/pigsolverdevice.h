@@ -113,9 +113,7 @@ private:
 	pcl::gpu::DeviceArray2D<uchar> d_const_scene_mask;
 	pcl::gpu::DeviceArray2D<float> d_J_vert; 
 	pcl::gpu::DeviceArray2D<float> d_J_joint; 
-	pcl::gpu::DeviceArray2D<float> d_JT_sil;
 	pcl::gpu::DeviceArray2D<float> d_J_joint_full, d_J_vert_full;
-	pcl::gpu::DeviceArray<float> d_r_sil;
 	pcl::gpu::DeviceArray2D<float> d_ATA_sil; 
 	pcl::gpu::DeviceArray<float> d_ATb_sil; 
 	pcl::gpu::DeviceArray2D<float> d_RP;
@@ -135,7 +133,7 @@ private:
 	);
 
 	void CalcSilouettePoseTerm_cpu(
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter=0);
 
 	void renderDepths();
 

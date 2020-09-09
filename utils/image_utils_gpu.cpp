@@ -4,16 +4,19 @@
 
 void computeSDF2d_device(float* depth, uchar* d_middle_mask, cv::Mat& sdf, int W, int H)
 {
-	cv::Mat mask(cv::Size(W, H), CV_8UC1);
+	cv::Mat mask(cv::Size(W/2, H/2), CV_8UC1);
 
-	convertDepthToMask_device(depth, d_middle_mask, W, H);
-	cudaMemcpy(mask.data, d_middle_mask, W*H * sizeof(uchar), cudaMemcpyDeviceToHost);
+	convertDepthToMaskHalfSize_device(depth, d_middle_mask, W, H);
+	cudaMemcpy(mask.data, d_middle_mask, W/2*H/2 * sizeof(uchar), cudaMemcpyDeviceToHost);
 	
 	cv::Mat mask_inv = 255 - mask;
 	cv::Mat dt_inner, dt_outer;
+
 	cv::distanceTransform(mask, dt_inner, cv::DIST_L2, 5);
 	cv::distanceTransform(mask_inv, dt_outer, cv::DIST_L2, 5);
 	sdf = dt_inner - dt_outer;
+	cv::resize(sdf, sdf, cv::Size(1920, 1080)); 
+	sdf = sdf * 2; 
 }
 
 void overlay_render_on_raw_gpu(cv::Mat& render, cv::Mat &raw, cv::Mat& out)

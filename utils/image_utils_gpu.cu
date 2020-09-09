@@ -32,6 +32,39 @@ void convertDepthToMask_device(float* input, uchar* mask, int W, int H)
 	cudaSafeCall(cudaDeviceSynchronize());
 }
 
+__global__ void convertDepthToMaskHalfSize_kernel(
+	float* input, uchar* d_mask, int W, int H
+)
+{
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x;
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (x < W && y < H)
+	{
+		unsigned int index = 4 *y * W + 2*x;
+		unsigned int target_index = y * W + x; 
+		float d = input[index];
+		float d2 = input[index + 1];
+		uchar value = 0;
+		if (d > 0.0001 || d2 > 0.0001) value = 255;
+		d_mask[target_index] = value;
+	}
+}
+
+void convertDepthToMaskHalfSize_device(float* depth, uchar* mask, int W, int H)
+{
+	int W_half = W / 2; 
+	int H_half = H / 2; 
+	dim3 blocksize(32, 32);
+	dim3 gridsize(pcl::device::divUp(W_half, blocksize.x),
+		pcl::device::divUp(H_half, blocksize.y));
+
+	convertDepthToMaskHalfSize_kernel << <gridsize, blocksize >> > (
+		depth, mask, W_half, H_half);
+	cudaSafeCall(cudaGetLastError());
+	cudaSafeCall(cudaDeviceSynchronize());
+}
+
 __global__ void overlay_render_on_raw_kernel(
 	uchar* d_render,
 	uchar* d_raw,
