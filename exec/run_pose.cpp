@@ -17,6 +17,7 @@
 #include <vector_functions.hpp>
 #include "main.h"
 #include "../utils/image_utils_gpu.h"
+#include "../utils/show_gpu_param.h"
 
 using std::vector;
 
@@ -126,6 +127,8 @@ std::vector<Camera> readCameras()
 
 int run_pose()
 {
+
+	show_gpu_param(); 
 	//std::string pig_config = "D:/Projects/animal_calib/articulation/pigmodel_config.json";
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
@@ -209,7 +212,7 @@ int run_pose()
 
 		std::stringstream all_render_file; 
 		all_render_file << "G:/pig_results/render_all/overlay/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_overlay.png";
+			<< frameid << "_overlay2.png";
 		std::stringstream file2;
 		file2 << "G:/pig_results/render_all/render/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
@@ -219,6 +222,6 @@ int run_pose()
 		cv::imwrite(all_render_file.str(), blend); 
 	}
 
-	system("pause"); 
+	
 	return 0;
 }

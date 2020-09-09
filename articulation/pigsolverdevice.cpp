@@ -1,6 +1,7 @@
 #include "pigsolverdevice.h"
 #include <json/json.h> 
 #include "../utils/image_utils_gpu.h"
+#include <cuda_profiler_api.h>
 
 PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	:PigModelDevice(_configFile)
@@ -91,6 +92,8 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	init_backgrounds = false; 
 
 	cudaMalloc((void**)&d_middle_mask, H*W * sizeof(uchar));
+
+	std::cout << "paramNum: " << paramNum << std::endl;
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -638,6 +641,8 @@ void PigSolverDevice::optimizePoseSilhouette(
 	}
 
 
+	cudaProfilerStart();
+
 	for (; iter < maxIter; iter++)
 	{
 		UpdateVertices();
@@ -686,8 +691,18 @@ void PigSolverDevice::optimizePoseSilhouette(
 		// compute terms
 		Eigen::MatrixXf ATA_sil;
 		Eigen::VectorXf ATb_sil;
+		CalcSilhouettePoseTerm(d_depth_renders, ATA_sil, ATb_sil);
 
-		CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil); 
+		//Eigen::MatrixXf ATA_sil2; 
+		//Eigen::VectorXf ATb_sil2;
+		//CalcSilouettePoseTerm_cpu(ATA_sil2, ATb_sil2); 
+		//std::cout << "ATA_difference: " << (ATA_sil - ATA_sil2).norm() << std::endl; 
+		//std::cout << "ATb_difference: " << (ATb_sil - ATb_sil2).norm() << std::endl;
+
+		//std::cout << "ATA cpu: " << std::endl<< ATA_sil2.block<9, 9>(0, 0) << std::endl; 
+		//std::cout << "ATA gpu: " << std::endl << ATA_sil.block<9, 9>(0, 0) << std::endl;
+		//std::cout << "ATb cpu: " << std::endl << ATb_sil2.segment<9>(0).transpose() << std::endl;
+		//std::cout << "ATb gpu: " << std::endl << ATb_sil.segment<9>(0).transpose() << std::endl;
 
 		float lambda = 0.005;
 		float w_data = 0.01;
@@ -715,6 +730,8 @@ void PigSolverDevice::optimizePoseSilhouette(
 			m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 		}
 	}
+
+	cudaProfilerStop(); 
 }
 
 
@@ -726,7 +743,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	int paramNum = 3 + 3 * m_poseToOptimize.size();
 	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
 	ATb = Eigen::VectorXf::Zero(paramNum);
-	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
+	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert); // TODO: remove d_J_vert computation here. 
 
 #ifdef DEBUG_SIL
 	std::vector<cv::Mat> chamfers_vis;
@@ -739,7 +756,10 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 #endif 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
-
+		if (m_rois[roiIdx].valid < 0.6) {
+			std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
+			continue;
+		}
 		setConstant2D_device(d_JT_sil, 0);
 		setConstant1D_device(d_r_sil, 0);
 		setConstant2D_device(d_ATA_sil, 0);
@@ -796,9 +816,14 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 
 		Eigen::MatrixXf A = Eigen::MatrixXf::Zero( m_vertexNum, paramNum); 
 		d_JT_sil.download(A.data(), m_vertexNum * sizeof(float)); 
+		Eigen::VectorXf b = Eigen::VectorXf::Zero(m_vertexNum);
+		d_r_sil.download(b.data());
 
-		Eigen::VectorXf b = Eigen::VectorXf::Zero(m_vertexNum); 
-		d_r_sil.download(b.data()); 
+		//// TODO: delete
+		//std::ofstream stream_cpu("G:/pig_results/debug/AT_gpu.txt");
+		//stream_cpu << A << std::endl;
+		//stream_cpu.close();
+
 
 		Eigen::MatrixXf ATA_view = Eigen::MatrixXf::Zero(paramNum, paramNum);
 		Eigen::VectorXf ATb_view = Eigen::VectorXf::Zero(paramNum);
@@ -857,6 +882,14 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
 	d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float)); 
 	d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float)); 
+
+	//Eigen::MatrixXf h_J_vert_cpu, h_J_joint_cpu;
+	//CalcPoseJacobiPartTheta_cpu(h_J_joint_cpu, h_J_vert_cpu, true); 
+
+	//Eigen::MatrixXf diff_vert = h_J_vert_cpu - h_J_vert;
+	//Eigen::MatrixXf diff_joint = h_J_joint_cpu - h_J_joint; 
+	//std::cout << "pose jacobi part diff vert: " << diff_vert.norm() << std::endl; 
+	//std::cout << "pose jacobi part diff joint: " << diff_joint.norm() << std::endl;
 
 	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, M);
 	Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
@@ -920,6 +953,11 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		}
 		A = wc * A;
 		r = wc * r;
+
+		//// TODO: delete
+		//std::ofstream stream_cpu("G:/pig_results/debug/AT_cpu.txt");
+		//stream_cpu << A << std::endl; 
+		//stream_cpu.close(); 
 
 		ATA += A.transpose() * A;
 		ATb += A.transpose() * r;

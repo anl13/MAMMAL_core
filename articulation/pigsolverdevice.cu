@@ -46,63 +46,78 @@ __global__ void compute_jacobi_v_full_kernel(
 	int vIdx = blockIdx.x * blockDim.x + threadIdx.x; 
 	if (vIdx < vertexNum)
 	{
+			// allocate data space once for all. 
 		Eigen::Vector3f v0 = tpose_v[vIdx];
+		Eigen::Vector3f j0;
+		Eigen::Matrix3f dR1;
+		Eigen::Matrix3f Tmp = Eigen::Matrix3f::Zero();
+		Eigen::Matrix3f RPblock;
+		Eigen::Matrix3f LPblock;
+		float J[567]; // 567 = 3 * (3+62*3)
+#pragma unroll 
+		for (int i = 0; i < 567; i++) J[i] = 0;
 		for (int jIdx = 0; jIdx < jointNum; jIdx++)
 		{
-			if (weights(vIdx, jIdx) < 0.00001)continue; 
-			float w = weights(vIdx, jIdx); 
-			
+			if (weights(vIdx, jIdx) < 0.00001)continue;
+			float w = weights(vIdx, jIdx);
+
 			// like: block += (m_lbsweights(jIdx, vIdx) * jointJacobiPose.middleRows(3 * jIdx, 3));
 #pragma unroll
-			for (int i = 0; i < 3; i++)
+
+			for (int j = 0; j < 3 * jointNum + 3; j++)
 			{
-				for (int j = 0; j < 3 * jointNum + 3; j++)
+				for (int i = 0; i < 3; i++)
 				{
-					atomicAdd(&dst(j, 3*vIdx + i), w * J_joint(j, 3*jIdx + i));
+					//atomicAdd(&dst(j, 3 * vIdx + i), w * J_joint(j, 3 * jIdx + i));
+					J[3 * j + i] += w * J_joint(j, 3 * jIdx + i);
 				}
 			}
 			// T
-			Eigen::Vector3f j0 = tpose_j[jIdx];
+			j0 = tpose_j[jIdx];
+
 			for (int pIdx = jIdx; pIdx > -1; pIdx = parents[pIdx])
 			{
-				Eigen::Matrix3f T = Eigen::Matrix3f::Zero();
+				Tmp.setZero();
 #pragma unroll
 				for (int axis_id = 0; axis_id < 3; axis_id++)
 				{
-					Eigen::Matrix3f RPblock;
+
 					RPblock(0, 0) = RP(0, 9 * pIdx + 3 * axis_id);
 					RPblock(0, 1) = RP(1, 9 * pIdx + 3 * axis_id);
 					RPblock(0, 2) = RP(2, 9 * pIdx + 3 * axis_id);
-					RPblock(1, 0) = RP(0, 9 * pIdx + 3 * axis_id+1);
-					RPblock(1, 1) = RP(1, 9 * pIdx + 3 * axis_id+1);
-					RPblock(1, 2) = RP(2, 9 * pIdx + 3 * axis_id+1);
-					RPblock(2, 0) = RP(0, 9 * pIdx + 3 * axis_id+2);
-					RPblock(2, 1) = RP(1, 9 * pIdx + 3 * axis_id+2);
-					RPblock(2, 2) = RP(2, 9 * pIdx + 3 * axis_id+2);
+					RPblock(1, 0) = RP(0, 9 * pIdx + 3 * axis_id + 1);
+					RPblock(1, 1) = RP(1, 9 * pIdx + 3 * axis_id + 1);
+					RPblock(1, 2) = RP(2, 9 * pIdx + 3 * axis_id + 1);
+					RPblock(2, 0) = RP(0, 9 * pIdx + 3 * axis_id + 2);
+					RPblock(2, 1) = RP(1, 9 * pIdx + 3 * axis_id + 2);
+					RPblock(2, 2) = RP(2, 9 * pIdx + 3 * axis_id + 2);
 
-	
-					Eigen::Matrix3f LPblock;
-					LPblock(0, 0) = LP(3*pIdx,3*jIdx);
-					LPblock(0, 1) = LP(3 * pIdx+1, 3 * jIdx);
-					LPblock(0, 2) = LP(3 * pIdx+2, 3 * jIdx);
-					LPblock(1, 0) = LP(3 * pIdx, 3 * jIdx+1);
-					LPblock(1, 1) = LP(3 * pIdx+1, 3 * jIdx+1);
-					LPblock(1, 2) = LP(3 * pIdx+2, 3 * jIdx+1);
-					LPblock(2, 0) = LP(3 * pIdx, 3 * jIdx+2);
-					LPblock(2, 1) = LP(3 * pIdx+1, 3 * jIdx+2);
-					LPblock(2, 2) = LP(3 * pIdx+2, 3 * jIdx+2);
-
-					Eigen::Matrix3f dR1 = RPblock * LPblock; 
-					T.col(axis_id) = dR1 * (v0 - j0) * w; 
+					LPblock(0, 0) = LP(3 * pIdx, 3 * jIdx);
+					LPblock(0, 1) = LP(3 * pIdx + 1, 3 * jIdx);
+					LPblock(0, 2) = LP(3 * pIdx + 2, 3 * jIdx);
+					LPblock(1, 0) = LP(3 * pIdx, 3 * jIdx + 1);
+					LPblock(1, 1) = LP(3 * pIdx + 1, 3 * jIdx + 1);
+					LPblock(1, 2) = LP(3 * pIdx + 2, 3 * jIdx + 1);
+					LPblock(2, 0) = LP(3 * pIdx, 3 * jIdx + 2);
+					LPblock(2, 1) = LP(3 * pIdx + 1, 3 * jIdx + 2);
+					LPblock(2, 2) = LP(3 * pIdx + 2, 3 * jIdx + 2);
+					dR1 = RPblock * LPblock;
+					Tmp.col(axis_id) = dR1 * (v0 - j0) * w;
 				}
-#pragma unroll
 				for (int i = 0; i < 3; i++)
 				{
 					for (int j = 0; j < 3; j++)
 					{
-						atomicAdd(&dst( 3+3*pIdx+j, 3 * vIdx + i), T(i,j));
+						J[3 * (3 + 3 * pIdx) + 3 * i + j] += Tmp(j, i);
 					}
 				}
+			}
+		}
+		for (int j = 0; j < 3 * jointNum + 3; j++)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				dst(j, 3 * vIdx + i) = J[3 * j + i];
 			}
 		}
 	}
@@ -156,7 +171,17 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 }
 
 __global__ void construct_sil_A_kernel(
-	pcl::gpu::PtrStepSz<float> d_J_vert, // [paramNum, 3*vertexnum]
+	const pcl::gpu::PtrSz<Eigen::Vector3f> tpose_v, // vertices of tpose
+	const pcl::gpu::PtrSz<Eigen::Vector3f> tpose_j, // joints of tpoose 
+	const pcl::gpu::PtrStepSz<float> J_joint, // jacobi of joints
+	const pcl::gpu::PtrStepSz<float> weights, // skinning_weights
+	const pcl::gpu::PtrSz<int> parents,
+	const int vertexNum,
+	const int jointNum,
+	const pcl::gpu::PtrStepSz<float> RP,
+	const pcl::gpu::PtrStepSz<float> LP,
+	pcl::gpu::PtrSz<int> d_paramLines,
+
 	pcl::gpu::PtrSz<BODY_PART> d_parts,
 	pcl::gpu::PtrSz<Eigen::Vector3f> d_points3d,
 	Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
@@ -169,13 +194,14 @@ __global__ void construct_sil_A_kernel(
 	pcl::gpu::PtrStepSz<float> d_det_grady,
 	pcl::gpu::PtrStepSz<float> d_rend_sdf, // sdf for rendering
 	int W, int H, int pointNum, int paramNum, int id,
-	pcl::gpu::PtrStepSz<float> AT, // [paramNum, pointNum]
-	pcl::gpu::PtrSz<float> b //[pointnum],
+	//pcl::gpu::PtrStepSz<float> d_ATA_sil, // [paramNum, paramNum]
+	//pcl::gpu::PtrSz<float> d_ATb_sil //[paramNum],
+	pcl::gpu::PtrStepSz<float> d_AT, // [paramNum, pointnum]
+	pcl::gpu::PtrSz<float> d_b //[pointnum],
 )
 {
 	unsigned int vIdx = blockIdx.x * blockDim.x + threadIdx.x; 
-	unsigned int paramIdx = blockIdx.y * blockDim.y + threadIdx.y; 
-	if (vIdx >= pointNum || paramIdx>=paramNum) return; 
+	if (vIdx >= pointNum) return; 
 	
 	if (d_parts[vIdx] == TAIL) return; 
 	if (d_parts[vIdx] == L_EAR) return;
@@ -197,22 +223,112 @@ __global__ void construct_sil_A_kernel(
 
 	float det_sdf_value = d_det_sdf(v,u);
 	if (det_sdf_value < -9999) return;
+	float dx = d_det_gradx(v, u);
+	float dy = d_det_grady(v, u);
+
+	// allocate data space once for all. 
+	Eigen::Vector3f v0 = tpose_v[vIdx];
+	Eigen::Vector3f j0; 
+	Eigen::Matrix3f dR1;
+	Eigen::Matrix3f Tmp = Eigen::Matrix3f::Zero();
+	Eigen::Matrix3f RPblock;
+	Eigen::Matrix3f LPblock;
+	float J[567]; // 567 = 3 * (3+62*3)
+#pragma unroll 
+	for (int i = 0; i < 567; i++) J[i] = 0; 
+	for (int jIdx = 0; jIdx < jointNum; jIdx++)
+	{
+		if (weights(vIdx, jIdx) < 0.00001)continue;
+		float w = weights(vIdx, jIdx);
+
+		// like: block += (m_lbsweights(jIdx, vIdx) * jointJacobiPose.middleRows(3 * jIdx, 3));
+#pragma unroll
+
+		for (int j = 0; j < 3*jointNum+3; j++)
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				//atomicAdd(&dst(j, 3 * vIdx + i), w * J_joint(j, 3 * jIdx + i));
+				J[3*j+i] += w * J_joint(j, 3 * jIdx + i);
+			}
+		}
+		// T
+		j0 = tpose_j[jIdx];
+		
+		for (int pIdx = jIdx; pIdx > -1; pIdx = parents[pIdx])
+		{
+			Tmp.setZero(); 
+#pragma unroll
+			for (int axis_id = 0; axis_id < 3; axis_id++)
+			{
+				
+				RPblock(0, 0) = RP(0, 9 * pIdx + 3 * axis_id);
+				RPblock(0, 1) = RP(1, 9 * pIdx + 3 * axis_id);
+				RPblock(0, 2) = RP(2, 9 * pIdx + 3 * axis_id);
+				RPblock(1, 0) = RP(0, 9 * pIdx + 3 * axis_id + 1);
+				RPblock(1, 1) = RP(1, 9 * pIdx + 3 * axis_id + 1);
+				RPblock(1, 2) = RP(2, 9 * pIdx + 3 * axis_id + 1);
+				RPblock(2, 0) = RP(0, 9 * pIdx + 3 * axis_id + 2);
+				RPblock(2, 1) = RP(1, 9 * pIdx + 3 * axis_id + 2);
+				RPblock(2, 2) = RP(2, 9 * pIdx + 3 * axis_id + 2);
+
+				LPblock(0, 0) = LP(3 * pIdx, 3 * jIdx);
+				LPblock(0, 1) = LP(3 * pIdx + 1, 3 * jIdx);
+				LPblock(0, 2) = LP(3 * pIdx + 2, 3 * jIdx);
+				LPblock(1, 0) = LP(3 * pIdx, 3 * jIdx + 1);
+				LPblock(1, 1) = LP(3 * pIdx + 1, 3 * jIdx + 1);
+				LPblock(1, 2) = LP(3 * pIdx + 2, 3 * jIdx + 1);
+				LPblock(2, 0) = LP(3 * pIdx, 3 * jIdx + 2);
+				LPblock(2, 1) = LP(3 * pIdx + 1, 3 * jIdx + 2);
+				LPblock(2, 2) = LP(3 * pIdx + 2, 3 * jIdx + 2);
+				dR1 = RPblock * LPblock; 
+				Tmp.col(axis_id) = dR1 * (v0 - j0) * w;
+			}
+			for (int i = 0; i < 3; i++)
+			{
+				for (int j = 0; j < 3; j++)
+				{
+					J[3 * (3 + 3 * pIdx) + 3 * i + j] += Tmp(j,i);
+				}
+			}
+		}
+	}
 	
-	Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
-	D(0, 0) = 1 / point2d(2);
-	D(1, 1) = 1 / point2d(2);
-	D(0, 2) = -point2d(0) / (point2d(2)*point2d(2));
-	D(1, 2) = -point2d(1) / (point2d(2) * point2d(2)); 
-	Eigen::Vector3f dp;
-	dp(0) = d_J_vert(paramIdx, 3 * vIdx + 0);
-	dp(1) = d_J_vert(paramIdx, 3 * vIdx + 1);
-	dp(2) = d_J_vert(paramIdx, 3 * vIdx + 2);
-	Eigen::Vector2f dpsil;
-	dpsil = D * K*R*dp;
-	float dx = d_det_gradx(v,u);
-	float dy = d_det_grady(v,u);
-	b[vIdx] = (rend_sdf_value - det_sdf_value) * 0.01;
-	AT(paramIdx, vIdx) = ( dpsil(0) * dx + dpsil(1) * dy ) * 0.01;
+	// reuse Tmp matrix as D. 
+	Tmp.setZero();
+	Tmp(0, 0) = 1 / point2d(2);
+	Tmp(1, 1) = 1 / point2d(2);
+	Tmp(0, 2) = -point2d(0) / (point2d(2)*point2d(2));
+	Tmp(1, 2) = -point2d(1) / (point2d(2) * point2d(2)); 
+	// reuse v0 as dp 
+	// reuse j0 as dpsil
+	int J_V_index = -1;
+	float A_col[75]; // 75 is paramNum
+#pragma unroll
+	for (int i = 0; i < paramNum; i++)
+	{
+		J_V_index = d_paramLines[i];
+		v0(0) = J[3*J_V_index];
+		v0(1) = J[3*J_V_index+1];
+		v0(2) = J[3*J_V_index+2];
+		
+		j0 = Tmp * K*R* v0;
+		A_col[i] = (j0(0) * dx + j0(1) * dy) * 0.01;
+	}
+	float b = (rend_sdf_value - det_sdf_value) * 0.01;
+
+	for (int i = 0; i < paramNum; i++)d_AT(i, vIdx) = A_col[i];
+	d_b[vIdx] = b;
+
+	//for (int i = 0; i < 75; i++)
+	//{
+	//	for (int j = 0; j < 75; j++)
+	//	{
+	//		atomicAdd(&d_ATA_sil(j, i), A_col[i] * A_col[j]);
+	//	}
+	//	atomicAdd(&d_ATb_sil[i], A_col[i] * b);
+	//}
+
 }
 
 
@@ -221,14 +337,26 @@ void PigSolverDevice::calcSilhouetteJacobi_device(
 	float* d_depth, int idcode, int paramNum
 )
 {
-	dim3 blocksize(32, 32);
-	dim3 gridsize(pcl::device::divUp(m_vertexNum, blocksize.x), pcl::device::divUp(paramNum, blocksize.y));
+	dim3 blocksize(32);
+	dim3 gridsize(pcl::device::divUp(m_vertexNum, blocksize.x));
 
 	construct_sil_A_kernel << <gridsize, blocksize >> > (
-		d_J_vert, m_device_bodyParts, m_device_verticesPosed, K, R, T,
+		m_device_verticesDeformed, // vertices of tpose
+		m_device_jointsDeformed, // joints of tpoose 
+		d_J_joint_full, // jacobi of joints
+		m_device_lbsweights, // skinning_weights
+		m_device_parents,
+		m_vertexNum,
+		m_jointNum,
+		d_RP,
+		d_LP,
+		m_device_paramLines, 
+
+		m_device_bodyParts, m_device_verticesPosed, K, R, T,
 		d_depth, d_det_mask, d_const_scene_mask, d_const_distort_mask,
 		d_det_sdf, d_det_gradx, d_det_grady, d_rend_sdf,
 		1920, 1080, m_vertexNum, paramNum, idcode, 
+		//d_ATA_sil, d_ATb_sil
 		d_JT_sil, d_r_sil
 		);
 	cudaSafeCall(cudaGetLastError()); 

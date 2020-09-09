@@ -127,7 +127,7 @@ void FrameData::solve_parametric_model_cpu()
 			std::vector<ROIdescripter> rois;
 			getROI(rois, 0);
 			mp_bodysolver[i]->m_rois = rois;
-			mp_bodysolver[i]->optimizePoseSilhouette(18);
+			mp_bodysolver[i]->optimizePoseSilhouette(1);
 		}
 
 		Eigen::MatrixXf skel_eigen = mp_bodysolver[i]->getRegressedSkel();
