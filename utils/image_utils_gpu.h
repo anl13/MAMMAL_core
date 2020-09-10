@@ -26,3 +26,5 @@ void distanceTransform_device(uchar* d_inData, float* d_outData, unsigned int wi
 void sdf2d_device(uchar* d_inData, float* d_outData, unsigned int width, unsigned int height); 
 
 int get_min(int, int); 
+
+void sobel_device(float* d_in, float* d_out_x, float* d_out_y, unsigned int W, unsigned int H); 

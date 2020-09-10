@@ -309,3 +309,39 @@ void sdf2d_device(uchar* d_inData, float* d_outData, unsigned int width, unsigne
 	cudaSafeCall(cudaGetLastError());
 	cudaSafeCall(cudaDeviceSynchronize());
 }
+
+/*
+Sobel on gpu 
+*/
+__global__ void sobel_kernel(
+	float * d_in,
+	float * d_out_x,
+	float * d_out_y, 
+	unsigned int W, unsigned int H
+)
+{
+	unsigned int x = blockIdx.x * blockDim.x + threadIdx.x; 
+	unsigned int y = blockIdx.y * blockDim.y + threadIdx.y;
+	if (x>0 && x < W-1 && y > 0 && y < H-1)
+	{
+		float dx = -d_in[(y - 1)*W + x - 1] - 2 * d_in[y*W + x - 1] - d_in[(y + 1)*W + x - 1]
+			+ d_in[(y - 1)*W + x + 1] + 2 * d_in[y*W + x + 1] + d_in[(y + 1)*W + x + 1];
+		float dy = -d_in[(y - 1)*W + x - 1] - 2 * d_in[(y - 1)*W + x] - d_in[(y - 1)*W + x + 1]
+			+ d_in[(y + 1)*W + x - 1] + 2 * d_in[(y + 1)*W + x] + d_in[(y + 1)*W + x + 1];
+
+		d_out_x[y*W + x] = dx; 
+		d_out_y[y*W + x] = dy; 
+	}
+}
+
+
+void sobel_device(float* d_in, float* d_out_x, float* d_out_y, unsigned int W, unsigned int H)
+{
+	dim3 blocksize(32, 32); 
+	dim3 gridsize(pcl::device::divUp(W, blocksize.x), pcl::device::divUp(H, blocksize.y)); 
+	sobel_kernel << <gridsize, blocksize >> > (
+		d_in, d_out_x, d_out_y, W, H
+		);
+	cudaSafeCall(cudaGetLastError()); 
+	cudaSafeCall(cudaDeviceSynchronize()); 
+}

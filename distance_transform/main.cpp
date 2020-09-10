@@ -110,16 +110,24 @@ int main()
 
 	cv::Mat dt_cv;
 	TimerUtil::Timer<std::chrono::microseconds> tt;
-	tt.Start();
+	
 	dt_cv = computeSDF2d(img_gray2);
+	cv::resize(dt_cv, dt_cv, cv::Size(960, 540)); 
+	dt_cv = dt_cv / 2; 
+	cv::Mat dx_cv, dy_cv; 
+	tt.Start(); 
+	computeGradient(dt_cv, dx_cv, dy_cv);
 	std::cout << "Time used on opencv: " << tt.Elapsed() / 1 << " microseconds. " << std::endl;
-	cv::Mat dt_vis = visualizeSDF2d(dt_cv);
+	cv::Mat dt_vis = visualizeSDF2d(dx_cv);
 
 
 	uchar* img_uchar_device;
 	cudaMalloc((void**)&img_uchar_device, H*W * sizeof(uchar));
 	float* img_out_device;
 	cudaMalloc((void**)&img_out_device, H*W * sizeof(float));
+	float* sobel_x, *sobel_y; 
+	cudaMalloc((void**)&sobel_x, H*W * sizeof(float)); 
+	cudaMalloc((void**)&sobel_y, H*W * sizeof(float));
 
 	cudaMemcpy(img_uchar_device, img_1.data, H*W * sizeof(uchar), cudaMemcpyHostToDevice);
 
@@ -127,12 +135,12 @@ int main()
 	white.setTo(0);
 	cudaMemcpy(img_out_device, white.data, H*W * sizeof(float), cudaMemcpyHostToDevice);
 
-	tt.Start();
 	sdf2d_device(img_uchar_device, img_out_device, W, H);
+
+	tt.Start(); 
+	sobel_device(img_out_device, sobel_x, sobel_y, W, H);
 	std::cout << "kernel: " << tt.Elapsed() << " mcs" << std::endl;
-	cudaMemcpy(white.data, img_out_device, H*W * sizeof(float), cudaMemcpyDeviceToHost);
-	cv::resize(white, white, cv::Size(1920, 1080));
-	white = white * 2;
+	cudaMemcpy(white.data, sobel_x, H*W * sizeof(float), cudaMemcpyDeviceToHost);
 	std::cout << "Time used on gpu: " << tt.Elapsed() << std::endl;
 
 
