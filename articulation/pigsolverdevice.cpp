@@ -475,7 +475,8 @@ void PigSolverDevice::calcPose2DTerm_host(
 	Eigen::Matrix3f R = cam.R;
 	Eigen::Matrix3f K = cam.K;
 	Eigen::Vector3f T = cam.T;
-
+	K.row(0) /= 1920; 
+	K.row(1) /= 1080;
 	int N = m_skelCorr.size();
 	int M = m_poseToOptimize.size();
 	Eigen::VectorXf r = Eigen::VectorXf::Zero(2 * N);
@@ -490,6 +491,8 @@ void PigSolverDevice::calcPose2DTerm_host(
 		if (det.keypoints[t](2) < m_skelTopo.kpt_conf_thresh[t]) continue;
 
 		Eigen::Vector3f x_local = K * (R * skel2d[t] + T);
+		x_local(0);
+		x_local(1);
 		Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 		D(0, 0) = 1 / x_local(2);
 		D(1, 1) = 1 / x_local(2);
@@ -499,8 +502,10 @@ void PigSolverDevice::calcPose2DTerm_host(
 		Eigen::Vector2f u;
 		u(0) = x_local(0) / x_local(2);
 		u(1) = x_local(1) / x_local(2);
-
-		r.segment<2>(2 * i) = P.weight * (u - det.keypoints[t].segment<2>(0));
+		Eigen::Vector2f det_u;
+		det_u(0) = det.keypoints[t](0) / 1920; 
+		det_u(1) = det.keypoints[t](1) / 1080;
+		r.segment<2>(2 * i) = P.weight * (u - det_u);
 	}
 
 	ATb = -J.transpose() * r;
@@ -535,7 +540,6 @@ void PigSolverDevice::optimizePose()
 		float lambda = 0.0005; // LM algorhtim
 		float w_data = 1;
 		float w_reg = 0.01;
-		float w_temp = 0.0;
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
 		Eigen::MatrixXf ATA_reg = DTD;  // reg term 
 		Eigen::VectorXf ATb_reg = -theta; // reg term 
@@ -558,25 +562,6 @@ void PigSolverDevice::optimizePose()
 	}
 }
 
-void PigSolverDevice::normalizeCamera()
-{
-	for (int i = 0; i < m_cameras.size(); i++)
-	{
-		m_cameras[i].NormalizeK();
-	}
-}
-
-void PigSolverDevice::normalizeSource()
-{
-	for (int i = 0; i < m_source.dets.size(); i++)
-	{
-		for (int k = 0; k < m_source.dets[i].keypoints.size(); k++)
-		{
-			m_source.dets[i].keypoints[k](0) /= 1920;
-			m_source.dets[i].keypoints[k](1) /= 1080;
-		}
-	}
-}
 
 void PigSolverDevice::Calc2dJointProjectionTerm(
 	const MatchedInstance& source,
@@ -726,7 +711,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 
 		float lambda = 0.005;
 		float w_data = 0.01;
-		float w_sil = 1;
+		float w_sil = 0.0005;
 		float w_reg = 1;
 		float w_temp = 0;
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
@@ -742,6 +727,10 @@ void PigSolverDevice::optimizePoseSilhouette(
 			+ ATb_data * w_data;
 		Eigen::VectorXf delta = H.ldlt().solve(b);
 
+		std::cout << "ATb data : " << ATb_data.norm() << std::endl; 
+		std::cout << "ATb sil  : " << ATb_sil.norm() << std::endl;
+		std::cout << "ATb temp : " << b_temp.norm() << std::endl; 
+		std::cout << "ATb reg  : " << b_reg.norm() << std::endl; 
 		// update 
 		m_host_translation += delta.segment<3>(0);
 		for (int i = 0; i < M; i++)
@@ -805,8 +794,6 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
-		K.row(0) = K.row(0) * 1920;
-		K.row(1) = K.row(1) * 1080;
 
 		setConstant2D_device(d_ATA_sil, 0);
 		setConstant1D_device(d_ATb_sil, 0);

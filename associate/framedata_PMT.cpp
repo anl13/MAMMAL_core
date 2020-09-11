@@ -71,7 +71,6 @@ void FrameData::solve_parametric_model()
 		{
 			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig); 
 			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
-			mp_bodysolverdevice[i]->normalizeCamera();
 			//mp_bodysolver[i]->InitNodeAndWarpField();
 			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
 			std::cout << "init model " << i << std::endl; 
@@ -82,9 +81,7 @@ void FrameData::solve_parametric_model()
 	for (int i = 0; i <4; i++)
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]); 
-		mp_bodysolverdevice[i]->normalizeSource();
 		mp_bodysolverdevice[i]->globalAlign();
-
 		mp_bodysolverdevice[i]->optimizePose(); 
 		
 		TimerUtil::Timer<std::chrono::milliseconds> tt; 
@@ -165,7 +162,6 @@ void FrameData::read_parametric_data()
 		{
 			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
 			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
-			mp_bodysolverdevice[i]->normalizeCamera();
 			std::cout << "init model " << i << std::endl;
 		}
 	}

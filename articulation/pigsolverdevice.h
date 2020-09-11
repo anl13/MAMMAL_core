@@ -43,8 +43,6 @@ public:
 	std::vector<Eigen::Vector3f> getRegressedSkel(); 
 	void globalAlign(); // compute scale and global R,T`
 
-	void normalizeCamera(); 
-	void normalizeSource(); 
 	void optimizePose(); 
 	void optimizePoseSilhouette(
 		int maxIter);

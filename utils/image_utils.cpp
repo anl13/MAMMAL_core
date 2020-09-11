@@ -632,8 +632,8 @@ float checkKeypointsMaskOverlay(const cv::Mat& mask, const std::vector<Eigen::Ve
 	{
 		if (keypoints[i](2) < 0.5) continue;
 		total += 1;
-		int y = keypoints[i](1) * 1080;
-		int x = keypoints[i](0) * 1920;
+		int y = keypoints[i](1) ;
+		int x = keypoints[i](0) ;
 		int value = mask.at<uchar>(y, x); 
 		if (value == idcode) valid += 1;
 	}
