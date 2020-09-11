@@ -88,15 +88,18 @@ void FrameData::solve_parametric_model()
 		mp_bodysolverdevice[i]->optimizePose(); 
 		
 		TimerUtil::Timer<std::chrono::milliseconds> tt; 
-		tt.Start(); 
 		if (i < 1) {
-			std::vector<ROIdescripter> rois;
-			getROI(rois, i);
+			//std::vector<ROIdescripter> rois;
+			//getROI(rois, i);
+			//mp_bodysolverdevice[i]->setROIs(rois);
+			setConstDataToSolver(i);
+			tt.Start();
 
-			mp_bodysolverdevice[i]->setROIs(rois);
 			mp_bodysolverdevice[i]->optimizePoseSilhouette(18);
+
+			std::cout << "solve sil elapsed: " << tt.Elapsed() << " ms" << std::endl;
+
 		}
-		std::cout << "solve sil elapsed: " << tt.Elapsed() << std::endl; 
 
 		std::vector<Eigen::Vector3f> skels = mp_bodysolverdevice[i]->getRegressedSkel_host();
 		m_skels3d[i] = skels; 

@@ -9,7 +9,7 @@ void computeSDF2d_device(float* depth, uchar* d_middle_mask, cv::Mat& sdf, int W
 	convertDepthToMaskHalfSize_device(depth, d_middle_mask, W, H);
 	cudaMemcpy(mask.data, d_middle_mask, W/2*H/2 * sizeof(uchar), cudaMemcpyDeviceToHost);
 	
-	cv::Mat mask_inv = 255 - mask;
+	cv::Mat mask_inv = 1 - mask;
 	cv::Mat dt_inner, dt_outer;
 
 	cv::distanceTransform(mask, dt_inner, cv::DIST_L2, 5);

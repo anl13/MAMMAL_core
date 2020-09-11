@@ -46,7 +46,7 @@ __global__ void convertDepthToMaskHalfSize_kernel(
 		float d = input[index];
 		float d2 = input[index + 1];
 		uchar value = 0;
-		if (d > 0.0001 || d2 > 0.0001) value = 255;
+		if (d > 0.0001 || d2 > 0.0001) value = 1;
 		d_mask[target_index] = value;
 	}
 }
@@ -277,7 +277,7 @@ __global__ void edt_rows2_kernel(uchar* mask, float* d_output, unsigned int widt
 			minDist = fminf(minDist, (x - i)*(x - i) + t * t);
 		}
 
-		d_output[y * width + x] = sqrtf(minDist);
+		d_output[y * width + x] = -sqrtf(minDist);
 	}
 	else
 	{
@@ -288,7 +288,7 @@ __global__ void edt_rows2_kernel(uchar* mask, float* d_output, unsigned int widt
 			t = t < 0 ? t : 0;
 			minDist = fminf(minDist, (x - i)*(x - i) + t * t);
 		}
-		d_output[y*width + x] = -sqrtf(minDist); 
+		d_output[y*width + x] = sqrtf(minDist); 
 	}
 }
 

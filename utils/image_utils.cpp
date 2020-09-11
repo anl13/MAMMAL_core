@@ -623,6 +623,24 @@ float ROIdescripter::keypointsMaskOverlay()
 	return (float)valid / (float)total;
 }
 
+float checkKeypointsMaskOverlay(const cv::Mat& mask, const std::vector<Eigen::Vector3f>& keypoints,
+	const int& idcode)
+{
+	int total = 0;
+	int valid = 0;
+	for (int i = 0; i < keypoints.size(); i++)
+	{
+		if (keypoints[i](2) < 0.5) continue;
+		total += 1;
+		int y = keypoints[i](1) * 1080;
+		int x = keypoints[i](0) * 1920;
+		int value = mask.at<uchar>(y, x); 
+		if (value == idcode) valid += 1;
+	}
+	if (total == 0) return 0;
+	return (float)valid / (float)total;
+}
+
 float queryPixel(const cv::Mat& img, const Eigen::Vector3f& point, const Camera& cam)
 {
 	Eigen::Vector3f proj = project(cam, point);
@@ -746,7 +764,7 @@ cv::Mat computeSDF2d(const cv::Mat& render, int thresh)
 	cv::resize(gray, gray_half, cv::Size(960, 540)); 
 	cv::Mat inner, outer;
 	cv::Mat mask_half, mask_inv_half; 
-	cv::threshold(gray, mask_half, 1, 255, cv::THRESH_BINARY);
+	cv::threshold(gray_half, mask_half, 1, 255, cv::THRESH_BINARY);
 	mask_inv_half = 255 - mask_half; 
 	
 	//cv::imshow("mask", mask);

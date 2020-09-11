@@ -43,6 +43,7 @@ void FrameData::configByJson(std::string jsonfile)
     m_topo         = getSkelTopoByType(m_skelType); 
 	m_match_alg = root["match_alg"].asString(); 
 	m_pigConfig = root["pig_config"].asString(); 
+	m_use_gpu = root["use_gpu"].asBool(); 
 
     std::vector<int> camids; 
     for(auto const &c : root["camids"])
@@ -540,12 +541,6 @@ void FrameData::readSkel3DfromJson(std::string jsonfile)
     std::cout << "read " << jsonfile << " done. " << std::endl; 
 }
 
-cv::Mat FrameData::test()
-{
-    cv::Mat output = visualizeSkels2D(); 
-
-    return output; 
-}
 
 void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid)
 {

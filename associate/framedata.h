@@ -49,7 +49,6 @@ public:
 	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
     void configByJson(std::string jsonfile); 
     void fetchData(); 
-    cv::Mat test(); 
 
 	// debug 
 	void debug_fitting(int pid=0); 
@@ -58,7 +57,6 @@ public:
 	void view_dependent_clean();
 	void top_view_clean(DetInstance& det);
 	void side_view_clean(DetInstance& det);
-	void clean_step1();
 
     // top-down matching
     void matching(); 
@@ -84,13 +82,12 @@ public:
 
 	// shape solver 
 	void getROI(vector<ROIdescripter>& rois, int id = 0);
+	void setConstDataToSolver(int id); // direct set some data to solver
 	cv::Mat m_undist_mask; // mask for image undistortion valid area 
 	std::vector<cv::Mat> m_scene_masks; // mask for scene
 	vector<cv::Mat> m_backgrounds; 
-	std::vector<cv::Mat> m_foreground;
 
 	void readSceneMask(); 
-	void extractFG(); 
 
 	void pureTracking(); 
 
@@ -151,6 +148,7 @@ protected:
     SkelTopology m_topo; 
     int m_startid;
     int m_framenum; 
+	bool m_use_gpu; 
 
     // io function and tmp data
     vector<vector<vector<Eigen::Vector3f> > > m_keypoints; // [viewid, candid, kptid]

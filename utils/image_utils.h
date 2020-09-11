@@ -107,6 +107,9 @@ public:
 	float valid; 
 };
 
+float checkKeypointsMaskOverlay(const cv::Mat& mask, const std::vector<Eigen::Vector3f>& keypoints,
+	const int& idcode);
+
 float queryPixel(const cv::Mat& img, const Eigen::Vector3f& point, const Camera& cam);
 float queryDepth(const cv::Mat& img, float x, float y);
 

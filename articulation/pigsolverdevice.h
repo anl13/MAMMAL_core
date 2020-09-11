@@ -16,6 +16,9 @@
 #include "gpuutils.h"
 
 //#define DEBUG_SIL
+//#define DEBUG_SOLVER
+#define USE_CPU_SOLVER
+
 
 class PigSolverDevice : public PigModelDevice
 {
@@ -35,10 +38,10 @@ public:
 	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams;  }
 	void setRenderer(Renderer * _p_render) { mp_renderEngine = _p_render; }
 	void setROIs(std::vector<ROIdescripter> _rois) { m_rois = _rois; }
-
+	
 	void directTriangulationHost(); // calc m_skel3d using direct triangulation
 	std::vector<Eigen::Vector3f> getRegressedSkel(); 
-	void globalAlign(); // compute scale and global R,T
+	void globalAlign(); // compute scale and global R,T`
 
 	void normalizeCamera(); 
 	void normalizeSource(); 
@@ -79,7 +82,23 @@ public:
 	std::vector<int> m_host_paramLines;
 	pcl::gpu::DeviceArray<int> m_device_paramLines;
 
+	// feed by outer data maintainer 
+	void generateDataForSilSolver(); 
 	bool init_backgrounds; 
+	std::vector<cv::Mat> m_det_masks;
+	std::vector<cv::Mat> m_det_masks_binary; 
+	std::vector<int> m_viewids; 
+	std::vector<float> m_valid_keypoint_ratio; 
+	std::vector<float> m_mask_areas; 
+	std::vector<uchar*> d_det_mask; // full size
+	std::vector<float*> d_det_sdf; // half size
+	float* d_rend_sdf; // half size
+	std::vector<float*> d_det_gradx; // half size
+	std::vector<float*> d_det_grady; // half size
+	uchar* d_const_distort_mask; // full size
+	std::vector<uchar*> d_const_scene_mask; // full size 
+	uchar* d_middle_mask; // half size 
+	int m_pig_id; // 0-3
 private:
 
 	
@@ -103,14 +122,11 @@ private:
 	Renderer* mp_renderEngine;
 
 	// tmp data pre-allocated at construction stage
-	std::vector<float*> d_depth_renders;
-	pcl::gpu::DeviceArray2D<uchar> d_det_mask; 
-	pcl::gpu::DeviceArray2D<float> d_det_sdf; 
-	pcl::gpu::DeviceArray2D<float> d_rend_sdf;
-	pcl::gpu::DeviceArray2D<float> d_det_gradx;
-	pcl::gpu::DeviceArray2D<float> d_det_grady;
-	pcl::gpu::DeviceArray2D<uchar> d_const_distort_mask;
-	pcl::gpu::DeviceArray2D<uchar> d_const_scene_mask;
+	std::vector<float*> d_depth_renders; // full size
+
+
+
+
 	pcl::gpu::DeviceArray2D<float> d_J_vert; 
 	pcl::gpu::DeviceArray2D<float> d_J_joint; 
 	pcl::gpu::DeviceArray2D<float> d_J_joint_full, d_J_vert_full;
@@ -118,18 +134,19 @@ private:
 	pcl::gpu::DeviceArray<float> d_ATb_sil; 
 	pcl::gpu::DeviceArray2D<float> d_RP;
 	pcl::gpu::DeviceArray2D<float> d_LP; 
-	uchar* d_middle_mask; 
+
+	pcl::gpu::DeviceArray2D<float> d_AT_sil; 
+	pcl::gpu::DeviceArray<float> d_b_sil; 
 
 	Eigen::MatrixXf h_J_joint; 
 	Eigen::MatrixXf h_J_vert; 
 
 	// sil term constructor 
 	void CalcSilhouettePoseTerm(
-		const std::vector<float*>& renders,
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcSilhouetteJacobi_device(
 		Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
-		float* d_depth, int idcode, int paramNum
+		float* d_depth, int idcode, int paramNum, int view
 	);
 
 	void CalcSilouettePoseTerm_cpu(

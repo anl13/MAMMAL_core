@@ -34,14 +34,26 @@ void FrameData::getROI(std::vector<ROIdescripter>& rois, int id)
 	}
 }
 
-void FrameData::extractFG()
+void FrameData::setConstDataToSolver(int id)
 {
-	m_foreground.resize(m_camNum);
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		cv::Mat& bg = m_backgrounds[camid];
-		cv::Mat& full = m_imgsUndist[camid];
+	assert((id >= 0 && id <= 3)); 
 
-		m_foreground[camid] = my_background_substraction(full,bg);
+	if (mp_bodysolverdevice[id] == nullptr)
+	{
+		std::cout << "solver is empty! " << std::endl; 
+		exit(-1); 
 	}
+
+	if (!mp_bodysolverdevice[id]->init_backgrounds)
+	{
+		for (int i = 0; i < 10; i++)
+			cudaMemcpy(mp_bodysolverdevice[id]->d_const_scene_mask[i], m_scene_masks[i].data,
+				1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
+		cudaMemcpy(mp_bodysolverdevice[id]->d_const_distort_mask, m_undist_mask.data,
+			1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice); 
+		mp_bodysolverdevice[id]->init_backgrounds = true; 
+	}
+	mp_bodysolverdevice[id]->m_pig_id = id; 
+	mp_bodysolverdevice[id]->m_det_masks = drawMask(); 
+
 }
