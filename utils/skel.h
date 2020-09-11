@@ -2,6 +2,8 @@
 
 #include <vector> 
 #include <Eigen/Eigen> 
+#include <opencv2/opencv.hpp> 
+#include "image_utils.h" 
 
 using std::vector; 
 
@@ -34,26 +36,9 @@ struct MatchedInstance{
     vector<DetInstance> dets; 
 }; 
 
-//struct BodyState {
-//	// Level5: social state 
-//
-//	// Level4: discrete pose state label or continuous state vector
-//	Eigen::VectorXd pose;
-//
-//	// Level3: parametric state
-//	Eigen::Vector3d trans;
-//	double scale; 
-//	double frameid;
-//	int id; 
-//	
-//	// Level2: body orientation
-//	vector<Eigen::Vector3d> points; 
-//
-//	// Level1: center position 
-//	Eigen::Vector3d center; 
-//	
-//	void saveState(std::string filename); 
-//	void loadState(std::string filename); 
-//};
-
 vector<Eigen::Vector3f> convertMatToVec(const Eigen::MatrixXf& skel); 
+
+void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
+	SkelTopology m_topo); 
+
+void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid, SkelTopology m_topo); 

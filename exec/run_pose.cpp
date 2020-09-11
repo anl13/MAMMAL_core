@@ -174,13 +174,18 @@ int run_pose()
 		frame.solve_parametric_model(); 
 		std::cout << "solve model: " << tt.Elapsed() << " ms" << std::endl; 
 
-		frame.save_clusters();
-		frame.save_parametric_data();
+		//frame.save_clusters();
+		//frame.save_parametric_data();
+
+		cv::Mat proj_skel = frame.visualizeProj(); 
+		cv::imwrite("G:/pig_results/fitting/proj.png", proj_skel); 
 
 
+		m_renderer.clearAllObjs();
 		auto solvers = frame.mp_bodysolverdevice;
+		
+		solvers[0]->debug_source_visualize(); 
 
-		m_renderer.clearAllObjs(); 
 		RenderObjectColor* p_model = new RenderObjectColor();
 		solvers[0]->UpdateNormalFinal();
 		

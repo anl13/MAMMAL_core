@@ -147,6 +147,9 @@
     <ClCompile Include="..\articulation\pigsolverdevice.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
+      <Filter>articulation</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">

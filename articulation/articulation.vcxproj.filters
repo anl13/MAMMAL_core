@@ -108,6 +108,9 @@
     <ClCompile Include="test_pointer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="pigsolverdevice_debug.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">

@@ -389,7 +389,7 @@ cv::Mat FrameData::visualizeSkels2D()
     {
         for(int k = 0; k < m_detUndist[i].size(); k++)
         {
-            drawSkel(imgdata[i], m_detUndist[i][k].keypoints, k); 
+            drawSkelMonoColor(imgdata[i], m_detUndist[i][k].keypoints, k, m_topo); 
             Eigen::Vector3i color = m_CM[k]; 
             my_draw_box(imgdata[i], m_detUndist[i][k].box, color); 
             my_draw_mask(imgdata[i], m_detUndist[i][k].mask, color, 0.5); 
@@ -414,7 +414,7 @@ cv::Mat FrameData::visualizeIdentity2D(int viewid, int vid)
             //int candid = m_matched[id].cand_ids[i];
             //if(candid < 0) continue; 
 			if(m_matched[id].dets[i].keypoints.size() > 0)
-				drawSkel(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, id);
+				drawSkelMonoColor(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, id, m_topo);
             my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, m_CM[id]);
 
 			if (m_matched[id].dets[i].mask.size() > 0)
@@ -426,7 +426,7 @@ cv::Mat FrameData::visualizeIdentity2D(int viewid, int vid)
 		for (int i = 0; i < m_unmatched[camid].size(); i++)
 		{
 			if(m_unmatched[camid][i].keypoints.size()>0)
-			drawSkel(m_imgsDetect[camid], m_unmatched[camid][i].keypoints, 5);
+			drawSkelMonoColor(m_imgsDetect[camid], m_unmatched[camid][i].keypoints, 5, m_topo);
 			my_draw_box(m_imgsDetect[camid], m_unmatched[camid][i].box, m_CM[5]);
 			if (m_unmatched[camid][i].mask.size()>0)
 			my_draw_mask(m_imgsDetect[camid], m_unmatched[camid][i].mask, m_CM[5], 0.5);
@@ -454,12 +454,13 @@ cv::Mat FrameData::visualizeProj()
 {
     std::vector<cv::Mat> imgdata;
     cloneImgs(m_imgsUndist, imgdata); 
+	reproject_skels();
     
     for(int camid = 0; camid < m_camNum; camid++)
     {
         for(int id = 0; id < m_projs[camid].size(); id++)
         {
-            drawSkel(imgdata[camid], m_projs[camid][id], id);
+            drawSkelMonoColor(imgdata[camid], m_projs[camid][id], id, m_topo);
         }
     }
     
@@ -541,29 +542,6 @@ void FrameData::readSkel3DfromJson(std::string jsonfile)
     std::cout << "read " << jsonfile << " done. " << std::endl; 
 }
 
-
-void FrameData::drawSkel(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid)
-{
-    Eigen::Vector3i color = m_CM[colorid];
-    cv::Scalar cv_color(color(0), color(1), color(2)); 
-    for(int i = 0; i < _skel2d.size(); i++)
-    {
-        cv::Point2d p(_skel2d[i](0), _skel2d[i](1)); 
-        double conf = _skel2d[i](2); 
-        if(conf < m_topo.kpt_conf_thresh[i]) continue; 
-        cv::circle(img, p, 8, cv_color, -1); 
-    }
-    for(int k = 0; k < m_topo.bone_num; k++)
-    {
-        Eigen::Vector2i b = m_topo.bones[k]; 
-        Eigen::Vector3f p1 = _skel2d[b(0)];
-        Eigen::Vector3f p2 = _skel2d[b(1)]; 
-        if(p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue; 
-        cv::Point2d p1_cv(p1(0), p1(1)); 
-        cv::Point2d p2_cv(p2(0), p2(1)); 
-        cv::line(img, p1_cv, p2_cv, cv_color, 4); 
-    }
-}
 
 int FrameData::_compareSkel(const std::vector<Eigen::Vector3f>& skel1, const std::vector<Eigen::Vector3f>& skel2)
 {
@@ -787,35 +765,6 @@ void FrameData::assembleDets()
     }
 }
 
-void FrameData::drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d)
-{
-	for (int i = 0; i < _skel2d.size(); i++)
-	{
-		int colorid = m_topo.kpt_color_ids[i];
-		Eigen::Vector3i color = m_CM[colorid];
-		cv::Scalar cv_color(color(0), color(1), color(2));
-
-		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
-		double conf = _skel2d[i](2);
-		if (conf < m_topo.kpt_conf_thresh[i]) continue;
-		cv::circle(img, p, int(12*conf), cv_color, -1);
-	}
-	for (int k = 0; k < m_topo.bone_num; k++)
-	{
-		int jid = m_topo.bones[k](0);
-		int colorid = m_topo.kpt_color_ids[jid];
-		Eigen::Vector3i color = m_CM[colorid];
-		cv::Scalar cv_color(color(0), color(1), color(2));
-
-		Eigen::Vector2i b = m_topo.bones[k];
-		Eigen::Vector3f p1 = _skel2d[b(0)];
-		Eigen::Vector3f p2 = _skel2d[b(1)];
-		if (p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue;
-		cv::Point2d p1_cv(p1(0), p1(1));
-		cv::Point2d p2_cv(p2(0), p2(1));
-		cv::line(img, p1_cv, p2_cv, cv_color, 4);
-	}
-}
 
 void FrameData::view_dependent_clean()
 {

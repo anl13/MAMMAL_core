@@ -22,6 +22,7 @@
     <ClCompile Include="..\articulation\pigmodel.cpp" />
     <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp" />
     <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
     <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\articulation\pigsolver_shape.cpp" />

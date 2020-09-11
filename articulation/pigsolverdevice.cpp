@@ -3,6 +3,7 @@
 #include "../utils/image_utils_gpu.h"
 #include <cuda_profiler_api.h>
 
+
 PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	:PigModelDevice(_configFile)
 {
@@ -694,10 +695,15 @@ void PigSolverDevice::optimizePoseSilhouette(
 		cv::imwrite(ss.str(), blended);
 #endif 
 		// compute terms
+
 		Eigen::MatrixXf ATA_sil;
 		Eigen::VectorXf ATb_sil;
-		CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
 
+#ifdef USE_GPU_SOLVER
+		CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
+#else 
+		CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter); 
+#endif 
 		//Eigen::MatrixXf ATA_sil2;
 		//Eigen::VectorXf ATb_sil2;
 		//CalcSilouettePoseTerm_cpu(ATA_sil2, ATb_sil2, iter); 
@@ -727,10 +733,13 @@ void PigSolverDevice::optimizePoseSilhouette(
 			+ ATb_data * w_data;
 		Eigen::VectorXf delta = H.ldlt().solve(b);
 
+#ifdef SHOW_FITTING_INFO
+		std::cout << "iter ...... " << iter << " ......" << std::endl; 
 		std::cout << "ATb data : " << ATb_data.norm() << std::endl; 
 		std::cout << "ATb sil  : " << ATb_sil.norm() << std::endl;
 		std::cout << "ATb temp : " << b_temp.norm() << std::endl; 
 		std::cout << "ATb reg  : " << b_reg.norm() << std::endl; 
+#endif 
 		// update 
 		m_host_translation += delta.segment<3>(0);
 		for (int i = 0; i < M; i++)
@@ -1098,40 +1107,7 @@ void PigSolverDevice::CalcPoseJacobiPartTheta_cpu(Eigen::MatrixXf& J_joint, Eige
 	}
 }
 
-void PigSolverDevice::debug()
-{
-	SetScale(0.01); 
-	Eigen::VectorXf pose = Eigen::VectorXf::Random(m_jointNum * 3) * 0.3;
-	SetPose(pose); 
 
-	UpdateVertices(); 
-	UpdateNormalFinal(); 
-
-	Eigen::MatrixXf h_J_joint_cpu, h_J_vert_cpu, h_J_joint_gpu, h_J_vert_gpu;
-
-	h_J_joint_cpu.resize(3 * m_jointNum, 3 + 3 * m_jointNum);
-	h_J_joint_gpu.resize(3 * m_jointNum, 3 + 3 * m_jointNum);
-	h_J_vert_cpu.resize(3 * m_vertexNum, 3 + 3 * m_jointNum);
-	h_J_vert_gpu.resize(3 * m_vertexNum, 3 + 3 * m_jointNum);
-
-	pcl::gpu::DeviceArray2D<float> d_J_joint, d_J_vert;
-	d_J_joint.create(3 + 3 * m_jointNum, 3 * m_jointNum);
-	d_J_vert.create(3 + 3 * m_jointNum, 3 * m_vertexNum);
-
-	calcPoseJacobiFullTheta_device(d_J_joint, d_J_vert);
-	d_J_joint.download(h_J_joint_gpu.data(), 3 * m_jointNum * sizeof(float));
-	d_J_vert.download(h_J_vert_gpu.data(), 3 * m_vertexNum * sizeof(float));
-
-	CalcPoseJacobiFullTheta_cpu(h_J_joint_cpu, h_J_vert_cpu, true);
-
-	std::ofstream joint_file1("G:/pig_results/joint_gpu.txt"); joint_file1 << h_J_joint_gpu; joint_file1.close(); 
-	std::ofstream joint_file2("G:/pig_results/joint_cpu.txt"); joint_file2 << h_J_joint_cpu; joint_file2.close();
-	std::ofstream joint_file3("G:/pig_results/vert_gpu.txt"); joint_file3 << h_J_vert_gpu; joint_file3.close();
-	std::ofstream joint_file4("G:/pig_results/vert_cpu.txt"); joint_file4 << h_J_vert_cpu; joint_file4.close();
-
-	std::cout << "joint norm: " << (h_J_joint_cpu - h_J_joint_gpu).norm() << std::endl;
-	std::cout << "vert  norm: " << (h_J_vert_cpu - h_J_vert_gpu).norm() << std::endl;
-}
 
 
 void PigSolverDevice::calcPoseJacobiFullTheta_device(

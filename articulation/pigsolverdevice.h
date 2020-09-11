@@ -17,8 +17,9 @@
 
 //#define DEBUG_SIL
 //#define DEBUG_SOLVER
-#define USE_CPU_SOLVER
 
+#define USE_GPU_SOLVER 
+//#define SHOW_FITTING_INFO
 
 class PigSolverDevice : public PigModelDevice
 {
@@ -47,7 +48,7 @@ public:
 	void optimizePoseSilhouette(
 		int maxIter);
 
-	void debug(); 
+	void debug_source_visualize(); 
 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
@@ -97,6 +98,7 @@ public:
 	std::vector<uchar*> d_const_scene_mask; // full size 
 	uchar* d_middle_mask; // half size 
 	int m_pig_id; // 0-3
+	std::vector<cv::Mat> m_rawimgs; 
 private:
 
 	

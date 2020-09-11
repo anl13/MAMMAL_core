@@ -30,3 +30,4 @@ struct CorrPair
 	int index;
 	float weight;
 };
+

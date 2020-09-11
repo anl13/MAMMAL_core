@@ -81,9 +81,10 @@ void FrameData::solve_parametric_model()
 	for (int i = 0; i <4; i++)
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]); 
+		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist; 
 		mp_bodysolverdevice[i]->globalAlign();
 		mp_bodysolverdevice[i]->optimizePose(); 
-		
+		mp_bodysolverdevice[i]->m_pig_id = i; 
 		TimerUtil::Timer<std::chrono::milliseconds> tt; 
 		if (i < 1) {
 			//std::vector<ROIdescripter> rois;
@@ -91,9 +92,7 @@ void FrameData::solve_parametric_model()
 			//mp_bodysolverdevice[i]->setROIs(rois);
 			setConstDataToSolver(i);
 			tt.Start();
-
-			mp_bodysolverdevice[i]->optimizePoseSilhouette(18);
-
+			mp_bodysolverdevice[i]->optimizePoseSilhouette(25);
 			std::cout << "solve sil elapsed: " << tt.Elapsed() << " ms" << std::endl;
 
 		}
@@ -392,55 +391,6 @@ void FrameData::load_clusters()
 	}
 }
 
-void FrameData::debug_fitting(int pig_id)
-{
-	visualizeDebug(pig_id); 
-	std::vector<cv::Mat> crop_list; 
-	for (int i = 0; i < m_matched[pig_id].dets.size(); i++)
-	{
-		Eigen::Vector4f box = m_matched[pig_id].dets[i].box;
-		int view_id = m_matched[pig_id].view_ids[i];
-		cv::Mat raw_img = m_imgsDetect[view_id];
-		cv::Rect2i roi(box[0], box[1], box[2] - box[0], box[3] - box[1]);
-		cv::Mat img = raw_img(roi);
-		cv::Mat img2 = resizeAndPadding(img, 256, 256);
-		crop_list.push_back(img2); 
-	}
-	cv::Mat output; 
-	packImgBlock(crop_list, output);
-	std::stringstream ss; 
-	ss << result_folder << "/fitting/" << pig_id << "/output" << m_frameid << "_" << pig_id << ".png";
-	cv::imwrite(ss.str(), output); 
-	//cv::imshow("test", output); 
-	//cv::waitKey(); 
-	return; 
-}
-
-void FrameData::debug_chamfer(int pid)
-{
-	// init gray images 
-	std::vector<cv::Mat> grays; 
-	grays.resize(10);
-	for (int i = 0; i < 10; i++)
-	{
-		grays[i].create(cv::Size(1920, 1080), CV_8UC1);
-	}
-	// create chamfer 
-	for (int i = 0; i < m_matched[pid].view_ids.size(); i++)
-	{
-		int camid = m_matched[pid].view_ids[i];
-		//int candid = m_matched[pid].cand_ids[i];
-		//if (candid < 0) continue;
-		my_draw_mask_gray(grays[camid],
-			//m_detUndist[camid][candid].mask, 255);
-			m_matched[pid].dets[i].mask, 255);
-		cv::Mat chamfer = get_dist_trans(grays[camid]);
-		cv::namedWindow("mask"); 
-		int key = cv::waitKey(); 
-		if (key == 27)exit(-1); 
-	}
-}
-
 void FrameData::visualizeDebug(int pid)
 {
 	cloneImgs(m_imgsUndist, m_imgsDetect);
@@ -453,7 +403,7 @@ void FrameData::visualizeDebug(int pid)
 			int camid = m_matched[id].view_ids[i];
 			//int candid = m_matched[id].cand_ids[i];
 			//if (candid < 0) continue;
-			drawSkelDebug(m_imgsDetect[camid], m_matched[id].dets[i].keypoints);
+			drawSkelDebug(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, m_topo);
 			my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, m_CM[id]);
 			//my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, m_CM[id], 0.5);
 		}
@@ -498,26 +448,4 @@ void FrameData::drawRawMaskImgs()
 			m_rawMaskImgs[camid] = temp + m_rawMaskImgs[camid];
 		}
 	}
-}
-
-void FrameData::getChamferMap(int pid, int viewid,
-	cv::Mat& chamfer)
-{
-	cv::Mat inner, outer;
-	// innner
-	cv::Mat mask;
-	mask.create(cv::Size(m_imw, m_imh), CV_8UC1); 
-	my_draw_mask_gray(mask,
-		m_matched[pid].dets[viewid].mask, 255);
-	inner = get_dist_trans(mask);
-	// outer 
-	cv::Mat mask2;
-	mask2.create(cv::Size(m_imw, m_imh), CV_8UC1);
-	mask2.setTo(cv::Scalar(255));
-	my_draw_mask_gray(mask, m_matched[pid].dets[viewid].mask, 0);
-	outer = get_dist_trans(mask2);
-	// final chamfer as sdf
-	chamfer = inner - outer;
-
-	return; 
 }

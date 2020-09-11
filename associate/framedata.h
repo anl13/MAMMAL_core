@@ -51,9 +51,7 @@ public:
     void fetchData(); 
 
 	// debug 
-	void debug_fitting(int pid=0); 
 	void visualizeDebug(int id = -1);
-	void debug_chamfer(int pid = 0); 
 	void view_dependent_clean();
 	void top_view_clean(DetInstance& det);
 	void side_view_clean(DetInstance& det);
@@ -108,10 +106,7 @@ protected:
     int _compareSkel(const vector<Eigen::Vector3f>& skel1, const vector<Eigen::Vector3f>& skel2); 
     int _countValid(const vector<Eigen::Vector3f>& skel); 
 
-    void drawSkel(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid);
-	void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d);
 	vector<cv::Mat> drawMask();  // can only be used after association 
-	void getChamferMap(int pid, int viewid, cv::Mat& chamfer);
 
 	int m_imh; 
     int m_imw; 

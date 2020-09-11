@@ -274,7 +274,77 @@ void test_depth()
 
 }
 
+void test_color_table()
+{
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
+	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+
+	// init renderer 
+	Renderer::s_Init();
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	chess_floor->SetFaces(squareMesh.faces_v_vec);
+	chess_floor->SetVertices(squareMesh.vertices_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec, 2);
+	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
+	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	m_renderer.texObjs.push_back(chess_floor);
+	
+	int num = CM.size() > 20 ? 20 : CM.size();
+	for (int i = 0; i < num; i++)
+	{
+		Eigen::Vector3f translation = Eigen::Vector3f::Zero(); 
+		translation(0) = i * 0.1 - 1;
+		translation(2) = 0.2; 
+		RenderObjectColor * p_model = new RenderObjectColor();
+		Eigen::MatrixXf vertices = ballMeshEigen.vertices * 0.03;
+		vertices = vertices.colwise() + translation; 
+		p_model->SetVertices(vertices);
+		p_model->SetFaces(ballMeshEigen.faces);
+		p_model->SetNormal(ballMeshEigen.normals);
+		p_model->SetColor(CM[i]);
+		m_renderer.colorObjs.push_back(p_model);
+	}
+
+	//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 0.5f, 0.5f, 1.0f));
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		m_renderer.Draw();
+
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
+}
+
 void main()
 {
-	test_depth(); 
+	test_color_table(); 
 }

@@ -22,6 +22,9 @@
 #include <Eigen/Core>
 #include "gpuutils.h"
 
+#define NUM_MODEL_JOINT 62
+#define NUM_POSE_JOINT 21
+
 // ========
 // compute jacobi full pose 
 // ========
@@ -53,9 +56,9 @@ __global__ void compute_jacobi_v_full_kernel(
 		Eigen::Matrix3f Tmp = Eigen::Matrix3f::Zero();
 		Eigen::Matrix3f RPblock;
 		Eigen::Matrix3f LPblock;
-		float J[567]; // 567 = 3 * (3+62*3)
+		float J[3*(3*NUM_MODEL_JOINT+3)]; // 567 = 3 * (3+62*3)
 #pragma unroll 
-		for (int i = 0; i < 567; i++) J[i] = 0;
+		for (int i = 0; i < 3 * (3 * NUM_MODEL_JOINT + 3); i++) J[i] = 0;
 		for (int jIdx = 0; jIdx < jointNum; jIdx++)
 		{
 			if (weights(vIdx, jIdx) < 0.00001)continue;
@@ -233,9 +236,9 @@ __global__ void construct_sil_A_kernel(
 	Eigen::Matrix3f Tmp = Eigen::Matrix3f::Zero();
 	Eigen::Matrix3f RPblock;
 	Eigen::Matrix3f LPblock;
-	float J[567]; // 567 = 3 * (3+62*3)
+	float J[3 * (3 * NUM_MODEL_JOINT + 3)]; // 567 = 3 * (3+62*3)
 #pragma unroll 
-	for (int i = 0; i < 567; i++) J[i] = 0; 
+	for (int i = 0; i < 3 * (3 * NUM_MODEL_JOINT + 3); i++) J[i] = 0;
 	for (int jIdx = 0; jIdx < jointNum; jIdx++)
 	{
 		if (weights(vIdx, jIdx) < 0.00001)continue;
@@ -303,7 +306,7 @@ __global__ void construct_sil_A_kernel(
 	// reuse v0 as dp 
 	// reuse j0 as dpsil
 	int J_V_index = -1;
-	float A_col[75]; // 75 is paramNum
+	float A_col[3*NUM_POSE_JOINT+3]; // 75 is paramNum
 #pragma unroll
 	for (int i = 0; i < paramNum; i++)
 	{
@@ -320,15 +323,14 @@ __global__ void construct_sil_A_kernel(
 	//for (int i = 0; i < paramNum; i++)d_AT(i, vIdx) = A_col[i];
 	//d_b[vIdx] = b;
 
-	for (int i = 0; i < 75; i++)
+	for (int i = 0; i < paramNum; i++)
 	{
-		for (int j = 0; j < 75; j++)
+		for (int j = 0; j < paramNum; j++)
 		{
 			atomicAdd(&d_ATA_sil(j, i), A_col[i] * A_col[j]);
 		}
 		atomicAdd(&d_ATb_sil[i], A_col[i] * b);
 	}
-
 }
 
 
@@ -402,9 +404,9 @@ pcl::gpu::PtrSz<float> d_b //[pointnum],
 	Eigen::Matrix3f Tmp = Eigen::Matrix3f::Zero();
 	Eigen::Matrix3f RPblock;
 	Eigen::Matrix3f LPblock;
-	float J[567]; // 567 = 3 * (3+62*3)
+	float J[3*(3+3*NUM_MODEL_JOINT)]; // 567 = 3 * (3+62*3)
 #pragma unroll 
-	for (int i = 0; i < 567; i++) J[i] = 0;
+	for (int i = 0; i < 3 * (3 + 3 * NUM_MODEL_JOINT); i++) J[i] = 0;
 	for (int jIdx = 0; jIdx < jointNum; jIdx++)
 	{
 		if (weights(vIdx, jIdx) < 0.00001)continue;
@@ -472,7 +474,7 @@ pcl::gpu::PtrSz<float> d_b //[pointnum],
 	// reuse v0 as dp 
 	// reuse j0 as dpsil
 	int J_V_index = -1;
-	float A_col[75]; // 75 is paramNum
+	float A_col[3 * NUM_POSE_JOINT + 3];
 #pragma unroll
 	for (int i = 0; i < paramNum; i++)
 	{
@@ -490,9 +492,10 @@ pcl::gpu::PtrSz<float> d_b //[pointnum],
 	//for (int i = 0; i < paramNum; i++)d_AT(i, vIdx) = A_col[i];
 	//d_b[vIdx] = b;
 #else 
-	for (int i = 0; i < 75; i++)
+#pragma unroll
+	for (int i = 0; i < 3 * NUM_POSE_JOINT + 3; i++)
 	{
-		for (int j = 0; j < 75; j++)
+		for (int j = 0; j < 3 * NUM_POSE_JOINT + 3; j++)
 		{
 			atomicAdd(&d_ATA_sil(j, i), A_col[i] * A_col[j]);
 		}

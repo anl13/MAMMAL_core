@@ -267,3 +267,63 @@ vector<Eigen::Vector3f> convertMatToVec(const Eigen::MatrixXf& skel)
 	}
 	return vec; 
 }
+
+// *** visualization functions 
+void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
+	SkelTopology m_topo
+	)
+{
+	std::vector<Eigen::Vector3i> m_CM; 
+	getColorMap("anliang_rgb", m_CM);
+	for (int i = 0; i < _skel2d.size(); i++)
+	{
+		int colorid = m_topo.kpt_color_ids[i];
+		Eigen::Vector3i color = m_CM[colorid];
+		cv::Scalar cv_color(color(0), color(1), color(2));
+
+		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
+		double conf = _skel2d[i](2);
+		if (conf < m_topo.kpt_conf_thresh[i]) continue;
+		cv::circle(img, p, int(12 * conf), cv_color, -1);
+	}
+	for (int k = 0; k < m_topo.bone_num; k++)
+	{
+		int jid = m_topo.bones[k](0);
+		int colorid = m_topo.kpt_color_ids[jid];
+		Eigen::Vector3i color = m_CM[colorid];
+		cv::Scalar cv_color(color(0), color(1), color(2));
+
+		Eigen::Vector2i b = m_topo.bones[k];
+		Eigen::Vector3f p1 = _skel2d[b(0)];
+		Eigen::Vector3f p2 = _skel2d[b(1)];
+		if (p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue;
+		cv::Point2d p1_cv(p1(0), p1(1));
+		cv::Point2d p2_cv(p2(0), p2(1));
+		cv::line(img, p1_cv, p2_cv, cv_color, 4);
+	}
+}
+
+void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid, 
+	SkelTopology m_topo)
+{
+	std::vector<Eigen::Vector3i> m_CM = getColorMapEigen("anliang_rgb"); 
+	Eigen::Vector3i color = m_CM[colorid];
+	cv::Scalar cv_color(color(0), color(1), color(2));
+	for (int i = 0; i < _skel2d.size(); i++)
+	{
+		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
+		double conf = _skel2d[i](2);
+		if (conf < m_topo.kpt_conf_thresh[i]) continue;
+		cv::circle(img, p, 8, cv_color, -1);
+	}
+	for (int k = 0; k < m_topo.bone_num; k++)
+	{
+		Eigen::Vector2i b = m_topo.bones[k];
+		Eigen::Vector3f p1 = _skel2d[b(0)];
+		Eigen::Vector3f p2 = _skel2d[b(1)];
+		if (p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue;
+		cv::Point2d p1_cv(p1(0), p1(1));
+		cv::Point2d p2_cv(p2(0), p2(1));
+		cv::line(img, p1_cv, p2_cv, cv_color, 4);
+	}
+}

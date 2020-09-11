@@ -142,6 +142,7 @@
     <ClCompile Include="pigmodel.cpp" />
     <ClCompile Include="pigmodeldevice.cpp" />
     <ClCompile Include="pigsolverdevice.cpp" />
+    <ClCompile Include="pigsolverdevice_debug.cpp" />
     <ClCompile Include="pigsolver_fitting.cpp" />
     <ClCompile Include="pigsolver_jacobi.cpp" />
     <ClCompile Include="pigsolver_sil.cpp" />
