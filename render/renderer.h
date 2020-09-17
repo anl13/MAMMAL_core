@@ -72,6 +72,7 @@ public:
 	// offscreen rendering 
 	float* renderDepthDevice();
 
+	void createScene(std::string proectFolder);
 private:
 	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;
 	void beginOffscreenRender();

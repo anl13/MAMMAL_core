@@ -50,9 +50,9 @@ int run_inspect()
 
 	frame.result_folder = "G:/pig_results_debug/";
 	frame.is_smth = false;
-	int start = 2604; 
+	int start = frame.get_start_id(); 
 
-	for (int frameid = start; frameid < start + 3; frameid++)
+	for (int frameid = start; frameid < start + 1; frameid++)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
@@ -61,8 +61,9 @@ int run_inspect()
 		if (frameid == start) frame.load_clusters();
 		else frame.matching_by_tracking();
 
-		if (frameid == start) frame.read_parametric_data();
-		else frame.solve_parametric_model();
+		//if (frameid == start) frame.read_parametric_data();
+		
+		frame.solve_parametric_model();
 
 		//frame.save_clusters();
 		//frame.save_parametric_data();
@@ -104,8 +105,27 @@ int run_inspect()
 
 			all_renders[camid] = img;
 		}
+		m_renderer.createScene(conf_projectFolder);
+		Eigen::Vector3f pos1(1.84296, -2.18987, 1.19391);
+		Eigen::Vector3f up1(-0.265077, 0.293909, 0.918342);
+		Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
+		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+		m_renderer.Draw(); 
+		cv::Mat img = m_renderer.GetImage();
+		all_renders.push_back(img); 
+
+		Eigen::Vector3f pos2(0.0988611,- 0.0113558 ,3.00438);
+		Eigen::Vector3f up2(0.00346774  , 0.999541 ,- 0.0301062);
+		Eigen::Vector3f center2(0.0589942 ,- 0.0909324, 0.00569892);
+		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
+		m_renderer.Draw();
+		img = m_renderer.GetImage(); 
+		all_renders.push_back(img); 
+		
 		cv::Mat packed_render;
 		packImgBlock(all_renders, packed_render);
+
+
 
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
@@ -120,6 +140,30 @@ int run_inspect()
 		cv::imwrite(file2.str(), packed_render);
 
 		cv::imwrite(all_render_file.str(), blend);
+
+		/*
+		nowCamPos: 1.84296 -2.18987  1.19391
+nowcamUp: -0.265077  0.293909  0.918342
+camCen   : 0.0589942 -0.0909324 0.00569892
+		*/
+		/*
+nowCamPos: 0.0988611 -0.0113558    3.00438
+nowcamUp: 0.00346774   0.999541 -0.0301062
+camCen   : 0.0589942 -0.0909324 0.00569892
+		*/
+		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+
+		
+		while (!glfwWindowShouldClose(windowPtr))
+		{
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+			m_renderer.Draw();
+
+			glfwSwapBuffers(windowPtr);
+			glfwPollEvents();
+		};
 	}
 
 

@@ -18,7 +18,7 @@ struct Mesh
 {
 public: 
 	Mesh() {}
-	Mesh(const std::string& filename) { Load(filename); }
+	Mesh(const std::string& filename, bool isCalcNormal=true) { Load(filename, isCalcNormal); }
 
 	int vertex_num; 
 	int texture_num; 
@@ -31,7 +31,7 @@ public:
 	std::vector<Eigen::Vector2f> textures_vec; 
 	
 	void CalcNormal();
-	void Load(const std::string& filename);
+	void Load(const std::string& filename, bool isCalcNormal=true);
 	void Save(const std::string& filename) const; 
 
 

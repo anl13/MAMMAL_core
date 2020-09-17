@@ -19,7 +19,7 @@
 //#define DEBUG_SOLVER
 
 #define USE_GPU_SOLVER 
-//#define SHOW_FITTING_INFO
+#define SHOW_FITTING_INFO
 
 class PigSolverDevice : public PigModelDevice
 {
@@ -61,9 +61,9 @@ public:
 // 3*jointnum+3:  pose parameter to solve 
 // 2d array on gpu are row major 
 	void calcPoseJacobiFullTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
-		pcl::gpu::DeviceArray2D<float> &J_vertices);
+		pcl::gpu::DeviceArray2D<float> &J_vertices, bool with_vert=true);
 	void calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
-		pcl::gpu::DeviceArray2D<float> &J_vert);
+		pcl::gpu::DeviceArray2D<float> &J_vert, bool with_vert=true);
 	void calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J);
 	void calcPose2DTerm_host(const DetInstance& det, const Camera& cam, const std::vector<Eigen::Vector3f>& skel2d,
 		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
@@ -71,6 +71,9 @@ public:
 	void Calc2dJointProjectionTerm(
 		const MatchedInstance& source,
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight=false);
+	void CalcJointFloorTerm(
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+	);
 
 	void CalcPoseJacobiFullTheta_cpu(Eigen::MatrixXf& jointJacobiPose, Eigen::MatrixXf& J_vert,
 		bool with_vert);
@@ -115,6 +118,8 @@ private:
 	float m_w_sil_term; 
 	float m_w_reg_term; 
 	float m_w_temp_term;
+	float m_w_floor_term; 
+	float m_w_pose_prior_term; 
 
 	// optimization source
 	MatchedInstance m_source; 
@@ -149,8 +154,8 @@ private:
 	pcl::gpu::DeviceArray2D<float> d_AT_sil; 
 	pcl::gpu::DeviceArray<float> d_b_sil; 
 
-	Eigen::MatrixXf h_J_joint; 
-	Eigen::MatrixXf h_J_vert; 
+	Eigen::MatrixXf h_J_joint; // [jointnum * paramNum]
+	Eigen::MatrixXf h_J_vert;  // [vertexnum * paramNum]
 
 	// sil term constructor 
 	void CalcSilhouettePoseTerm(

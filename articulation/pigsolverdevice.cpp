@@ -50,6 +50,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_w_sil_term = root["sil_term"].asFloat();
 	m_w_reg_term = root["reg_term"].asFloat();
 	m_w_temp_term = root["temp_term"].asFloat(); 
+	m_w_floor_term = root["floor_term"].asFloat(); 
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -273,7 +274,7 @@ std::vector<Eigen::Vector3f> PigSolverDevice::getRegressedSkel()
 void PigSolverDevice::globalAlign()
 {
 	directTriangulationHost(); 
-	if (m_initScale) return; 
+	//if (m_initScale) return; 
 	int N = m_skelTopo.joint_num;
 
 	std::vector<float> weights(N, 0); 
@@ -720,7 +721,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		Eigen::MatrixXf ATA_data; 
 		Eigen::VectorXf ATb_data; 
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, true); 
-
+		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
 		renderDepths(); 
 
 #ifdef DEBUG_SIL
@@ -769,11 +770,17 @@ void PigSolverDevice::optimizePoseSilhouette(
 		//std::cout << "ATb cpu: " << std::endl << ATb_sil2.segment<9>(0).transpose() << std::endl;
 		//std::cout << "ATb gpu: " << std::endl << ATb_sil.segment<9>(0).transpose() << std::endl;
 
+		Eigen::MatrixXf ATA_floor; 
+		Eigen::VectorXf ATb_floor;
+		CalcJointFloorTerm(ATA_floor, ATb_floor); 
+
 		float lambda = m_lambda;
 		float w_data = m_w_data_term;
 		float w_sil = m_w_sil_term;
 		float w_reg = m_w_reg_term;
 		float w_temp = m_w_temp_term;
+		float w_floor = m_w_floor_term; 
+
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXf H_reg = DTD;  // reg term 
 
@@ -794,10 +801,13 @@ void PigSolverDevice::optimizePoseSilhouette(
 
 		Eigen::MatrixXf H = ATA_sil * w_sil + H_reg * w_reg
 			+ DTD * lambda + H_temp * w_temp
-			+ ATA_data * w_data;
+			+ ATA_data * w_data + ATA_floor * w_floor;
 		Eigen::VectorXf b = ATb_sil * w_sil + b_reg * w_reg
 			+ b_temp * w_temp
-			+ ATb_data * w_data;
+			+ ATb_data * w_data + ATb_floor * w_floor; 
+
+
+
 		Eigen::VectorXf delta = H.ldlt().solve(b);
 
 #ifdef SHOW_FITTING_INFO
@@ -806,6 +816,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		std::cout << "ATb sil  : " << (ATb_sil * w_sil).norm() << std::endl;
 		std::cout << "ATb temp : " << (b_temp*w_temp).norm() << std::endl; 
 		std::cout << "ATb reg  : " << (b_reg*w_reg).norm() << std::endl; 
+		std::cout << "ATb floor: " << (ATb_floor*w_floor).norm() << std::endl; 
 #endif 
 		// update 
 		m_host_translation += delta.segment<3>(0);
@@ -834,7 +845,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	int paramNum = 3 + 3 * m_poseToOptimize.size();
 	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
 	ATb = Eigen::VectorXf::Zero(paramNum);
-	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert); // TODO: remove d_J_vert computation here. 
+	
 
 #ifdef DEBUG_SIL
 	std::vector<cv::Mat> chamfers_vis;
@@ -1189,7 +1200,8 @@ void PigSolverDevice::CalcPoseJacobiPartTheta_cpu(Eigen::MatrixXf& J_joint, Eige
 
 void PigSolverDevice::calcPoseJacobiFullTheta_device(
 	pcl::gpu::DeviceArray2D<float> &J_joint,
-	pcl::gpu::DeviceArray2D<float> &J_vert
+	pcl::gpu::DeviceArray2D<float> &J_vert, 
+	bool with_vert
 )
 {
 	int cpucols = 3 * m_jointNum + 3; // theta dimension 
@@ -1266,7 +1278,8 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 	d_RP.upload(RP.data(), 9 * m_jointNum * sizeof(float), 3, 9 * m_jointNum);
 	d_LP.upload(LP.data(), 3 * m_jointNum * sizeof(float), 3 * m_jointNum, 3 * m_jointNum);
 
-	calcPoseJacobiFullTheta_V_device(J_vert, J_joint, d_RP, d_LP); 
+	if(with_vert)
+		calcPoseJacobiFullTheta_V_device(J_vert, J_joint, d_RP, d_LP); 
 }
 
 
@@ -1351,4 +1364,41 @@ void PigSolverDevice::generateDataForSilSolver()
 		}
 	}
 	
+}
+
+
+// =======================
+// Scene Constraint term: 
+// A pig mush be on the ground, thus v(2)> 0 for all verticse. 
+// Considering that we cant formulate soft tissue deformation, 
+// we only constrain legs with this term, called `floor term`
+// Instead of peanalize every surface point, I only penalize 
+// joints for simplicity. 
+// By AN Liang, 2020/Sept/17
+// =======================
+void PigSolverDevice::CalcJointFloorTerm(
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum); 
+
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_jointNum, paramNum); 
+	Eigen::VectorXf b = Eigen::VectorXf::Zero(m_jointNum); 
+
+	// assume we have J_joint_part_theta
+	d_J_joint.download(h_J_joint.data(), m_jointNum * 3 * sizeof(float));
+	for (int jid = 0; jid < m_jointNum; jid++)
+	{
+		Eigen::Vector3f joint = m_host_jointsPosed[jid];
+		if (joint(2) > 0) continue; 
+		else
+		{
+			A.row(jid) = 2 * joint(2) * h_J_joint.row(3 * jid + 2);
+			b(jid) = - joint(2) * joint(2); 
+		}
+	}
+	ATA = A.transpose() * A; 
+	ATb = A.transpose() * b; 
 }

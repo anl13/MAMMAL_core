@@ -102,6 +102,23 @@ int run_pose_render()
 
 			all_renders[camid] = img;
 		}
+		m_renderer.createScene(conf_projectFolder);
+		Eigen::Vector3f pos1(1.84296, -2.18987, 1.19391);
+		Eigen::Vector3f up1(-0.265077, 0.293909, 0.918342);
+		Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
+		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+		m_renderer.Draw();
+		cv::Mat img = m_renderer.GetImage();
+		all_renders.push_back(img);
+
+		Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
+		Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
+		Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
+		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
+		m_renderer.Draw();
+		img = m_renderer.GetImage();
+		all_renders.push_back(img);
+
 		cv::Mat packed_render;
 		packImgBlock(all_renders, packed_render);
 

@@ -5,6 +5,6 @@
 
 int main(int argc, char** argv)
 {
-	//run_inspect();
-	run_pose_render(); 
+	run_inspect();
+	//run_pose_render(); 
 }

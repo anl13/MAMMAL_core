@@ -211,7 +211,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties />
+      <UserProperties __JSONSchema="" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

@@ -79,7 +79,7 @@ void Mesh::SplitFaceStr(std::string &str, int &i1, int &i2, int &i3)
 	}
 }
 
-void Mesh::Load(const std::string& filename)
+void Mesh::Load(const std::string& filename, bool isCalcNormal)
 {
 	std::vector<std::string> strs;
 	boost::split(strs, filename, boost::is_any_of("."));
@@ -160,7 +160,8 @@ void Mesh::Load(const std::string& filename)
 	texture_num = textures_vec.size(); 
 	face_num = faces_v_vec.size(); 
 
-	CalcNormal(); 
+	if(isCalcNormal)
+		CalcNormal(); 
 }
 
 void Mesh::Save(const std::string &filename) const

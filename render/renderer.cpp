@@ -15,7 +15,7 @@ Eigen::Vector2f         Renderer::s_beforePos;
 float                   Renderer::s_arcballRadius; 
 double                  Renderer::s_leftClickTimeSeconds; 
 
-// #define SHOW_CAM_POSE
+ //#define SHOW_CAM_POSE
 
 void Renderer::s_Init(bool isHideWindow)
 {
@@ -498,4 +498,48 @@ void Renderer::clearAllObjs()
 	texObjs.clear();
 	for (int i = 0; i < skels.size(); i++)skels[i]->deleteObjects();
 	skels.clear(); 
+}
+
+void Renderer::createScene(std::string conf_projectFolder)
+{
+	Mesh obj;
+	obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
+	//obj = ballMesh; 
+	RenderObjectTexture* p_scene = new RenderObjectTexture();
+	p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_black.png");
+	p_scene->SetFaces(obj.faces_v_vec);
+	p_scene->SetVertices(obj.vertices_vec);
+	p_scene->SetNormal(obj.normals_vec, 2);
+	p_scene->SetTexcoords(obj.textures_vec, 1);
+	p_scene->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	texObjs.push_back(p_scene);
+
+	//Mesh obj2;
+	//obj2.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part1.obj");
+	//RenderObjectTexture* p_scene2 = new RenderObjectTexture();
+	//p_scene2->SetTexcoords(obj2.textures_vec, 1);
+	//p_scene2->SetNormal(obj2.normals_vec, 2);
+	//p_scene2->SetVertices(obj2.vertices_vec);
+	//p_scene2->SetFaces(obj2.faces_v_vec);
+	//p_scene2->SetTexture(conf_projectFolder + "/render/data/chessboard_bk.png");
+	//p_scene2->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//texObjs.push_back(p_scene2);
+
+	Mesh obj2;
+	obj2.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part1.obj");
+	RenderObjectColor * p_scene2 = new RenderObjectColor();
+	p_scene2->SetVertices(obj2.vertices_vec);
+	p_scene2->SetNormal(obj2.normals_vec);
+	p_scene2->SetFaces(obj2.faces_v_vec);
+	p_scene2->SetColor(Eigen::Vector3f(0.9, 0.9, 0.95));
+	colorObjs.push_back(p_scene2);
+
+	Mesh obj3;
+	obj3.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part2.obj");
+	RenderObjectColor * p_scene3 = new RenderObjectColor();
+	p_scene3->SetVertices(obj3.vertices_vec);
+	p_scene3->SetNormal(obj3.normals_vec);
+	p_scene3->SetFaces(obj3.faces_v_vec);
+	p_scene3->SetColor(Eigen::Vector3f(0.8, 0.8, 0.75));
+	colorObjs.push_back(p_scene3);
 }

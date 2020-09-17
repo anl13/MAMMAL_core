@@ -395,22 +395,49 @@ void test_scene()
 	float scale = (pointsNew.col(0) - pointsNew.col(1)).norm() /
 		(pointsRaw.col(0) - pointsNew.col(1)).norm(); 
 	pointsRaw = pointsRaw * scale; 
-	Eigen::Vector3f T = (pointsNew.col(0) + pointsNew.col(2)) / 2 -
-		(pointsRaw.col(0) - pointsRaw.col(2)) / 2; 
-	pointsRaw = pointsRaw.colwise() + T; 
-	Eigen::Matrix3f R; 
+	Eigen::Matrix3f R;
 	R << 0, 0, 1, 1, 0, 0, 0, 1, 0;
+	pointsRaw = R * pointsRaw; 
+	Eigen::Vector3f T = (pointsNew.col(0) + pointsNew.col(2)) / 2 -
+		(pointsRaw.col(0) + pointsRaw.col(2)) / 2; 
+	pointsRaw = pointsRaw.colwise() + T; 
+
+	float scale2 = ((pointsNew.col(0) - pointsNew.col(1)).norm() + (pointsNew.col(0) - pointsNew.col(2)).norm() + (pointsNew.col(1) - pointsNew.col(2)).norm())
+		/ ((pointsRaw.col(0) - pointsRaw.col(1)).norm() + (pointsRaw.col(0) - pointsRaw.col(2)).norm() + (pointsRaw.col(1) - pointsRaw.col(2)).norm());
+	pointsRaw = pointsRaw * scale2; 
 
 	std::cout << "pointsRaw: " << std::endl << pointsRaw << std::endl; 
 	std::cout << "pointsNew: " << std::endl << pointsNew << std::endl; 
 	std::cout << "R: " << std::endl << R << std::endl; 
 
-	Mesh sceneMesh("F:/projects/model_preprocess/designed_pig/scenes/scene_obj.obj"); 
+	std::vector<Eigen::Vector3f> points; 
+	points.push_back(pointsRaw.col(0)); 
+	points.push_back(pointsRaw.col(1));
+	points.push_back(pointsRaw.col(2));
+	points.push_back(pointsNew.col(0));
+	points.push_back(pointsNew.col(1));
+	points.push_back(pointsNew.col(2));
+
+	std::vector<float> sizes(6, 0.05f);
+	std::vector<Eigen::Vector3f> balls, colors;
+	balls = points; 
+	colors.resize(points.size());
+	for (int i = 0; i < points.size(); i++)
+	{
+		if(i<3)
+			colors[i] = CM[0];
+		else colors[i] = CM[1]; 
+	}
+	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
+	m_renderer.skels.push_back(skelObject);
+
+	Mesh sceneMesh("F:/projects/model_preprocess/designed_pig/scenes/scene_triangle.obj", false); 
 	for (int i = 0; i < sceneMesh.vertex_num; i++)
 	{
-		sceneMesh.vertices_vec[i] = R * (scale * sceneMesh.vertices_vec[i] + T);
+		sceneMesh.vertices_vec[i] = scale2 * (R * (scale * sceneMesh.vertices_vec[i])+ T);
+		//sceneMesh.normals_vec[i] = R * sceneMesh.normals_vec[i];
 	}
-	//sceneMesh.CalcNormal(); 
+	sceneMesh.CalcNormal(); 
 
 	RenderObjectColor* p_scene = new RenderObjectColor(); 
 	p_scene->SetFaces(sceneMesh.faces_v_vec); 
@@ -462,15 +489,6 @@ void test_discrete_scene()
 	MeshEigen ballMeshEigen(ballMesh);
 	MeshEigen stickMeshEigen(stickMesh);
 
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareMesh.faces_v_vec);
-	chess_floor->SetVertices(squareMesh.vertices_vec);
-	chess_floor->SetNormal(squareMesh.normals_vec, 2);
-	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
-	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor);
-
 	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
 	std::vector<Eigen::Vector3f> points = read_points(point_file);
 	std::cout << "pointsize:  " << points.size() << std::endl;
@@ -482,19 +500,13 @@ void test_discrete_scene()
 	{
 		colors[i] = CM[0];
 	}
+	int id = 49;
+	std::cout << points[id] << std::endl; 
+	colors[id] = CM[1]; 
 	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(skelObject);
 
-	Mesh obj;
-	//obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
-	obj = ballMesh; 
-	RenderObjectColor * p_model = new RenderObjectColor();
-	p_model->SetVertices(obj.vertices_vec);
-	p_model->SetFaces(obj.faces_v_vec);
-	p_model->SetNormal(obj.normals_vec);
-	p_model->SetColor(Eigen::Vector3f(0.2f, 0.8f, 0.5f));
-	m_renderer.colorObjs.push_back(p_model);
-
+	m_renderer.createScene(conf_projectFolder); 
 
 	//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 0.5f, 0.5f, 1.0f));
 

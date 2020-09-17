@@ -155,13 +155,13 @@ __global__ void extract_jacobi_lines_kernel(
 
 
 void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
-	pcl::gpu::DeviceArray2D<float> &J_vert)
+	pcl::gpu::DeviceArray2D<float> &J_vert, bool with_vert)
 {
 	dim3 blocksize(32, 32); 
 	dim3 gridsize1(pcl::device::divUp(3 * m_jointNum, blocksize.x), pcl::device::divUp(m_host_paramLines.size(), blocksize.y));
 	dim3 gridsize2(pcl::device::divUp(3 * m_vertexNum, blocksize.x), pcl::device::divUp(m_host_paramLines.size(), blocksize.y)); 
 
-	calcPoseJacobiFullTheta_device(d_J_joint_full, d_J_vert_full); 
+	calcPoseJacobiFullTheta_device(d_J_joint_full, d_J_vert_full, with_vert); 
 
 	extract_jacobi_lines_kernel << <gridsize1, blocksize >> > (
 		d_J_joint_full, m_device_paramLines, m_host_paramLines.size(),
@@ -170,12 +170,15 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 	cudaSafeCall(cudaGetLastError()); 
 	cudaSafeCall(cudaDeviceSynchronize()); 
 
-	extract_jacobi_lines_kernel << <gridsize2, blocksize >> > (
-		d_J_vert_full, m_device_paramLines, m_host_paramLines.size(),
-		3 * m_vertexNum, J_vert
-		);
-	cudaSafeCall(cudaGetLastError()); 
-	cudaSafeCall(cudaDeviceSynchronize()); 
+	if (with_vert)
+	{
+		extract_jacobi_lines_kernel << <gridsize2, blocksize >> > (
+			d_J_vert_full, m_device_paramLines, m_host_paramLines.size(),
+			3 * m_vertexNum, J_vert
+			);
+		cudaSafeCall(cudaGetLastError());
+		cudaSafeCall(cudaDeviceSynchronize());
+	}
 }
 
 __global__ void construct_sil_A_kernel(
@@ -571,3 +574,5 @@ void PigSolverDevice::calcPoseJacobiFullTheta_V_device(
 	cudaSafeCall(cudaGetLastError());
 	cudaSafeCall(cudaDeviceSynchronize());
 }
+
+
