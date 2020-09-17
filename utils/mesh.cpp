@@ -51,11 +51,13 @@ void Mesh::CalcNormal()
 	for (int fIdx = 0; fIdx < faces_v_vec.size(); fIdx++) {
 		const Eigen::Vector3u face = faces_v_vec[fIdx];
 		Eigen::Vector3f normal = ((vertices_vec[face.x()] - vertices_vec[face.y()]).cross(
-			vertices_vec[face.y()] - vertices_vec[face.z()])).normalized();
+			vertices_vec[face.y()] - vertices_vec[face.z()]));
+		float area = normal.norm();  
+		float area_sq = area * area; 
 
-		normals_vec[face.x()] += normal;
-		normals_vec[face.y()] += normal;
-		normals_vec[face.z()] += normal;
+		normals_vec[face.x()] += normal / area_sq;
+		normals_vec[face.y()] += normal / area_sq;
+		normals_vec[face.z()] += normal / area_sq;
 	}
 	for (int i = 0; i < vertex_num; i++) normals_vec[i].normalize(); 
 }
@@ -197,11 +199,12 @@ void MeshEigen::CalcNormal()
 	for (int fIdx = 0; fIdx < faces.cols(); fIdx++) {
 		const Eigen::Vector3u face = faces.col(fIdx);
 		Eigen::Vector3f normal = ((vertices.col(face.x()) - vertices.col(face.y())).cross(
-			vertices.col(face.y()) - vertices.col(face.z()))).normalized();
-
-		normals.col(face.x()) += normal;
-		normals.col(face.y()) += normal;
-		normals.col(face.z()) += normal;
+			vertices.col(face.y()) - vertices.col(face.z())));
+		float area = normal.norm(); 
+		area = area * area;
+		normals.col(face.x()) += normal / area;
+		normals.col(face.y()) += normal / area;
+		normals.col(face.z()) += normal / area;
 	}
 	for (int i = 0; i < normals.cols(); i++) normals.col(i).normalize();
 }

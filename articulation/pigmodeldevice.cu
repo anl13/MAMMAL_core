@@ -154,6 +154,9 @@ __global__ void compute_normals_step1_kernel(
 		Eigen::Vector3f v2 = _vertices[f(1)];
 		Eigen::Vector3f v3 = _vertices[f(2)];
 		Eigen::Vector3f n = (v1 - v2).cross(v2 - v3);
+		float a = n.norm();
+		a = a * a;
+		n = n / a;
 
 		atomicAdd(&normals[f(0)](0), n(0)); 
 		atomicAdd(&normals[f(0)](1), n(1)); 

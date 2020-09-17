@@ -485,9 +485,11 @@ void PigModel::UpdateNormalOrigin()
 		Eigen::Vector3f py = m_verticesOrigin.col(y);
 		Eigen::Vector3f pz = m_verticesOrigin.col(z); 
 		Eigen::Vector3f norm = (py - px).cross(pz - px);
-		m_normalOrigin.col(x) += norm;
-		m_normalOrigin.col(y) += norm;
-		m_normalOrigin.col(z) += norm; 
+		float a = norm.norm();
+		a = a * a;
+		m_normalOrigin.col(x) += norm / a;
+		m_normalOrigin.col(y) += norm / a;
+		m_normalOrigin.col(z) += norm / a; 
 	}
 	for (int i = 0; i < m_vertexNum; i++)
 	{
@@ -506,9 +508,11 @@ void PigModel::UpdateNormalShaped()
 		Eigen::Vector3f py = m_verticesShaped.col(y);
 		Eigen::Vector3f pz = m_verticesShaped.col(z);
 		Eigen::Vector3f norm = (py - px).cross(pz - px);
-		m_normalShaped.col(x) += norm;
-		m_normalShaped.col(y) += norm;
-		m_normalShaped.col(z) += norm;
+		float a = norm.norm(); 
+		a = a * a; 
+		m_normalShaped.col(x) += norm /a;
+		m_normalShaped.col(y) += norm /a;
+		m_normalShaped.col(z) += norm /a;
 	}
 	for (int i = 0; i < m_vertexNum; i++)
 	{
@@ -527,9 +531,11 @@ void PigModel::UpdateNormalFinal()
 		Eigen::Vector3f py = m_verticesFinal.col(y);
 		Eigen::Vector3f pz = m_verticesFinal.col(z);
 		Eigen::Vector3f norm = (py - px).cross(pz - px);
-		m_normalFinal.col(x) += norm;
-		m_normalFinal.col(y) += norm;
-		m_normalFinal.col(z) += norm;
+		float a = norm.norm(); 
+		a = a * a;
+		m_normalFinal.col(x) += norm / a;
+		m_normalFinal.col(y) += norm / a;
+		m_normalFinal.col(z) += norm / a;
 	}
 	for (int i = 0; i < m_vertexNum; i++)
 	{
