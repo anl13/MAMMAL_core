@@ -22,8 +22,13 @@
 #include <Eigen/Core>
 #include "gpuutils.h"
 
+// artist model 
 #define NUM_MODEL_JOINT 62
-#define NUM_POSE_JOINT 21
+#define NUM_POSE_JOINT 22
+
+// my pig model
+//#define NUM_MODEL_JOINT 43
+//#define NUM_POSE_JOINT 17
 
 // ========
 // compute jacobi full pose 

@@ -44,6 +44,33 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 		m_skelCorr.push_back(pair);
 	}
 
+	m_valid_threshold = root["valid_threshold"].asFloat();
+	m_lambda = root["lambda"].asFloat();
+	m_w_data_term = root["data_term"].asFloat();
+	m_w_sil_term = root["sil_term"].asFloat();
+	m_w_reg_term = root["reg_term"].asFloat();
+	m_w_temp_term = root["temp_term"].asFloat(); 
+
+	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
+	for (auto const &c : root["reg_weights"])
+	{
+		int index = c[0].asInt(); 
+		float wx = c[1].asFloat(); 
+		float wy = c[2].asFloat(); 
+		float wz = c[3].asFloat(); 
+		for (int i = 0; i < m_poseToOptimize.size(); i++)
+		{
+			int jointid = m_poseToOptimize[i];
+			if (jointid == index)
+			{
+				m_param_reg_weight[3 + 3 * i] = wx;
+				m_param_reg_weight[3 + 3 * i + 1] = wy;
+				m_param_reg_weight[3 + 3 * i + 2] = wz;
+			}
+		}
+	}
+
+
 	instream.close();
 
 	// pre-allocate device memory 
@@ -107,6 +134,19 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	std::cout << "paramNum: " << paramNum << std::endl;
 	d_AT_sil.create(paramNum, m_vertexNum); 
 	d_b_sil.create(m_vertexNum); 
+
+
+
+	m_last_thetas.resize(paramNum); 
+	m_last_thetas.segment<3>(0) = m_host_translation;
+	for (int i = 0; i < m_poseToOptimize.size(); i++)
+	{
+		int jIdx = m_poseToOptimize[i];
+		m_last_thetas.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
+	}
+
+	m_param_temp_weight = Eigen::VectorXf::Ones(paramNum); 
+	m_param_observe_num = Eigen::VectorXf::Zero(m_skelTopo.joint_num); 
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -538,15 +578,32 @@ void PigSolverDevice::optimizePose()
 		Eigen::VectorXf ATb_data = Eigen::VectorXf::Zero(paramNum);  // data term 
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data); 
 
+		//float lambda = m_lambda; // LM algorhtim
+		//float w_data = m_w_data_term;
+		//float w_reg = m_w_reg_term;
 		float lambda = 0.0005; // LM algorhtim
 		float w_data = 1;
 		float w_reg = 0.01;
+		float w_temp = m_w_temp_term;
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
 		Eigen::MatrixXf ATA_reg = DTD;  // reg term 
-		Eigen::VectorXf ATb_reg = -theta; // reg term 
+		Eigen::MatrixXf ATA_temp = DTD; 
+		Eigen::VectorXf ATb_temp = m_last_thetas - theta; 
+		for (int i = 0; i < 3 + 3 * M; i++)
+		{
+			ATA_temp(i, i) *= m_param_temp_weight(i); 
+			ATb_temp(i) *= m_param_temp_weight(i); 
+		}
 
-		Eigen::MatrixXf ATA = ATA_data * w_data + ATA_reg * w_reg + DTD * lambda;
-		Eigen::VectorXf ATb = ATb_data * w_data + ATb_reg * w_reg;
+		Eigen::VectorXf ATb_reg = -theta; // reg term 
+		for (int i = 0; i < 3 + 3 * M; i++)
+		{
+			ATA_reg(i, i) *= m_param_reg_weight[i];
+			ATb_reg(i) *= m_param_reg_weight[i];
+		}
+
+		Eigen::MatrixXf ATA = ATA_data * w_data + ATA_reg * w_reg + DTD * lambda + ATA_temp * w_temp;
+		Eigen::VectorXf ATb = ATb_data * w_data + ATb_reg * w_reg + ATb_temp * w_temp;
 
 		Eigen::VectorXf delta = ATA.ldlt().solve(ATb);
 
@@ -566,7 +623,8 @@ void PigSolverDevice::optimizePose()
 
 void PigSolverDevice::Calc2dJointProjectionTerm(
 	const MatchedInstance& source,
-	Eigen::MatrixXf& ATA_data, Eigen::VectorXf& ATb_data)
+	Eigen::MatrixXf& ATA_data, Eigen::VectorXf& ATb_data, 
+	bool with_depth_weight)
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
 	Eigen::MatrixXf poseJ3d;
@@ -581,11 +639,15 @@ void PigSolverDevice::Calc2dJointProjectionTerm(
 	{
 		Eigen::MatrixXf H_view;
 		Eigen::VectorXf b_view;
-		int view = source.view_ids[k];
-		calcPose2DTerm_host(source.dets[k], m_cameras[view], skel2d, poseJ3d, H_view, b_view);
-
-		ATA_data += H_view;
-		ATb_data += b_view;
+		int camid = source.view_ids[k];
+		calcPose2DTerm_host(source.dets[k], m_cameras[camid], skel2d, poseJ3d, H_view, b_view);
+		float weight = 1; 
+		if (with_depth_weight)
+		{
+			weight = m_depth_weight[camid];
+		}
+		ATA_data += H_view * weight;
+		ATb_data += b_view * weight;
 	}
 }
 
@@ -637,14 +699,6 @@ void PigSolverDevice::optimizePoseSilhouette(
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M; 
 
-	Eigen::VectorXf theta_last(paramNum);
-	theta_last.segment<3>(0) = m_host_translation;
-	for (int i = 0; i < M; i++)
-	{
-		int jIdx = m_poseToOptimize[i];
-		theta_last.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
-	}
-
 	generateDataForSilSolver(); // generate mask opencv 
 
 	cudaProfilerStart();
@@ -665,7 +719,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		// calc joint term 
 		Eigen::MatrixXf ATA_data; 
 		Eigen::VectorXf ATb_data; 
-		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data); 
+		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, true); 
 
 		renderDepths(); 
 
@@ -715,16 +769,29 @@ void PigSolverDevice::optimizePoseSilhouette(
 		//std::cout << "ATb cpu: " << std::endl << ATb_sil2.segment<9>(0).transpose() << std::endl;
 		//std::cout << "ATb gpu: " << std::endl << ATb_sil.segment<9>(0).transpose() << std::endl;
 
-		float lambda = 0.005;
-		float w_data = 0.01;
-		float w_sil = 0.0005;
-		float w_reg = 1;
-		float w_temp = 0;
+		float lambda = m_lambda;
+		float w_data = m_w_data_term;
+		float w_sil = m_w_sil_term;
+		float w_reg = m_w_reg_term;
+		float w_temp = m_w_temp_term;
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXf H_reg = DTD;  // reg term 
+
 		Eigen::VectorXf b_reg = -theta; // reg term 
+		for (int i = 0; i < 3 + 3 * M; i++)
+		{
+			H_reg(i, i) *= m_param_reg_weight[i];
+			b_reg(i) *= m_param_reg_weight[i];
+		}
 		Eigen::MatrixXf H_temp = DTD;
-		Eigen::VectorXf b_temp = theta_last - theta;
+		Eigen::VectorXf b_temp = m_last_thetas - theta;
+		for (int i = 0; i < 3 + 3 * M; i++)
+		{
+			H_temp(i, i) *= m_param_temp_weight(i);
+			b_temp(i) *= m_param_temp_weight(i);
+		}
+
+
 		Eigen::MatrixXf H = ATA_sil * w_sil + H_reg * w_reg
 			+ DTD * lambda + H_temp * w_temp
 			+ ATA_data * w_data;
@@ -735,10 +802,10 @@ void PigSolverDevice::optimizePoseSilhouette(
 
 #ifdef SHOW_FITTING_INFO
 		std::cout << "iter ...... " << iter << " ......" << std::endl; 
-		std::cout << "ATb data : " << ATb_data.norm() << std::endl; 
-		std::cout << "ATb sil  : " << ATb_sil.norm() << std::endl;
-		std::cout << "ATb temp : " << b_temp.norm() << std::endl; 
-		std::cout << "ATb reg  : " << b_reg.norm() << std::endl; 
+		std::cout << "ATb data : " << (ATb_data * w_data).norm() << std::endl; 
+		std::cout << "ATb sil  : " << (ATb_sil * w_sil).norm() << std::endl;
+		std::cout << "ATb temp : " << (b_temp*w_temp).norm() << std::endl; 
+		std::cout << "ATb reg  : " << (b_reg*w_reg).norm() << std::endl; 
 #endif 
 		// update 
 		m_host_translation += delta.segment<3>(0);
@@ -747,6 +814,13 @@ void PigSolverDevice::optimizePoseSilhouette(
 			int jIdx = m_poseToOptimize[i];
 			m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 		}
+	}
+	m_last_thetas.resize(paramNum);
+	m_last_thetas.segment<3>(0) = m_host_translation;
+	for (int i = 0; i < M; i++)
+	{
+		int jIdx = m_poseToOptimize[i];
+		m_last_thetas.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
 	}
 
 	cudaProfilerStop(); 
@@ -773,7 +847,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 #endif 
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
-		if (m_valid_keypoint_ratio[view] < 0.6) {
+		if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
 			std::cout << "view " << view << " is invalid. " << m_valid_keypoint_ratio[view] << std::endl;
 			continue;
 		}
@@ -836,8 +910,10 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		d_ATA_sil.download(ATA_view.data(), ATA_view.cols() * sizeof(float));
 		d_ATb_sil.download(ATb_view.data());
 
-		ATA += ATA_view ; 
-		ATb += ATb_view ; 
+		float weight = 1.f / sqrtf(m_depth_weight[camid]);
+		//float weight = 1.0f; 
+		ATA += ATA_view * weight; 
+		ATb += ATb_view * weight; 
 	}
 
 #ifdef DEBUG_SIL
@@ -890,7 +966,7 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
-		if (m_rois[roiIdx].valid < 0.6) {
+		if (m_rois[roiIdx].valid < m_valid_threshold) {
 			std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
 			continue;
 		}
@@ -966,9 +1042,10 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		stream_cpu.close(); 
 		std::cout << "visible cpu: " << visible << std::endl; 
 #endif 
-
-		ATA += A.transpose() * A;
-		ATb += A.transpose() * r;
+		int camid = m_source.view_ids[roiIdx];
+		float weight = m_depth_weight[camid];
+		ATA += A.transpose() * A * weight;
+		ATb += A.transpose() * r * weight;
 
 	}
 #ifdef DEBUG_SIL
@@ -1201,6 +1278,9 @@ void PigSolverDevice::generateDataForSilSolver()
 	m_viewids = m_source.view_ids;
 	m_mask_areas.resize(m_viewids.size(), 0); 
 	m_valid_keypoint_ratio.resize(m_viewids.size(), 0);
+	Eigen::Vector3f center = m_host_jointsPosed[2]; 
+	m_depth_weight.resize(m_cameras.size(), 0); 
+
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
 		cv::Mat amask(cv::Size(W, H), CV_8UC1);
@@ -1220,5 +1300,55 @@ void PigSolverDevice::generateDataForSilSolver()
 		sobel_device(d_det_sdf[view], d_det_gradx[view], d_det_grady[view], 960, 540);
 		
 		cudaMemcpy(d_det_mask[view], m_det_masks[camid].data, 1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
+	
+		Eigen::Vector3f center_local = m_cameras[camid].R * center + m_cameras[camid].T;
+		float depth = center_local(2); 
+		if (depth <= 0) m_depth_weight[camid] = 0.0f;
+		else {
+			m_depth_weight[camid] = 2 / (depth+0.1);
+		}
 	}
+
+	m_param_observe_num.setZero(); 
+	for (int view = 0; view < m_viewids.size(); view++)
+	{
+		for (int jid = 0; jid < m_skelTopo.joint_num; jid++)
+		{
+			if (m_source.dets[view].keypoints[jid](2) >
+				m_skelTopo.kpt_conf_thresh[jid]) m_param_observe_num(jid)++;
+		}
+	}
+	std::vector<std::pair<int, int> > observe_optim_map = {
+		{5, 14},
+	{6, 6},
+	{7, 15}, 
+	{8, 7},
+	{9,16},
+	{10,8},
+	{11,55},
+	{12,39},
+	{13,56},
+	{14,40},
+	{15,57},
+	{16,41}
+	};
+	m_param_temp_weight.setOnes(); 
+	for (int i = 0; i < observe_optim_map.size(); i++)
+	{
+		int skelid = observe_optim_map[i].first;
+		int jointid = observe_optim_map[i].second;
+		if (m_param_observe_num(skelid) >= 5) continue; 
+		else {
+			for (int k = 0; k < m_poseToOptimize.size(); k++)
+			{
+				if (k != jointid)continue;
+				else {
+					m_param_temp_weight.segment<3>(3 + 3 * jointid) 
+						*= (5 / (m_param_observe_num(skelid) + 1));
+					break; 
+				}
+			}
+		}
+	}
+	
 }

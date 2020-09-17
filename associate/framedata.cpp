@@ -44,6 +44,7 @@ void FrameData::configByJson(std::string jsonfile)
 	m_match_alg = root["match_alg"].asString(); 
 	m_pigConfig = root["pig_config"].asString(); 
 	m_use_gpu = root["use_gpu"].asBool(); 
+	m_solve_sil_iters = root["solve_sil_iters"].asInt(); 
 
     std::vector<int> camids; 
     for(auto const &c : root["camids"])
@@ -410,26 +411,34 @@ cv::Mat FrameData::visualizeIdentity2D(int viewid, int vid)
 		if (vid >= 0 && id != vid)continue;
         for(int i = 0; i < m_matched[id].view_ids.size(); i++)
         {
+			Eigen::Vector3i color; 
+			color(0) = m_CM[id](2);
+			color(1) = m_CM[id](1);
+			color(2) = m_CM[id](0); 
             int camid = m_matched[id].view_ids[i];
             //int candid = m_matched[id].cand_ids[i];
             //if(candid < 0) continue; 
 			if(m_matched[id].dets[i].keypoints.size() > 0)
 				drawSkelMonoColor(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, id, m_topo);
-            my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, m_CM[id]);
+            my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, color);
 
 			if (m_matched[id].dets[i].mask.size() > 0)
-            my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, m_CM[id], 0.5);
+            my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, color, 0.5);
         }
     }
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		for (int i = 0; i < m_unmatched[camid].size(); i++)
 		{
+			Eigen::Vector3i color; 
+			color(0) = m_CM[5](2); 
+			color(1) = m_CM[5](1); 
+			color(2) = m_CM[5](0); 
 			if(m_unmatched[camid][i].keypoints.size()>0)
 			drawSkelMonoColor(m_imgsDetect[camid], m_unmatched[camid][i].keypoints, 5, m_topo);
-			my_draw_box(m_imgsDetect[camid], m_unmatched[camid][i].box, m_CM[5]);
+			my_draw_box(m_imgsDetect[camid], m_unmatched[camid][i].box, color);
 			if (m_unmatched[camid][i].mask.size()>0)
-			my_draw_mask(m_imgsDetect[camid], m_unmatched[camid][i].mask, m_CM[5], 0.5);
+			my_draw_mask(m_imgsDetect[camid], m_unmatched[camid][i].mask, color, 0.5);
 		}
 	}
 	if (viewid < 0)

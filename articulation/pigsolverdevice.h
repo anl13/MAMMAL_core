@@ -48,7 +48,7 @@ public:
 	void optimizePoseSilhouette(
 		int maxIter);
 
-	void debug_source_visualize(); 
+	void debug_source_visualize(int frameid); 
 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
@@ -70,7 +70,7 @@ public:
 
 	void Calc2dJointProjectionTerm(
 		const MatchedInstance& source,
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight=false);
 
 	void CalcPoseJacobiFullTheta_cpu(Eigen::MatrixXf& jointJacobiPose, Eigen::MatrixXf& J_vert,
 		bool with_vert);
@@ -109,14 +109,25 @@ private:
 	std::vector<CorrPair> m_skelCorr; 
 	SkelTopology m_skelTopo; 
 	std::vector<int> m_poseToOptimize;
+	float m_valid_threshold; 
+	float m_lambda; 
+	float m_w_data_term; 
+	float m_w_sil_term; 
+	float m_w_reg_term; 
+	float m_w_temp_term;
 
 	// optimization source
 	MatchedInstance m_source; 
 	std::vector<Camera> m_cameras;
 	std::vector<ROIdescripter> m_rois; 
+	Eigen::VectorXf m_last_thetas; 
 
 	// output 
 	std::vector<Eigen::Vector3f> m_skel3d; 
+	std::vector<float> m_depth_weight; // center depth for each view 
+	std::vector<float> m_param_reg_weight; // weight to regularize different joints 
+	Eigen::VectorXf m_param_temp_weight; // temporal weight per joint
+	Eigen::VectorXf m_param_observe_num; // joint observation for each joint
 
 	// render engine 
 	Renderer* mp_renderEngine;

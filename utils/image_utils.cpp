@@ -434,7 +434,7 @@ void my_draw_box(cv::Mat& img, const Eigen::Vector4f& box, Eigen::Vector3i c)
     Eigen::Vector3f p2; p2(0) = x(2); p2(1) = x(3); p2(2) = 1; 
     Eigen::Vector3f p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
     Eigen::Vector3f p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
-    Eigen::Vector3i color = c;
+	Eigen::Vector3i color = c;
     my_draw_segment(img, p1, p3, color, 3, 6); 
     my_draw_segment(img, p1, p4, color, 3, 6); 
     my_draw_segment(img, p3, p2, color, 3, 6); 
@@ -634,6 +634,7 @@ float checkKeypointsMaskOverlay(const cv::Mat& mask, const std::vector<Eigen::Ve
 		total += 1;
 		int y = keypoints[i](1) ;
 		int x = keypoints[i](0) ;
+		if (y < 0 || x < 0 || y >= 1080 || x >= 1920)continue; 
 		int value = mask.at<uchar>(y, x); 
 		if (value == idcode) valid += 1;
 	}

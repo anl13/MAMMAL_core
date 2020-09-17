@@ -274,12 +274,12 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 	)
 {
 	std::vector<Eigen::Vector3i> m_CM; 
-	getColorMap("anliang_rgb", m_CM);
+	getColorMap("anliang_render", m_CM);
 	for (int i = 0; i < _skel2d.size(); i++)
 	{
 		int colorid = m_topo.kpt_color_ids[i];
 		Eigen::Vector3i color = m_CM[colorid];
-		cv::Scalar cv_color(color(0), color(1), color(2));
+		cv::Scalar cv_color(color(2), color(1), color(1));
 
 		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
 		double conf = _skel2d[i](2);
@@ -291,7 +291,7 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 		int jid = m_topo.bones[k](0);
 		int colorid = m_topo.kpt_color_ids[jid];
 		Eigen::Vector3i color = m_CM[colorid];
-		cv::Scalar cv_color(color(0), color(1), color(2));
+		cv::Scalar cv_color(color(2), color(1), color(0));
 
 		Eigen::Vector2i b = m_topo.bones[k];
 		Eigen::Vector3f p1 = _skel2d[b(0)];
@@ -306,9 +306,9 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid, 
 	SkelTopology m_topo)
 {
-	std::vector<Eigen::Vector3i> m_CM = getColorMapEigen("anliang_rgb"); 
+	std::vector<Eigen::Vector3i> m_CM = getColorMapEigen("anliang_render"); 
 	Eigen::Vector3i color = m_CM[colorid];
-	cv::Scalar cv_color(color(0), color(1), color(2));
+	cv::Scalar cv_color(color(2), color(1), color(0));
 	for (int i = 0; i < _skel2d.size(); i++)
 	{
 		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));

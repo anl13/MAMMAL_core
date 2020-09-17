@@ -150,6 +150,15 @@
     <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
+    <ClCompile Include="run_inspect.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\run_shape.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\run_pose_render.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\associate\clusterclique.h">

@@ -148,6 +148,16 @@
     <CudaCompile Include="cuda_utils_render.cu" />
     <CudaCompile Include="test_kernel.cu" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shader\color_f.shader" />
+    <None Include="shader\color_v.shader" />
+    <None Include="shader\mesh_f.shader" />
+    <None Include="shader\mesh_v.shader" />
+    <None Include="shader\position_f.shader" />
+    <None Include="shader\position_v.shader" />
+    <None Include="shader\texture_f.shader" />
+    <None Include="shader\texture_v.shader" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />

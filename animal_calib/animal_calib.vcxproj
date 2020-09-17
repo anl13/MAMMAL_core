@@ -39,6 +39,8 @@
     <ClCompile Include="..\associate\tracking.cpp" />
     <ClCompile Include="..\exec\main.cpp" />
     <ClCompile Include="..\exec\run_pose.cpp" />
+    <ClCompile Include="..\exec\run_pose_render.cpp" />
+    <ClCompile Include="..\exec\run_shape.cpp" />
     <ClCompile Include="..\exec\write_video.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\renderer.cpp" />
@@ -57,6 +59,7 @@
     <ClCompile Include="..\utils\volume.cpp" />
     <ClCompile Include="..\VAE\decoder.cpp" />
     <ClCompile Include="..\VAE\layers.cpp" />
+    <ClCompile Include="run_inspect.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\articulation\common.h" />
@@ -208,7 +211,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties __JSONSchema="" />
+      <UserProperties />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

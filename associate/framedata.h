@@ -27,7 +27,7 @@ public:
         m_camNum = 10; 
         m_imw = 1920; 
         m_imh = 1080; 
-        getColorMap("anliang_rgb", m_CM); 
+        getColorMap("anliang_render", m_CM); 
         m_epi_thres = -1; 
         m_epi_type = "p2l";
     }
@@ -144,6 +144,7 @@ protected:
     int m_startid;
     int m_framenum; 
 	bool m_use_gpu; 
+	int m_solve_sil_iters; 
 
     // io function and tmp data
     vector<vector<vector<Eigen::Vector3f> > > m_keypoints; // [viewid, candid, kptid]

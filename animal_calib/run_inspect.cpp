@@ -1,4 +1,3 @@
-#include "main.h"
 #include <json/json.h> 
 #include <sstream> 
 #include <vector>
@@ -15,11 +14,11 @@
 #include "../utils/mesh.h"
 #include "../nanorender/NanoRenderer.h"
 #include <vector_functions.hpp>
-#include "main.h"
+#include "../exec/main.h"
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
 
-int run_pose_render()
+int run_inspect()
 {
 	show_gpu_param();
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
@@ -41,7 +40,7 @@ int run_pose_render()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(true);
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -51,33 +50,36 @@ int run_pose_render()
 
 	frame.result_folder = "G:/pig_results_debug/";
 	frame.is_smth = false;
-	int start = frame.get_start_id();
+	int start = 2604; 
 
-	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
+	for (int frameid = start; frameid < start + 3; frameid++)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		frame.load_clusters();
-		frame.read_parametric_data();
+		if (frameid == start) frame.load_clusters();
+		else frame.matching_by_tracking();
 
-		cv::Mat proj_skel = frame.visualizeProj(); 
-		std::stringstream ss_proj; 
-		ss_proj << frame.result_folder << "fitting/proj_" << std::setw(6) << std::setfill('0') << frameid << ".jpg"; 
-		cv::imwrite(ss_proj.str(), proj_skel); 
+		if (frameid == start) frame.read_parametric_data();
+		else frame.solve_parametric_model();
+
+		//frame.save_clusters();
+		//frame.save_parametric_data();
+
+		//cv::Mat proj_skel = frame.visualizeProj();
+		//cv::imwrite("G:/pig_results_debug/fitting/proj.png", proj_skel);
 		cv::Mat assoc = frame.visualizeIdentity2D();
 		std::stringstream ss;
 		ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 		cv::imwrite(ss.str(), assoc);
-		
 
 		m_renderer.clearAllObjs();
 		auto solvers = frame.mp_bodysolverdevice;
 
 		for (int pid = 0; pid < 4; pid++)
 		{
-			solvers[pid]->debug_source_visualize(frameid);
+			//solvers[pid]->debug_source_visualize(frameid);
 
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();
@@ -109,7 +111,7 @@ int run_pose_render()
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
 		std::stringstream all_render_file;
-		all_render_file << frame.result_folder << "/render_all/overlay/" << std::setw(6) << std::setfill('0')
+		all_render_file << frame.result_folder<< "/render_all/overlay/" << std::setw(6) << std::setfill('0')
 			<< frameid << "_overlay2.png";
 		std::stringstream file2;
 		file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')

@@ -19,112 +19,6 @@
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
 
-using std::vector;
-
-//#define READ_SMOOTH
-//#define RESUME
-
-std::vector<float4> convertVertices(const Eigen::Matrix3Xf& v)
-{
-	int N = v.cols();
-	std::vector<float4> vertices;
-	vertices.resize(N);
-#pragma omp parallel for 
-	for (int i = 0; i < N; i++)
-	{
-		vertices[i].x = v(0, i);
-		vertices[i].y = v(1, i);
-		vertices[i].z = v(2, i);
-		vertices[i].w = 1;
-	}
-	return vertices;
-}
-
-std::vector<unsigned int> convertIndices(const Eigen::MatrixXu& f)
-{
-	int N = f.cols();
-	std::vector<unsigned int> indices(N * 3, 0);
-	for (int i = 0; i < N; i++)
-	{
-		indices[3 * i + 0] = f(0, i);
-		indices[3 * i + 1] = f(1, i);
-		indices[3 * i + 2] = f(2, i);
-	}
-	return indices;
-}
-
-nanogui::Matrix4f eigen2nanoM4f(const Eigen::Matrix4f& mat)
-{
-	nanogui::Matrix4f M;
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			M.m[j][i] = mat(i, j);
-		}
-	}
-	return M;
-}
-
-
-std::vector<float4> getColorMapFloat4(std::string cm_type)
-{
-	std::vector<Eigen::Vector3i> CM;
-	getColorMap(cm_type, CM);
-	std::vector<float4> CM4;
-	if (CM.size() > 0)
-	{
-		CM4.resize(CM.size());
-		for (int i = 0; i < CM.size(); i++)
-		{
-			CM4[i] = make_float4(
-				CM[i](0) / 255.f, CM[i](1) / 255.f, CM[i](2) / 255.f, 1.0f);
-		}
-	}
-	return CM4;
-}
-
-std::vector<Camera> readCameras()
-{
-	std::vector<Camera> cams;
-	std::vector<int> m_camids = {
-		0,1,2,5,6,7,8,9,10,11
-	};
-	int m_camNum = m_camids.size();
-	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust/";
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		std::stringstream ss;
-		ss << m_camDir << std::setw(2) << std::setfill('0') << m_camids[camid] << ".txt";
-		std::ifstream camfile;
-		camfile.open(ss.str());
-		if (!camfile.is_open())
-		{
-			std::cout << "can not open file " << ss.str() << std::endl;
-			exit(-1);
-		}
-		Eigen::Vector3f rvec, tvec;
-		for (int i = 0; i < 3; i++) {
-			float a;
-			camfile >> a;
-			rvec(i) = a;
-		}
-		for (int i = 0; i < 3; i++)
-		{
-			float a;
-			camfile >> a;
-			tvec(i) = a;
-		}
-
-		Camera camUndist = Camera::getDefaultCameraUndist();
-		camUndist.SetRT(rvec, tvec);
-		cams.push_back(camUndist);
-		camfile.close();
-	}
-	return cams;
-}
-
-
 int run_pose()
 {
 
@@ -132,6 +26,7 @@ int run_pose()
 	//std::string pig_config = "D:/Projects/animal_calib/articulation/pigmodel_config.json";
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
+	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render"); 
 
 	FrameData frame;
 	frame.configByJson(conf_projectFolder + "/associate/config.json");
@@ -163,38 +58,44 @@ int run_pose()
 
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
-		std::cout << "processing frame " << frameid << std::endl;
+		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-
-		frame.matching_by_tracking(); 
+		if (frameid == start) frame.load_clusters();
+		else frame.matching_by_tracking(); 
 		TimerUtil::Timer<std::chrono::milliseconds> tt;
 		tt.Start();
-		frame.solve_parametric_model(); 
+		if (frameid == start) frame.read_parametric_data();
+		else frame.solve_parametric_model(); 
 		std::cout << "solve model: " << tt.Elapsed() << " ms" << std::endl; 
 
-		//frame.save_clusters();
-		//frame.save_parametric_data();
+		frame.save_clusters();
+		frame.save_parametric_data();
 
-		cv::Mat proj_skel = frame.visualizeProj(); 
-		cv::imwrite("G:/pig_results/fitting/proj.png", proj_skel); 
-
-
+		//cv::Mat proj_skel = frame.visualizeProj(); 
+		//cv::imwrite("G:/pig_results/fitting/proj.png", proj_skel); 
+		cv::Mat assoc = frame.visualizeIdentity2D(); 
+		std::stringstream ss; 
+		ss << "G:/pig_results/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
+		cv::imwrite(ss.str(), assoc); 
+		continue; 
 		m_renderer.clearAllObjs();
 		auto solvers = frame.mp_bodysolverdevice;
 		
-		solvers[0]->debug_source_visualize(); 
+		for (int pid = 0; pid < 2; pid++)
+		{
+			solvers[pid]->debug_source_visualize(frameid);
 
-		RenderObjectColor* p_model = new RenderObjectColor();
-		solvers[0]->UpdateNormalFinal();
-		
-		p_model->SetVertices(solvers[0]->GetVertices()); 
-		p_model->SetNormal(solvers[0]->GetNormals()); 
-		p_model->SetFaces(solvers[0]->GetFacesVert());
-		p_model->SetColor(Eigen::Vector3f(0.8f, 0.6f, 0.4f));
-		m_renderer.colorObjs.push_back(p_model); 
+			RenderObjectColor* p_model = new RenderObjectColor();
+			solvers[pid]->UpdateNormalFinal();
 
+			p_model->SetVertices(solvers[pid]->GetVertices());
+			p_model->SetNormal(solvers[pid]->GetNormals());
+			p_model->SetFaces(solvers[pid]->GetFacesVert());
+			p_model->SetColor(m_CM[pid]);
+			m_renderer.colorObjs.push_back(p_model);
+		}
 
 		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
 		cv::Mat pack_raw;

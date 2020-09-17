@@ -1,6 +1,6 @@
 #include "pigsolverdevice.h"
 
-void PigSolverDevice::debug_source_visualize()
+void PigSolverDevice::debug_source_visualize(int frameid)
 {
 	std::vector<Eigen::Vector3i> m_CM;
 	getColorMap("anliang_rgb", m_CM); 
@@ -29,7 +29,7 @@ void PigSolverDevice::debug_source_visualize()
 	cv::Mat output;
 	packImgBlock(crop_list, output);
 	std::stringstream ss;
-	ss << "G:/pig_results/fitting/" << m_pig_id << "/output.png";
+	ss << "G:/pig_results_debug/fitting/" << m_pig_id << "/det_" << std::setw(6) << std::setfill('0')<< frameid << ".png";
 	cv::imwrite(ss.str(), output);
 	//cv::imshow("test", output); 
 	//cv::waitKey(); 

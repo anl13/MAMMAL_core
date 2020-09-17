@@ -1,7 +1,7 @@
 #pragma once
 #include <string> 
 
-void run_pose_render(); 
+int run_pose_render(); 
 
 // custom_pig.cpp
 int run_on_sequence();
@@ -9,7 +9,7 @@ int run_on_sequence();
 // run_shape.cpp
 int run_shape();
 int run_pose(); 
-
+int run_inspect(); 
 // saml_fitting.cpp
 int removeSmalTail();
 int ComputeSymmetry();
