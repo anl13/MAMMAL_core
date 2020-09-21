@@ -70,9 +70,6 @@ void test_gpu()
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 	PigSolverDevice smal(smal_config);
 
-
-	smal.debug(); 
-
 	system("pause"); 
 	return; 
 

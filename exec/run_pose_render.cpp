@@ -41,7 +41,7 @@ int run_pose_render()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(true);
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -49,7 +49,7 @@ int run_pose_render()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "G:/pig_results_debug/";
+	frame.result_folder = "G:/pig_results_newtrack/";
 	frame.is_smth = false;
 	int start = frame.get_start_id();
 
@@ -62,14 +62,14 @@ int run_pose_render()
 		frame.load_clusters();
 		frame.read_parametric_data();
 
-		cv::Mat proj_skel = frame.visualizeProj(); 
-		std::stringstream ss_proj; 
-		ss_proj << frame.result_folder << "fitting/proj_" << std::setw(6) << std::setfill('0') << frameid << ".jpg"; 
-		cv::imwrite(ss_proj.str(), proj_skel); 
-		cv::Mat assoc = frame.visualizeIdentity2D();
-		std::stringstream ss;
-		ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss.str(), assoc);
+		//cv::Mat proj_skel = frame.visualizeProj(); 
+		//std::stringstream ss_proj; 
+		//ss_proj << frame.result_folder << "fitting/proj_" << std::setw(6) << std::setfill('0') << frameid << ".jpg"; 
+		//cv::imwrite(ss_proj.str(), proj_skel); 
+		//cv::Mat assoc = frame.visualizeIdentity2D();
+		//std::stringstream ss;
+		//ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		//cv::imwrite(ss.str(), assoc);
 		
 
 		m_renderer.clearAllObjs();
@@ -103,9 +103,9 @@ int run_pose_render()
 			all_renders[camid] = img;
 		}
 		m_renderer.createScene(conf_projectFolder);
-		Eigen::Vector3f pos1(1.84296, -2.18987, 1.19391);
-		Eigen::Vector3f up1(-0.265077, 0.293909, 0.918342);
-		Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
+		Eigen::Vector3f pos1(0.904806 ,- 1.57754,  0.58256);
+		Eigen::Vector3f up1(-0.157887 , 0.333177 , 0.929551);
+		Eigen::Vector3f center1(0.0915295 ,- 0.128604, - 0.0713566);
 		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
 		m_renderer.Draw();
 		cv::Mat img = m_renderer.GetImage();
@@ -121,20 +121,28 @@ int run_pose_render()
 
 		cv::Mat packed_render;
 		packImgBlock(all_renders, packed_render);
-
-		cv::Mat blend;
-		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
-
-		std::stringstream all_render_file;
-		all_render_file << frame.result_folder << "/render_all/overlay/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_overlay2.png";
 		std::stringstream file2;
 		file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
-
 		cv::imwrite(file2.str(), packed_render);
 
-		cv::imwrite(all_render_file.str(), blend);
+		//cv::Mat blend;
+		//overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+		//std::stringstream all_render_file;
+		//all_render_file << frame.result_folder << "/render_all/overlay/" << std::setw(6) << std::setfill('0')
+		//	<< frameid << "_overlay2.png";
+		//cv::imwrite(all_render_file.str(), blend);
+
+		//while (!glfwWindowShouldClose(windowPtr))
+		//{
+		//	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+		//	m_renderer.Draw();
+
+		//	glfwSwapBuffers(windowPtr);
+		//	glfwPollEvents();
+		//};
+
 	}
 
 

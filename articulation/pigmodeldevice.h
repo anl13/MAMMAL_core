@@ -69,8 +69,6 @@ public:
 	void UpdateNormalFinal(); 
 	//void UpdateNormals();
 
-	//void SaveObj(const std::string& filename) const;
-
 	// texture
 	//void ReadTexImg(std::string filename);
 	//void SaveTexImg(std::string filename);

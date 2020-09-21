@@ -15,7 +15,7 @@
 #include "../articulation/pigsolverdevice.h"
 #include "clusterclique.h"
 #include "../utils/skel.h" 
-#include "../articulation/pigsolver.h"
+//#include "../articulation/pigsolver.h"
 
 using std::vector; 
 
@@ -47,24 +47,24 @@ public:
     vector<Camera> get_cameras(){return m_camsUndist; }
 	vector<std::shared_ptr<PigSolverDevice> > get_solvers() { return mp_bodysolverdevice; }
 	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
+	vector<cv::Mat> get_scene_masks() { return m_scene_masks; }
+	cv::Mat get_undistort_mask() { return m_undist_mask; }
+
+
     void configByJson(std::string jsonfile); 
     void fetchData(); 
 
 	// debug 
-	void visualizeDebug(int id = -1);
-	void view_dependent_clean();
-	void top_view_clean(DetInstance& det);
-	void side_view_clean(DetInstance& det);
+	void clean_by_mask_chamfer(); 
 
     // top-down matching
-    void matching(); 
     void tracking(); 
 	void matching_by_tracking(); 
     void reproject_skels(); 
 	void solve_parametric_model(); 
 	void read_parametric_data(); 
 	void save_parametric_data(); 
-	void solve_parametric_model_cpu(); 
+	//void solve_parametric_model_cpu(); 
 
 	//void load_labeled_data();
 	void save_clusters();
@@ -84,6 +84,8 @@ public:
 	cv::Mat m_undist_mask; // mask for image undistortion valid area 
 	std::vector<cv::Mat> m_scene_masks; // mask for scene
 	vector<cv::Mat> m_backgrounds; 
+	cv::Mat m_undist_mask_chamfer; 
+	std::vector<cv::Mat> m_scene_mask_chamfer;
 
 	void readSceneMask(); 
 
@@ -92,7 +94,7 @@ public:
 	Renderer* mp_renderEngine; 
 
 	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolverdevice;
-	vector<std::shared_ptr<PigSolver> > mp_bodysolver; 
+	//vector<std::shared_ptr<PigSolver> > mp_bodysolver; 
 	vector<vector<Eigen::Vector4f> > m_projectedBoxesLast; // pigid, camid
 	std::vector<cv::Mat> m_rawMaskImgs;
 	void drawRawMaskImgs();

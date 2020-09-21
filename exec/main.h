@@ -24,3 +24,5 @@ void testfunc();
 int modify_model(); 
 
 int write_video();
+
+void visualize_seq(); 

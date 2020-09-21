@@ -4,36 +4,6 @@
 #include <sstream> 
 #include "../utils/timer_util.h"
 
-void FrameData::matching()
-{
-	m_skels3d_last = m_skels3d; 
-
-    EpipolarMatching matcher; 
-    matcher.set_cams(m_camsUndist); 
-    matcher.set_dets(m_detUndist); 
-    matcher.set_epi_thres(m_epi_thres); 
-    matcher.set_epi_type(m_epi_type); 
-    matcher.set_topo(m_topo); 
-    matcher.match(); // main match func 
-    matcher.truncate(4); // retain only 4 clusters 
-    matcher.get_clusters(m_clusters); 
-    matcher.get_skels3d(m_skels3d); 
-    
-    m_matched.clear(); 
-    m_matched.resize(m_clusters.size()); 
-    for(int i = 0; i < m_clusters.size(); i++)
-    {
-        for(int camid = 0; camid < m_camNum; camid++)
-        {
-            int candid = m_clusters[i][camid]; 
-            if(candid < 0) continue; 
-            m_matched[i].view_ids.push_back(camid); 
-            //m_matched[i].cand_ids.push_back(candid); 
-            m_matched[i].dets.push_back(m_detUndist[camid][candid]); 
-        }
-    }
-}
-
 void FrameData::tracking() // naive 3d 2 3d tracking
 {
     if(m_frameid == m_startid) {
@@ -41,9 +11,10 @@ void FrameData::tracking() // naive 3d 2 3d tracking
         return; 
     }
     NaiveTracker m_tracker; 
-    m_tracker.set_skels_curr(m_skels3d); 
     m_tracker.set_skels_last(m_skels3d_last); 
-    m_tracker.track(); 
+	m_tracker.m_cameras = m_camsUndist;
+	m_tracker.m_topo = m_topo; 
+    m_tracker.track(m_matched); 
 
     vector<int> map = m_tracker.get_map(); 
     vector<MatchedInstance> rematch;
@@ -60,6 +31,7 @@ void FrameData::tracking() // naive 3d 2 3d tracking
     }
     m_matched = rematch;
 	m_clusters = recluster;
+	m_skels3d_last = m_skels3d; 
 }
 
 void FrameData::solve_parametric_model()
@@ -82,7 +54,8 @@ void FrameData::solve_parametric_model()
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]); 
 		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist; 
-		mp_bodysolverdevice[i]->globalAlign();
+		if( (m_frameid - m_startid) % 25 == 0) // update scale parameter every  seconds 
+			mp_bodysolverdevice[i]->globalAlign();
 		setConstDataToSolver(i);
 		mp_bodysolverdevice[i]->optimizePose(); 
 		mp_bodysolverdevice[i]->m_pig_id = i; 
@@ -103,41 +76,41 @@ void FrameData::solve_parametric_model()
 	}
 }
 
-void FrameData::solve_parametric_model_cpu()
-{
-	if (mp_bodysolver.empty()) mp_bodysolver.resize(4);
-	for (int i = 0; i < 4; i++)
-	{
-		if (mp_bodysolver[i] == nullptr)
-		{
-			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
-			mp_bodysolver[i]->setCameras(m_camsUndist);
-			mp_bodysolver[i]->normalizeCamera();
-			mp_bodysolver[i]->mp_renderEngine = (mp_renderEngine);
-			std::cout << "init model " << i << std::endl;
-		}
-	}
-
-	m_skels3d.resize(4);
-	for (int i = 0; i < 1; i++)
-	{
-		mp_bodysolver[i]->setSource(m_matched[i]);
-		mp_bodysolver[i]->normalizeSource();
-		mp_bodysolver[i]->globalAlign();
-		mp_bodysolver[i]->optimizePose();
-
-		if (i < 1) {
-			std::vector<ROIdescripter> rois;
-			getROI(rois, 0);
-			mp_bodysolver[i]->m_rois = rois;
-			mp_bodysolver[i]->optimizePoseSilhouette(1);
-		}
-
-		Eigen::MatrixXf skel_eigen = mp_bodysolver[i]->getRegressedSkel();
-		std::vector<Eigen::Vector3f> skels = convertMatToVec(skel_eigen);
-		m_skels3d[i] = skels;
-	}
-}
+//void FrameData::solve_parametric_model_cpu()
+//{
+//	if (mp_bodysolver.empty()) mp_bodysolver.resize(4);
+//	for (int i = 0; i < 4; i++)
+//	{
+//		if (mp_bodysolver[i] == nullptr)
+//		{
+//			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
+//			mp_bodysolver[i]->setCameras(m_camsUndist);
+//			mp_bodysolver[i]->normalizeCamera();
+//			mp_bodysolver[i]->mp_renderEngine = (mp_renderEngine);
+//			std::cout << "init model " << i << std::endl;
+//		}
+//	}
+//
+//	m_skels3d.resize(4);
+//	for (int i = 0; i < 1; i++)
+//	{
+//		mp_bodysolver[i]->setSource(m_matched[i]);
+//		mp_bodysolver[i]->normalizeSource();
+//		mp_bodysolver[i]->globalAlign();
+//		mp_bodysolver[i]->optimizePose();
+//
+//		if (i < 1) {
+//			std::vector<ROIdescripter> rois;
+//			getROI(rois, 0);
+//			mp_bodysolver[i]->m_rois = rois;
+//			mp_bodysolver[i]->optimizePoseSilhouette(1);
+//		}
+//
+//		Eigen::MatrixXf skel_eigen = mp_bodysolver[i]->getRegressedSkel();
+//		std::vector<Eigen::Vector3f> skels = convertMatToVec(skel_eigen);
+//		m_skels3d[i] = skels;
+//	}
+//}
 
 void FrameData::save_parametric_data()
 {
@@ -394,25 +367,6 @@ void FrameData::load_clusters()
 			{
 				m_unmatched[camid].push_back(m_detUndist[camid][candid]);
 			}
-		}
-	}
-}
-
-void FrameData::visualizeDebug(int pid)
-{
-	cloneImgs(m_imgsUndist, m_imgsDetect);
-
-	for (int id = 0; id < m_matched.size(); id++)
-	{
-		if (pid >= 0 && id != pid) continue;
-		for (int i = 0; i < m_matched[id].view_ids.size(); i++)
-		{
-			int camid = m_matched[id].view_ids[i];
-			//int candid = m_matched[id].cand_ids[i];
-			//if (candid < 0) continue;
-			drawSkelDebug(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, m_topo);
-			my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, m_CM[id]);
-			//my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, m_CM[id], 0.5);
 		}
 	}
 }

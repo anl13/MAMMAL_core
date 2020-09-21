@@ -48,11 +48,11 @@ int run_inspect()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "G:/pig_results_debug/";
+	frame.result_folder = "G:/pig_results_newtrack/";
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 
-	for (int frameid = start; frameid < start + 1; frameid++)
+	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
@@ -61,9 +61,8 @@ int run_inspect()
 		if (frameid == start) frame.load_clusters();
 		else frame.matching_by_tracking();
 
-		//if (frameid == start) frame.read_parametric_data();
-		
-		frame.solve_parametric_model();
+		if (frameid == start) frame.read_parametric_data();
+		else frame.solve_parametric_model();
 
 		//frame.save_clusters();
 		//frame.save_parametric_data();
@@ -90,6 +89,9 @@ int run_inspect()
 			p_model->SetFaces(solvers[pid]->GetFacesVert());
 			p_model->SetColor(m_CM[pid]);
 			m_renderer.colorObjs.push_back(p_model);
+
+			std::vector<Eigen::Vector3f> joints = solvers[pid]->GetJoints(); 
+			std::cout << "center of " << pid << "  " << joints[2].transpose() << std::endl; 
 		}
 
 		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
@@ -106,9 +108,9 @@ int run_inspect()
 			all_renders[camid] = img;
 		}
 		m_renderer.createScene(conf_projectFolder);
-		Eigen::Vector3f pos1(1.84296, -2.18987, 1.19391);
-		Eigen::Vector3f up1(-0.265077, 0.293909, 0.918342);
-		Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
+		Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
+		Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
+		Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
 		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
 		m_renderer.Draw(); 
 		cv::Mat img = m_renderer.GetImage();
@@ -132,7 +134,7 @@ int run_inspect()
 
 		std::stringstream all_render_file;
 		all_render_file << frame.result_folder<< "/render_all/overlay/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_overlay2.png";
+			<< frameid << "_overlay.png";
 		std::stringstream file2;
 		file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
@@ -151,19 +153,21 @@ nowCamPos: 0.0988611 -0.0113558    3.00438
 nowcamUp: 0.00346774   0.999541 -0.0301062
 camCen   : 0.0589942 -0.0909324 0.00569892
 		*/
-		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+		if (frameid == 173) {
+			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
 
-		
-		while (!glfwWindowShouldClose(windowPtr))
-		{
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			while (!glfwWindowShouldClose(windowPtr))
+			{
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-			m_renderer.Draw();
+				m_renderer.Draw();
 
-			glfwSwapBuffers(windowPtr);
-			glfwPollEvents();
-		};
+				glfwSwapBuffers(windowPtr);
+				glfwPollEvents();
+			};
+		}
 	}
 
 

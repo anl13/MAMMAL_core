@@ -9,7 +9,13 @@ public:
 	GMM() {}
 	~GMM() {}
 
+	void Load(); 
+	void CalcGMMTerm(const Eigen::VectorXf& pose, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
+	void CalcAnchorTerm(const Eigen::VectorXf& pose, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int type);
+
+
 	int M; // modal number 
-	std::vector<Eigen::VectorXd> mu; // mean of each modal 
-	std::vector<Eigen::MatrixXd> sigma;  // covariance of each modal 
+	int dim;
+	std::vector<Eigen::VectorXf> mu; // mean of each modal 
+	std::vector<Eigen::MatrixXf> sigma;  // covariance of each modal 
 };

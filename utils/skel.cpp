@@ -327,3 +327,13 @@ void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int
 		cv::line(img, p1_cv, p2_cv, cv_color, 4);
 	}
 }
+
+Eigen::VectorXf convertStdVecToEigenVec(const std::vector<Eigen::Vector3f>& joints)
+{
+	int jointnum = joints.size(); 
+	Eigen::VectorXf data; 
+	if (jointnum == 0) return data; 
+	data.resize(jointnum * 3); 
+	for (int i = 0; i < jointnum; i++) data.segment<3>(3 * i) = joints[i];
+	return data; 
+}

@@ -126,22 +126,7 @@
     <ClCompile Include="..\utils\image_utils_gpu.cpp">
       <Filter>utils</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigmodel.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
     <ClCompile Include="..\articulation\pigmodeldevice.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_shape.cpp">
-      <Filter>articulation</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_sil.cpp">
       <Filter>articulation</Filter>
     </ClCompile>
     <ClCompile Include="..\articulation\pigsolverdevice.cpp">
@@ -158,6 +143,12 @@
     </ClCompile>
     <ClCompile Include="..\exec\run_pose_render.cpp">
       <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\exec\visualize_seq.cpp">
+      <Filter>exec</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GMM\gmm.cpp">
+      <Filter>articulation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -200,13 +191,7 @@
     <ClInclude Include="..\articulation\gpuutils.h">
       <Filter>articulation</Filter>
     </ClInclude>
-    <ClInclude Include="..\articulation\pigmodel.h">
-      <Filter>articulation</Filter>
-    </ClInclude>
     <ClInclude Include="..\articulation\pigmodeldevice.h">
-      <Filter>articulation</Filter>
-    </ClInclude>
-    <ClInclude Include="..\articulation\pigsolver.h">
       <Filter>articulation</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\pigsolverdevice.h">

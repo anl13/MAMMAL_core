@@ -11,11 +11,11 @@
 #include "../utils/math_utils.h" 
 #include "../utils/image_utils.h" 
 
-#include "pigmodel.h"
-#include "pigsolver.h"
-
 #include "test_main.h"
 #include "../utils/timer_util.h"
+
+#include "pigsolverdevice.h" 
+#include "pigmodeldevice.h"
 
 // 20200808: reduce data dimension 
 std::vector<Eigen::VectorXf> loadData()
@@ -43,17 +43,16 @@ std::vector<Eigen::VectorXf> loadData()
 void test_fitting()
 {
 	std::string pig_config = "D:/Projects/animal_calib/articulation/artist_config.json";
-	PigModel gtpig(pig_config);
-	PigSolver pig(pig_config);
+	PigModelDevice gtpig(pig_config);
+	PigSolverDevice pig(pig_config);
 
 	std::vector<Eigen::VectorXf> data = loadData();
-	std::vector<Eigen::VectorXf> newdata;
-	Eigen::VectorXf lastpose = Eigen::VectorXf::Zero(62 * 3);
+	//std::vector<Eigen::VectorXf> newdata;
 
 	std::ofstream log_stream("F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\tmp\\samples\\log.txt");
 
 	std::vector<int> elim = { 46, 47, 48, 49, 50, 51, 52, 53 };
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < data.size(); i++)
 	{
 		Eigen::VectorXf pose = Eigen::VectorXf::Zero(62 * 3);
 		pose.segment<61 * 3>(3) = data[i];
@@ -66,44 +65,28 @@ void test_fitting()
 		gtpig.UpdateVertices();
 		std::stringstream ss;
 		ss << "F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\tmp\\samples\\gt" << i << ".obj";
-		gtpig.SaveObj(ss.str());
+		gtpig.saveObj(ss.str());
 
-		pig.SetPose(lastpose);
-		//double loss = pig.FitPoseToJointsSameTopo(gtpig.GetJoints());
-		pig.m_targetVSameTopo = pig.GetVertices(); 
 		TimerUtil::Timer<std::chrono::milliseconds> tt; 
 		tt.Start(); 
-		float loss = pig.FitPoseToVerticesSameTopo(100, 0.0001); 
+		pig.fitPoseToVSameTopo(gtpig.GetVertices()); 
+
 		std::cout << tt.Elapsed() << std::endl; 
-		Eigen::VectorXf newpose = pig.GetPose();
-		pig.UpdateVertices(); 
-		newdata.push_back(newpose);
+		std::vector<Eigen::Vector3f> newpose = pig.GetPose();
+		Eigen::VectorXf newposeeigen = convertStdVecToEigenVec(newpose); 
+		//newdata.push_back(newposeeigen);
 		std::stringstream ss1;
 		ss1 << "F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\tmp\\samples\\est" << i << ".obj";
-		pig.SaveObj(ss1.str());
+		pig.saveObj(ss1.str());
 
-		lastpose = newpose;
 		std::cout << "finish " << i << std::endl;
 
-		log_stream << "pose " << i << "  loss: " << std::setw(4) << std::setprecision(6) << loss << std::endl << std::endl;
-
-		//if ((i + 1) % 1000 == 0)
-		//{
-		//	std::stringstream ss; 
-		//	ss << "F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\data\\newsamples" << i << ".txt";
-		//	std::ofstream stream(ss.str());
-		//	for (int i = 0; i < newdata.size(); i++)
-		//	{
-		//		stream << newdata[i].transpose() << std::endl;
-		//	}
-		//	newdata.clear(); 
-		//}
+		std::stringstream outfile;
+		outfile << "F:/projects/model_preprocess/designed_pig/pig_prior/data/samples_new_pose/" << std::setw(4) << std::setfill('0') << i << ".txt"; 
+		std::ofstream stream(outfile.str());
+		stream << newposeeigen.transpose(); 
+		stream.close(); 
 	}
 	log_stream.close();
 
-	std::ofstream stream("F:\\projects\\model_preprocess\\designed_pig\\pig_prior\\data\\newsamples.txt");
-	for (int i = 0; i < newdata.size(); i++)
-	{
-		stream << newdata[i].transpose() << std::endl;
-	}
 }

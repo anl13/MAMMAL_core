@@ -37,6 +37,7 @@ struct MatchedInstance{
 }; 
 
 vector<Eigen::Vector3f> convertMatToVec(const Eigen::MatrixXf& skel); 
+Eigen::VectorXf convertStdVecToEigenVec(const std::vector<Eigen::Vector3f>& joints); 
 
 void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 	SkelTopology m_topo); 

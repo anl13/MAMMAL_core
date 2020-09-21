@@ -52,7 +52,7 @@ int run_pose()
 
 	frame.mp_renderEngine = &m_renderer; 
 
-	frame.result_folder = "G:/pig_results/";
+	frame.result_folder = "G:/pig_results_newtrack/";
 	frame.is_smth = false; 
 	int start = frame.get_start_id();
 
@@ -62,12 +62,10 @@ int run_pose()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		if (frameid == start) frame.load_clusters();
-		else frame.matching_by_tracking(); 
+		frame.matching_by_tracking(); 
 		TimerUtil::Timer<std::chrono::milliseconds> tt;
 		tt.Start();
-		if (frameid == start) frame.read_parametric_data();
-		else frame.solve_parametric_model(); 
+		frame.solve_parametric_model(); 
 		std::cout << "solve model: " << tt.Elapsed() << " ms" << std::endl; 
 
 		frame.save_clusters();
@@ -77,13 +75,14 @@ int run_pose()
 		//cv::imwrite("G:/pig_results/fitting/proj.png", proj_skel); 
 		cv::Mat assoc = frame.visualizeIdentity2D(); 
 		std::stringstream ss; 
-		ss << "G:/pig_results/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
+		ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
 		cv::imwrite(ss.str(), assoc); 
-		continue; 
+
+		//continue; 
 		m_renderer.clearAllObjs();
 		auto solvers = frame.mp_bodysolverdevice;
 		
-		for (int pid = 0; pid < 2; pid++)
+		for (int pid = 0; pid < 4; pid++)
 		{
 			solvers[pid]->debug_source_visualize(frameid);
 
@@ -111,9 +110,9 @@ int run_pose()
 			all_renders[camid] = img;
 		}
 		m_renderer.createScene(conf_projectFolder);
-		Eigen::Vector3f pos1(1.84296, -2.18987, 1.19391);
-		Eigen::Vector3f up1(-0.265077, 0.293909, 0.918342);
-		Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
+		Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
+		Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
+		Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
 		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
 		m_renderer.Draw();
 		cv::Mat img = m_renderer.GetImage();
@@ -134,10 +133,10 @@ int run_pose()
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend); 
 
 		std::stringstream all_render_file; 
-		all_render_file << "G:/pig_results/render_all/overlay/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_overlay2.png";
+		all_render_file << frame.result_folder << "/render_all/overlay/" << std::setw(6) << std::setfill('0')
+			<< frameid << "_overlay.png";
 		std::stringstream file2;
-		file2 << "G:/pig_results/render_all/render/" << std::setw(6) << std::setfill('0')
+		file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
 
 		cv::imwrite(file2.str(), packed_render);
@@ -145,6 +144,5 @@ int run_pose()
 		cv::imwrite(all_render_file.str(), blend); 
 	}
 
-	
 	return 0;
 }

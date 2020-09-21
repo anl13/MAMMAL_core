@@ -51,6 +51,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_w_reg_term = root["reg_term"].asFloat();
 	m_w_temp_term = root["temp_term"].asFloat(); 
 	m_w_floor_term = root["floor_term"].asFloat(); 
+	m_w_gmm_term = root["gmm_term"].asFloat(); 
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -148,6 +149,10 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 
 	m_param_temp_weight = Eigen::VectorXf::Ones(paramNum); 
 	m_param_observe_num = Eigen::VectorXf::Zero(m_skelTopo.joint_num); 
+
+	m_scaleCount = 0.f; 
+
+	m_gmm.Load(); 
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -301,7 +306,11 @@ void PigSolverDevice::globalAlign()
 		b += regBoneLens[i] * regBoneLens[i];
 	}
 	float alpha = a / b;
-	m_host_scale = alpha * m_host_scale; 
+
+	// running average
+	m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1); 
+	m_scaleCount += 1.f; 
+
 	m_initScale = true; 
 	UpdateVertices(); 
 
@@ -333,12 +342,13 @@ void PigSolverDevice::fitPoseToVSameTopo(
 		theta.segment<3>(0) = m_host_translation;
 		for (int i = 0; i < M; i++) theta.segment<3>(3 + 3 * i) = m_host_poseParam[m_poseToOptimize[i]];
 
-		pcl::gpu::DeviceArray2D<float> AT_joint, AT_vert, ATA;
+		pcl::gpu::DeviceArray2D<float> ATA;
 		pcl::gpu::DeviceArray<float> ATb; 
-		calcPoseJacobiPartTheta_device(AT_joint, AT_vert); 
-		computeATA_device(AT_vert, ATA);
+		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, true);
 
-		computeATb_device(AT_vert, m_device_verticesPosed, target_device, ATb);
+		computeATA_device(d_J_vert, ATA);
+
+		computeATb_device(d_J_vert, m_device_verticesPosed, target_device, ATb);
 
 		Eigen::MatrixXf ATA_eigen = Eigen::MatrixXf::Zero(3 + 3 * M, 3 + 3 * M); 
 		Eigen::VectorXf ATb_eigen = Eigen::VectorXf::Zero(3 + 3 * M);
@@ -586,6 +596,12 @@ void PigSolverDevice::optimizePose()
 		float w_data = 1;
 		float w_reg = 0.01;
 		float w_temp = m_w_temp_term;
+		//float w_gmm = m_w_gmm_term; 
+
+/*		Eigen::MatrixXf ATA_gmm; 
+		Eigen::VectorXf ATb_gmm;
+		m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);*/ 
+
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
 		Eigen::MatrixXf ATA_reg = DTD;  // reg term 
 		Eigen::MatrixXf ATA_temp = DTD; 
@@ -780,6 +796,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		float w_reg = m_w_reg_term;
 		float w_temp = m_w_temp_term;
 		float w_floor = m_w_floor_term; 
+		float w_gmm = m_w_gmm_term; 
 
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXf H_reg = DTD;  // reg term 
@@ -790,21 +807,32 @@ void PigSolverDevice::optimizePoseSilhouette(
 			H_reg(i, i) *= m_param_reg_weight[i];
 			b_reg(i) *= m_param_reg_weight[i];
 		}
-		Eigen::MatrixXf H_temp = DTD;
-		Eigen::VectorXf b_temp = m_last_thetas - theta;
-		for (int i = 0; i < 3 + 3 * M; i++)
+
+		Eigen::MatrixXf ATA_temp;
+		Eigen::VectorXf ATb_temp;
+		CalcJointTempTerm(ATA_temp, ATb_temp, m_last_thetas, theta); 
+
+		Eigen::MatrixXf ATA_gmm;
+		Eigen::VectorXf ATb_gmm; 
+		if (m_host_jointsPosed[2](2) < 0.1)
 		{
-			H_temp(i, i) *= m_param_temp_weight(i);
-			b_temp(i) *= m_param_temp_weight(i);
+			m_gmm.CalcAnchorTerm(theta, ATA_gmm, ATb_gmm, 0);
+			w_sil *= 0.1; 
+			w_floor *= 2; 
+		}
+		else
+		{
+			m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);
+			w_floor *= 0.05; 
+			w_gmm *= 0.2; 
 		}
 
-
 		Eigen::MatrixXf H = ATA_sil * w_sil + H_reg * w_reg
-			+ DTD * lambda + H_temp * w_temp
-			+ ATA_data * w_data + ATA_floor * w_floor;
+			+ DTD * lambda + ATA_temp * w_temp
+			+ ATA_data * w_data + ATA_floor * w_floor + ATA_gmm * w_gmm;
 		Eigen::VectorXf b = ATb_sil * w_sil + b_reg * w_reg
-			+ b_temp * w_temp
-			+ ATb_data * w_data + ATb_floor * w_floor; 
+			+ ATb_temp * w_temp
+			+ ATb_data * w_data + ATb_floor * w_floor + ATb_gmm * w_gmm; 
 
 
 
@@ -814,9 +842,10 @@ void PigSolverDevice::optimizePoseSilhouette(
 		std::cout << "iter ...... " << iter << " ......" << std::endl; 
 		std::cout << "ATb data : " << (ATb_data * w_data).norm() << std::endl; 
 		std::cout << "ATb sil  : " << (ATb_sil * w_sil).norm() << std::endl;
-		std::cout << "ATb temp : " << (b_temp*w_temp).norm() << std::endl; 
+		std::cout << "ATb temp : " << (ATb_temp*w_temp).norm() << std::endl; 
 		std::cout << "ATb reg  : " << (b_reg*w_reg).norm() << std::endl; 
 		std::cout << "ATb floor: " << (ATb_floor*w_floor).norm() << std::endl; 
+		std::cout << "ATb gmm  : " << (ATb_gmm*w_gmm).norm() << std::endl;
 #endif 
 		// update 
 		m_host_translation += delta.segment<3>(0);
@@ -862,8 +891,8 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 			std::cout << "view " << view << " is invalid. " << m_valid_keypoint_ratio[view] << std::endl;
 			continue;
 		}
-
-
+		int camid = m_viewids[view];
+		if (camid == 5) continue; 
 		// compute detection image data 
 
 		convertDepthToMaskHalfSize_device(d_depth_renders[view], d_middle_mask, 1920, 1080);
@@ -883,7 +912,6 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		chamfers_vis_det.push_back(tmp2_vis); 
 #endif 
 
-		int camid = m_viewids[view];
 		Camera cam = m_cameras[camid];
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
@@ -1350,14 +1378,14 @@ void PigSolverDevice::generateDataForSilSolver()
 	{
 		int skelid = observe_optim_map[i].first;
 		int jointid = observe_optim_map[i].second;
-		if (m_param_observe_num(skelid) >= 5) continue; 
+		if (m_param_observe_num(skelid) >= 3) continue; 
 		else {
 			for (int k = 0; k < m_poseToOptimize.size(); k++)
 			{
-				if (k != jointid)continue;
+				if (m_poseToOptimize[k] != jointid)continue;
 				else {
-					m_param_temp_weight.segment<3>(3 + 3 * jointid) 
-						*= (5 / (m_param_observe_num(skelid) + 1));
+					m_param_temp_weight.segment<3>(3 + 3 * k) 
+						*= (6 / (m_param_observe_num(skelid) + 0.5));
 					break; 
 				}
 			}
@@ -1401,4 +1429,33 @@ void PigSolverDevice::CalcJointFloorTerm(
 	}
 	ATA = A.transpose() * A; 
 	ATb = A.transpose() * b; 
+}
+
+
+
+void PigSolverDevice::CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta)
+{
+	int paramNum = 3 * m_poseToOptimize.size() + 3; 
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = last_theta - theta;
+	for (int i = 0; i < paramNum; i++)
+	{
+		ATA(i, i) *= m_param_temp_weight(i);
+		ATb(i) *= m_param_temp_weight(i);
+	}
+}
+
+
+// gaussian prior 
+void PigSolverDevice::CalcJointPriorTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_jointNum, paramNum);
+	Eigen::VectorXf b = Eigen::VectorXf::Zero(m_jointNum);
+
+	// assume we have J_joint_part_theta
+	d_J_joint.download(h_J_joint.data(), m_jointNum * 3 * sizeof(float));
 }

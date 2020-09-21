@@ -6,5 +6,8 @@
 int main(int argc, char** argv)
 {
 	run_inspect();
-	//run_pose_render(); 
+	//run_pose(); 
+	//run_pose_render();
+
+	//visualize_seq(); 
 }

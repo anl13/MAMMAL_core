@@ -1,6 +1,5 @@
 {
-  //"folder": "D:/Projects/animal_calib/data/artist_model/",
-  "folder": "F:/projects/model_preprocess/designed_pig/extracted/artist_model/",
+  "folder": "D:/Projects/animal_calib/data/artist_model/",
   "joint_num": 62,
   "vertex_num": 11239,
   "tex_num": 12208,
@@ -61,14 +60,15 @@
     [ 18, 1, 7903, 1 ],
     [ 20, 0, 2, 1 ] // cneter
   ],
-  "valid_threshold": 0.8,
+  "valid_threshold": 0.9,
   "lambda": 0.0005,
-  "data_term": 0.8,
-  "sil_term": 0.0005,
+  "data_term": 1,
+  "sil_term": 0.001,
   "reg_term": 0.1,
   "temp_term": 0.01,
-  "floor_term":  5000,
-  "reg_weights": [ [ 2, 3, 3, 3 ] ]
+  "floor_term": 4000,
+  "gmm_term":  0.5,
+  "reg_weights": [ [ 2, 1, 1, 1 ] ]
 }
 
 

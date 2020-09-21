@@ -14,6 +14,7 @@
 #include "../utils/image_utils.h"
 #include "../utils/math_utils.h" 
 #include "gpuutils.h"
+#include "../GMM/gmm.h"
 
 //#define DEBUG_SIL
 //#define DEBUG_SOLVER
@@ -74,6 +75,11 @@ public:
 	void CalcJointFloorTerm(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
 	);
+	void CalcJointPriorTerm(
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+	);
+
+	void CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta);
 
 	void CalcPoseJacobiFullTheta_cpu(Eigen::MatrixXf& jointJacobiPose, Eigen::MatrixXf& J_vert,
 		bool with_vert);
@@ -104,9 +110,11 @@ public:
 	std::vector<cv::Mat> m_rawimgs; 
 private:
 
+	GMM m_gmm;
 	
 	// state indicator 
 	bool m_initScale;
+	float m_scaleCount; 
 
 	// config info, read from json file 
 	std::vector<CorrPair> m_skelCorr; 
@@ -119,7 +127,8 @@ private:
 	float m_w_reg_term; 
 	float m_w_temp_term;
 	float m_w_floor_term; 
-	float m_w_pose_prior_term; 
+	float m_w_gmm_term; 
+	
 
 	// optimization source
 	MatchedInstance m_source; 

@@ -4,13 +4,13 @@
 void main()
 {
 	//test_body_part(); 
-	//test_fitting();
+	test_fitting();
 	//test_mean_pose(); 
 	//test_gpu(); 
 	//test_compare_cpugpu(); 
 	//test_compare_cpugpu_jacobi(); 
 	//show_gpu_param(); 
 
-	test_pointer(); 
+	//test_pointer(); 
 
 }
