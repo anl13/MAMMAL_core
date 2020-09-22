@@ -62,12 +62,12 @@
   ],
   "valid_threshold": 0.9,
   "lambda": 0.0005,
-  "data_term": 10,
+  "data_term": 1,
   "sil_term": 0.001,
   "reg_term": 0.01,
   "temp_term": 0.01,
   "floor_term": 0.1,
-  "gmm_term":  0.1,
+  "gmm_term":  0.0,
   "reg_weights": [ [ 2, 1, 1, 1 ] ]
 }
 

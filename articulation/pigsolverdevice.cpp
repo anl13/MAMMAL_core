@@ -601,13 +601,9 @@ void PigSolverDevice::optimizePose()
 
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
 		
-		Eigen::MatrixXf ATA_temp = DTD; 
-		Eigen::VectorXf ATb_temp = m_last_thetas - theta; 
-		for (int i = 0; i < 3 + 3 * M; i++)
-		{
-			ATA_temp(i, i) *= m_param_temp_weight(i); 
-			ATb_temp(i) *= m_param_temp_weight(i); 
-		}
+		Eigen::MatrixXf ATA_temp; 
+		Eigen::VectorXf ATb_temp; 
+		CalcJointTempTerm(ATA_temp, ATb_temp, m_last_thetas, theta);
 
 		Eigen::MatrixXf ATA_reg;
 		Eigen::VectorXf ATb_reg;
@@ -815,25 +811,22 @@ void PigSolverDevice::optimizePoseSilhouette(
 
 		Eigen::MatrixXf ATA_gmm;
 		Eigen::VectorXf ATb_gmm; 
-		if (m_host_jointsPosed[2](2) < 0.11)
-		{
-			m_gmm.CalcAnchorTerm(theta, ATA_gmm, ATb_gmm, 0);
-			w_gmm *= 10; 
-		}
-		else
-		{
-			m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);
-			w_gmm *= 0.001;
-			w_sil *= 0.01;
-
-		}
+		//if (m_host_jointsPosed[2](2) < 0.11)
+		//{
+		//	m_gmm.CalcAnchorTerm(theta, ATA_gmm, ATb_gmm, 0);
+		//	w_gmm *= 10; 
+		//}
+		//else
+		//{
+		//	m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);
+		//}
 
 		Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
-			+ DTD * lambda + ATA_temp * w_temp
-			+ ATA_data * w_data + ATA_floor * w_floor + ATA_gmm * w_gmm;
+			+ DTD * lambda /*+ ATA_temp * w_temp*/
+			+ ATA_data * w_data /*+ ATA_floor * w_floor*/ /*+ ATA_gmm * w_gmm*/;
 		Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
-			+ ATb_temp * w_temp
-			+ ATb_data * w_data + ATb_floor * w_floor + ATb_gmm * w_gmm; 
+			/*+ ATb_temp * w_temp*/
+			+ ATb_data * w_data/* + ATb_floor * w_floor*/ /*+ ATb_gmm * w_gmm*/; 
 
 
 
@@ -856,13 +849,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 			m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 		}
 	}
-	m_last_thetas.resize(paramNum);
-	m_last_thetas.segment<3>(0) = m_host_translation;
-	for (int i = 0; i < M; i++)
-	{
-		int jIdx = m_poseToOptimize[i];
-		m_last_thetas.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
-	}
+
 
 	cudaProfilerStop(); 
 }
@@ -1475,7 +1462,7 @@ void PigSolverDevice::CalcJointBidirectFloorTerm(
 void PigSolverDevice::CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta)
 {
 	int paramNum = 3 * m_poseToOptimize.size() + 3; 
-	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
 	ATb = last_theta - theta;
 	for (int i = 0; i < paramNum; i++)
 	{
@@ -1514,7 +1501,14 @@ void PigSolverDevice::postProcessing()
 		}
 	}
 
-	
+	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
+	m_last_thetas.resize(paramNum);
+	m_last_thetas.segment<3>(0) = m_host_translation;
+	for (int i = 0; i < m_poseToOptimize.size(); i++)
+	{
+		int jIdx = m_poseToOptimize[i];
+		m_last_thetas.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
+	}
 }
 
 void PigSolverDevice::calcJoint3DTerm_host(

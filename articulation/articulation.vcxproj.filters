@@ -111,6 +111,9 @@
     <ClCompile Include="pigsolverdevice_debug.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\GMM\gmm.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">

@@ -68,7 +68,7 @@ void GMM::CalcGMMTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen:
 	std::cout << "gmm mu, theta" << std::endl;
 	for (int i = 0; i < 63; i++)
 	{
-		std::cout << mu[max_id](6 + i) << ", " << theta(6 + i) << std::endl;
+		std::cout << mu[max_id](i) << ", " << theta(6 + i) << std::endl;
 	}
 }
 
