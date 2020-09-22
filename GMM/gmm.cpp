@@ -5,6 +5,7 @@
 #include <fstream> 
 #include <sstream> 
 #include <assert.h>
+#include <Eigen/Eigen>
 
 void GMM::Load()
 {
@@ -63,7 +64,12 @@ void GMM::CalcGMMTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen:
 	//ATA.bottomRightCorner<63, 63>() = sigma[max_id];
 	//ATb.segment<63>(6) = -M * (theta.tail(dim) - mu[max_id]);
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum); 
-	ATb.segment<63>(6) = mu[max_id] - theta.tail(dim); 
+	ATb.segment<63>(6) = mu[max_id] - theta.segment<63>(6);
+	std::cout << "gmm mu, theta" << std::endl;
+	for (int i = 0; i < 63; i++)
+	{
+		std::cout << mu[max_id](6 + i) << ", " << theta(6 + i) << std::endl;
+	}
 }
 
 void GMM::CalcAnchorTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int type)
@@ -77,5 +83,5 @@ void GMM::CalcAnchorTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eig
 	//ATA.bottomRightCorner<63, 63>() = sigma[max_id];
 	//ATb.segment<63>(6) = -M * (theta.tail(dim) - mu[max_id]);
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
-	ATb.segment<63>(6) = mu[type] - theta.tail(dim);
+	ATb.segment<63>(6) = mu[type] - theta.segment<63>(6);
 }

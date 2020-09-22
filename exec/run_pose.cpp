@@ -84,7 +84,7 @@ int run_pose()
 		
 		for (int pid = 0; pid < 4; pid++)
 		{
-			solvers[pid]->debug_source_visualize(frameid);
+			solvers[pid]->debug_source_visualize(frame.result_folder,frameid);
 
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();

@@ -45,6 +45,9 @@ void FrameData::solve_parametric_model()
 			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
 			//mp_bodysolver[i]->InitNodeAndWarpField();
 			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
+			mp_bodysolverdevice[i]->m_undist_mask_chamfer = m_undist_mask_chamfer;
+			mp_bodysolverdevice[i]->m_scene_mask_chamfer = m_scene_mask_chamfer;
+			mp_bodysolverdevice[i]->m_pig_id = i; 
 			std::cout << "init model " << i << std::endl; 
 		}
 	}
@@ -58,7 +61,6 @@ void FrameData::solve_parametric_model()
 			mp_bodysolverdevice[i]->globalAlign();
 		setConstDataToSolver(i);
 		mp_bodysolverdevice[i]->optimizePose(); 
-		mp_bodysolverdevice[i]->m_pig_id = i; 
 		TimerUtil::Timer<std::chrono::milliseconds> tt; 
 		if (i < 4) {
 			//std::vector<ROIdescripter> rois;
@@ -70,9 +72,9 @@ void FrameData::solve_parametric_model()
 			std::cout << "solve sil elapsed: " << tt.Elapsed() << " ms" << std::endl;
 
 		}
+		mp_bodysolverdevice[i]->postProcessing();
 
-		std::vector<Eigen::Vector3f> skels = mp_bodysolverdevice[i]->getRegressedSkel_host();
-		m_skels3d[i] = skels; 
+		m_skels3d[i]  = mp_bodysolverdevice[i]->getRegressedSkel_host();
 	}
 }
 
@@ -138,6 +140,8 @@ void FrameData::read_parametric_data()
 			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
 			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
 			mp_bodysolverdevice[i]->m_pig_id = i; 
+			mp_bodysolverdevice[i]->m_undist_mask_chamfer = m_undist_mask_chamfer;
+			mp_bodysolverdevice[i]->m_scene_mask_chamfer = m_scene_mask_chamfer;
 			std::cout << "init model " << i << std::endl;
 		}
 	}
@@ -154,6 +158,7 @@ void FrameData::read_parametric_data()
 			<< ".txt";
 		mp_bodysolverdevice[i]->readState(ss.str()); 
 		mp_bodysolverdevice[i]->UpdateVertices();
+		mp_bodysolverdevice[i]->postProcessing(); 
 		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host(); 
 	}
 }

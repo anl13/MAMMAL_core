@@ -15,7 +15,7 @@ Eigen::Vector2f         Renderer::s_beforePos;
 float                   Renderer::s_arcballRadius; 
 double                  Renderer::s_leftClickTimeSeconds; 
 
- #define SHOW_CAM_POSE
+ //#define SHOW_CAM_POSE
 
 void Renderer::s_Init(bool isHideWindow)
 {

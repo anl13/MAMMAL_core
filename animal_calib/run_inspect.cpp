@@ -67,8 +67,8 @@ int run_inspect()
 		//frame.save_clusters();
 		//frame.save_parametric_data();
 
-		//cv::Mat proj_skel = frame.visualizeProj();
-		//cv::imwrite("G:/pig_results_debug/fitting/proj.png", proj_skel);
+		cv::Mat proj_skel = frame.visualizeProj();
+		cv::imwrite(frame.result_folder+"/fitting/proj" + std::to_string(frameid) + ".png", proj_skel);
 		cv::Mat assoc = frame.visualizeIdentity2D();
 		std::stringstream ss;
 		ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
@@ -79,7 +79,8 @@ int run_inspect()
 
 		for (int pid = 0; pid < 4; pid++)
 		{
-			//solvers[pid]->debug_source_visualize(frameid);
+			solvers[pid]->debug_source_visualize(frame.result_folder,frameid);
+			std::cout << "pig " << pid << "  scale: " << solvers[pid]->GetScale() << std::endl;
 
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();
@@ -154,7 +155,7 @@ nowcamUp: 0.00346774   0.999541 -0.0301062
 camCen   : 0.0589942 -0.0909324 0.00569892
 		*/
 
-		if (frameid == 173) {
+		if (frameid == start+framenum-1) {
 			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
 

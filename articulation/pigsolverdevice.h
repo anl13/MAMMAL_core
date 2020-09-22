@@ -40,23 +40,22 @@ public:
 	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams;  }
 	void setRenderer(Renderer * _p_render) { mp_renderEngine = _p_render; }
 	void setROIs(std::vector<ROIdescripter> _rois) { m_rois = _rois; }
-	
-	void directTriangulationHost(); // calc m_skel3d using direct triangulation
-	std::vector<Eigen::Vector3f> getRegressedSkel(); 
+	std::vector<Eigen::Vector3f> getSkel3D() { return m_skel3d;  }
+	std::vector<Eigen::Vector3f>  directTriangulationHost(); // calc m_skel3d using direct triangulation
 	void globalAlign(); // compute scale and global R,T`
 
 	void optimizePose(); 
 	void optimizePoseSilhouette(
 		int maxIter);
 
-	void debug_source_visualize(int frameid); 
+	void debug_source_visualize(std::string folder, int frameid); 
 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
 
 	std::vector<Eigen::Vector3f> getRegressedSkel_host(); 
 
-
+	//=================TERMS====================
 	// J_joint: [3*jontnum+3, 3*jointnum]
 // J_vert: [3*jointnum+3, 3*vertexnum]
 // 3*jointnum+3:  pose parameter to solve 
@@ -66,8 +65,9 @@ public:
 	void calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
 		pcl::gpu::DeviceArray2D<float> &J_vert, bool with_vert=true);
 	void calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J);
-	void calcPose2DTerm_host(const DetInstance& det, const Camera& cam, const std::vector<Eigen::Vector3f>& skel2d,
+	void calcPose2DTerm_host(const DetInstance& det, int camid, const std::vector<Eigen::Vector3f>& skel2d,
 		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void calcJoint3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& skel3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
 	void Calc2dJointProjectionTerm(
 		const MatchedInstance& source,
@@ -75,9 +75,10 @@ public:
 	void CalcJointFloorTerm(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
 	);
-	void CalcJointPriorTerm(
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+	void CalcJointBidirectFloorTerm( // foot_contact: 4 * bool , [9,10,15,16] left front, right font, left back, right back
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, std::vector<bool> foot_contact
 	);
+	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
 
 	void CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta);
 
@@ -108,6 +109,11 @@ public:
 	uchar* d_middle_mask; // half size 
 	int m_pig_id; // 0-3
 	std::vector<cv::Mat> m_rawimgs; 
+	std::vector<cv::Mat> m_scene_mask_chamfer; 
+	cv::Mat m_undist_mask_chamfer;
+
+	void postProcessing(); // post process: project skel, determine model visibility 
+	std::vector<std::vector<bool> > m_det_ignore; // [camid, jointid]
 private:
 
 	GMM m_gmm;
@@ -142,6 +148,7 @@ private:
 	std::vector<float> m_param_reg_weight; // weight to regularize different joints 
 	Eigen::VectorXf m_param_temp_weight; // temporal weight per joint
 	Eigen::VectorXf m_param_observe_num; // joint observation for each joint
+	std::vector < std::vector<Eigen::Vector3f> > m_skelProjs; // [viewid, jointid] (u,v,visibility)
 
 	// render engine 
 	Renderer* mp_renderEngine;
@@ -165,6 +172,7 @@ private:
 
 	Eigen::MatrixXf h_J_joint; // [jointnum * paramNum]
 	Eigen::MatrixXf h_J_vert;  // [vertexnum * paramNum]
+	Eigen::MatrixXf h_J_skel;
 
 	// sil term constructor 
 	void CalcSilhouettePoseTerm(
