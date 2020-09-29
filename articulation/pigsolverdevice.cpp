@@ -52,6 +52,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_w_temp_term = root["temp_term"].asFloat(); 
 	m_w_floor_term = root["floor_term"].asFloat(); 
 	m_w_gmm_term = root["gmm_term"].asFloat(); 
+	m_kpt_track_dist = root["kpt_track_dist"].asFloat(); 
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -133,7 +134,6 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	}
 
 
-	std::cout << "paramNum: " << paramNum << std::endl;
 	d_AT_sil.create(paramNum, m_vertexNum); 
 	d_b_sil.create(m_vertexNum); 
 
@@ -286,8 +286,12 @@ void PigSolverDevice::globalAlign()
 		a += triBoneLens[i] * regBoneLens[i];
 		b += regBoneLens[i] * regBoneLens[i];
 	}
-	float alpha = a / b;
-
+	float alpha; 
+	if (a == 0 || b == 0) alpha = m_host_scale; 
+	else alpha = a / b;
+	if (alpha > 1.08) alpha = 1.08;
+	if (alpha < 0.95) alpha = 0.95;
+	std::cout << " alpha: " << alpha << std::endl; 
 	// running average
 	m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1); 
 	m_scaleCount += 1.f; 
@@ -526,16 +530,17 @@ void PigSolverDevice::calcPose2DTerm_host(
 		if (m_skelProjs.size() > 0)
 		{
 			if (m_skelProjs[camid][t](2) < 1) {
-				//std::cout << "skip: " << camid << ", t: " << t << std::endl;
 				continue;
 			}
 		}
-		//if (m_skelProjs.size() > 0)
-		//{
-		//	float dist = (m_skelProjs[camid][t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
-		//	if (dist > 50) continue;
-		//}
-		//std::cout << "pig : " << m_pig_id << "view: " << camid << " joint " << t << " dist: " << dist << std::endl;
+		if (m_skelProjs.size() > 0)
+		{
+			float dist = (m_skelProjs[camid][t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
+			if (dist > m_kpt_track_dist) {
+				std::cout << "pig " << m_pig_id << " skel " << t << " dist " << dist << std::endl;
+				continue;
+			}
+		}
 
 		Eigen::Vector3f x_local = K * (R * skel2d[t] + T);
 		x_local(0);
@@ -811,35 +816,55 @@ void PigSolverDevice::optimizePoseSilhouette(
 
 		Eigen::MatrixXf ATA_gmm;
 		Eigen::VectorXf ATb_gmm; 
-		//if (m_host_jointsPosed[2](2) < 0.11)
-		//{
-		//	m_gmm.CalcAnchorTerm(theta, ATA_gmm, ATb_gmm, 0);
-		//	w_gmm *= 10; 
-		//}
-		//else
-		//{
-		//	m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);
-		//}
+		if (m_host_jointsPosed[2](2) < 0.1)
+		{
+			m_gmm.CalcAnchorTerm(theta, ATA_gmm, ATb_gmm, 0);
+			w_gmm = 0.5; 
+			maxIter = 40;
+			m_valid_threshold = 0.8;
+		}
+		else
+		{
+			m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);
+		}
+
+		if (m_host_jointsPosed[2](2) < 0.1)
+		{
+			w_temp = 1;
+			if (iter < maxIter / 2) w_sil = 0;
+			else w_sil = 0.00001; 
+		}
+		else {
+			w_temp = 0.01;
+			w_gmm = 0.001;
+		}
+
+		if (m_scaleCount < 2)
+		{
+			w_temp = 0; 
+		}
 
 		Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
-			+ DTD * lambda /*+ ATA_temp * w_temp*/
-			+ ATA_data * w_data /*+ ATA_floor * w_floor*/ /*+ ATA_gmm * w_gmm*/;
+			+ DTD * lambda + ATA_temp * w_temp
+			+ ATA_data * w_data + ATA_floor * w_floor + ATA_gmm * w_gmm;
 		Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
-			/*+ ATb_temp * w_temp*/
-			+ ATb_data * w_data/* + ATb_floor * w_floor*/ /*+ ATb_gmm * w_gmm*/; 
+			+ ATb_temp * w_temp
+			+ ATb_data * w_data + ATb_floor * w_floor + ATb_gmm * w_gmm; 
 
 
 
 		Eigen::VectorXf delta = H.ldlt().solve(b);
 
 #ifdef SHOW_FITTING_INFO
-		std::cout << "iter ...... " << iter << " ......" << std::endl; 
-		std::cout << "ATb data : " << (ATb_data * w_data).norm() << std::endl; 
-		std::cout << "ATb sil  : " << (ATb_sil * w_sil).norm() << std::endl;
-		std::cout << "ATb temp : " << (ATb_temp*w_temp).norm() << std::endl; 
-		std::cout << "ATb reg  : " << (ATb_reg*w_reg).norm() << std::endl; 
-		std::cout << "ATb floor: " << (ATb_floor*w_floor).norm() << std::endl; 
-		std::cout << "ATb gmm  : " << (ATb_gmm*w_gmm).norm() << std::endl;
+		if (iter == maxIter - 1) {
+			std::cout << "iter ...... " << iter << " ......" << std::endl;
+			std::cout << "ATb data : " << (ATb_data * w_data).norm() << std::endl;
+			std::cout << "ATb sil  : " << (ATb_sil * w_sil).norm() << std::endl;
+			std::cout << "ATb temp : " << (ATb_temp*w_temp).norm() << std::endl;
+			std::cout << "ATb reg  : " << (ATb_reg*w_reg).norm() << std::endl;
+			std::cout << "ATb floor: " << (ATb_floor*w_floor).norm() << std::endl;
+			std::cout << "ATb gmm  : " << (ATb_gmm*w_gmm).norm() << std::endl;
+		}
 #endif 
 		// update 
 		m_host_translation += delta.segment<3>(0);
@@ -876,7 +901,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
 		if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
-			std::cout << "view " << view << " is invalid. " << m_valid_keypoint_ratio[view] << std::endl;
+			//std::cout << "view " << view << " is invalid. " << m_valid_keypoint_ratio[view] << std::endl;
 			continue;
 		}
 		int camid = m_viewids[view];
@@ -993,7 +1018,7 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
 		if (m_rois[roiIdx].valid < m_valid_threshold) {
-			std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
+			//std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
 			continue;
 		}
 		A.setZero(); 
@@ -1407,6 +1432,12 @@ void PigSolverDevice::CalcJointFloorTerm(
 	for (int jid = 0; jid < m_jointNum; jid++)
 	{
 		Eigen::Vector3f joint = m_host_jointsPosed[jid];
+		//if (jid == 2 && joint(2) < 0.13)
+		//{
+		//	A.row(jid) = h_J_joint.row(3 * jid + 2);
+		//	b(jid) = joint(2) - 0.1;
+		//	continue;
+		//}
 		if (joint(2) > 0) continue; 
 		else
 		{
@@ -1414,6 +1445,8 @@ void PigSolverDevice::CalcJointFloorTerm(
 			b(jid) = joint(2);
 		}
 	}
+	//A.middleCols(0, 6).setZero();
+	//b.segment<6>(0).setZero();
 	ATA = A.transpose() * A; 
 	ATb = -A.transpose() * b; 
 }
@@ -1435,6 +1468,12 @@ void PigSolverDevice::CalcJointBidirectFloorTerm(
 	for (int jid = 0; jid < m_jointNum; jid++)
 	{
 		Eigen::Vector3f joint = m_host_jointsPosed[jid];
+		//if (jid == 2 && joint(2) < 0.13)
+		//{
+		//	A.row(jid) = h_J_joint.row(3 * jid + 2);
+		//	b(jid) = joint(2) - 0.1;
+		//	continue;
+		//}
 		if (joint(2) > 0)
 		{
 			if ((jid == 9 && foot_contact[0]) ||
@@ -1453,6 +1492,10 @@ void PigSolverDevice::CalcJointBidirectFloorTerm(
 			b(jid) = joint(2);
 		}
 	}
+
+	//std::vector<int> active = { 6,14,39,55 };
+	A.middleCols(0, 6).setZero();
+	b.segment<6>(0).setZero(); 
 	ATA = A.transpose() * A;
 	ATb = -A.transpose() * b;
 }

@@ -68,11 +68,11 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\props\OpenCV4.1.props" />
     <Import Project="..\props\gl-pcl.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\json.props" />
+    <Import Project="..\props\opencv450.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />

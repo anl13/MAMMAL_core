@@ -50,7 +50,7 @@ void GMM::CalcGMMTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen:
 	for (int i = 0; i < M; i++)
 	{
 		float dist = (theta.tail(dim) - mu[i]).norm();
-		std::cout << "dist: " << dist << std::endl;
+		//std::cout << "dist: " << dist << std::endl;
 		if (dist < max_loss)
 		{
 			max_loss = dist; 
@@ -65,11 +65,11 @@ void GMM::CalcGMMTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen:
 	//ATb.segment<63>(6) = -M * (theta.tail(dim) - mu[max_id]);
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum); 
 	ATb.segment<63>(6) = mu[max_id] - theta.segment<63>(6);
-	std::cout << "gmm mu, theta" << std::endl;
-	for (int i = 0; i < 63; i++)
-	{
-		std::cout << mu[max_id](i) << ", " << theta(6 + i) << std::endl;
-	}
+	//std::cout << "gmm mu, theta" << std::endl;
+	//for (int i = 0; i < 63; i++)
+	//{
+	//	std::cout << mu[max_id](i) << ", " << theta(6 + i) << std::endl;
+	//}
 }
 
 void GMM::CalcAnchorTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int type)

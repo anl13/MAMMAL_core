@@ -79,10 +79,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="test_kernel.cu">
+    <CudaCompile Include="cuda_utils_render.cu">
       <Filter>源文件</Filter>
     </CudaCompile>
-    <CudaCompile Include="cuda_utils_render.cu">
+    <CudaCompile Include="test_kernel.cu">
       <Filter>源文件</Filter>
     </CudaCompile>
   </ItemGroup>

@@ -11,6 +11,7 @@
 #include <vector_types.h>
 #include <pcl/gpu/containers/device_array.h>
 #include <pcl/gpu/containers/kernel_containers.h>
+#include <opencv2/xfeatures2d.hpp>
 
 
 int test_distance_transform()
@@ -56,7 +57,7 @@ int test_distance_transform()
 
 	tt.Start();
 	cv::Mat sdf2;
-	computeSDF2d_device(d_depth, sdf2, W, H);
+	//computeSDF2d_device(d_depth, sdf2, W, H);
 	std::cout << "non thing. " << tt.Elapsed() << std::endl; 
 
 	tt.Start();
@@ -101,10 +102,26 @@ void test_blend()
 
 }
 
+void test_sift()
+{
+	cv::Mat img = cv::imread("E:/sequences/20190704_morning/images/cam0/000000.jpg");
+
+	cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create(); 
+	std::vector<cv::KeyPoint> keypoints;
+	siftPtr->detect(img, keypoints);
+
+	cv::Mat output;
+	cv::drawKeypoints(img, keypoints, output);
+	cv::imshow("sift", output); 
+	cv::waitKey(); 
+	cv::destroyAllWindows(); 
+	return; 
+}
+
 int main()
 {
-	//test_distance_transform(); 
-	test_blend(); 
+	test_sift(); 
+
 
 	system("pause"); 
 	return 0; 

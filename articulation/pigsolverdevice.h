@@ -42,7 +42,7 @@ public:
 	void setROIs(std::vector<ROIdescripter> _rois) { m_rois = _rois; }
 	std::vector<Eigen::Vector3f> getSkel3D() { return m_skel3d;  }
 	std::vector<int> getPoseToOptimize() { return m_poseToOptimize; }
-
+	std::vector<std::vector<Eigen::Vector3f> > getSkelsProj() { return m_skelProjs; }
 
 
 	std::vector<Eigen::Vector3f>  directTriangulationHost(); // calc m_skel3d using direct triangulation
@@ -138,7 +138,7 @@ private:
 	float m_w_temp_term;
 	float m_w_floor_term; 
 	float m_w_gmm_term; 
-	
+	float m_kpt_track_dist; 
 
 	// optimization source
 	MatchedInstance m_source; 

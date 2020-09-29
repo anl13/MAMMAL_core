@@ -72,8 +72,8 @@
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\json.props" />
-    <Import Project="..\props\OpenCV4.1.props" />
     <Import Project="..\props\gl-pcl.props" />
+    <Import Project="..\props\opencv450.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />

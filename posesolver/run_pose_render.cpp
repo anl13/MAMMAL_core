@@ -11,9 +11,8 @@
 #include "../utils/timer_util.h"
 #include "../articulation/pigmodel.h"
 #include "../articulation/pigsolver.h"
-#include "../associate/framedata.h"
+#include "framesolver.h"
 #include "../utils/mesh.h"
-#include "../nanorender/NanoRenderer.h"
 #include <vector_functions.hpp>
 #include "main.h"
 #include "../utils/image_utils_gpu.h"
@@ -26,8 +25,8 @@ int run_pose_render()
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
-	FrameData frame;
-	frame.configByJson(conf_projectFolder + "/associate/config.json");
+	FrameSolver frame;
+	frame.configByJson(conf_projectFolder + "/posesolver/config.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -49,8 +48,8 @@ int run_pose_render()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "G:/pig_results_newtrack/";
-	frame.is_smth = false;
+	frame.result_folder = "E:/pig_results_lowsil/";
+	frame.is_smth = true;
 	int start = frame.get_start_id();
 
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
@@ -75,9 +74,9 @@ int run_pose_render()
 		m_renderer.clearAllObjs();
 		auto solvers = frame.mp_bodysolverdevice;
 
-		for (int pid = 0; pid < 4; pid++)
+		for (int pid = 0; pid < 2; pid++)
 		{
-			solvers[pid]->debug_source_visualize(frame.result_folder,frameid);
+			//solvers[pid]->debug_source_visualize(frame.result_folder,frameid);
 
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();
@@ -121,17 +120,17 @@ int run_pose_render()
 
 		cv::Mat packed_render;
 		packImgBlock(all_renders, packed_render);
-		std::stringstream file2;
-		file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')
-			<< frameid << ".png";
-		cv::imwrite(file2.str(), packed_render);
+		//std::stringstream file2;
+		//file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')
+		//	<< frameid << ".png";
+		//cv::imwrite(file2.str(), packed_render);
 
-		//cv::Mat blend;
-		//overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
-		//std::stringstream all_render_file;
-		//all_render_file << frame.result_folder << "/render_all/overlay/" << std::setw(6) << std::setfill('0')
-		//	<< frameid << "_overlay2.png";
-		//cv::imwrite(all_render_file.str(), blend);
+		cv::Mat blend;
+		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+		std::stringstream all_render_file;
+		all_render_file << frame.result_folder << "/render_all/smth/" << std::setw(6) << std::setfill('0')
+			<< frameid << "_overlay.png";
+		cv::imwrite(all_render_file.str(), blend);
 
 		//while (!glfwWindowShouldClose(windowPtr))
 		//{
@@ -144,7 +143,6 @@ int run_pose_render()
 		//};
 
 	}
-
 
 	return 0;
 }

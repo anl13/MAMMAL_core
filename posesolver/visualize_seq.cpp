@@ -11,9 +11,8 @@
 #include "../utils/timer_util.h"
 #include "../articulation/pigmodel.h"
 #include "../articulation/pigsolver.h"
-#include "../associate/framedata.h"
+#include "framesolver.h"
 #include "../utils/mesh.h"
-#include "../nanorender/NanoRenderer.h"
 #include <vector_functions.hpp>
 #include "main.h"
 #include "../utils/image_utils_gpu.h"
@@ -72,8 +71,8 @@ void visualize_seq()
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
-	FrameData frame;
-	frame.configByJson(conf_projectFolder + "/associate/config.json");
+	FrameSolver frame;
+	frame.configByJson(conf_projectFolder + "/posesolver/config.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 

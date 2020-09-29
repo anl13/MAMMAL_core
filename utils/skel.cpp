@@ -1,6 +1,7 @@
 #include "skel.h" 
 #include <iostream> 
 #include <fstream>
+#include "geometry.h"
 
 SkelTopology getSkelTopoByType(std::string type)
 {
@@ -336,4 +337,71 @@ Eigen::VectorXf convertStdVecToEigenVec(const std::vector<Eigen::Vector3f>& join
 	data.resize(jointnum * 3); 
 	for (int i = 0; i < jointnum; i++) data.segment<3>(3 * i) = joints[i];
 	return data; 
+}
+
+void printSkel(const std::vector<Eigen::Vector3f>& skel)
+{
+	for (int i = 0; i < skel.size(); i++)
+	{
+		std::cout << std::setw(2) << i << ": " << skel[i].transpose() << std::endl;
+	}
+}
+
+float distSkel2DTo2D(const std::vector<Eigen::Vector3f>& skel1, const std::vector<Eigen::Vector3f>& skel2, const SkelTopology& topo)
+{
+	if (skel1.size() < topo.joint_num || skel2.size() < topo.joint_num) return 1000000l;
+	float dist = 0; 
+	float valid = 0;
+	for (int i = 0; i < topo.joint_num; i++)
+	{
+		if (skel1[i](2) < topo.kpt_conf_thresh[i] || skel2[i](2) < topo.kpt_conf_thresh[i])continue; 
+		dist += (skel1[i] - skel2[i]).norm(); 
+		valid += 1; 
+	}
+	if (valid == 0) return 10000001;
+	else return dist / valid;
+}
+
+float distBetween3DSkelAnd2DDet(const vector<Eigen::Vector3f>& skel3d,
+	const MatchedInstance& det, const vector<Camera>& cams, const SkelTopology& topo
+)
+{
+	float dist_all_views = 0;
+	for (int view = 0; view < det.view_ids.size(); view++)
+	{
+		int camid = det.view_ids[view];
+		Camera cam = cams[camid];
+		std::vector<Eigen::Vector3f> points2d;
+		project(cam, skel3d, points2d);
+		int valid_num = 0;
+		float total_dist = 0;
+		for (int i = 0; i < points2d.size(); i++)
+		{
+			if (det.dets[view].keypoints[i](2) < topo.kpt_conf_thresh[i]) continue;
+			Eigen::Vector3f diff = points2d[i] - det.dets[view].keypoints[i];
+			total_dist += diff.norm();
+			valid_num += 1;
+		}
+		dist_all_views += total_dist / valid_num;
+	}
+	dist_all_views /= det.view_ids.size();
+	return dist_all_views;
+}
+
+float distBetweenSkel3D(const vector<Eigen::Vector3f>& S1, const vector<Eigen::Vector3f>& S2)
+{
+	if (S1.size() == 0 || S2.size() == 0) return 10000;
+	int overlay = 0;
+	float total_dist = 0;
+	for (int i = 0; i < S1.size(); i++)
+	{
+		if (S1[i].norm() < 0.00001 || S2[i].norm() < 0.00001) continue;
+		Eigen::Vector3f vec = S1[i] - S2[i];
+		total_dist += vec.norm();
+		overlay += 1;
+	}
+	if (overlay == 0) return 10000;
+	// 2020 09 18: change 2.0 to 1.0
+	return total_dist / pow(overlay, 1.0f);
+
 }

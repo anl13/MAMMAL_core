@@ -273,9 +273,9 @@ void test_epipolar(
     draw_line(imgs[camid0], ep0, c); 
 
     /// visualize 
-    cv::Mat small; 
-    cv::resize(imgs[0], small, cv::Size(960,540));
-    cv::imshow("epipolar", small); 
+    cv::Mat small_img; 
+    cv::resize(imgs[0], small_img, cv::Size(960,540));
+    cv::imshow("epipolar", small_img); 
     int key = cv::waitKey(); 
     if(key == 27) exit(-1); 
 }

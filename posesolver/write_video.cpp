@@ -13,7 +13,6 @@
 #include "../articulation/pigsolver.h"
 #include "../associate/framedata.h"
 #include "../utils/volume.h"
-#include "../nanorender/NanoRenderer.h"
 #include <vector_functions.hpp>
 
 

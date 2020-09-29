@@ -1,0 +1,191 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="other">
+      <UniqueIdentifier>{30c19182-c4c6-42d5-b08d-bbd84801275c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="源文件\mce">
+      <UniqueIdentifier>{8b4a7720-2eac-4adc-8ce7-6df4db84bf6c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\render\camviewer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_object.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\renderer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\shader.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\geometry.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\math_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\mesh.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\camera.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="clusterclique.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="framedata.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="matching.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="run_inspect.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tracking.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\Hungarian.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\skel.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="run_pose.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="run_pose_render.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="run_shape.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="visualize_seq.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GMM\gmm.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils_gpu.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="mce\AdjacencyListAlgorithm.cpp">
+      <Filter>源文件\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="mce\Algorithm.cpp">
+      <Filter>源文件\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="mce\MemoryManager.cpp">
+      <Filter>源文件\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="mce\Tools.cpp">
+      <Filter>源文件\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="framesolver.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="scenedata.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\render\cuda_utils_render.cu">
+      <Filter>other</Filter>
+    </None>
+    <None Include="config.json" />
+    <None Include="..\articulation\artist_config.json">
+      <Filter>other</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\gpuutils.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigmodeldevice.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigsolverdevice.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="clusterclique.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="framedata.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="matching.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tracking.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigmodeldevice.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolverdevice.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\vector_operations.hpp">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="mce\AdjacencyListAlgorithm.h">
+      <Filter>源文件\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="mce\Algorithm.h">
+      <Filter>源文件\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="mce\MemoryManager.h">
+      <Filter>源文件\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="mce\Tools.h">
+      <Filter>源文件\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="framesolver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="scenedata.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

@@ -27,11 +27,14 @@ void PigSolverDevice::debug_source_visualize(std::string folder, int frameid)
 		crop_list.push_back(img2);
 	}
 	cv::Mat output;
-	packImgBlock(crop_list, output);
-	std::stringstream ss;
-	ss << folder << "/fitting/" << m_pig_id << "/det_" << std::setw(6) << std::setfill('0')<< frameid << ".png";
-	cv::imwrite(ss.str(), output);
-	//cv::imshow("test", output); 
-	//cv::waitKey(); 
+	if (crop_list.size() > 0)
+	{
+		packImgBlock(crop_list, output);
+		std::stringstream ss;
+		ss << folder << "/fitting/" << m_pig_id << "/det_" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss.str(), output);
+		//cv::imshow("test", output); 
+		//cv::waitKey(); 
+	}
 	return;
 }
