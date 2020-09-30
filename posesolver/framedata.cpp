@@ -373,15 +373,26 @@ void FrameData::assembleDets()
 }
 
 
+cv::Mat FrameData::visualizeSkels2D()
+{
+	vector<cv::Mat> imgdata;
+	cloneImgs(m_imgsUndist, imgdata);
+	for (int i = 0; i < m_camNum; i++)
+	{
+		for (int k = 0; k < m_detUndist[i].size(); k++)
+		{
+			drawSkelMonoColor(imgdata[i], m_detUndist[i][k].keypoints, k, m_topo);
+			Eigen::Vector3i color = m_CM[k];
+			Eigen::Vector3i c_bgr; 
+			c_bgr(0) = color(2); 
+			c_bgr(1) = color(1);
+			c_bgr(2) = color(0); 
+			my_draw_box(imgdata[i], m_detUndist[i][k].box, c_bgr);
+			my_draw_mask(imgdata[i], m_detUndist[i][k].mask, c_bgr, 0.5);
+		}
+	}
+	cv::Mat output;
+	packImgBlock(imgdata, output);
 
-//void FrameData::load_labeled_data()
-//{
-//	Annotator A;
-//	A.result_folder = "E:/my_labels/";
-//	A.frameid = m_frameid;
-//	A.m_cams = m_camsUndist;
-//	A.m_rawCams = m_cams;
-//	A.m_camNum = m_camNum;
-//	A.read_label_result();
-//	A.getMatchedData(m_matched);
-//}
+	return output;
+}

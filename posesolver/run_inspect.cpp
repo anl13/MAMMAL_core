@@ -47,7 +47,7 @@ int run_inspect()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "E:/pig_results_debug/";
+	frame.result_folder = "E:/pig_results_lowsil/";
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 

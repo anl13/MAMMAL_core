@@ -13,5 +13,65 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="other">
+      <UniqueIdentifier>{c6cb3412-c841-452c-8d49-60e497cbfe66}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\posesolver\framedata.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigmodel.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_shape.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\camviewer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_object.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\renderer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\shader.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="shapesolver.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_sil.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\posesolver\framedata.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigmodel.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolver.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="shapesolver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\render\cuda_utils_render.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

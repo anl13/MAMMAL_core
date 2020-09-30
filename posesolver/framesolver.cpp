@@ -46,7 +46,8 @@ void FrameSolver::configByJson(std::string jsonfile)
 		int id = c.asInt();
 		camids.push_back(id);
 	}
-	setCamIds(camids);
+	m_camids = camids; 
+	m_camNum = m_camids.size(); 
 
 	instream.close();
 	mp_sceneData = std::make_shared<SceneData>(); 
@@ -76,25 +77,6 @@ void FrameSolver::reproject_skels()
 	}
 }
 
-cv::Mat FrameSolver::visualizeSkels2D()
-{
-	vector<cv::Mat> imgdata;
-	cloneImgs(m_imgsUndist, imgdata);
-	for (int i = 0; i < m_camNum; i++)
-	{
-		for (int k = 0; k < m_detUndist[i].size(); k++)
-		{
-			drawSkelMonoColor(imgdata[i], m_detUndist[i][k].keypoints, k, m_topo);
-			Eigen::Vector3i color = m_CM[k];
-			my_draw_box(imgdata[i], m_detUndist[i][k].box, color);
-			my_draw_mask(imgdata[i], m_detUndist[i][k].mask, color, 0.5);
-		}
-	}
-	cv::Mat output;
-	packImgBlock(imgdata, output);
-
-	return output;
-}
 
 cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 {

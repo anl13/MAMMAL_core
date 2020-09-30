@@ -15,7 +15,6 @@
 #include "../articulation/pigsolverdevice.h"
 #include "clusterclique.h"
 #include "../utils/skel.h" 
-//#include "../articulation/pigsolver.h"
 
 using std::vector; 
 
@@ -41,7 +40,7 @@ public:
 
     virtual void configByJson(std::string jsonfile); 
     void fetchData();
-
+	cv::Mat visualizeSkels2D();
     // io functions 
     
 	SkelTopology m_topo;

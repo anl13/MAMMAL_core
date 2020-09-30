@@ -129,6 +129,7 @@ void PigSolver::optimizePoseSilhouette(int maxIter)
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
 		Eigen::MatrixXf H_reg = DTD;  // reg term 
 		Eigen::VectorXf b_reg = -theta; // reg term 
+		b_reg.segment<6>(0).setZero(); 
 		Eigen::MatrixXf H_temp = DTD;
 		Eigen::VectorXf b_temp = theta_last - theta;
 		Eigen::MatrixXf H = ATA * w1 + H_reg * w_reg

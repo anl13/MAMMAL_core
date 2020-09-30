@@ -53,6 +53,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -67,19 +68,19 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\props\OpenCV4.1.props" />
     <Import Project="..\props\json.props" />
     <Import Project="..\props\gl-pcl.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\boost1.65.props" />
+    <Import Project="..\props\opencv450.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -90,6 +91,9 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <CudaCompile>
+      <CodeGeneration>compute_52,sm_52</CodeGeneration>
+    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -145,9 +149,10 @@
     <ClInclude Include="..\utils\skel.h" />
     <ClInclude Include="..\utils\timer_util.h" />
     <ClInclude Include="..\utils\volume.h" />
-    <ClInclude Include="frame_raw_data.h" />
+    <ClInclude Include="sift_matcher.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\posesolver\framedata.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
@@ -158,12 +163,17 @@
     <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
-    <ClCompile Include="frame_raw_data.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="sift_matcher.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\utils\image_utils_gpu.cu" />
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <FileType>Document</FileType>
+    </CudaCompile>
+    <None Include="track.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
 </Project>

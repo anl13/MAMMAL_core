@@ -91,6 +91,26 @@ public:
 	void CalcPoseJacobiPartTheta_cpu(Eigen::MatrixXf& J_joint, Eigen::MatrixXf& J_vert,
 		bool with_vert);
 
+	// sil term constructor 
+	void CalcSilhouettePoseTerm(
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void calcSilhouetteJacobi_device(
+		Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
+		float* d_depth, int idcode, int paramNum, int view
+	);
+
+	void CalcSilouettePoseTerm_cpu(
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter = 0);
+
+	void renderDepths();
+
+	void calcPoseJacobiFullTheta_V_device(
+		pcl::gpu::DeviceArray2D<float> J_vert,
+		pcl::gpu::DeviceArray2D<float> J_joint,
+		pcl::gpu::DeviceArray2D<float> d_RP,
+		pcl::gpu::DeviceArray2D<float> d_LP
+	);
+
 	// constant gpu attributes 
 	std::vector<int> m_host_paramLines;
 	pcl::gpu::DeviceArray<int> m_device_paramLines;
@@ -118,7 +138,7 @@ public:
 
 	void postProcessing(); // post process: project skel, determine model visibility 
 	std::vector<std::vector<bool> > m_det_ignore; // [camid, jointid]
-private:
+protected:
 
 	GMM m_gmm;
 	
@@ -178,23 +198,5 @@ private:
 	Eigen::MatrixXf h_J_vert;  // [vertexnum * paramNum]
 	Eigen::MatrixXf h_J_skel;
 
-	// sil term constructor 
-	void CalcSilhouettePoseTerm(
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
-	void calcSilhouetteJacobi_device(
-		Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
-		float* d_depth, int idcode, int paramNum, int view
-	);
 
-	void CalcSilouettePoseTerm_cpu(
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter=0);
-
-	void renderDepths();
-
-	void calcPoseJacobiFullTheta_V_device(
-		pcl::gpu::DeviceArray2D<float> J_vert,
-		pcl::gpu::DeviceArray2D<float> J_joint,
-		pcl::gpu::DeviceArray2D<float> d_RP,
-		pcl::gpu::DeviceArray2D<float> d_LP
-	);
 };

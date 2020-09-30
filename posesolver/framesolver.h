@@ -25,8 +25,6 @@ public:
 
 	Renderer* mp_renderEngine;
 	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolverdevice;
-	//vector<std::shared_ptr<PigSolver> > mp_bodysolver; 
-	vector<vector<Eigen::Vector4f> > m_projectedBoxesLast; // pigid, camid
 	std::vector<cv::Mat> m_rawMaskImgs;
 	void drawRawMaskImgs();
 	std::string result_folder;
@@ -72,7 +70,7 @@ public:
 	void load_clusters();
 
 	// visualization function  
-	cv::Mat visualizeSkels2D();
+	
 	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);
 	cv::Mat visualizeProj();
 

@@ -53,6 +53,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -129,8 +130,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\articulation\pigmodel.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_shape.cpp" />
+    <ClCompile Include="..\articulation\pigsolver_sil.cpp" />
+    <ClCompile Include="..\posesolver\framedata.cpp" />
+    <ClCompile Include="..\render\camviewer.cpp" />
+    <ClCompile Include="..\render\renderer.cpp" />
+    <ClCompile Include="..\render\render_object.cpp" />
+    <ClCompile Include="..\render\render_utils.cpp" />
+    <ClCompile Include="..\render\shader.cpp" />
+    <ClCompile Include="shapesolver.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\articulation\pigmodel.h" />
+    <ClInclude Include="..\articulation\pigsolver.h" />
+    <ClInclude Include="..\posesolver\framedata.h" />
+    <ClInclude Include="shapesolver.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
 </Project>
