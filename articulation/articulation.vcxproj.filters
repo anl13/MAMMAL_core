@@ -114,6 +114,9 @@
     <ClCompile Include="..\GMM\gmm.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="test_regressor.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">

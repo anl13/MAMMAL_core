@@ -42,6 +42,28 @@ void GetBallsAndSticks(
 }
 
 void GetBallsAndSticks(
+	const vector<Eigen::Vector3f>& joints,
+	const std::vector<int>& parents,
+	std::vector<Eigen::Vector3f>& balls,
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks
+)
+{
+	balls.clear();
+	sticks.clear();
+	balls = joints; 
+
+	for (int i = 0; i < parents.size(); i++)
+	{
+		if (parents[i] == -1) continue;
+		int parent = parents[i];
+		Eigen::Vector3f s = joints[parent];
+		Eigen::Vector3f e = joints[i];
+		std::pair<Eigen::Vector3f, Eigen::Vector3f> stick = { s,e };
+		sticks.push_back(stick);
+	}
+}
+
+void GetBallsAndSticks(
 	const Eigen::MatrixXd& joints,
 	const std::vector<Eigen::Vector2i>& bones,
 	std::vector<Eigen::Vector3f>& balls,

@@ -137,16 +137,17 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 	else {
 		m_host_jregressor.resize(m_vertexNum, m_jointNum);
 		m_host_jregressor.setZero();
-
-		double jregressorRow, jregressorCol;
-		double jregressorValue;
+		m_host_jregressor_list.resize(m_jointNum); 
+		float jregressorRow, jregressorCol;
+		float jregressorValue;
 
 		while (true)
 		{
-			jregressorFile >> jregressorCol;
+			jregressorFile >> jregressorCol; // joint id 
 			if (jregressorFile.eof()) break;
 			jregressorFile >> jregressorRow >> jregressorValue;
 			m_host_jregressor(int(jregressorRow), int(jregressorCol)) = jregressorValue;
+			m_host_jregressor_list[int(jregressorCol)].push_back({ int(jregressorRow), jregressorValue });
 		}
 		jregressorFile.close();
 	}
@@ -240,6 +241,11 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 
 	m_device_verticesPosed.upload(m_host_verticesPosed); 
 	m_device_verticesDeformed.upload(m_host_verticesDeformed); 
+
+	std::cout << m_device_lbsweights.cols() << " , " << m_device_lbsweights.rows() << std::endl; 
+	std::cout << m_device_verticesDeformed.size() << std::endl; 
+	std::cout << m_jointNum << " , " << m_vertexNum << std::endl; 
+	UpdateVertices(); 
 	
 }
 
@@ -338,13 +344,10 @@ void PigModelDevice::UpdateJoints()
 
 void PigModelDevice::UpdateVertices()
 {
-	//TimerUtil::Timer<std::chrono::milliseconds> tt;
-	//tt.Start(); 
 	UpdateJoints(); 
 	UpdateNormalizedSE3_host(); 
 	UpdateVerticesShaped(); 
 	UpdateVerticesDeformed(); 
-	//std::cout << "elapsed: " << tt.Elapsed() << std::endl; 
 
 	UpdateVerticesPosed_device(); 
 }
@@ -398,4 +401,20 @@ void PigModelDevice::readState(std::string state_file)
 			is >> m_host_poseParam[i](k);
 	is >> m_host_scale;
 	is.close();
+}
+
+std::vector<Eigen::Vector3f> PigModelDevice::RegressJointsPosed()
+{
+	std::vector<Eigen::Vector3f> joints; 
+	joints.resize(m_jointNum, Eigen::Vector3f::Zero()); 
+	for (int i = 0; i < m_jointNum; i++)
+	{
+		for (int j = 0; j < m_host_jregressor_list[i].size(); j++)
+		{
+			int vid = m_host_jregressor_list[i][j].first; 
+			float value = m_host_jregressor_list[i][j].second; 
+			joints[i] += m_host_verticesPosed[vid] * value; 
+		}
+	}
+	return joints; 
 }

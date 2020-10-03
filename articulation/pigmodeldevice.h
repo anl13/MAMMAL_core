@@ -67,6 +67,7 @@ public:
 	void UpdateVertices();
 	void UpdateJoints();
 	void UpdateNormalFinal(); 
+	std::vector<Eigen::Vector3f> RegressJointsPosed(); 
 	//void UpdateNormals();
 
 	// texture
@@ -109,6 +110,7 @@ protected:
 	std::vector<int>           m_host_parents;
 	Eigen::MatrixXf m_host_lbsweights;     // jointnum * vertexnum
 	Eigen::MatrixXf m_host_jregressor;  // vertexnum * jointnum
+	std::vector<std::vector<std::pair<int, float>>> m_host_jregressor_list; 
 	Eigen::MatrixXf m_host_shapeBlendV;  // (vertexnum*3) * shapenum
 	Eigen::MatrixXf m_host_shapeBlendJ; // (jointnum*3) * shapenum
 	std::vector<BODY_PART> m_host_bodyParts; // body part label of each vertex

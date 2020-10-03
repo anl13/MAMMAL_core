@@ -537,7 +537,7 @@ void PigSolverDevice::calcPose2DTerm_host(
 		{
 			float dist = (m_skelProjs[camid][t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
 			if (dist > m_kpt_track_dist) {
-				std::cout << "pig " << m_pig_id << " skel " << t << " dist " << dist << std::endl;
+				std::cout << "pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
 				continue;
 			}
 		}
@@ -1331,8 +1331,6 @@ void PigSolverDevice::generateDataForSilSolver()
 	m_viewids = m_source.view_ids;
 	m_mask_areas.resize(m_viewids.size(), 0); 
 	m_valid_keypoint_ratio.resize(m_viewids.size(), 0);
-	Eigen::Vector3f center = m_host_jointsPosed[2]; 
-	m_depth_weight.resize(m_cameras.size(), 0); 
 
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
@@ -1353,13 +1351,6 @@ void PigSolverDevice::generateDataForSilSolver()
 		sobel_device(d_det_sdf[view], d_det_gradx[view], d_det_grady[view], 960, 540);
 		
 		cudaMemcpy(d_det_mask[view], m_det_masks[camid].data, 1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
-	
-		Eigen::Vector3f center_local = m_cameras[camid].R * center + m_cameras[camid].T;
-		float depth = center_local(2); 
-		if (depth <= 0) m_depth_weight[camid] = 0.0f;
-		else {
-			m_depth_weight[camid] = 2 / (depth+0.1);
-		}
 	}
 
 	m_param_observe_num.setZero(); 
@@ -1551,6 +1542,20 @@ void PigSolverDevice::postProcessing()
 	{
 		int jIdx = m_poseToOptimize[i];
 		m_last_thetas.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
+	}
+
+
+	m_depth_weight.resize(m_cameras.size(), 0);
+	Eigen::Vector3f center = m_host_jointsPosed[2];
+
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{		
+		Eigen::Vector3f center_local = m_cameras[camid].R * center + m_cameras[camid].T;
+		float depth = center_local(2);
+		if (depth <= 0) m_depth_weight[camid] = 0.0f;
+		else {
+			m_depth_weight[camid] = 2 / (depth + 0.1);
+		}
 	}
 }
 

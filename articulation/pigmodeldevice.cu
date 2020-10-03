@@ -87,18 +87,18 @@ scale_kernel(pcl::gpu::PtrSz<Eigen::Vector3f> _vertices,
 
 void PigModelDevice::UpdateScaled_device()
 {
-	m_device_verticesDeformed.upload(m_host_verticesOrigin); 
+	m_device_verticesScaled.upload(m_host_verticesOrigin); 
 	dim3 block_size(32); 
 	dim3 grid_size(pcl::device::divUp(m_vertexNum, block_size.x)); 
 
 	scale_kernel << < grid_size, block_size >> > (
-		m_device_verticesDeformed, m_host_scale, m_vertexNum
+		m_device_verticesScaled, m_host_scale, m_vertexNum
 		);
 
 	cudaSafeCall(cudaGetLastError()); 
 	cudaSafeCall(cudaDeviceSynchronize()); 
 
-	m_device_verticesDeformed.download(m_host_verticesScaled); 
+	m_device_verticesScaled.download(m_host_verticesScaled); 
 
 #pragma omp parallel for
 	for (int i = 0; i < m_jointNum; i++) m_host_jointsScaled[i] = m_host_jointsOrigin[i] * m_host_scale;

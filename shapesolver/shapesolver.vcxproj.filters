@@ -21,18 +21,6 @@
     <ClCompile Include="..\posesolver\framedata.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigmodel.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_shape.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="..\render\camviewer.cpp">
       <Filter>other</Filter>
     </ClCompile>
@@ -51,7 +39,10 @@
     <ClCompile Include="shapesolver.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigsolver_sil.cpp">
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
       <Filter>other</Filter>
     </ClCompile>
   </ItemGroup>
@@ -59,18 +50,24 @@
     <ClInclude Include="..\posesolver\framedata.h">
       <Filter>other</Filter>
     </ClInclude>
-    <ClInclude Include="..\articulation\pigmodel.h">
-      <Filter>other</Filter>
-    </ClInclude>
-    <ClInclude Include="..\articulation\pigsolver.h">
-      <Filter>other</Filter>
-    </ClInclude>
     <ClInclude Include="shapesolver.h">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigmodeldevice.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolverdevice.h">
+      <Filter>other</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\render\cuda_utils_render.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigmodeldevice.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigsolverdevice.cu">
       <Filter>other</Filter>
     </CudaCompile>
   </ItemGroup>

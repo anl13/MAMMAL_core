@@ -69,7 +69,7 @@
   "floor_term": 500,
   "gmm_term":  0.0,
   "reg_weights": [ [ 2, 1, 1, 1 ] ],
-  "kpt_track_dist":  80 // px, penalize false positive detection or super fast motion 
+  "kpt_track_dist":  80 // px  * depthweight 
 }
 
 

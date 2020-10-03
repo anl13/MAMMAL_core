@@ -16,6 +16,13 @@ void GetBallsAndSticks(
     std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks 
     );
 
+void GetBallsAndSticks(
+	const vector<Eigen::Vector3f>& joints,
+	const std::vector<int>& parents,
+	std::vector<Eigen::Vector3f>& balls,
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks
+);
+
 // get balls and sticks with joints and parents 
 void GetBallsAndSticks(
     const Eigen::Matrix3Xf& joints, 
