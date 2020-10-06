@@ -93,6 +93,7 @@
     </Link>
     <CudaCompile>
       <CodeGeneration>compute_52,sm_52</CodeGeneration>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -162,7 +163,6 @@
     <ClCompile Include="run_inspect.cpp" />
     <ClCompile Include="run_pose.cpp" />
     <ClCompile Include="run_pose_render.cpp" />
-    <ClCompile Include="run_shape.cpp" />
     <ClCompile Include="scenedata.cpp" />
     <ClCompile Include="tracking.cpp" />
     <ClCompile Include="visualize_seq.cpp" />

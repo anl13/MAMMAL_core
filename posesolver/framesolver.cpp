@@ -754,9 +754,10 @@ vector<cv::Mat> FrameSolver::drawMask()
 	}
 	for (int pid = 0; pid < 4; pid++)
 	{
-		cv::Mat temp(cv::Size(m_imw, m_imh), CV_8UC1);
 		for (int k = 0; k < m_matched[pid].view_ids.size(); k++)
 		{
+			cv::Mat temp(cv::Size(m_imw, m_imh), CV_8UC1);
+
 			int viewid = m_matched[pid].view_ids[k];
 			my_draw_mask_gray(temp, m_matched[pid].dets[k].mask, 1 << pid);
 			m_imgsMask[viewid] = temp + m_imgsMask[viewid];
@@ -802,6 +803,7 @@ void FrameSolver::getROI(std::vector<ROIdescripter>& rois, int id)
 		my_draw_mask_gray(mask,
 			m_matched[id].dets[view].mask, 255);
 		rois[view].area = cv::countNonZero(mask);
+		rois[view].binary_mask = mask; 
 
 		rois[view].chamfer = computeSDF2d(mask);
 

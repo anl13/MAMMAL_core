@@ -85,7 +85,7 @@ void Volume::computeVolumeFromRoi(
 				for (int view = 0; view < det.size(); view++)
 				{
 					int code = det[view].queryMask(P);
-					if (code == 0) {
+					if (code != 1) {
 						value = 0; 
 					}
 				}

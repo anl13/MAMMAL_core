@@ -54,8 +54,6 @@ public:
 	Eigen::MatrixXf GetShapeBlendV() { return m_shapeBlendV; }
 	Eigen::MatrixXf GetJRegressor() { return m_jregressor; }
 	Eigen::MatrixXf GetLBSWeights() { return m_lbsweights; }
-	std::vector<std::vector<int> > GetWeightsNoneZero() { return m_weightsNoneZero; }
-	std::vector<std::vector<int> > GetRegressorNoneZero() { return m_regressorNoneZero; }
 	std::vector<BODY_PART> GetBodyPart() { return m_bodyParts; }
 	void UpdateVertices();
 	void UpdateJoints(); 
@@ -65,7 +63,6 @@ public:
 	void UpdateNormalShaped();
 	void UpdateNormalFinal();
 
-	void RescaleOriginVertices(float alpha);
 	void UpdateVerticesTex(); 
 
 	void SaveObj(const std::string& filename) const;
@@ -77,17 +74,15 @@ public:
 	void determineBodyPartsByWeight2(); 
 		
 	void InitNodeAndWarpField(); 
-	void UpdateModelShapedByKNN();
+	void UpdateModelShapedByKNN(); // updateverticesdeformed
 	void SaveWarpField();
 	void LoadWarpField();
-
-	void testReadJoint(std::string filename);
 
 	// public methods for latent code
 	void setLatent(Eigen::VectorXf _l) { m_latentCode = _l; }
 	void setIsLatent(bool _is_latent) { m_isLatent = _is_latent;  }
 	
-protected:
+public:
 	Eigen::VectorXf m_latentCode; 
 	Decoder m_decoder; 
 	bool m_isLatent; 
@@ -104,6 +99,7 @@ protected:
 	std::vector<BODY_PART> m_bodyParts; // body part label of each vertex
 	std::vector<int> m_texToVert; // [texNum, vertNum], map tex indices to vert indices
 	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_verticesTex; 
+
 	std::shared_ptr<NodeGraph> mp_nodeGraph; 
 	Eigen::Matrix4Xf m_warpField; 
 
@@ -130,11 +126,11 @@ protected:
 
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_lbsweights;     // jointnum * vertexnum
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_jregressor;  // vertexnum * jointnum
+	std::vector<std::vector<std::pair<int, float>>> m_jregressor_list;
+
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_shapeBlendV;  // (vertexnum*3) * shapenum
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_shapeBlendJ; // (jointnum*3) * shapenum
-	std::vector<std::vector<int> > m_weightsNoneZero;
-	 
-	std::vector<std::vector<int> > m_regressorNoneZero;
+	
 
 	Eigen::VectorXf m_poseParam;
 	Eigen::VectorXf m_shapeParam;

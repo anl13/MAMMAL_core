@@ -242,9 +242,6 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 	m_device_verticesPosed.upload(m_host_verticesPosed); 
 	m_device_verticesDeformed.upload(m_host_verticesDeformed); 
 
-	std::cout << m_device_lbsweights.cols() << " , " << m_device_lbsweights.rows() << std::endl; 
-	std::cout << m_device_verticesDeformed.size() << std::endl; 
-	std::cout << m_jointNum << " , " << m_vertexNum << std::endl; 
 	UpdateVertices(); 
 	
 }

@@ -139,7 +139,6 @@ PigModel::PigModel(const std::string &_configfile)
 	}
 	m_lbsweights.resize(m_jointNum, m_vertexNum);
 	m_lbsweights.setZero(); 
-	m_weightsNoneZero.resize(m_jointNum);
 	while (true)
 	{
 		if (weightsfile.eof()) break; 
@@ -149,13 +148,12 @@ PigModel::PigModel(const std::string &_configfile)
 		if (weightsfile.eof()) break; 
 		weightsfile >> col >> value;
 		m_lbsweights(row, col) = value; 
-		m_weightsNoneZero[row].push_back(col); 
 	}
 	weightsfile.close(); 
 
 	// read joint regressor 
-	m_regressorNoneZero.clear();
 	std::ifstream jregressorFile(m_folder + "/J_regressor.txt");
+	m_jregressor_list.clear(); 
 	if (!jregressorFile.is_open())
 	{
 		std::cout << "no regressor file" << std::endl; 
@@ -163,7 +161,7 @@ PigModel::PigModel(const std::string &_configfile)
 	else {
 		m_jregressor.resize(m_vertexNum, m_jointNum);
 		m_jregressor.setZero();
-		m_regressorNoneZero.resize(m_jointNum); 
+		m_jregressor_list.resize(m_jointNum); 
 
 		float jregressorRow, jregressorCol;
 		float jregressorValue;
@@ -174,7 +172,7 @@ PigModel::PigModel(const std::string &_configfile)
 			if (jregressorFile.eof()) break;
 			jregressorFile >> jregressorRow >> jregressorValue;
 			m_jregressor(int(jregressorRow), int(jregressorCol)) = jregressorValue;
-			m_regressorNoneZero[jregressorCol].push_back(jregressorRow);
+			m_jregressor_list[jregressorCol].push_back({ jregressorRow, jregressorValue });
 		}
 		jregressorFile.close();
 	}
@@ -266,9 +264,10 @@ PigModel::PigModel(const std::string &_configfile)
 
 	m_verticesTex.resize(3, m_texNum); 
 	m_verticesTex.setZero(); 
-	m_latentCode = Eigen::VectorXf::Zero(32); 
 
 	UpdateVertices();
+
+	if (mp_nodeGraph == nullptr) std::cout << "null graph" << std::endl; 
 }
 
 
@@ -350,7 +349,7 @@ void PigModel::UpdateJointsShaped()
 {
 	if (m_shapeNum == 0)
 	{
-		m_jointsShaped = m_jointsOrigin; 
+		m_jointsShaped = m_jointsOrigin * m_scale; 
 	}
 	else
 	{
@@ -374,7 +373,7 @@ void PigModel::UpdateVerticesShaped()
 {
 	if (m_shapeNum == 0)
 	{
-		m_verticesShaped = m_verticesOrigin; 
+		m_verticesShaped = m_verticesOrigin * m_scale; 
 	}
 	else
 	{
@@ -455,7 +454,6 @@ void PigModel::saveState(std::string state_file)
     for(int i = 0; i < 3; i++) os << m_translation(i) << std::endl; 
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) os << m_poseParam(3*i+k) << std::endl; 
 	os << m_scale;
-	for (int i = 0; i < 32; i++) os << m_latentCode(i) << std::endl; 
 	os.close(); 
 }
 
@@ -470,7 +468,6 @@ void PigModel::readState(std::string state_file)
     for(int i = 0; i < 3; i++) is >> m_translation(i);
     for(int i = 0; i < m_jointNum; i++) for(int k = 0; k < 3; k++) is >> m_poseParam(3*i+k); 
 	is >> m_scale; 
-	for (int i = 0; i < 32; i++) is >> m_latentCode(i);
 	is.close(); 
 }
 
@@ -548,18 +545,6 @@ void PigModel::UpdateNormals()
 	UpdateNormalOrigin();
 	UpdateNormalShaped();
 	UpdateNormalFinal();
-}
-
-void PigModel::RescaleOriginVertices(float alpha)
-{
-	if (alpha == 0 || alpha == 1) return; 
-	m_verticesOrigin = m_verticesOrigin * alpha;
-	m_jointsOrigin = m_jointsOrigin * alpha; 
-	if (m_shapeNum > 0)
-	{
-		m_shapeBlendJ = m_shapeBlendJ * alpha;
-		m_shapeBlendV = m_shapeBlendV * alpha;
-	}
 }
 
 void PigModel::UpdateVerticesTex()
@@ -642,7 +627,7 @@ void PigModel::UpdateModelShapedByKNN()
 
 void PigModel::UpdateJointsDeformed()
 {
-	if (m_jregressor.cols() > 0 && !mp_nodeGraph)
+	if (m_jregressor.cols() > 0 && mp_nodeGraph != nullptr)
 	{
 		m_jointsDeformed = m_verticesDeformed * m_jregressor;
 	}
@@ -694,26 +679,4 @@ void PigModel::LoadWarpField()
 		}
 	}
 	UpdateVertices();
-}
-
-void PigModel::testReadJoint(std::string filename)
-{
-	std::ifstream jfile(filename);
-	if (!jfile.is_open())
-	{
-		std::cout << "can not open jfile " << std::endl;
-		exit(-1);
-	}
-	for (int i = 0; i < m_jointNum; i++)
-	{
-		for (int j = 0; j < 3; j++)
-		{
-			jfile >> m_jointsOrigin(j, i);
-		}
-	}
-	jfile.close();
-
-	m_jointsFinal = m_jointsOrigin; 
-	m_jointsDeformed = m_jointsOrigin;
-	m_jointsShaped = m_jointsOrigin; 
 }

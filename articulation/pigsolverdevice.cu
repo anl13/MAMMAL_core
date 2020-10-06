@@ -162,7 +162,6 @@ void PigSolverDevice::calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<flo
 	dim3 gridsize2(pcl::device::divUp(3 * m_vertexNum, blocksize.x), pcl::device::divUp(m_host_paramLines.size(), blocksize.y)); 
 
 	calcPoseJacobiFullTheta_device(d_J_joint_full, d_J_vert_full, with_vert); 
-
 	extract_jacobi_lines_kernel << <gridsize1, blocksize >> > (
 		d_J_joint_full, m_device_paramLines, m_host_paramLines.size(),
 		3 * m_jointNum, J_joint

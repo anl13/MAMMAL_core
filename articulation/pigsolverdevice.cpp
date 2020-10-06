@@ -269,8 +269,10 @@ void PigSolverDevice::globalAlign()
 	// step1: compute scale by averaging bone length. 
 	std::vector<float> regBoneLens; 
 	std::vector<float> triBoneLens;
+	std::vector<int> bone_not_for_shape = {0,1,2,3,4};
 	for (int bid = 0; bid < m_skelTopo.bones.size(); bid++)
 	{
+		if (in_list(bid, bone_not_for_shape))continue; 
 		int sid = m_skelTopo.bones[bid](0); 
 		int eid = m_skelTopo.bones[bid](1); 
 		if (m_skel3d[sid].norm() < 0.0001f || m_skel3d[eid].norm() < 0.0001f) continue; 
@@ -293,7 +295,8 @@ void PigSolverDevice::globalAlign()
 	if (alpha < 0.95) alpha = 0.95;
 	std::cout << " alpha: " << alpha << std::endl; 
 	// running average
-	m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1); 
+	if(!m_initScale)
+		m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1); 
 	m_scaleCount += 1.f; 
 
 	m_initScale = true; 
@@ -536,7 +539,9 @@ void PigSolverDevice::calcPose2DTerm_host(
 		if (m_skelProjs.size() > 0)
 		{
 			float dist = (m_skelProjs[camid][t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
-			if (dist > m_kpt_track_dist) {
+			//std::cout << "[used] pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
+
+			if (dist > m_kpt_track_dist * m_depth_weight[camid]) {
 				std::cout << "pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
 				continue;
 			}
@@ -707,7 +712,6 @@ void PigSolverDevice::optimizePoseSilhouette(
 		color_mask_dets.push_back(img);
 	}
 #endif 
-
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M; 
 
@@ -730,11 +734,14 @@ void PigSolverDevice::optimizePoseSilhouette(
 
 		calcSkelJacobiPartTheta_host(h_J_skel); 
 
+
 		// calc joint term 
 		Eigen::MatrixXf ATA_data; 
 		Eigen::VectorXf ATb_data; 
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, true); 
+
 		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
+
 		renderDepths(); 
 
 #ifdef DEBUG_SIL
@@ -929,6 +936,8 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
 
+		std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATA_sil.rows() << " " << d_ATA_sil.cols() << std::endl; 
+		std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATb_sil.size() << std::endl;
 		setConstant2D_device(d_ATA_sil, 0);
 		setConstant1D_device(d_ATb_sil, 0);
 

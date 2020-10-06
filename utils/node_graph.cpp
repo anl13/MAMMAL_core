@@ -3,7 +3,7 @@
 #include <set>
 #include <fstream>
 
-//#define DEBUG_NODE
+#define DEBUG_NODE
 
 void NodeGraph::Load(const std::string& filename)
 {
@@ -325,4 +325,37 @@ void NodeGraphGenerator::VisualizeKnn(const std::string& filename) const
 			if (knn(j, i) != -1)
 				fs << "l " << i + 1 << " " << nodeIdx[knn(j, i)] + 1 << std::endl;
 	fs.close();
+}
+
+void NodeGraphGenerator::SampleNodeFromObj(
+	const std::string filename
+)
+{
+	Mesh reduce;
+	reduce.Load("reduce.obj"); 
+
+	Mesh raw;
+	raw.Load("model.obj"); 
+
+
+	nodeIdx.resize(reduce.vertices_vec.size());
+	for (int i = 0; i < reduce.vertices_vec.size(); i++)
+	{
+		nodeIdx(i) = -1; 
+		float mindist = 1000; 
+		for (int j = 0; j < raw.vertices_vec.size(); j++)
+		{
+			if ((reduce.vertices_vec[i] - raw.vertices_vec[j]).norm() < mindist)
+			{
+				nodeIdx(i) = j;
+				mindist = (reduce.vertices_vec[i] - raw.vertices_vec[j]).norm();
+			}
+		}
+		if (nodeIdx(i) < 0)
+		{
+			std::cout << "error. " << std::endl;
+			system("pause"); 
+			exit(-1); 
+		}
+	}
 }

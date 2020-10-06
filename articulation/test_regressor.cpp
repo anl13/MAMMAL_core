@@ -107,14 +107,35 @@ void test_regressor()
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 	PigModelDevice pig(smal_config);
 
-	srand(time(NULL)); 
+	std::vector<float> errs(62, 0); 
+
+	for (int i = 0; i < 100; i++)
+	{
+		srand(time(NULL));
+		Eigen::VectorXf pose = Eigen::VectorXf::Random(62 * 3) * 0.4;
+		pig.SetPose(pose);
+		pig.SetTranslation(Eigen::Vector3f(0, 0, 0.21));
+		pig.UpdateVertices();
+		pig.UpdateNormalFinal();
+		std::vector<Eigen::Vector3f> regressedjoints = pig.RegressJointsPosed();
+		std::vector<Eigen::Vector3f> joints = pig.GetJoints();
+
+		for (int k = 0; k < 62; k++)
+		{
+			errs[k] += (joints[k] - regressedjoints[k]).norm(); 
+		}
+	}
+	std::ofstream log("D:/Projects/animal_calib/data/artist_model/regessor_error.txt");
+	for (int k = 0; k < 62; k++) log << errs[k] / 100 << std::endl; 
+
+	srand(time(NULL));
 	Eigen::VectorXf pose = Eigen::VectorXf::Random(62 * 3) * 0.4;
 	pig.SetPose(pose);
-	pig.SetTranslation(Eigen::Vector3f(0, 0, 0.21)); 
-	
+	pig.SetTranslation(Eigen::Vector3f(0, 0, 0.21));
 	pig.UpdateVertices();
 	pig.UpdateNormalFinal();
-	std::vector<Eigen::Vector3f> regressedjoints = pig.RegressJointsPosed(); 
+	std::vector<Eigen::Vector3f> regressedjoints = pig.RegressJointsPosed();
+	std::vector<Eigen::Vector3f> joints = pig.GetJoints();
 
 	//RenderObjectColor* animal_model = new RenderObjectColor();
 	//std::vector<Eigen::Vector3f> verts = pig.GetVertices(); 
@@ -126,7 +147,6 @@ void test_regressor()
 	//animal_model->SetColor(Eigen::Vector3f(0.5, 0.5, 0.1));
 
 
-	std::vector<Eigen::Vector3f> joints = pig.GetJoints();
 	std::vector<int> parents = pig.GetParents(); 
 	std::vector<Eigen::Vector3f> balls;
 	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;

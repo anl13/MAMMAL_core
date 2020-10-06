@@ -9,7 +9,6 @@
 #include <json/json.h>
 //#define DEBUG_SOLVER
 
-#define OPTIM_BY_PAIR
 
 PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile) 
 {
@@ -36,14 +35,7 @@ PigSolver::PigSolver(const std::string& _configfile):PigModel(_configfile)
 	{
 		m_poseToOptimize.push_back(c.asInt()); 
 	}
-	m_mapper.clear(); 
-	for (const auto& c : root["mapper"])
-	{
-		std::pair<int, int> a_map_pair;
-		a_map_pair.first = c[0].asInt(); 
-		a_map_pair.second = c[1].asInt(); 
-		m_mapper.push_back(a_map_pair); 
-	}
+
 	m_symNum = root["sym_num"].asInt(); 
 
 	m_scale = 1;
@@ -213,30 +205,6 @@ void PigSolver::CalcZ()
 	}
 }
 
-Eigen::MatrixXf PigSolver::getRegressedSkel()
-{
-	int N = m_topo.joint_num; 
-	Eigen::MatrixXf skel = Eigen::MatrixXf::Zero(3, N);
-	for (int i = 0; i < N; i++)
-	{
-		if (m_mapper[i].first < 0) continue;
-		if (m_mapper[i].first == 0)
-		{
-			int jIdx = m_mapper[i].second;
-			skel.col(i) = m_jointsFinal.col(jIdx);
-		}
-		else if (m_mapper[i].first == 1)
-		{
-			int vIdx = m_mapper[i].second;
-			skel.col(i) = m_verticesFinal.col(vIdx);
-		}
-		else {
-			std::cout << RED_TEXT("fatal error: in SMAL_2DSOLVER::getRegressedSkel.") << std::endl;
-			exit(-1);
-		}
-	}
-	return skel;
-}
 
 Eigen::MatrixXf PigSolver::getRegressedSkelbyPairs()
 {
@@ -265,7 +233,7 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	int N = m_topo.joint_num; 
 	m_weights.resize(N);
 	m_weightsEigen = Eigen::VectorXf::Zero(N * 3);
-	Eigen::MatrixXf skel = getRegressedSkel(); 
+	Eigen::MatrixXf skel = getRegressedSkelbyPairs(); 
 	// STEP 1: compute scale
 	std::vector<float> target_bone_lens;
 	std::vector<float> source_bone_lens;
@@ -290,7 +258,6 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	/*std::cout << "a: " << a << "  b: " << b << std::endl; */
 	float alpha = a / b;
 	m_scale = alpha * m_scale;
-	RescaleOriginVertices(alpha);
 
 	UpdateVertices();
 	if (m_frameid > 0) return; 
@@ -298,10 +265,13 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 
 	// STEP 2: compute translation 
 	Eigen::Vector3f barycenter_target = Z.col(18);
-	int center_id = m_mapper[18].second; 
-	Eigen::Vector3f barycenter_source = m_jointsDeformed.col(center_id);
+	skel = getRegressedSkelbyPairs(); 
+	Eigen::Vector3f barycenter_source = skel.col(18); 
 	m_translation += barycenter_target - barycenter_source;
+	UpdateVertices(); 
 
+	return; 
+	skel = getRegressedSkelbyPairs(); 
 	// STEP 3 : compute global rotation 
 	Eigen::MatrixXf A, B;
 	int nonzero = 0;
@@ -317,13 +287,9 @@ void PigSolver::globalAlign() // procrustes analysis, rigid align (R,t), and tra
 	int k = 0;
 	for (int i = 0; i < Z.cols(); i++)
 	{
-		if (m_mapper[i].first < 0) continue;
 		if (Z.col(i).norm() > 0)
 		{
-			A.col(k) = Z.col(i);
-			if (m_mapper[i].first == 0) B.col(k) = m_jointsFinal.col(m_mapper[i].second);
-			else B.col(k) = m_verticesFinal.col(m_mapper[i].second);
-			k++;
+			// TODO: construct A, B
 		}
 	}
 	Eigen::MatrixXf V_target = A.colwise() - barycenter_target;
@@ -350,7 +316,7 @@ Eigen::VectorXf PigSolver::getRegressedSkelProj(
 	const Eigen::Matrix3f& K, const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
 {
 	int N = m_topo.joint_num;
-	Eigen::MatrixXf skel = getRegressedSkel();
+	Eigen::MatrixXf skel = getRegressedSkelbyPairs();
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> proj;
 	proj.resize(2, N); proj.setZero();
 	Eigen::MatrixXf local = K * ((R * skel).colwise() + T);
@@ -471,67 +437,6 @@ void PigSolver::optimizePose(const int maxIterTime, const float updateTolerance)
 	}
 }
 
-//void PigSolver::computePivot()
-//{
-//	// assume center is always observed 
-//	Eigen::MatrixXf skel = getRegressedSkel(); 
-//	//Eigen::Vector3d headz = Z.col(0); 
-//	//Eigen::Vector3d centerz = Z.col(20);
-//	//Eigen::Vector3d tailz = Z.col(18); 
-//	Eigen::Vector3d heads = skel.col(0); 
-//	Eigen::Vector3d centers = skel.col(20); 
-//	Eigen::Vector3d tails = skel.col(18); 
-//
-//	// m_pivot[0]: head(nose)
-//	// m_pivot[1]: center
-//	// m_pivot[2]: tail(tail root)
-//	m_pivot.resize(3);
-//	
-//	// choosing policy 
-//	m_pivot[1] = centers; 
-//	
-//	m_pivot[0] = heads; 
-//	m_pivot[2] = tails; 
-//	
-//	m_bodystate.trans = m_translation; 
-//	m_bodystate.pose = m_poseParam; 
-//	m_bodystate.frameid = m_frameid; 
-//	m_bodystate.id = m_id; 
-//	m_bodystate.points = m_pivot; 
-//	m_bodystate.center = m_pivot[1];
-//	m_bodystate.scale = m_scale;
-//}
-
-//void PigSolver::readBodyState(std::string filename)
-//{
-//	m_bodystate.loadState(filename); 
-//	m_translation = m_bodystate.trans;
-//	m_poseParam = m_bodystate.pose;
-//	m_frameid = m_bodystate.frameid; 
-//	m_id = m_bodystate.id;
-//	m_pivot = m_bodystate.points; 
-//	m_scale = m_bodystate.scale; 
-//
-//	//UpdateVertices(); 
-//	//auto skel = getRegressedSkel(); 
-//	//vector<Eigen::Vector3d> est(3); 
-//	//est[0] = skel.col(0); 
-//	//est[1] = skel.col(20); 
-//	//est[2] = skel.col(18); 
-//	//m_scale = ((m_pivot[0] - m_pivot[1]).norm() + (m_pivot[1] - m_pivot[2]).norm() + (m_pivot[2] - m_pivot[0]).norm())
-//	//	/ ((est[0] - est[1]).norm() + (est[1] - est[2]).norm() + (est[2] - est[0]).norm());
-//	
-//	if (!tmp_init)
-//	{
-//		tmp_init = true; 
-//		m_jointsOrigin *= m_scale;
-//		m_verticesOrigin *= m_scale;
-//	}
-//
-//	UpdateVertices(); 
-//}
-
-
 // toy function: optimize shape without pose. 
 void PigSolver::FitShapeToVerticesSameTopo(const int maxIterTime, const float terminal)
 {
@@ -585,31 +490,6 @@ void PigSolver::globalAlignToVerticesSameTopo()
 	Eigen::Matrix3f R = V * U.transpose();
 	Eigen::AngleAxisf ax(R);
 	m_poseParam.segment<3>(0) = ax.axis() * ax.angle();
-}
-
-Eigen::MatrixXf PigSolver::getRegressedSkelTPose()
-{
-	int N = m_topo.joint_num;
-	Eigen::MatrixXf skel = Eigen::MatrixXf::Zero(3, N);
-	for (int i = 0; i < N; i++)
-	{
-		if (m_mapper[i].first < 0) continue;
-		if (m_mapper[i].first == 0)
-		{
-			int jIdx = m_mapper[i].second;
-			skel.col(i) = m_jointsShaped.col(jIdx);
-		}
-		else if (m_mapper[i].first == 1)
-		{
-			int vIdx = m_mapper[i].second;
-			skel.col(i) = m_verticesShaped.col(vIdx);
-		}
-		else {
-			std::cout << RED_TEXT("fatal error: in ::getRegressedSkelTPose.") << std::endl;
-			exit(-1);
-		}
-	}
-	return skel;
 }
 
 std::vector<Eigen::Vector4f> PigSolver::projectBoxes()

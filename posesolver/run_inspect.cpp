@@ -47,22 +47,24 @@ int run_inspect()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "E:/pig_results_lowsil/";
+	frame.result_folder = "H:/pig_results_debug/";
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 
-	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
+	for (int frameid = 300; frameid >-1; frameid--)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		if (frameid == start) frame.load_clusters();
-		//else frame.matching_by_tracking();
+		if (frameid == 300) 
+			frame.load_clusters();
+		     //frame.matching_by_tracking();
 		else frame.pureTracking();
 
-		if (frameid == start) frame.read_parametric_data();
+		if (frameid == 300) frame.read_parametric_data();
 		else frame.solve_parametric_model();
+		//frame.solve_parametric_model(); 
 
 		//frame.matching_by_tracking(); 
 		//frame.solve_parametric_model(); 
@@ -70,8 +72,8 @@ int run_inspect()
 		frame.save_clusters();
 		frame.save_parametric_data();
 
-		cv::Mat proj_skel = frame.visualizeProj();
-		cv::imwrite(frame.result_folder+"/fitting/proj" + std::to_string(frameid) + ".png", proj_skel);
+		//cv::Mat proj_skel = frame.visualizeProj();
+		//cv::imwrite(frame.result_folder+"/fitting/proj" + std::to_string(frameid) + ".png", proj_skel);
 		cv::Mat assoc = frame.visualizeIdentity2D();
 		std::stringstream ss;
 		ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
@@ -139,7 +141,7 @@ int run_inspect()
 
 		std::stringstream all_render_file;
 		all_render_file << frame.result_folder<< "/render_all/overlay/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_overlay.png";
+			<< frameid << "_baseline.png";
 		cv::imwrite(all_render_file.str(), blend);
 
 
@@ -150,29 +152,19 @@ int run_inspect()
 		//cv::imwrite(file2.str(), packed_render);
 
 
-		/*
-		nowCamPos: 1.84296 -2.18987  1.19391
-nowcamUp: -0.265077  0.293909  0.918342
-camCen   : 0.0589942 -0.0909324 0.00569892
-		*/
-		/*
-nowCamPos: 0.0988611 -0.0113558    3.00438
-nowcamUp: 0.00346774   0.999541 -0.0301062
-camCen   : 0.0589942 -0.0909324 0.00569892
-		*/
 
-		if (frameid == start + framenum- 1) {
-			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-			while (!glfwWindowShouldClose(windowPtr))
-			{
-				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//if (frameid == start + framenum- 1) {
+		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		//	while (!glfwWindowShouldClose(windowPtr))
+		//	{
+		//		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-				m_renderer.Draw();
+		//		m_renderer.Draw();
 
-				glfwSwapBuffers(windowPtr);
-				glfwPollEvents();
-			};
-		}
+		//		glfwSwapBuffers(windowPtr);
+		//		glfwPollEvents();
+		//	};
+		//}
 	}
 
 

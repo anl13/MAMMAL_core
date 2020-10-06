@@ -2,6 +2,7 @@
 
 #include "framedata.h"
 #include "scenedata.h"
+#include "../articulation/pigsolverdevice.h"
 
 class FrameSolver : public FrameData
 {

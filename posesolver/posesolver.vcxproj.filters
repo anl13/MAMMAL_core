@@ -90,9 +90,6 @@
     <ClCompile Include="run_pose_render.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="run_shape.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="visualize_seq.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -122,9 +119,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\render\cuda_utils_render.cu">
-      <Filter>other</Filter>
-    </None>
     <None Include="config.json" />
     <None Include="..\articulation\artist_config.json">
       <Filter>other</Filter>
@@ -143,6 +137,7 @@
     <CudaCompile Include="..\articulation\pigsolverdevice.cu">
       <Filter>other</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clusterclique.h">

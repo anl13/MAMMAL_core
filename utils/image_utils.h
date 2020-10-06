@@ -76,6 +76,7 @@ public:
 	int idcode; 
 	float area; 
 	cv::Mat undist_mask; 
+	cv::Mat binary_mask; 
 	std::vector<Eigen::Vector3f> keypoints; 
 	cv::Mat scene_mask; 
 	cv::Mat chamfer; // <float>

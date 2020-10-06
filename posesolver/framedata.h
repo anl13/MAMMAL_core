@@ -11,9 +11,6 @@
 #include "../utils/camera.h"
 #include "../utils/image_utils.h"
 #include "../utils/geometry.h" 
-#include "../utils/Hungarian.h"
-#include "../articulation/pigsolverdevice.h"
-#include "clusterclique.h"
 #include "../utils/skel.h" 
 
 using std::vector; 

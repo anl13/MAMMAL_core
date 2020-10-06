@@ -30,6 +30,7 @@ struct NodeGraphGenerator : public NodeGraph
 	void VisualizeKnn(const std::string& filename) const;
 	void LoadGeodesic(const std::string& filename);
 	void SaveGeodesic(const std::string& filename) const;
+	void SampleNodeFromObj(const std::string filename); 
 
 	// param for pigmodel
 	//int netDegree = 4;
@@ -37,9 +38,9 @@ struct NodeGraphGenerator : public NodeGraph
 	//double nodeSpacing = 0.08f;
 	//double cutRate = 20.f;
 	// param for smal notail
-	int netDegree = 4;
-	int knnSize = 8;
-	float nodeSpacing = 0.05f;
+	int netDegree = 8;
+	int knnSize = 4;
+	float nodeSpacing = 0.03f;
 	float cutRate = 5.f;
 	Mesh model;
 	std::vector<std::map<int, float>> geodesic;

@@ -39,11 +39,95 @@
     <ClCompile Include="shapesolver.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\articulation\pigmodel.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_fitting.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_jacobi.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolver_sil.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\volume.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\skel.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\node_graph.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\mesh.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\math_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils_gpu.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\camera.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\geometry.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
     <ClCompile Include="..\articulation\pigmodeldevice.cpp">
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\articulation\pigsolverdevice.cpp">
       <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VAE\decoder.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\VAE\layers.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GMM\gmm.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\framesolver.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\matching.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\tracking.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\clusterclique.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\scenedata.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\AdjacencyListAlgorithm.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\Algorithm.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\MemoryManager.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\Tools.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\Hungarian.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="assist_functions.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -53,11 +137,59 @@
     <ClInclude Include="shapesolver.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="..\articulation\pigmodel.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolver.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\nanoflann.hpp">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\volume.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\timer_util.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\skel.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\show_gpu_param.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\node_graph.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\mesh.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\math_utils.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\kdtree.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\image_utils_gpu.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\image_utils.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\camera.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\geometry.h">
+      <Filter>other</Filter>
+    </ClInclude>
     <ClInclude Include="..\articulation\pigmodeldevice.h">
       <Filter>other</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\pigsolverdevice.h">
       <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="assist_functions.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -70,5 +202,14 @@
     <CudaCompile Include="..\articulation\pigsolverdevice.cu">
       <Filter>other</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\articulation\gpuutils.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="artist_shape_config.json" />
   </ItemGroup>
 </Project>
