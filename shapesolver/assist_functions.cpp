@@ -478,3 +478,29 @@ void test_symmetry()
 		glfwPollEvents();
 	};
 }
+
+void generate_nodegraph()
+{
+	show_gpu_param();
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+
+	std::string pig_config = "D:/Projects/animal_calib/shapesolver/artist_shape_config.json";
+	ShapeSolver solver(pig_config);
+	solver.SaveObj("D:/Projects/animal_calib/shapesolver/model.obj");
+	NodeGraphGenerator graph;
+	Mesh model;
+	model.Load("model.obj");
+
+	//graph.Generate(model); 
+	graph.model = model;
+	graph.LoadGeodesic("geodesic.txt");
+	//graph.SampleNode(); 
+	graph.SampleNodeFromObj("reduce.txt");
+	graph.GenKnn();
+	graph.GenNodeNet();
+
+	graph.Save("node_graph2.txt");
+	graph.VisualizeNodeNet("nodenet2.obj");
+	graph.VisualizeKnn("knn2.obj");
+	//graph.SaveGeodesic("geodesic.txt"); 
+}

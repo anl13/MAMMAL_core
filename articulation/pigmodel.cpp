@@ -265,6 +265,8 @@ PigModel::PigModel(const std::string &_configfile)
 	m_verticesTex.resize(3, m_texNum); 
 	m_verticesTex.setZero(); 
 
+	m_bone_extend.resize(m_jointNum, Eigen::Vector3f::Zero()); 
+
 	UpdateVertices();
 
 	if (mp_nodeGraph == nullptr) std::cout << "null graph" << std::endl; 
@@ -324,7 +326,7 @@ void PigModel::UpdateSingleAffine()
 			else
 			{
 				int p = m_parent(jointId);
-				matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) - m_jointsDeformed.col(p);
+				matrix.block<3, 1>(0, 3) = m_jointsDeformed.col(jointId) - m_jointsDeformed.col(p) + m_bone_extend[jointId];
 			}
 			m_singleAffine.block<4, 4>(0, 4 * jointId) = matrix;
 		}

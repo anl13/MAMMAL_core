@@ -30,7 +30,7 @@ public:
 	void SetShape(Eigen::VectorXf _shapeParam) { m_shapeParam = _shapeParam; }
 	void SetTranslation(Eigen::VectorXf _translation) { m_translation = _translation; }
 	void SetScale(float _scale) { m_scale = _scale; }
-	void ResetPose() { m_poseParam.setZero();}
+	void ResetPose() { m_poseParam.setZero(); m_translation.setZero(); }
 	void ResetShape() { m_shapeParam.setZero(); }
 	void ResetTranslation() { m_translation.setZero(); }
 
@@ -102,6 +102,9 @@ public:
 
 	std::shared_ptr<NodeGraph> mp_nodeGraph; 
 	Eigen::Matrix4Xf m_warpField; 
+
+	// bone increment. defined on each joint relative to its parent. 
+	std::vector<Eigen::Vector3f> m_bone_extend; 
 
 	// shape deformation
 	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_normalOrigin; 
