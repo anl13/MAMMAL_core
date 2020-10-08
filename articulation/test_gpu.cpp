@@ -76,7 +76,7 @@ void test_gpu()
 	smal.SetScale(0.01); 
 
 	PigSolver smalcpu(smal_config); 
-	smalcpu.RescaleOriginVertices(0.01); 
+	smalcpu.SetScale(0.01); 
 
 	// smal random pose 
 	Eigen::VectorXf pose = Eigen::VectorXf::Random(smal.GetJointNum() * 3) * 0.3;

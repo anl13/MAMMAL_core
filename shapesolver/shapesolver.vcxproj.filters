@@ -211,5 +211,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="artist_shape_config.json" />
+    <None Include="pig0.json" />
   </ItemGroup>
 </Project>

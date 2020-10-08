@@ -8,6 +8,17 @@
 #include "../utils/volume.h"
 #include "../utils/node_graph.h"
 
+
+class SingleObservation {
+public: 
+	MatchedInstance source; 
+	std::vector<int> usedViews; 
+	Eigen::VectorXf pose; 
+	float scale; 
+	Eigen::Vector3f translation; 
+	std::vector<ROIdescripter> rois; 
+};
+
 class ShapeSolver : public PigSolver
 {
 public: 
@@ -16,6 +27,10 @@ public:
 	~ShapeSolver();
 	ShapeSolver(const ShapeSolver&) = delete; 
 	ShapeSolver& operator=(const ShapeSolver&) = delete; 
+
+	std::vector<SingleObservation> obs; 
+	int m_pigid; 
+	std::vector<int> usedviews; 
 
 	// compute volume 
 	Volume m_V;
@@ -26,6 +41,7 @@ public:
 	Eigen::VectorXf D; // [11239] degree
 	Eigen::MatrixXf A; // [11239 * 11239] adjecency matrix
 	Eigen::MatrixXf L; // L = I - D^-1 A, laplacian matrix 
+	Eigen::MatrixXf L3; 
 	void initLaplacian(); 
 
 	// nodegraph deformation to point cloud
@@ -36,18 +52,25 @@ public:
 	Eigen::VectorXf m_wDeform;
 	MeshEigen m_iterModel;
 	float m_wSmth = 1;
-	float m_wRegular = 0.1;
+	float m_wRegular = 0.4;
 	float m_maxDist = 0.35;
-	float w_point = 1; 
-	float m_wSym = 1;
+	float w_point = 0.1; 
+	float m_wSym = 4;
+	float w_lap = 1; 
+	float w_sil = 0.002;
+	float w_ear = 0.001;
 	float m_maxAngle = float(EIGEN_PI) / 6;
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_vertJacobiNode;
 
 	void CalcPointTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
 	void CalcLaplacianTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
+	void CalcPointTerm3D(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
 	void CalcSmthTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void CalcDeformTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void CalcDeformTerm_sil(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void CalcEarTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
+
 	void setTargetModel(std::shared_ptr<MeshEigen> m_tarModel);
 	void updateWarpField();
 	void updateIterModel();
@@ -63,4 +86,5 @@ public:
 	Eigen::MatrixXf dv_dse3; // [3*VN, 6*M]
 	Eigen::MatrixXf dvs_dse3; 
 	void CalcDvDSe3(); 
+
 };

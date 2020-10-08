@@ -120,7 +120,7 @@ int test_mean_pose()
 	BallStickObject* p_skel = new BallStickObject(ballMeshEigen, ballMeshEigen, balls, sticks, 0.01, 0.005, colors);
 
 	//smal.testReadJoint("F:/projects/model_preprocess/designed_pig/extracted/framedata/joints_diff.txt");
-	smal.testReadJoint("F:/projects/model_preprocess/designed_pig/pig_prior/tmp/testjoint.txt");
+	//smal.testReadJoint("F:/projects/model_preprocess/designed_pig/pig_prior/tmp/testjoint.txt");
 	Eigen::MatrixXf joints2 = smal.GetJoints().cast<float>();
 
 	std::vector<Eigen::Vector3f> balls2;

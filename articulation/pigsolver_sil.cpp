@@ -209,7 +209,7 @@ void PigSolver::CalcSilhouettePoseTerm(
 
 		//float wc = 200.0 / m_rois[roiIdx].area;
 		float wc = 0.01; 
-
+		
 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
@@ -222,7 +222,6 @@ void PigSolver::CalcSilhouettePoseTerm(
 
 			Eigen::Vector3f x0 = m_verticesFinal.col(i);
 			// check visibiltiy 
-			Camera & cam = m_rois[roiIdx].cam;
 			float depth_value = queryPixel(depths[roiIdx], x0, cam);
 			Eigen::Vector3f x_local = K*( R * x0 + T);
 			bool visible;

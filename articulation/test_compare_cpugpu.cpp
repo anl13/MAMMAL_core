@@ -78,7 +78,6 @@ void test_compare_cpugpu_jacobi()
 	PigSolver smalcpu(smal_config);
 	smalcpu.SetPose(pose);
 	smalcpu.SetScale(0.1);
-	smalcpu.RescaleOriginVertices(0.1);
 	smalcpu.UpdateVertices();
 
 	int jointnum = smalgpu.GetJointNum();
