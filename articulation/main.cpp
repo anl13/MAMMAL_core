@@ -12,6 +12,8 @@ void main()
 	//show_gpu_param(); 
 
 	//test_pointer(); 
-	test_regressor(); 
+	//test_regressor(); 
+
+	test_visdesigned();
 
 }

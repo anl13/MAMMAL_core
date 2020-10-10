@@ -118,10 +118,71 @@ void test_sift()
 	return; 
 }
 
+void test_rotation()
+{
+	std::vector<Eigen::Vector3f> gt_rot_vecs; 
+	std::vector<Eigen::Matrix3f> gt_rot_mats; 
+	std::vector<Eigen::Vector3f> gt_rot_eulers;
+
+	// read data 
+	std::ifstream input_rotvec("F:/projects/model_preprocess/designed_pig/pig_prior/c++/rot_vecs.txt");
+	for (int i = 0; i < 100; i++)
+	{
+		Eigen::Vector3f a; 
+		input_rotvec >> a(0) >> a(1) >> a(2); 
+		gt_rot_vecs.push_back(a); 
+	}
+	input_rotvec.close(); 
+
+	std::ifstream input_euler("F:/projects/model_preprocess/designed_pig/pig_prior/c++/rot_eulers.txt");
+	for (int i = 0; i < 100; i++)
+	{
+		Eigen::Vector3f a; 
+		input_euler >> a(0) >> a(1) >> a(2); 
+		gt_rot_eulers.push_back(a); 
+	}
+	input_euler.close();
+
+	std::ifstream input_mats("F:/projects/model_preprocess/designed_pig/pig_prior/c++/rot_mats.txt");
+	for (int i = 0; i < 100; i++)
+	{
+		Eigen::Matrix3f a; 
+		input_mats >> a(0, 0) >> a(0, 1) >> a(0, 2)
+			>> a(1, 0) >> a(1, 1) >> a(1, 2)
+			>> a(2, 0) >> a(2, 1) >> a(2, 2);
+		gt_rot_mats.push_back(a); 
+	}
+	input_mats.close(); 
+
+	float err_vec_to_mat = 0; 
+	float err_mat_to_vec = 0; 
+	float err_euler_to_mat = 0; 
+	float err_mat_to_euler = 0; 
+	
+	// Rotvec--> Mat pass. 
+	// Mat --> Rotvec pass. 
+	// euler --> mat pass. 
+	// mat --> euler pass. 
+	for (int i = 0; i < 100; i++)
+	{
+		Eigen::Matrix<float, 3, 9, Eigen::ColMajor> dR1 = EulerJacobiF(gt_rot_eulers[i]); 
+		Eigen::Matrix<float, 3, 9, Eigen::ColMajor> dR_num = EulerJacobiFNumeric(gt_rot_eulers[i]); 
+		float err = (dR1 - dR_num).maxCoeff(); 
+		if (err < 1e-6)
+		{
+			std::cout << "PASS. " << err << std::endl; 
+		}
+		else {
+			std::cout << "NOT pass. " << i << " : " << err << std::endl; 
+			std::cout << dR1 << std::endl; 
+			std::cout << std::endl << dR_num << std::endl << std::endl; 
+		}
+	}
+}
+
 int main()
 {
-	test_sift(); 
-
+	test_rotation();
 
 	system("pause"); 
 	return 0; 

@@ -85,6 +85,9 @@ public:
 	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
 
 	void CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta);
+	void CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::MatrixXf& skelJ,
+		const std::vector<Eigen::Vector3f>& last_regressed_skel); 
+
 
 	void CalcPoseJacobiFullTheta_cpu(Eigen::MatrixXf& jointJacobiPose, Eigen::MatrixXf& J_vert,
 		bool with_vert);
@@ -165,6 +168,7 @@ protected:
 	std::vector<Camera> m_cameras;
 	std::vector<ROIdescripter> m_rois; 
 	Eigen::VectorXf m_last_thetas; 
+	std::vector<Eigen::Vector3f> m_last_regressed_skel3d; 
 
 	// output 
 	std::vector<Eigen::Vector3f> m_skel3d; 

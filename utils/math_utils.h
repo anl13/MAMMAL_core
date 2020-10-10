@@ -75,12 +75,6 @@ void IoU_xyxy_ratio(Eigen::Vector4f b1, Eigen::Vector4f b2, float& iou, float &i
 
 bool in_image(float w, float h, float x, float y); 
 
-// XYZ: roll pitch yaw convention. 
-Eigen::Matrix3f EulerToRotRad(float x, float y, float z, std::string type="XYZ");
-Eigen::Matrix3f EulerToRotDegree(float x, float y, float z, std::string type="XYZ");
-Eigen::Matrix3f EulerToRotRad(Eigen::Vector3f rads, std::string type="XYZ"); 
-Eigen::Matrix3f EulerToRotDegree(Eigen::Vector3f rads, std::string type="XYZ");
-
 // check Whether z is on the left of vector xy 
 bool to_left_test(const Eigen::Vector3f& x, const Eigen::Vector3f& y, const Eigen::Vector3f& z); 
 
@@ -93,3 +87,16 @@ Eigen::Matrix4f Transform(const Eigen::Vector3f& _translation, const Eigen::Vect
 Eigen::Matrix4f Perspective(const float fovy, const float aspect, const float zNear, const float zFar);
 Eigen::Matrix4f calcRenderExt(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _up, const Eigen::Vector3f& _center);
 Eigen::Matrix4f calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T);
+
+// XYZ: roll pitch yaw convention. 
+Eigen::Matrix3f EulerToRotRad(float alpha, float beta, float gamma, std::string type = "ZYX");
+Eigen::Matrix3f EulerToRotDegree(float alpha, float beta, float gamma, std::string type = "ZYX");
+Eigen::Matrix3f EulerToRotRad(Eigen::Vector3f rads, std::string type = "ZYX");
+Eigen::Matrix3f EulerToRotDegree(Eigen::Vector3f rads, std::string type = "ZYX");
+
+// This jacobi is implemented for ZYX format 
+Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiF(const Eigen::Vector3f& euler);
+Eigen::Vector3f Mat2Rotvec(Eigen::Matrix3f); 
+Eigen::Vector3f Mat2Euler(Eigen::Matrix3f);
+
+Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiFNumeric(const Eigen::Vector3f& euler);

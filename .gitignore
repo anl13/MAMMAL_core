@@ -6,6 +6,8 @@
 *.ply
 *.dll 
 *.lib
+*.avi
+*.mp4
 
 .vscode/
 build/

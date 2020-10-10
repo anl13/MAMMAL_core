@@ -51,18 +51,18 @@ int run_inspect()
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 
-	for (int frameid = 300; frameid >-1; frameid--)
+	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		if (frameid == 300) 
+		if (frameid == start) 
 			frame.load_clusters();
 		     //frame.matching_by_tracking();
 		else frame.pureTracking();
 
-		if (frameid == 300) frame.read_parametric_data();
+		if (frameid == start) frame.read_parametric_data();
 		else frame.solve_parametric_model();
 		//frame.solve_parametric_model(); 
 

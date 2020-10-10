@@ -261,51 +261,6 @@ bool in_image(float w, float h, float x, float y)
 }
 
 
-Eigen::Matrix3f EulerToRotRad(float x, float y, float z, std::string type)
-{
-    if(type=="XYZ")
-    {
-        float cx = cos(x); 
-        float sx = sin(x); 
-        float cy = cos(y); 
-        float sy = sin(y); 
-        float cz = cos(z); 
-        float sz = sin(z); 
-        Eigen::Matrix3f Rx = Eigen::Matrix3f::Identity(); 
-        Rx(1,1) = Rx(2,2) = cx; 
-        Rx(1,2) = -sx; Rx(2,1) = sx; 
-        Eigen::Matrix3f Ry = Eigen::Matrix3f::Identity(); 
-        Ry(0,0) = Ry(2,2) = cy; 
-        Ry(0,2) = sy; Ry(2,0) = -sy; 
-        Eigen::Matrix3f Rz = Eigen::Matrix3f::Identity(); 
-        Rz(0,0) = Rz(1,1) = cz; 
-        Rz(0,1) = -sz; Rz(1,0) = sz;  
-        
-        return Rz * Ry * Rx; 
-    }
-    else { 
-        std::cout << "euler type " << type << " not implemented yet." << std::endl; 
-        return Eigen::Matrix3f::Identity();
-    }
-}
-
-Eigen::Matrix3f EulerToRotDegree(float x, float y, float z, std::string type)
-{
-    float xrad = x * 3.14159265359 / 180; 
-    float yrad = y * 3.14159265359 / 180; 
-    float zrad = z * 3.14159265359 / 180; 
-    return EulerToRotRad(xrad, yrad, zrad, type); 
-}
-
-Eigen::Matrix3f EulerToRotRad(Eigen::Vector3f rads, std::string type)
-{
-    return EulerToRotRad(rads(0), rads(1), rads(2), type); 
-}
-
-Eigen::Matrix3f EulerToRotDegree(Eigen::Vector3f rads, std::string type)
-{
-    return EulerToRotDegree(rads(0), rads(1), rads(2), type); 
-}
 
 //Q.x∗R.y+P.x∗Q.y+P.y∗R.x−P.x∗R.y−Q.y∗R.x−P.y∗Q.x
 bool to_left_test(const Eigen::Vector3f& p, const Eigen::Vector3f& q, const Eigen::Vector3f& r)
@@ -405,3 +360,144 @@ Eigen::Matrix4f calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T
 	Eigen::Vector3f center = pos - 1.0f*front;
 	return calcRenderExt(pos, up, center);
 }
+
+Eigen::Vector3f Mat2Rotvec(Eigen::Matrix3f mat)
+{
+	cv::Mat cvVec;
+	cv::Mat cvRodriguesMat;
+	cv::eigen2cv(mat, cvRodriguesMat);
+
+	cv::Rodrigues(cvRodriguesMat, cvVec);
+	Eigen::Vector3f rotvec; 
+	cv::cv2eigen(cvVec, rotvec); 
+	return rotvec; 
+}
+
+
+Eigen::Matrix3f EulerToRotRad(float z, float y, float x, std::string type)
+{
+	if (type == "ZYX") // matlab default type ZYX
+	{
+		float cx = cos(x);
+		float sx = sin(x);
+		float cy = cos(y);
+		float sy = sin(y);
+		float cz = cos(z);
+		float sz = sin(z);
+		Eigen::Matrix3f Rx = Eigen::Matrix3f::Identity();
+		Rx(1, 1) = Rx(2, 2) = cx;
+		Rx(1, 2) = -sx; Rx(2, 1) = sx;
+		Eigen::Matrix3f Ry = Eigen::Matrix3f::Identity();
+		Ry(0, 0) = Ry(2, 2) = cy;
+		Ry(0, 2) = sy; Ry(2, 0) = -sy;
+		Eigen::Matrix3f Rz = Eigen::Matrix3f::Identity();
+		Rz(0, 0) = Rz(1, 1) = cz;
+		Rz(0, 1) = -sz; Rz(1, 0) = sz;
+
+		return Rz * Ry * Rx; 
+	}
+	else {
+		std::cout << "euler type " << type << " not implemented yet." << std::endl;
+		return Eigen::Matrix3f::Identity();
+	}
+}
+
+Eigen::Matrix3f EulerToRotDegree(float x, float y, float z, std::string type)
+{
+	float xrad = x * 3.14159265359 / 180;
+	float yrad = y * 3.14159265359 / 180;
+	float zrad = z * 3.14159265359 / 180;
+	return EulerToRotRad(xrad, yrad, zrad, type);
+}
+
+Eigen::Matrix3f EulerToRotRad(Eigen::Vector3f rads, std::string type)
+{
+	return EulerToRotRad(rads(0), rads(1), rads(2), type);
+}
+
+Eigen::Matrix3f EulerToRotDegree(Eigen::Vector3f rads, std::string type)
+{
+	return EulerToRotDegree(rads(0), rads(1), rads(2), type);
+}
+
+Eigen::Vector3f Mat2Euler(Eigen::Matrix3f R)
+{
+	Eigen::Vector3f euler; 
+	if (R(0, 0) == 0 && R(1, 0) == 0)
+	{
+		euler(0) = 0; 
+		euler(1) = M_PI / 2; 
+		euler(2) = atan(R(0, 1) / R(1, 1));
+	}
+	else
+	{
+		euler(1) = atan(-R(2, 0) / sqrtf(R(0, 0) * R(0, 0) + R(1, 0) * R(1, 0)));
+		euler(0) = atan(R(1, 0) / R(0, 0)); 
+		euler(2) = atan(R(2, 1) / R(2, 2)); 
+	}
+	return euler; 
+}
+
+Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiF(const Eigen::Vector3f& euler)
+{
+	float x = euler(2); float y = euler(1); float z = euler(0); 
+	float cx = cos(x);
+	float sx = sin(x);
+	float cy = cos(y);
+	float sy = sin(y);
+	float cz = cos(z);
+	float sz = sin(z);
+	Eigen::Matrix3f Rx = Eigen::Matrix3f::Identity();
+	Rx(1, 1) = Rx(2, 2) = cx;
+	Rx(1, 2) = -sx; Rx(2, 1) = sx;
+	Eigen::Matrix3f Ry = Eigen::Matrix3f::Identity();
+	Ry(0, 0) = Ry(2, 2) = cy;
+	Ry(0, 2) = sy; Ry(2, 0) = -sy;
+	Eigen::Matrix3f Rz = Eigen::Matrix3f::Identity();
+	Rz(0, 0) = Rz(1, 1) = cz;
+	Rz(0, 1) = -sz; Rz(1, 0) = sz;
+
+	Eigen::Matrix3f dRx = Eigen::Matrix3f::Zero(); 
+	Eigen::Matrix3f dRy = Eigen::Matrix3f::Zero();
+	Eigen::Matrix3f dRz = Eigen::Matrix3f::Zero(); 
+
+	dRx(1, 1) = dRx(2, 2) = -sx;
+	dRx(1, 2) = -cx;
+	dRx(2, 1) = cx;
+
+	dRy(0, 0) = dRy(2, 2) = -sy;
+	dRy(0, 2) = cy;
+	dRy(2, 0) = -cy;
+
+	dRz(0, 0) = dRz(1, 1) = -sz;
+	dRz(0, 1) = -cz;
+	dRz(1, 0) = cz;
+
+	Eigen::Matrix<float, 3, 9, Eigen::ColMajor> dR; 
+	dR.middleCols(0, 3) = dRz * Ry * Rx;
+	dR.middleCols(3, 3) = Rz * dRy * Rx; 
+	dR.middleCols(6, 3) = Rz * Ry * dRx;
+	return dR; 
+}
+
+Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiFNumeric(const Eigen::Vector3f& euler)
+{
+	Eigen::Matrix<float, 3, 9, Eigen::ColMajor> dR; 
+	float alpha = 0.001; 
+	float invalpha = 1000;
+	Eigen::Matrix3f R0 = EulerToRotRad(euler);
+	
+	for (int i = 0; i < 3; i++)
+	{
+		Eigen::Vector3f delta = euler; 
+		delta(i) += alpha; 
+		Eigen::Matrix3f Delta = EulerToRotRad(delta); 
+		Eigen::Vector3f delta1 = euler; 
+		delta1(i) -= alpha; 
+		Eigen::Matrix3f Delta1 = EulerToRotRad(delta1); 
+		Eigen::Matrix3f D = (Delta - Delta1) / 2 * invalpha;
+		dR.middleCols(3 * i, 3) = D; 
+	}
+	return dR; 
+}
+

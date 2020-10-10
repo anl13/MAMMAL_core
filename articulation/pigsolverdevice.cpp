@@ -589,7 +589,7 @@ void PigSolverDevice::optimizePose()
 			theta.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
 		}
 
-		calcSkelJacobiPartTheta_host(h_J_skel); 
+		calcSkelJacobiPartTheta_host(h_J_skel); // order same to m_skelCorr
 
 		// data term
 		Eigen::MatrixXf ATA_data = Eigen::MatrixXf::Zero(paramNum, paramNum); // data term 
@@ -611,9 +611,14 @@ void PigSolverDevice::optimizePose()
 
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
 		
-		Eigen::MatrixXf ATA_temp; 
-		Eigen::VectorXf ATb_temp; 
-		CalcJointTempTerm(ATA_temp, ATb_temp, m_last_thetas, theta);
+		Eigen::MatrixXf ATA_temp = Eigen::MatrixXf::Zero(paramNum,paramNum); 
+		Eigen::VectorXf ATb_temp = Eigen::VectorXf::Zero(paramNum); 
+		
+		//CalcJointTempTerm(ATA_temp, ATb_temp, m_last_thetas, theta);
+		if (m_last_regressed_skel3d.size() > 0)
+		{
+			CalcJointTempTerm2(ATA_temp, ATb_temp, h_J_skel, m_last_regressed_skel3d);
+		}
 
 		Eigen::MatrixXf ATA_reg;
 		Eigen::VectorXf ATb_reg;
@@ -1502,7 +1507,8 @@ void PigSolverDevice::CalcJointBidirectFloorTerm(
 
 
 
-void PigSolverDevice::CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta)
+void PigSolverDevice::CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, 
+	const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta)
 {
 	int paramNum = 3 * m_poseToOptimize.size() + 3; 
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
@@ -1514,9 +1520,28 @@ void PigSolverDevice::CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& A
 	}
 }
 
+void PigSolverDevice::CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::MatrixXf& skelJ,
+	const std::vector<Eigen::Vector3f>& last_regressed_skel)
+{
+	int paramNum = 3 * m_poseToOptimize.size() + 3;
+	ATA = skelJ.transpose() * skelJ; 
+	int N = m_skelCorr.size(); 
+	Eigen::VectorXf r = Eigen::VectorXf::Zero(3 * N);
+	std::vector<Eigen::Vector3f> skel = getRegressedSkel_host(); 
+	for (int i = 0; i < N; i++)
+	{
+		int t = m_skelCorr[i].target; 
+		float w = m_skelCorr[i].weight;
+		r.segment<3>(3 * i) = skel[t] - last_regressed_skel[t];
+
+	}
+	ATb = -skelJ.transpose() * r; 
+}
+
 void PigSolverDevice::postProcessing()
 {
 	m_skel3d = getRegressedSkel_host(); 
+	m_last_regressed_skel3d = m_skel3d;
 	if (m_skelProjs.size() == 0)
 	{
 		m_skelProjs.resize(m_cameras.size()); 
@@ -1575,11 +1600,20 @@ void PigSolverDevice::calcJoint3DTerm_host(
 	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
 	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum); 
 	ATb = Eigen::VectorXf::Zero(paramNum); 
+	int N = m_skelCorr.size();
+	std::vector<Eigen::Vector3f> skel = getRegressedSkel_host(); 
 
-	for (int i = 0; i < m_skelCorr.size(); i++)
+	Eigen::VectorXf r = Eigen::VectorXf::Zero(3 * N);
+	for (int i = 0; i < N; i++)
 	{
+		const CorrPair& P = m_skelCorr[i];
+		int t = P.target;
+		if (skel3d[t].norm() == 0) continue;
 
+		r.segment<3>(3 * i) = P.weight * (skel[t] - skel3d[t]);
 	}
+	ATA = Jacobi3d.transpose() * Jacobi3d;
+	ATb = -Jacobi3d.transpose() * r; 
 }
 
 void PigSolverDevice::CalcRegTerm(

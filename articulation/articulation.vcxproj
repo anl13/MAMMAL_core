@@ -123,6 +123,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\GMM\gmm.cpp" />
+    <ClCompile Include="..\posesolver\framedata.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\renderer.cpp" />
     <ClCompile Include="..\render\render_object.cpp" />
@@ -155,6 +156,7 @@
     <ClCompile Include="test_render_model.cpp" />
     <ClCompile Include="test_render_video.cpp" />
     <ClCompile Include="test_vae.cpp" />
+    <ClCompile Include="test_visdesigned.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp" />

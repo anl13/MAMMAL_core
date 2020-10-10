@@ -33,3 +33,5 @@ void test_compare_cpugpu_jacobi();
 void test_pointer(); 
 
 void test_regressor(); 
+
+int test_visdesigned(); 

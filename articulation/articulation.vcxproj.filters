@@ -117,6 +117,12 @@
     <ClCompile Include="test_regressor.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="test_visdesigned.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\framedata.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">
