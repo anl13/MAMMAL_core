@@ -57,20 +57,21 @@ int run_inspect()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		if (frameid == start) 
-			frame.load_clusters();
-		     //frame.matching_by_tracking();
-		else frame.pureTracking();
+		//if (frameid == start) 
+		//	frame.load_clusters();
+		//     //frame.matching_by_tracking();
+		//else frame.pureTracking();
+		frame.matching_by_tracking(); 
 
-		if (frameid == start) frame.read_parametric_data();
-		else frame.solve_parametric_model();
-		//frame.solve_parametric_model(); 
+		//if (frameid == start) frame.read_parametric_data();
+		//else frame.solve_parametric_model();
+		frame.solve_parametric_model(); 
 
 		//frame.matching_by_tracking(); 
 		//frame.solve_parametric_model(); 
 
-		frame.save_clusters();
-		frame.save_parametric_data();
+		//frame.save_clusters();
+		//frame.save_parametric_data();
 
 		//cv::Mat proj_skel = frame.visualizeProj();
 		//cv::imwrite(frame.result_folder+"/fitting/proj" + std::to_string(frameid) + ".png", proj_skel);
@@ -102,7 +103,10 @@ int run_inspect()
 		}
 
 		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
+		cv::Mat a(cv::Size(1920, 1080), CV_8UC3); 
 		cv::Mat pack_raw;
+		rawImgs.push_back(a); 
+		rawImgs.push_back(a);
 		packImgBlock(rawImgs, pack_raw);
 
 		std::vector<cv::Mat> all_renders(cams.size());
@@ -141,7 +145,7 @@ int run_inspect()
 
 		std::stringstream all_render_file;
 		all_render_file << frame.result_folder<< "/render_all/overlay/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_baseline.png";
+			<< frameid << "_baseline_compare.png";
 		cv::imwrite(all_render_file.str(), blend);
 
 

@@ -44,9 +44,17 @@ public:
 	std::vector<int> getPoseToOptimize() { return m_poseToOptimize; }
 	std::vector<std::vector<Eigen::Vector3f> > getSkelsProj() { return m_skelProjs; }
 
+	std::vector<Eigen::VectorXf> m_anchor_data; 
+	std::vector<std::vector<Eigen::Vector3f> > m_anchor_joints; 
+	std::vector<std::vector<Eigen::Vector3f> > m_anchor_skel;
+	int determine_anchor_id(); 
+
+	// detection confidence for each joint, used for adapt 
+	// joint joint fitting weights 
+	std::vector<float> m_det_confs; 
 
 	std::vector<Eigen::Vector3f>  directTriangulationHost(); // calc m_skel3d using direct triangulation
-	void globalAlign(); // compute scale and global R,T`
+	void globalAlign(); // compute scale and global R,T
 
 	void optimizePose(); 
 	void optimizePoseSilhouette(
@@ -56,6 +64,7 @@ public:
 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
+	void fitPoseToJointSameTopo(const std::vector<Eigen::Vector3f> &_joints);
 
 	std::vector<Eigen::Vector3f> getRegressedSkel_host(); 
 
@@ -72,6 +81,9 @@ public:
 	void calcPose2DTerm_host(const DetInstance& det, int camid, const std::vector<Eigen::Vector3f>& skel2d,
 		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcJoint3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& skel3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void calcSkel3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& joints3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void calcAnchorTerm_host(int anchorid, const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
+	void calcAnchorTermHeight_host(int anchorid, const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
 	void Calc2dJointProjectionTerm(
 		const MatchedInstance& source,
@@ -162,6 +174,7 @@ protected:
 	float m_w_floor_term; 
 	float m_w_gmm_term; 
 	float m_kpt_track_dist; 
+	float m_w_anchor_term; 
 
 	// optimization source
 	MatchedInstance m_source; 
@@ -183,9 +196,6 @@ protected:
 
 	// tmp data pre-allocated at construction stage
 	std::vector<float*> d_depth_renders; // full size
-
-
-
 
 	pcl::gpu::DeviceArray2D<float> d_J_vert; 
 	pcl::gpu::DeviceArray2D<float> d_J_joint; 

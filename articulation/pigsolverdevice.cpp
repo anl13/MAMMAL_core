@@ -53,6 +53,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_w_floor_term = root["floor_term"].asFloat(); 
 	m_w_gmm_term = root["gmm_term"].asFloat(); 
 	m_kpt_track_dist = root["kpt_track_dist"].asFloat(); 
+	m_w_anchor_term = root["anchor_term"].asFloat(); 
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -153,6 +154,40 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_scaleCount = 0.f; 
 
 	m_gmm.Load(); 
+
+	m_anchor_data.resize(9); 
+	m_anchor_joints.resize(9); 
+	for (int i = 0; i < 9; i++)
+	{
+		Eigen::VectorXf anchor = Eigen::VectorXf::Zero(3 + 3 * m_jointNum); 
+		if (i < 8)
+		{
+			std::stringstream ss;
+			ss << "D:/Projects/animal_calib/articulation/prior_" << i << ".txt";
+			std::ifstream inputfile(ss.str());
+			for (int k = 0; k < 3 + 3 * m_jointNum; k++)
+			{
+				inputfile >> anchor(k);
+			}
+			inputfile.close();
+		}
+		else
+		{
+			anchor.segment<3>(0) = m_anchor_data[5].segment<3>(0); 
+		}
+		m_anchor_data[i] = anchor; 
+
+		m_host_translation = anchor.segment<3>(0); 
+		for (int k = 0; k < m_jointNum; k++)
+		{
+			m_host_poseParam[k] = anchor.segment<3>(3 + 3 * k); 
+		}
+		UpdateVertices(); 
+		m_anchor_joints[i] = m_host_jointsPosed; 
+	}
+	m_host_translation.setZero();
+	for (int i = 0; i < m_jointNum; i++)m_host_poseParam[i].setZero(); 
+	UpdateVertices(); 
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -362,6 +397,62 @@ void PigSolverDevice::fitPoseToVSameTopo(
 
 }
 
+
+void PigSolverDevice::fitPoseToJointSameTopo(
+	const std::vector<Eigen::Vector3f> &_jointstarget
+)
+{
+	int maxIterTime = 100;
+	float terminal = 0.0001f;
+	TimerUtil::Timer<std::chrono::milliseconds> TT;
+
+	int M = m_poseToOptimize.size();
+	float loss = 0;
+	int iterTime = 0;
+
+	TT.Start();
+	for (; iterTime < maxIterTime; iterTime++)
+	{
+		UpdateVertices();
+		Eigen::VectorXf theta(3 + 3 * M);
+		theta.segment<3>(0) = m_host_translation;
+		for (int i = 0; i < M; i++) theta.segment<3>(3 + 3 * i) = m_host_poseParam[m_poseToOptimize[i]];
+
+		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, true);
+		d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float));
+
+		
+
+		Eigen::MatrixXf ATA_eigen = Eigen::MatrixXf::Zero(3 + 3 * M, 3 + 3 * M);
+		Eigen::VectorXf ATb_eigen = Eigen::VectorXf::Zero(3 + 3 * M);
+		calcJoint3DTerm_host(h_J_joint, _jointstarget, ATA_eigen, ATb_eigen);
+		
+		float lambda = 0.0001;
+		float w1 = 1;
+		float w_reg = 0.01;
+		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
+		
+		Eigen::MatrixXf ATA_reg; 
+		Eigen::VectorXf ATb_reg;
+		CalcRegTerm(theta, ATA_reg, ATb_reg); 
+
+		Eigen::MatrixXf ATA = ATA_eigen * w1 + ATA_reg * w_reg + DTD * lambda;
+		Eigen::VectorXf ATb = ATb_eigen * w1 + ATb_reg * w_reg;
+		Eigen::VectorXf delta = ATA.ldlt().solve(ATb);
+
+		m_host_translation += delta.segment<3>(0);
+		for (int i = 0; i < M; i++)m_host_poseParam[m_poseToOptimize[i]] += delta.segment<3>(3 + 3 * i);
+		loss = ATb.norm(); 
+		float grad_norm = delta.norm();
+		if (grad_norm < terminal) break;
+	}
+
+	float time = TT.Elapsed();
+
+	std::cout << "iter : " << iterTime << "  ATb: " << loss << "  tpi: " << time / iterTime << std::endl;
+	return;
+}
+
 std::vector<Eigen::Vector3f> 
 PigSolverDevice::getRegressedSkel_host()
 {
@@ -393,7 +484,12 @@ void PigSolverDevice::calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J)
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
 		const Eigen::Vector3f& pose = m_host_poseParam[jointId];
-		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
+		if (jointId == 0)
+		{
+			rodriguesDerivative.block<3, 9>(0, 0) = EulerJacobiF(pose); 
+		}
+		else 
+			rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
 	}
 
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> RP(9 * m_jointNum, 3);
@@ -542,10 +638,12 @@ void PigSolverDevice::calcPose2DTerm_host(
 			//std::cout << "[used] pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
 
 			if (dist > m_kpt_track_dist * m_depth_weight[camid]) {
-				std::cout << "pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
+				//std::cout << "pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
 				continue;
 			}
 		}
+		m_det_confs[t] += 1; 
+
 
 		Eigen::Vector3f x_local = K * (R * skel2d[t] + T);
 		x_local(0);
@@ -571,15 +669,39 @@ void PigSolverDevice::calcPose2DTerm_host(
 
 void PigSolverDevice::optimizePose()
 {
-	int maxIterTime = 50; 
+	int maxIterTime = 200; 
 	float terminal = 0.0001f; 
 	
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M;
 
+	float loss_2d, loss_reg, loss_temp, loss_anchor;
+	loss_anchor = -1; 
+
+	//if (m_pig_id == 2)
+	//{
+	//	int anchorid = 1;
+	//	Eigen::VectorXf& data = m_anchor_data[anchorid];
+	//	m_host_translation(2) = data(2); 
+	//	for (int i = 0; i < m_jointNum; i++)
+	//	{
+	//		if (i == 0)
+	//		{
+	//			m_host_poseParam[i](1) = data(3 + 3 * i + 1);
+	//			m_host_poseParam[i](2) = data(3 + 3 * i + 2);
+	//		}
+	//		else
+	//		{
+	//			m_host_poseParam[i] = data.segment<3>(3 + 3 * i); 
+	//		}
+	//	}
+	//}
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
+
+		m_det_confs.resize(m_skelTopo.joint_num); 
+		for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0; 
 
 		Eigen::VectorXf theta(paramNum);
 		theta.segment<3>(0) = m_host_translation;
@@ -590,6 +712,9 @@ void PigSolverDevice::optimizePose()
 		}
 
 		calcSkelJacobiPartTheta_host(h_J_skel); // order same to m_skelCorr
+		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
+		d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float));
+		d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float));
 
 		// data term
 		Eigen::MatrixXf ATA_data = Eigen::MatrixXf::Zero(paramNum, paramNum); // data term 
@@ -603,12 +728,42 @@ void PigSolverDevice::optimizePose()
 		float w_data = m_w_data_term;
 		float w_reg = m_w_reg_term;
 		float w_temp = m_w_temp_term;
+		float w_anchor = m_w_anchor_term; 
+		float w_floor = m_w_floor_term; 
 		//float w_gmm = m_w_gmm_term; 
 
 /*		Eigen::MatrixXf ATA_gmm; 
 		Eigen::VectorXf ATb_gmm;
 		m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);*/ 
 
+		Eigen::MatrixXf ATA_anchor = Eigen::MatrixXf::Zero(paramNum, paramNum); 
+		Eigen::VectorXf ATb_anchor = Eigen::VectorXf::Zero(paramNum);
+		Eigen::MatrixXf ATA_anchor2 = Eigen::MatrixXf::Zero(paramNum, paramNum);
+		Eigen::VectorXf ATb_anchor2 = Eigen::VectorXf::Zero(paramNum);
+
+		if (m_pig_id == 2)
+		{
+			calcAnchorTerm_host(0, theta, ATA_anchor, ATb_anchor);
+			calcAnchorTermHeight_host(0, h_J_joint, ATA_anchor2, ATb_anchor2);
+			ATA_anchor += ATA_anchor2;
+			ATb_anchor += ATb_anchor2;
+			loss_anchor = ATb_anchor.norm();
+		}
+
+		if (m_pig_id == 3)
+		{
+			calcAnchorTerm_host(1, theta, ATA_anchor, ATb_anchor);
+			calcAnchorTermHeight_host(1, h_J_joint, ATA_anchor2, ATb_anchor2);
+			ATA_anchor += ATA_anchor2; 
+			ATb_anchor += ATb_anchor2; 
+			loss_anchor = ATb_anchor.norm(); 
+		}
+
+		Eigen::MatrixXf ATA_floor; 
+		Eigen::VectorXf ATb_floor; 
+		CalcJointFloorTerm(ATA_floor, ATb_floor); 
+
+		
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
 		
 		Eigen::MatrixXf ATA_temp = Eigen::MatrixXf::Zero(paramNum,paramNum); 
@@ -626,8 +781,10 @@ void PigSolverDevice::optimizePose()
 
 		//std::cout << "pig: " << m_pig_id << " iter: " << iterTime << " data term: " << ATb_data.norm() << std::endl;
 
-		Eigen::MatrixXf ATA = ATA_data * w_data + ATA_reg * w_reg + DTD * lambda + ATA_temp * w_temp;
-		Eigen::VectorXf ATb = ATb_data * w_data + ATb_reg * w_reg + ATb_temp * w_temp;
+		Eigen::MatrixXf ATA = ATA_data * w_data + ATA_reg * w_reg + DTD * lambda + ATA_temp * w_temp
+			+ ATA_anchor * w_anchor + ATA_floor * w_floor; 
+		Eigen::VectorXf ATb = ATb_data * w_data + ATb_reg * w_reg + ATb_temp * w_temp
+			+ ATb_anchor * w_anchor + ATb_floor * w_floor;
 
 		Eigen::VectorXf delta = ATA.ldlt().solve(ATb);
 
@@ -639,9 +796,35 @@ void PigSolverDevice::optimizePose()
 			int jIdx = m_poseToOptimize[i];
 			m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 		}
-		
+		loss_2d = ATb_data.norm(); 
+		loss_reg = ATb_reg.norm(); 
+		loss_temp = ATb_temp.norm();
 		if (delta.norm() < terminal) break;
 	}
+	//if (m_pig_id == 2)
+	//{
+	//	int anchorid = 1;
+	//	Eigen::VectorXf& data = m_anchor_data[anchorid];
+	//	m_host_translation(2) = data(2);
+	//	for (int i = 0; i < m_jointNum; i++)
+	//	{
+	//		if (i == 0)
+	//		{
+	//			m_host_poseParam[i](1) = data(3 + 3 * i + 1);
+	//			m_host_poseParam[i](2) = data(3 + 3 * i + 2);
+	//		}
+	//		else
+	//		{
+	//			m_host_poseParam[i] = data.segment<3>(3 + 3 * i);
+	//		}
+	//	}
+	//}
+
+	
+	std::cout << "--loss ATb_data: " << loss_2d << std::endl;
+	std::cout << "--loss ATb_reg : " << loss_reg << std::endl; 
+	std::cout << "--loss ATb_temp: " << loss_temp << std::endl; 
+	std::cout << "--loss ATb_anchor: " << loss_anchor << std::endl;
 }
 
 
@@ -1270,7 +1453,13 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 	for (int jointId = 0; jointId < m_jointNum; jointId++)
 	{
 		const Eigen::Vector3f& pose = m_host_poseParam[jointId];
-		rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
+		if (jointId == 0)
+		{
+			rodriguesDerivative.block<3, 9>(0, 0) = EulerJacobiF(pose);
+		}
+		else {
+			rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
+		}
 	}
 
 
@@ -1593,7 +1782,7 @@ void PigSolverDevice::postProcessing()
 	}
 }
 
-void PigSolverDevice::calcJoint3DTerm_host(
+void PigSolverDevice::calcSkel3DTerm_host(
 	const Eigen::MatrixXf& Jacobi3d,
 	const std::vector<Eigen::Vector3f>& skel3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
 {
@@ -1616,6 +1805,25 @@ void PigSolverDevice::calcJoint3DTerm_host(
 	ATb = -Jacobi3d.transpose() * r; 
 }
 
+void PigSolverDevice::calcJoint3DTerm_host(
+	const Eigen::MatrixXf& Jacobi3d,
+	const std::vector<Eigen::Vector3f>& joints, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+	int N = joints.size();
+
+	Eigen::VectorXf r = Eigen::VectorXf::Zero(3 * N);
+	for (int i = 0; i < N; i++)
+	{
+		r.segment<3>(3 * i) = (m_host_jointsPosed[i] - joints[i]);
+	}
+	ATA = Jacobi3d.transpose() * Jacobi3d;
+	ATb = -Jacobi3d.transpose() * r;
+}
+
+
 void PigSolverDevice::CalcRegTerm(
 	const Eigen::VectorXf& theta,
 	Eigen::MatrixXf& ATA,
@@ -1632,4 +1840,49 @@ void PigSolverDevice::CalcRegTerm(
 		ATA(i, i) *= m_param_reg_weight[i];
 		ATb(i) *= m_param_reg_weight[i];
 	}
+}
+
+void PigSolverDevice::calcAnchorTerm_host(int anchorid,
+	const Eigen::VectorXf& theta, 
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
+	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum); 
+	ATb = Eigen::VectorXf::Zero(paramNum); 
+	
+	Eigen::VectorXf& data = m_anchor_data[anchorid];
+	ATb(2) = data(2) - theta(2);
+	ATb(4) = data(4) - theta(4);
+	ATb(5) = data(5) - theta(5); 
+	for (int i = 1; i < m_poseToOptimize.size(); i++)
+	{
+		int jid = m_poseToOptimize[i];
+		float weight = 1; 
+		//if (jid == 21 || jid == 22 || jid == 23) continue; 
+		ATb.segment<3>(3 + 3 * i) = data.segment<3>(3 + 3 * jid) - theta.segment<3>(3+3*i); 
+	}
+	//for (int i = 1; i < m_jointNum; i++)
+	//{
+	//	
+	//}
+}
+
+void PigSolverDevice::calcAnchorTermHeight_host(
+	int anchorid, const Eigen::MatrixXf& Jacobi3d, 
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_jointNum, paramNum); 
+	Eigen::VectorXf b = Eigen::VectorXf::Zero(m_jointNum); 
+	for (int i = 0; i < m_jointNum; i++)
+	{
+		A.row(i) = Jacobi3d.row(3 * i + 2); 
+		//if (i == 21 || i == 22 || i == 23) continue; 
+		b(i) = m_host_scale * m_anchor_joints[anchorid][i](2) - m_host_jointsPosed[i](2); 
+	}
+	ATA = A.transpose() * A; 
+	ATb = A.transpose() * b; 
 }

@@ -202,4 +202,9 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://json.schemastore.org/ansible-collection-galaxy" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

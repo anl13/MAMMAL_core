@@ -173,6 +173,8 @@ void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output)
     int rows = m_camNum / cols;
     if(rows*cols < m_camNum) rows = rows+1; 
 
+	std::cout << rows << "," << cols << std::endl; 
+
     output.create(cv::Size(cols*W, rows*H), imgs[0].type()); 
     try{
         for(int i = 0; i < m_camNum; i++)

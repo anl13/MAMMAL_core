@@ -254,11 +254,15 @@ void PigModelDevice::UpdateLocalSE3_host()
 		Eigen::Matrix4f matrix;
 		matrix.setIdentity();
 
-		matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
 		if (jointId == 0)
+		{
+			matrix.block<3, 3>(0, 0) = EulerToRotRad(pose);
 			matrix.block<3, 1>(0, 3) = m_host_jointsDeformed[jointId] + m_host_translation;
+		}
 		else
 		{
+			matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+
 			int p = m_host_parents[jointId];
 			matrix.block<3, 1>(0, 3) = m_host_jointsDeformed[jointId] - m_host_jointsDeformed[p];
 		}
