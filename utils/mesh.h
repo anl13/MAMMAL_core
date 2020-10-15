@@ -58,7 +58,9 @@ class MeshFloat4
 public:
 	MeshFloat4() {}
 	MeshFloat4(const Mesh& _mesh);
+	void LoadFromMesh(const Mesh& _mesh); 
 	std::vector<float4> vertices;
 	std::vector<float4> normals;
 	std::vector<unsigned int> indices;
+	std::vector<float2> textures; 
 };

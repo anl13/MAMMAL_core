@@ -157,6 +157,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 
 	m_anchor_data.resize(9); 
 	m_anchor_joints.resize(9); 
+	m_anchor_skel.resize(9); 
 	for (int i = 0; i < 9; i++)
 	{
 		Eigen::VectorXf anchor = Eigen::VectorXf::Zero(3 + 3 * m_jointNum); 
@@ -184,10 +185,16 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 		}
 		UpdateVertices(); 
 		m_anchor_joints[i] = m_host_jointsPosed; 
+		m_anchor_skel[i] = getRegressedSkel_host(); 
+		std::stringstream ss; 
+		ss << "D:/Projects/animal_calib/articulation/used_prior_" << i << ".obj";
+		saveObj(ss.str()); 
 	}
 	m_host_translation.setZero();
 	for (int i = 0; i < m_jointNum; i++)m_host_poseParam[i].setZero(); 
 	UpdateVertices(); 
+
+	m_det_confs.resize(m_skelTopo.joint_num, 0); 
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -226,6 +233,7 @@ PigSolverDevice::~PigSolverDevice()
 // Only point with more than 1 observations could be triangulated
 std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost()
 {
+	for (int i = 0; i < m_skelTopo.joint_num; i++) m_det_confs[i] = 0; 
 	int N = m_skelTopo.joint_num;
 	std::vector<Eigen::Vector3f> skel; 
 	skel.resize(N, Eigen::Vector3f::Zero()); 
@@ -238,6 +246,7 @@ std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost()
 			if (m_source.dets[k].keypoints[i](2) < m_skelTopo.kpt_conf_thresh[i]) continue;
 			validnum++;
 		}
+		m_det_confs[i] = validnum; 
 		if (validnum < 2)
 		{
 			skel[i] = X;
@@ -429,7 +438,7 @@ void PigSolverDevice::fitPoseToJointSameTopo(
 		
 		float lambda = 0.0001;
 		float w1 = 1;
-		float w_reg = 0.01;
+		float w_reg = 0.00001;
 		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
 		
 		Eigen::MatrixXf ATA_reg; 
@@ -653,14 +662,14 @@ void PigSolverDevice::calcPose2DTerm_host(
 		D(1, 1) = 1 / x_local(2);
 		D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
 		D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
-		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3);
+		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3) / m_depth_weight[camid];
 		Eigen::Vector2f u;
 		u(0) = x_local(0) / x_local(2);
 		u(1) = x_local(1) / x_local(2);
 		Eigen::Vector2f det_u;
 		det_u(0) = det.keypoints[t](0) / 1920; 
 		det_u(1) = det.keypoints[t](1) / 1080;
-		r.segment<2>(2 * i) = P.weight * (u - det_u);
+		r.segment<2>(2 * i) = P.weight * (u - det_u) / m_depth_weight[camid];
 	}
 
 	ATb = -J.transpose() * r;
@@ -669,6 +678,7 @@ void PigSolverDevice::calcPose2DTerm_host(
 
 void PigSolverDevice::optimizePose()
 {
+	directTriangulationHost();
 	int maxIterTime = 200; 
 	float terminal = 0.0001f; 
 	
@@ -696,6 +706,11 @@ void PigSolverDevice::optimizePose()
 	//		}
 	//	}
 	//}
+	int anchor_index;
+	if (m_pig_id == 3) anchor_index = 0;
+	else if (m_pig_id == 2) anchor_index = 1; 
+	else anchor_index = 8;
+
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
@@ -741,23 +756,11 @@ void PigSolverDevice::optimizePose()
 		Eigen::MatrixXf ATA_anchor2 = Eigen::MatrixXf::Zero(paramNum, paramNum);
 		Eigen::VectorXf ATb_anchor2 = Eigen::VectorXf::Zero(paramNum);
 
-		if (m_pig_id == 2)
-		{
-			calcAnchorTerm_host(0, theta, ATA_anchor, ATb_anchor);
-			calcAnchorTermHeight_host(0, h_J_joint, ATA_anchor2, ATb_anchor2);
-			ATA_anchor += ATA_anchor2;
-			ATb_anchor += ATb_anchor2;
-			loss_anchor = ATb_anchor.norm();
-		}
-
-		if (m_pig_id == 3)
-		{
-			calcAnchorTerm_host(1, theta, ATA_anchor, ATb_anchor);
-			calcAnchorTermHeight_host(1, h_J_joint, ATA_anchor2, ATb_anchor2);
-			ATA_anchor += ATA_anchor2; 
-			ATb_anchor += ATb_anchor2; 
-			loss_anchor = ATb_anchor.norm(); 
-		}
+		calcAnchorTerm_host(anchor_index, theta, ATA_anchor, ATb_anchor);
+		//calcAnchorTermHeight_host(anchor_index, h_J_skel, ATA_anchor2, ATb_anchor2);
+		ATA_anchor += ATA_anchor2; 
+		ATb_anchor += ATb_anchor2; 
+		loss_anchor = ATb_anchor.norm(); 
 
 		Eigen::MatrixXf ATA_floor; 
 		Eigen::VectorXf ATb_floor; 
@@ -1858,15 +1861,50 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 	{
 		int jid = m_poseToOptimize[i];
 		float weight = 1; 
-		//if (jid == 21 || jid == 22 || jid == 23) continue; 
+
 		ATb.segment<3>(3 + 3 * i) = data.segment<3>(3 + 3 * jid) - theta.segment<3>(3+3*i); 
 	}
-	//for (int i = 1; i < m_jointNum; i++)
-	//{
-	//	
-	//}
+	if (m_det_confs[0] >= 2 && m_det_confs[1] >= 2 && m_det_confs[2] >= 2
+		&& m_det_confs[3] >= 2 && m_det_confs[4] >= 2)
+	{
+		std::vector<int> ignore = {19,20,21};
+		for (const int & k : ignore)
+			ATb.segment<3>(3 + 3 * k).setZero(); 
+	}
+	if (m_det_confs[5] >= 1 && m_det_confs[7] >= 1 && m_det_confs[9] >= 1)
+	{
+		std::vector<int> ignore = {7,8,9,10 };
+		for (const int & k : ignore)
+			ATb.segment<3>(3 + 3 * k).setZero();
+	}
+	if (m_det_confs[6] >= 1 && m_det_confs[8] >= 1 && m_det_confs[10] >= 1)
+	{
+		std::vector<int> ignore = { 3,4,5,6 };
+		for (const int & k : ignore)
+			ATb.segment<3>(3 + 3 * k).setZero();
+	}
+	if (m_det_confs[11] >= 1 && m_det_confs[13] >= 1 && m_det_confs[15] >= 1)
+	{
+		std::vector<int> ignore = { 15,16,17,18 };
+		for (const int & k : ignore)
+			ATb.segment<3>(3 + 3 * k).setZero();
+	}
+	if (m_det_confs[12] >= 1 && m_det_confs[14] >= 1 && m_det_confs[16] >= 1)
+	{
+		std::vector<int> ignore = { 11,12,13,14 };
+		for (const int & k : ignore)
+			ATb.segment<3>(3 + 3 * k).setZero();
+	}
+	if (m_det_confs[20] >= 2 && m_det_confs[18] >= 2 && m_det_confs[0] >= 2)
+	{
+		ATb.segment<3>(3) *= 0.05;
+		ATA.middleRows(3, 3) *= 0.05;
+		ATb.segment<3>(0) *= 0.1;
+		ATA.middleRows(0, 3) *= 0.1;
+	}
 }
 
+// This jacobi is 
 void PigSolverDevice::calcAnchorTermHeight_host(
 	int anchorid, const Eigen::MatrixXf& Jacobi3d, 
 	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
@@ -1875,14 +1913,68 @@ void PigSolverDevice::calcAnchorTermHeight_host(
 	int paramNum = 3 + 3 * m_poseToOptimize.size();
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
 	ATb = Eigen::VectorXf::Zero(paramNum);
-	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_jointNum, paramNum); 
-	Eigen::VectorXf b = Eigen::VectorXf::Zero(m_jointNum); 
-	for (int i = 0; i < m_jointNum; i++)
+	int N = m_skelCorr.size(); 
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(N, paramNum); 
+	Eigen::VectorXf b = Eigen::VectorXf::Zero(N); 
+	std::vector<Eigen::Vector3f> skel = getRegressedSkel_host(); 
+	for (int i = 0; i < N; i++)
 	{
-		A.row(i) = Jacobi3d.row(3 * i + 2); 
-		//if (i == 21 || i == 22 || i == 23) continue; 
-		b(i) = m_host_scale * m_anchor_joints[anchorid][i](2) - m_host_jointsPosed[i](2); 
+		A.row(i) = Jacobi3d.row(3 * i + 2) * 5; 
+		int t = m_skelCorr[i].target; 
+		b(i) = m_host_scale * m_anchor_joints[anchorid][t](2) - skel[t](2); 
+		b(i) = b(i) * 5; 
+	}
+	for (int i = 0; i < N; i++)
+	{
+		int t = m_skelCorr[i].target;
+		if (m_det_confs[t] >= 1) {
+			b(i) = 0; 
+			continue;
+		}
 	}
 	ATA = A.transpose() * A; 
 	ATb = A.transpose() * b; 
+}
+
+int PigSolverDevice::determine_anchor_id()
+{
+	std::vector<Eigen::Vector3f> visible_skel = directTriangulationHost(); 
+	std::vector<float> loss(m_anchor_skel.size(), 0);
+	for (int index = 0; index < m_anchor_skel.size(); index++)
+	{
+		int valid_num = 0;
+		for (int i = 0; i < m_skelTopo.joint_num; i++)
+		{
+			if (visible_skel[i].norm() > 0)
+			{
+				float diff = visible_skel[i](2) - m_anchor_skel[index][i](2) * m_host_scale;
+				diff = fabsf(diff);
+				if (i == 20 || i == 18 || i ==0)
+				{
+					loss[index] += diff * 10; 
+					valid_num += 10;
+				}
+				else
+				{
+					loss[index] += diff;
+					valid_num += 1;
+				}
+			}
+		}
+		loss[index] = loss[index] / valid_num; 
+	}
+	int min_index = 0; 
+	float min_value = loss[min_index];
+	for (int i = 0; i < loss.size(); i++)
+	{
+		std::cout << loss[i] << " , ";
+		if (loss[i] < min_value)
+		{
+			min_index = i;
+			min_value = loss[i];
+		}
+	}
+	std::cout << std::endl;
+	std::cout << "min index : " << min_index << std::endl; 
+	return min_index; 
 }

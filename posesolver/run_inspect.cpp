@@ -57,21 +57,22 @@ int run_inspect()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		//if (frameid == start) 
-		//	frame.load_clusters();
-		//     //frame.matching_by_tracking();
+		if (frameid == start) 
+			frame.load_clusters();
+		else 
+		    frame.matching_by_tracking();
 		//else frame.pureTracking();
-		frame.matching_by_tracking(); 
+		//frame.matching_by_tracking(); 
 
-		//if (frameid == start) frame.read_parametric_data();
-		//else frame.solve_parametric_model();
-		frame.solve_parametric_model(); 
+		if (frameid == start) frame.read_parametric_data();
+		else frame.solve_parametric_model();
+		//frame.solve_parametric_model(); 
 
 		//frame.matching_by_tracking(); 
 		//frame.solve_parametric_model(); 
 
-		//frame.save_clusters();
-		//frame.save_parametric_data();
+		frame.save_clusters();
+		frame.save_parametric_data();
 
 		//cv::Mat proj_skel = frame.visualizeProj();
 		//cv::imwrite(frame.result_folder+"/fitting/proj" + std::to_string(frameid) + ".png", proj_skel);
@@ -171,6 +172,5 @@ int run_inspect()
 		//}
 	}
 
-
-	return 0;
+ 	return 0;
 }

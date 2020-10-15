@@ -35,3 +35,5 @@ void test_pointer();
 void test_regressor(); 
 
 int test_visdesigned(); 
+
+int test_lay(); 

@@ -28,6 +28,11 @@ void MeshEigen::Deform(const Eigen::Vector3f &xyzScale)
 
 MeshFloat4::MeshFloat4(const Mesh& _mesh)
 {
+	LoadFromMesh(_mesh);
+}
+
+void MeshFloat4::LoadFromMesh(const Mesh& _mesh)
+{
 	vertices.resize(_mesh.vertex_num);
 	for (int i = 0; i < _mesh.vertex_num; i++) vertices[i] = make_float4(_mesh.vertices_vec[i].x(),
 		_mesh.vertices_vec[i].y(), _mesh.vertices_vec[i].z(), 1.0f);
@@ -42,6 +47,12 @@ MeshFloat4::MeshFloat4(const Mesh& _mesh)
 		indices[3 * i + 0] = _mesh.faces_v_vec[i].x();
 		indices[3 * i + 1] = _mesh.faces_v_vec[i].y();
 		indices[3 * i + 2] = _mesh.faces_v_vec[i].z();
+	}
+	textures.resize(_mesh.texture_num);
+	for (int i = 0; i < _mesh.texture_num; i++)
+	{
+		textures[i].x = _mesh.textures_vec[i](0);
+		textures[i].y = _mesh.textures_vec[i](1);
 	}
 }
 

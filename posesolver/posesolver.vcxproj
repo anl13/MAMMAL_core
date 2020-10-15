@@ -204,7 +204,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://json.schemastore.org/ansible-collection-galaxy" />
+      <UserProperties config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

@@ -354,11 +354,20 @@ Eigen::Matrix4f calcRenderExt(const Eigen::Vector3f& _pos, const Eigen::Vector3f
 
 Eigen::Matrix4f calcRenderExt(const Eigen::Matrix3f& R, const Eigen::Vector3f& T)
 {
-	Eigen::Vector3f front = -R.row(2).transpose();
-	Eigen::Vector3f up = -R.row(1).transpose();
-	Eigen::Vector3f pos = -R.transpose() * T;
-	Eigen::Vector3f center = pos - 1.0f*front;
-	return calcRenderExt(pos, up, center);
+	//Eigen::Vector3f front = -R.row(2).transpose();
+	//Eigen::Vector3f up = -R.row(1).transpose();
+	//Eigen::Vector3f pos = -R.transpose() * T;
+	//Eigen::Vector3f center = pos - 1.0f*front;
+
+	////std::cout << "R: " << R << std::endl << "T: " << T.transpose() << std::endl; 
+	////std::cout << calcRenderExt(pos, up, center) << std::endl; 
+	//return calcRenderExt(pos, up, center);
+	Eigen::Matrix4f Transform = Eigen::Matrix4f::Identity(); 
+	Transform.block<3, 3>(0, 0) = R; 
+	Transform.block<3, 1>(0, 3) = T; 
+	Transform.row(1) *= -1; 
+	Transform.row(2) *= -1;
+	return Transform;
 }
 
 Eigen::Vector3f Mat2Rotvec(Eigen::Matrix3f mat)

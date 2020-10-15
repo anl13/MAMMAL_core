@@ -65,7 +65,7 @@ public:
 	void read_label_result();
 	void save_label_result();
 
-	void drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d);
+	void drawSkel(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d);
 	void update_image_labeled(const SingleClickLabeledData& input, const std::vector<int>& status);
 	void update_data(const SingleClickLabeledData& input, const std::vector<int>& status);
 private:

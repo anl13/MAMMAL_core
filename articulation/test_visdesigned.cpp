@@ -84,7 +84,7 @@ int test_visdesigned()
 	std::cout << "In render scene now!" << std::endl;
 
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 	std::vector<Camera> cams = readCameras();
 
 	// init a camera 
@@ -116,89 +116,115 @@ int test_visdesigned()
 	// model data 
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 	PigModelDevice smal(smal_config);
-	cv::VideoWriter writer("artist_animation_cluster.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 2.0, cv::Size(1920, 1080));
+	cv::VideoWriter writer("artist_animation_meshflip.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 25.0, cv::Size(1920, 1080));
 	int state_id = 0;
 	FrameData frame; 
 	frame.configByJson("D:/Projects/animal_calib/posesolver/config.json"); 
 
 	PigSolverDevice solver(smal_config); 
 	
-#if 0
-	for(int data_status = 0; data_status < 1; data_status++)
-	for (int i = 0; i < config.size(); i++)
+#if 1
+	for (int data_status = 0; data_status < 2; data_status++)
 	{
-		for (int t = 0; t < config[i].second; t++)
+		state_id = 0; 
+		for (int i = 0; i < config.size(); i++)
 		{
-			int frameid = config[i].first + t; 
-			//frame.set_frame_id(frameid); 
-			//frame.fetchData(); 
-			//std::vector<cv::Mat> imgs = frame.get_imgs_undist(); 
-			m_renderer.clearAllObjs(); 
-			std::string stateFolder = "F:/projects/model_preprocess/designed_pig/pig_prior/c++/";
-			std::stringstream ss;
-			ss << stateFolder << "state_modify_" << std::setw(6) << std::setfill('0') << state_id << ".txt";
-			smal.readState(ss.str());
-
-			std::stringstream state_out_file; 
-			state_out_file << stateFolder << "state_eulerglobal_" << std::setw(6) << std::setfill('0') << state_id << ".txt"; 
-
-			smal.UpdateVertices();
-			std::vector<Eigen::Vector3f> joint_target = smal.GetJoints();
-			solver.fitPoseToJointSameTopo(joint_target); 
-			solver.saveState(state_out_file.str()); 
-
-
-			std::stringstream state_out_file_flip; 
-			state_out_file_flip << stateFolder << "state_eulerglobal_" << std::setw(6) << std::setfill('0') << state_id + 2726 << ".txt";
-			std::vector<Eigen::Vector3f> joints_flipped = joint_target; 
-			for (int jid = 0; jid < 62; jid++)
+			for (int t = 0; t < config[i].second; t++)
 			{
-				int fid = flip_index[jid];
-				joints_flipped[jid] = joint_target[fid];
-				if (fid == jid)
-				{
-					joints_flipped[jid](1) *= -1; 
-				}
-			}
-			solver.ResetPose();
-			solver.ResetTranslation();
-			solver.fitPoseToJointSameTopo(joints_flipped); 
-			solver.saveState(state_out_file_flip.str()); 
+				int frameid = config[i].first + t;
+				//frame.set_frame_id(frameid); 
+				//frame.fetchData(); 
+				//std::vector<cv::Mat> imgs = frame.get_imgs_undist(); 
+				m_renderer.clearAllObjs();
+				std::string stateFolder = "F:/projects/model_preprocess/designed_pig/pig_prior/c++/";
+				std::stringstream ss;
+				ss << stateFolder << "state_modify_" << std::setw(6) << std::setfill('0') << state_id << ".txt";
+				smal.readState(ss.str());
 
-			std::cout << "finish " << state_id << std::endl;
-			state_id++; 
-			continue; 
-			
-			//solver.UpdateVertices();
-			//solver.UpdateNormalFinal();
-			smal.UpdateVertices(); 
-			smal.UpdateNormalFinal(); 
-			RenderObjectColor* animal_model = new RenderObjectColor();
-			std::vector<Eigen::Vector3u> faces_u = smal.GetFacesVert();
-			std::vector<Eigen::Vector3f> normals = smal.GetNormals();
-			animal_model->SetFaces(faces_u);
-			animal_model->SetVertices(smal.GetVertices());
-			animal_model->SetNormal(normals);
-			animal_model->SetColor(Eigen::Vector3f(0.5, 0.5, 0.1));
-			m_renderer.colorObjs.push_back(animal_model);
-			//m_renderer.s_camViewer.SetExtrinsic(cams[0].R, cams[0].T); 
-			//m_renderer.Draw();
-			//cv::Mat img0 = m_renderer.GetImage(); 
-			//cv::Mat out; 
-			//overlay_render_on_raw_gpu(img0, imgs[0], out);
-			//cv::Mat outsmall;
-			//cv::resize(out, outsmall, cv::Size(480, 270)); 
-			m_renderer.createScene(conf_projectFolder);
-			m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-			m_renderer.Draw();
-			cv::Mat img = m_renderer.GetImage();
-			//outsmall.copyTo(img(cv::Rect(1440, 810, 480, 270)));
-			std::stringstream ss_text; 
-			ss_text << "frame " << std::setw(6) << frameid << "  seq " << i << " index " << t;
-			cv::putText(img, ss_text.str(), cv::Point(100, 100), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(0, 255, 0));
-			writer.write(img);
-			std::cout << "write img " << i << "," << t << std::endl;
-			state_id++;
+				smal.UpdateVertices();
+				std::vector<Eigen::Vector3f> joint_target = smal.GetJoints();
+
+				std::stringstream state_out_file_flip;
+				if(data_status)
+					state_out_file_flip << stateFolder << "state_eulerglobal_" << std::setw(6) << std::setfill('0') << state_id + 2726 * data_status << ".txt";
+				else 
+					state_out_file_flip << stateFolder << "state_eulerglobal_" << std::setw(6) << std::setfill('0') << state_id + data_status << ".txt";
+
+				std::vector<Eigen::Vector3f> joints_flipped = joint_target;
+				for (int jid = 0; jid < 62; jid++)
+				{
+					int fid = flip_index[jid];
+					joints_flipped[jid] = joint_target[fid];
+					joints_flipped[jid](1) *= -1;
+				}
+				std::vector<Eigen::Vector3f> joints; 
+				if (data_status) joints = joints_flipped; 
+				else joints = joint_target; 
+
+				//solver.ResetPose();
+				//solver.ResetTranslation();
+				//solver.fitPoseToJointSameTopo(joints); 
+				//solver.saveState(state_out_file_flip.str()); 
+				solver.readState(state_out_file_flip.str()); 
+
+				/// render skel 
+				//std::vector<int> parents = smal.GetParents();
+				//std::vector<Eigen::Vector3f> balls;
+				//std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+				//GetBallsAndSticks(joints, parents, balls, sticks);
+				//int jointnum = 62;
+				//std::vector<int> color_ids = {
+				//	0,0,0,0,0, // spine
+				//	1,1,1,1,1,1,1,1, // right back
+				//	2,2,2,2,2,2,2,2, // left back 
+				//	0,0,0, 1,2, 1,1,1,1,1,2,2,2,2,2, 0,0,// head 
+				//	3,3,3,3,3,3,3,3, // right front 
+				//	5,5,5,5,5,5,5,5, // tail 
+				//	4,4,4,4,4,4,4,4 // left front
+				//};
+				//std::vector<Eigen::Vector3f> colors;
+				//colors.resize(jointnum, CM[0]);
+				//for (int i = 0; i < color_ids.size(); i++)colors[i] = CM[color_ids[i]];
+				//BallStickObject* p_skel = new BallStickObject(ballMeshEigen, ballMeshEigen, balls, sticks, 0.01, 0.005, colors);
+				//m_renderer.skels.push_back(p_skel);
+				//m_renderer.createScene(conf_projectFolder);
+				//m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+				//m_renderer.Draw();
+				//cv::Mat img = m_renderer.GetImage();
+				//writer.write(img);
+				//std::cout << "finish " << state_id << std::endl;
+				//state_id++;
+				//continue;
+
+				solver.UpdateVertices();
+				solver.UpdateNormalFinal(); 
+				RenderObjectColor* animal_model = new RenderObjectColor();
+				std::vector<Eigen::Vector3u> faces_u = solver.GetFacesVert();
+				std::vector<Eigen::Vector3f> normals = solver.GetNormals();
+				animal_model->SetFaces(faces_u);
+				animal_model->SetVertices(solver.GetVertices());
+				animal_model->SetNormal(normals);
+				animal_model->SetColor(Eigen::Vector3f(0.5, 0.5, 0.1));
+				m_renderer.colorObjs.push_back(animal_model);
+				//m_renderer.s_camViewer.SetExtrinsic(cams[0].R, cams[0].T); 
+				//m_renderer.Draw();
+				//cv::Mat img0 = m_renderer.GetImage(); 
+				//cv::Mat out; 
+				//overlay_render_on_raw_gpu(img0, imgs[0], out);
+				//cv::Mat outsmall;
+				//cv::resize(out, outsmall, cv::Size(480, 270)); 
+				m_renderer.createScene(conf_projectFolder);
+				m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+				m_renderer.Draw();
+				cv::Mat img = m_renderer.GetImage();
+				//outsmall.copyTo(img(cv::Rect(1440, 810, 480, 270)));
+				std::stringstream ss_text;
+				ss_text << "frame " << std::setw(6) << frameid << "  seq " << i << " index " << t;
+				cv::putText(img, ss_text.str(), cv::Point(100, 100), cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(0, 255, 0));
+				writer.write(img);
+				std::cout << "write img " << i << "," << t << std::endl;
+				state_id++;
+			}
 		}
 	}
 	return 0; 
@@ -304,3 +330,43 @@ int test_visdesigned()
 	return 0;
 }
 
+
+
+int test_lay()
+{
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
+	PigModelDevice pig(smal_config); 
+
+	std::vector<Eigen::Vector3f> pose0;  // generate by sample
+	std::string state_file_0 = "F:/projects/model_preprocess/designed_pig/pig_prior/c++/state_eulerglobal_000000.txt";
+	pig.readState(state_file_0); 
+	pose0 = pig.GetPose(); 
+	pig.UpdateVertices(); 
+	pig.saveObj("lay/pose0.obj");
+
+	std::vector<Eigen::Vector3f> pose1; 
+	std::string state_file_1 = "H:/pig_results_debug/state/pig_3_frame_000682.txt";
+	pig.readState(state_file_1); 
+	Eigen::Vector3f trans = pig.GetTranslation();
+	trans(0) = 0; trans(1) = 0; 
+	pig.SetTranslation(trans); 
+	pose1 = pig.GetPose(); 
+	pig.UpdateVertices(); 
+	pig.saveObj("lay/pose1.obj"); 
+
+	std::vector<Eigen::Vector3f> pose2; 
+	pose2 = pose0; 
+	std::vector<int> left_front_leg = { 13,14,15,16};
+	std::vector<int> right_front_leg = { 5,6,7,8 };
+	std::vector<int> right_back_leg = { 38,39,40,41 };
+	std::vector<int> left_back_leg = { 54,55,56,57 };
+	for (int i = 0; i < 4; i++)
+	{
+		pose2[left_back_leg[i]] = pose1[right_back_leg[i]];
+	}
+	pig.SetPose(pose2); 
+	pig.UpdateVertices(); 
+	pig.saveObj("lay/pose2.obj");
+
+	return 0; 
+}

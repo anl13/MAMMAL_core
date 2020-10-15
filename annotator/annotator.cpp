@@ -215,7 +215,7 @@ void Annotator::update_panel(const std::vector<int>& status)
 }
 
 
-void Annotator::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d)
+void Annotator::drawSkel(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d)
 {
 	for (int i = 0; i < _skel2d.size(); i++)
 	{
@@ -223,8 +223,8 @@ void Annotator::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d)
 		Eigen::Vector3i color = m_CM[colorid];
 		cv::Scalar cv_color(color(0), color(1), color(2));
 
-		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
-		double conf = _skel2d[i](2);
+		cv::Point2f p(_skel2d[i](0), _skel2d[i](1));
+		float conf = _skel2d[i](2);
 		if (conf < m_topo.kpt_conf_thresh[i]) continue;
 		cv::circle(img, p, 9, cv_color, -1);
 	}
@@ -236,11 +236,11 @@ void Annotator::drawSkel(cv::Mat& img, const vector<Eigen::Vector3d>& _skel2d)
 		cv::Scalar cv_color(color(0), color(1), color(2));
 
 		Eigen::Vector2i b = m_topo.bones[k];
-		Eigen::Vector3d p1 = _skel2d[b(0)];
-		Eigen::Vector3d p2 = _skel2d[b(1)];
+		Eigen::Vector3f p1 = _skel2d[b(0)];
+		Eigen::Vector3f p2 = _skel2d[b(1)];
 		if (p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue;
-		cv::Point2d p1_cv(p1(0), p1(1));
-		cv::Point2d p2_cv(p2(0), p2(1));
+		cv::Point2f p1_cv(p1(0), p1(1));
+		cv::Point2f p2_cv(p2(0), p2(1));
 		cv::line(img, p1_cv, p2_cv, cv_color, 4);
 	}
 }
@@ -333,7 +333,7 @@ void Annotator::update_data(const SingleClickLabeledData& input,
 	int camid = input.camid;
 	if (m_data[pid][camid].valid)
 	{
-		Eigen::Vector3d joint;
+		Eigen::Vector3f joint;
 		if (!input.cancel)
 		{
 			joint(0) = input.x;
@@ -342,7 +342,7 @@ void Annotator::update_data(const SingleClickLabeledData& input,
 			else joint(2) = 2; // invisible but labeled
 		}
 		else {
-			joint = Eigen::Vector3d::Zero();
+			joint = Eigen::Vector3f::Zero();
 		}
 		m_data[pid][camid].keypoints[jid] = joint;
 	}
@@ -455,13 +455,13 @@ void Annotator::read_label_result(std::string filename)
 				m_data[pid][camid].mask.clear();
 				for (auto const& apart : det["mask"])
 				{
-					std::vector<Eigen::Vector2d> amask;
+					std::vector<Eigen::Vector2f> amask;
 					int k = 0;
 					for (auto const& num : apart)
 					{
 						if (k % 2 == 0)
 						{
-							Eigen::Vector2d x; 
+							Eigen::Vector2f x; 
 							x(0) = num.asDouble();
 							amask.push_back(x);
 							k++;

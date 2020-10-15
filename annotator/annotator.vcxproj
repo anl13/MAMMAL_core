@@ -73,13 +73,14 @@
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\opencv450.props" />
+    <Import Project="..\props\nanorenderer.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
@@ -121,20 +122,62 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\articulation\pigmodeldevice.h" />
+    <ClInclude Include="..\articulation\pigsolverdevice.h" />
     <ClInclude Include="annotator.h" />
     <ClInclude Include="anno_utils.h" />
+    <ClInclude Include="main.h" />
+    <ClInclude Include="NanoRenderer.h" />
+    <ClInclude Include="RenderObject.h" />
+    <ClInclude Include="shader_file.h" />
     <ClInclude Include="state_annotator.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\associate\skel.cpp" />
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
+    <ClCompile Include="..\GMM\gmm.cpp" />
+    <ClCompile Include="..\posesolver\clusterclique.cpp" />
+    <ClCompile Include="..\posesolver\framedata.cpp" />
+    <ClCompile Include="..\posesolver\framesolver.cpp" />
+    <ClCompile Include="..\posesolver\matching.cpp" />
+    <ClCompile Include="..\posesolver\mce\AdjacencyListAlgorithm.cpp" />
+    <ClCompile Include="..\posesolver\mce\Algorithm.cpp" />
+    <ClCompile Include="..\posesolver\mce\MemoryManager.cpp" />
+    <ClCompile Include="..\posesolver\mce\Tools.cpp" />
+    <ClCompile Include="..\posesolver\scenedata.cpp" />
+    <ClCompile Include="..\posesolver\tracking.cpp" />
+    <ClCompile Include="..\render\camviewer.cpp" />
+    <ClCompile Include="..\render\renderer.cpp" />
+    <ClCompile Include="..\render\render_object.cpp" />
+    <ClCompile Include="..\render\render_utils.cpp" />
+    <ClCompile Include="..\render\shader.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
+    <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
+    <ClCompile Include="..\utils\image_utils_gpu.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
+    <ClCompile Include="..\utils\mesh.cpp" />
+    <ClCompile Include="..\utils\node_graph.cpp" />
+    <ClCompile Include="..\utils\skel.cpp" />
+    <ClCompile Include="..\VAE\decoder.cpp" />
+    <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="annotator.cpp" />
     <ClCompile Include="anno_utils.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="multiview_annotator.cpp" />
+    <ClCompile Include="NanoRenderer.cpp" />
+    <ClCompile Include="RenderObject.cpp" />
+    <ClCompile Include="shader_file.cpp" />
     <ClCompile Include="state_annotator.cpp" />
+    <ClCompile Include="test_nano.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\articulation\gpuutils.cu" />
+    <CudaCompile Include="..\articulation\pigmodeldevice.cu" />
+    <CudaCompile Include="..\articulation\pigsolverdevice.cu" />
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
+    <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
