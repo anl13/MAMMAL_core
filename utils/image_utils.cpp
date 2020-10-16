@@ -173,8 +173,6 @@ void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output)
     int rows = m_camNum / cols;
     if(rows*cols < m_camNum) rows = rows+1; 
 
-	std::cout << rows << "," << cols << std::endl; 
-
     output.create(cv::Size(cols*W, rows*H), imgs[0].type()); 
     try{
         for(int i = 0; i < m_camNum; i++)
@@ -503,12 +501,16 @@ cv::Mat overlay_renders(cv::Mat rawimg, cv::Mat render, float a)
 {
 	cv::Mat mask_fore;
 	cv::Mat mask_back;
-	cv::threshold(render, mask_fore, 1, 1, cv::THRESH_BINARY);
-	cv::threshold(render, mask_back, 1, 1, cv::THRESH_BINARY_INV);
-	render = render + mask_fore * 255;
+	cv::Mat gray;
+	cv::cvtColor(render, gray, cv::COLOR_BGR2GRAY);
+	cv::threshold(gray, mask_fore, 1, 1, cv::THRESH_BINARY);
+	cv::Mat mask_fore_3;
+	cv::cvtColor(mask_fore, mask_fore_3, cv::COLOR_GRAY2BGR); 
+	cv::Mat mask_back_3;
+	cv::cvtColor(1 - mask_fore, mask_back_3, cv::COLOR_GRAY2BGR); 
 	cv::Mat alpha, beta;
-	cv::multiply(mask_fore, render, alpha);
-	cv::multiply(mask_back, rawimg, beta);
+	cv::multiply(mask_fore_3, render, alpha);
+	cv::multiply(mask_back_3, rawimg, beta);
 	cv::Mat gamma = alpha + beta;
 	cv::Mat overlay = a * rawimg + (1 - a) * gamma;
 	return overlay;
@@ -525,7 +527,7 @@ Eigen::Vector3f rgb2bgr(const Eigen::Vector3f& color)
 
 cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height)
 {
-	cv::Mat final_image(cv::Size(width, height), CV_8UC3, cv::Scalar(255, 255, 255));
+	cv::Mat final_image(cv::Size(width, height), CV_8UC3, cv::Scalar(228, 228, 240));
 
 	int in_width = img.cols; 
 	int in_height = img.rows; 

@@ -78,8 +78,8 @@ int test_distance_transform()
 
 void test_blend()
 {
-	cv::Mat render = cv::imread("data/render.png");
-	cv::Mat raw = cv::imread("data/raw.png");
+	cv::Mat render = cv::imread("data/test_render.png");
+	cv::Mat raw = cv::imread("data/test_raw.png");
 	cv::Mat blend; 
 
 	TimerUtil::Timer<std::chrono::microseconds> tt; 
@@ -88,7 +88,7 @@ void test_blend()
 	std::cout << "blend gpu takes " << tt.Elapsed() << " microseconds" << std::endl; 
 
 	tt.Start(); 
-	cv::Mat blend2 = overlay_renders(raw, render, 0); 
+	cv::Mat blend2 = overlay_renders(raw, render, 0.5); 
 	std::cout << "blend cpu takes " << tt.Elapsed() << " microseconds" << std::endl; 
 
 	cv::namedWindow("blend", cv::WINDOW_NORMAL); 
@@ -180,9 +180,10 @@ void test_rotation()
 	}
 }
 
+
 int main()
 {
-	test_rotation();
+	test_blend();
 
 	system("pause"); 
 	return 0; 

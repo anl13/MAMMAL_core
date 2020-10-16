@@ -338,9 +338,10 @@ private:
 
 
 enum test_enum {
-	Item1 = 0,
-	Item2,
-	Item3
+	PIG_0 = 0, 
+	PIG_1, 
+	PIG_2, 
+	PIG_3
 };
 
 static Screen *screen = nullptr;
@@ -418,18 +419,31 @@ public:
 
 	bool m_save_screen = false;
 	bool m_pause = false;
-	std::string m_results_folder = "./screen/";
-	int ivar = 0;
-	double dvar = 3.1415926;
-	float fvar = (float)dvar;
-	test_enum enumval = Item2;
-	Color colval = Color(0.5f, 0.5f, 0.7f, 1.f);
+	std::string m_results_folder = "H:/annotated_state/";
+	int out_frameid = 0; 
+	test_enum enumval = PIG_0;
+	//Color colval = Color(0.5f, 0.5f, 0.7f, 1.f);
+	bool m_state_read = false; 
+	bool m_state_save_obj = false;
+	bool m_state_save_state = false; 
 
-	std::vector<Eigen::Vector3f> m_joint_pose; 
-	std::vector<int> joints_for_optimize;
-	std::vector<Slider*> m_widget_sliders; 
+	/// variables and widgets for parameter maniplation 
+	Eigen::Vector3f m_pig_translation; 
+	float m_pig_scale; 
+	std::vector<Eigen::Vector3f> m_joint_pose; // 62 
+
+	Eigen::Vector3f m_pig_translation_init; 
+	float m_pig_scale_init; 
+	std::vector<Eigen::Vector3f> m_joint_pose_init; 
+
+	std::vector<int> joints_for_optimize; // M 
+	std::vector<Slider*> m_widget_sliders;  // 3 * M + 3 + 1 
+	std::vector<TextBox*> m_widget_textboxes; // 3 * M + 3 + 1
+	std::vector<Button*> m_widget_reset_buttons; 
 
 	void set_joint_pose(const std::vector<Eigen::Vector3f>& _pose); 
+	void set_pig_translation(const Eigen::Vector3f& trans); 
+	void set_pig_scale(const float& scale); 
 
 private:
 	GLFWwindow* window = nullptr;

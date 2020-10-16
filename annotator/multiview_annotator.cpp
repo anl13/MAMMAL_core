@@ -65,6 +65,8 @@ int multiview_annotator()
 	pigmodel.SetScale(solvers[0]->GetScale());
 	pigmodel.SetTranslation(solvers[0]->GetTranslation()); 
 	renderer.set_joint_pose(pigmodel.GetPose()); 
+	renderer.set_pig_scale(pigmodel.GetScale()); 
+	renderer.set_pig_translation(pigmodel.GetTranslation()); 
 
 	std::vector<cv::Mat> rawImgs = data_loader.get_imgs_undist(); 
 	
@@ -89,41 +91,103 @@ int multiview_annotator()
 	std::vector<cv::Mat> rendered_imgs;
 	rendered_imgs.push_back(rendered_img);
 
-	renderer.CreateRenderImage("Overlay", Vector2i(960, 540), Vector2i(0, 0));
+	renderer.CreateRenderImage("Overlay", Vector2i(1024, 768), Vector2i(0, 0));
 
-
-	int frameIdx = 0;
+	int current_frame_id = 0;
+	int current_pig_id = 0; 
 	while (!renderer.ShouldClose())
 	{
 		pigmodel.SetPose(renderer.m_joint_pose);
+		pigmodel.SetScale(renderer.m_pig_scale); 
+		pigmodel.SetTranslation(renderer.m_pig_translation); 
+
+		// handling internal state 
+		bool m_state_read = renderer.m_state_read; 
+		bool m_state_save_obj = renderer.m_state_save_obj; 
+		bool m_state_save_state = renderer.m_state_save_state; 
+		if (m_state_read)
+		{
+			current_pig_id = renderer.enumval;
+			current_frame_id = renderer.out_frameid; 
+			if (current_frame_id != data_loader.m_frameid)
+			{
+				data_loader.set_frame_id(current_frame_id);
+				data_loader.fetchData();
+				data_loader.load_clusters();
+				data_loader.read_parametric_data();
+			}
+			pigmodel.SetPose(solvers[current_pig_id]->GetPose());
+			pigmodel.SetScale(solvers[current_pig_id]->GetScale());
+			pigmodel.SetTranslation(solvers[current_pig_id]->GetTranslation());
+			renderer.set_joint_pose(pigmodel.GetPose());
+			renderer.set_pig_scale(pigmodel.GetScale());
+			renderer.set_pig_translation(pigmodel.GetTranslation());
+			renderer.m_state_read = false; 
+		}
+
 		pigmodel.UpdateVertices();
 		pigmodel.UpdateNormalFinal();
+
+		if (m_state_save_obj)
+		{
+			std::stringstream ss; 
+			ss << renderer.m_results_folder << "/pig_" << int(renderer.enumval) << "_frame_" << std::setw(6) << std::setfill('0') << renderer.out_frameid << ".obj"; 
+			pigmodel.saveObj(ss.str()); 
+			renderer.m_state_save_obj = false; 
+		}
+
+		if (m_state_save_state)
+		{
+			std::stringstream ss; 
+			ss << renderer.m_results_folder << "/pig_" << int(renderer.enumval) << "_frame_" << std::setw(6) << std::setfill('0') << renderer.out_frameid << ".txt";
+			pigmodel.saveState(ss.str());
+			renderer.m_state_save_state = false;
+		}
+
 		obj.vertices_vec = pigmodel.GetVertices();
 		obj.normals_vec = pigmodel.GetNormals();
 		objfloat4.LoadFromMesh(obj);
 		smal_model->SetBuffer("positions", objfloat4.vertices);
 		smal_model->SetBuffer("normals", objfloat4.normals);
-
-		box3_offscreen->_SetViewByCameraRT(cam.R, cam.T);
-		box3_offscreen->SetBuffer("positions", objfloat4.vertices);
-		box3_offscreen->SetBuffer("normals", objfloat4.normals);
-		box3_offscreen->DrawOffscreen();
-		box3_offscreen->DownloadRenderingResults(rendered_imgs);
 		
-		cv::Mat raw_img_small;
-		cv::resize(rawImgs[0], raw_img_small, cv::Size(960, 540)); 
-		cv::Mat out; 
-		cv::Mat render; 
-		cv::cvtColor(rendered_imgs[0], render, cv::COLOR_BGRA2BGR);
-		cv::resize(render, render, cv::Size(960, 540));
-		overlay_render_on_raw_gpu(render, raw_img_small, out);
-		cv::cvtColor(out, out, cv::COLOR_BGR2BGRA);
-		
-		renderer.SetRenderImage("Overlay", out);
+		std::vector<cv::Mat> render_views(12, cv::Mat(cv::Size(256,256),CV_8UC3)); 
+		for (int i = 0; i < render_views.size(); i++)
+		{
+			render_views[i].setTo(cv::Scalar(228, 228, 240)); 
+		}
+		for (int i = 0; i < data_loader.m_matched[current_pig_id].view_ids.size(); i++)
+		{
+			
+			int camid = data_loader.m_matched[current_pig_id].view_ids[i];
+			cv::Rect roi = expand_box(data_loader.m_matched[current_pig_id].dets[i]);
+			box3_offscreen->_SetViewByCameraRT(cams[camid].R, cams[camid].T);
+			box3_offscreen->SetBuffer("positions", objfloat4.vertices);
+			box3_offscreen->SetBuffer("normals", objfloat4.normals);
+			box3_offscreen->DrawOffscreen();
+			box3_offscreen->DownloadRenderingResults(rendered_imgs);
 
+			cv::Mat raw_img_small;
+			cv::resize(rawImgs[camid], raw_img_small, cv::Size(960, 540));
+			cv::Mat render;
+			cv::cvtColor(rendered_imgs[0], render, cv::COLOR_BGRA2BGR);
+			cv::resize(render, render, cv::Size(960, 540));
+			cv::Mat render_roi = render(roi);
+			cv::Mat raw_roi = raw_img_small(roi);
+
+			cv::cvtColor(render_roi, render_roi, cv::COLOR_BGR2RGB); 
+			cv::Mat out = overlay_renders(raw_roi, render_roi, 0);
+			out = resizeAndPadding(out, 256, 256);
+			
+			render_views[camid] = out; 
+		}
+		cv::Mat packedRender; 
+		packImgBlock(render_views, packedRender); 
+		cv::cvtColor(packedRender, packedRender, cv::COLOR_BGR2BGRA);
+		renderer.SetRenderImage("Overlay", packedRender);
+		//cv::imshow("pack", packedRender); 
+		//cv::waitKey(1); 
 		
 		renderer.Draw();
-		++frameIdx;
 	}
 	cv::destroyAllWindows();
 

@@ -130,6 +130,45 @@ nanogui::Matrix4f eigen2nanoM4f(Eigen::Matrix4f mat)
 	return F; 
 }
 
+cv::Rect expand_box(const DetInstance& det )
+{
+	cv::Rect roi; 
+	float minx = det.box(0);
+	float maxx = det.box(2); 
+	float miny = det.box(1); 
+	float maxy = det.box(3); 
+	for (int i = 0; i < det.keypoints.size(); i++)
+	{
+		if (det.keypoints[i](2) < 0.5)continue; 
+		minx = std::fminf(det.keypoints[i](0), minx); 
+		maxx = std::fmaxf(det.keypoints[i](0), maxx);
+		miny = std::fminf(det.keypoints[i](1), miny);
+		maxy = std::fmaxf(det.keypoints[i](1), maxy);
+	}
+	if (minx < 0) minx = 0; 
+	if (miny < 0) miny = 0;
+	if (maxx > 1919) maxx = 1919;
+	if (maxy > 1079) maxy = 1079;
+	float w = maxx - minx; 
+	float h = maxy - miny;
+	float margin = std::fmaxf(w, h) * 0.15;
+	minx -= margin;
+	miny -= margin;
+	maxx += margin;
+	maxy += margin;
+	if (minx < 0) minx = 0;
+	if (miny < 0) miny = 0;
+	if (maxx > 1919) maxx = 1919;
+	if (maxy > 1079) maxy = 1079;
+
+	roi.x = int(minx / 2);
+	roi.y = int(miny / 2); 
+	roi.width = int(maxx / 2 - minx / 2); 
+	roi.height = int(maxy / 2 - miny / 2); 
+	return roi;
+}
+
+
 int test_datatype()
 {
 	// Init Renderer, you can set the center of the Arcball using the laster parameter
