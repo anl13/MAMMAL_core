@@ -73,8 +73,9 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	screen = new Screen();
 
 	//return; 
-	screen->initialize(window, true);
 
+	screen->initialize(window, true);
+	
 	m_screen_image.create(m_window_height /* * screen->pixel_ratio()*/, m_window_width/* * screen->pixel_ratio()*/, CV_8UC4);
 
 	glfwSetCursorPosCallback(window,
@@ -129,7 +130,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	m_canvas->set_cursor(Cursor::Crosshair);
 
 	// some fixed widgets 
-	Widget *tools = new Widget(screen);
+	tools = new Widget(screen);
 	tools->set_layout(new BoxLayout(Orientation::Vertical, Alignment::Minimum, 5, 5));
 
 	Button *b0 = new Button(tools, "Random Background");
@@ -223,7 +224,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	m_widget_reset_buttons.resize(N + 2); 
 	// new widgets, for controling pose parameters
 
-	Window* basic_widgets = new Window(screen, "basic widgets"); 
+	basic_widgets = new Window(screen, "Parameter Tuning"); 
 	basic_widgets->set_position(Vector2i(100, 50)); 
 	basic_widgets->set_layout(new BoxLayout(Orientation::Vertical, Alignment::Minimum, 1, 1));
 
@@ -362,7 +363,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	// and write obj, write state 
 	bool enabled = true;
 	FormHelper *gui = new FormHelper(screen);
-	ref<Window> nanogui_window = gui->add_window(Vector2i(10, 10), "Control Panel");
+	nanogui_window = gui->add_window(Vector2i(10, 10), "Control Panel");
 	gui->add_group("Renderer Control");
 	gui->add_variable("string", m_results_folder);
 
@@ -381,7 +382,11 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 		m_state_save_obj = true; 
 		});
 	nanogui_window->set_position(Vector2i(5,45));
-	nanogui_window->set_visible(true);
+
+
+	nanogui_window->set_visible(m_control_panel_visible);
+	basic_widgets->set_visible(m_control_panel_visible);
+	tools->set_visible(m_control_panel_visible);
 }
 
 void NanoRenderer::set_joint_pose(const std::vector<Eigen::Vector3f>& _pose)
@@ -493,11 +498,19 @@ void NanoRenderer::Draw()
 		screen->draw_all();
 	}
 
+	if (m_canvas->canvas_state == 1) m_control_panel_visible = true;
+	else m_control_panel_visible = false;
+	nanogui_window->set_visible(m_control_panel_visible);
+	basic_widgets->set_visible(m_control_panel_visible);
+	tools->set_visible(m_control_panel_visible);
+
 
 	if (!glfwWindowShouldClose(window))
 	{
 		// Check if any events have been activated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
+
+		m_canvas->UpdateViewport(); 
 
 		// Draw nanogui_
 		screen->draw_setup();
@@ -532,4 +545,18 @@ void NanoRenderer::ClearRenderObjects()
 {
 	m_render_objects.clear(); 
 	m_canvas->clear_objects();
+}
+
+void NanoRenderer::SetCanvasExtrinsic(const Eigen::Matrix3f &_R, const Eigen::Vector3f &_T)
+{
+	m_canvas->SetExtrinsic(_R, _T); 
+	m_canvas->UpdateViewport();
+
+}
+
+void NanoRenderer::SetCanvasExtrinsic(const Eigen::Vector3f &_pos, const Eigen::Vector3f &_up, const Eigen::Vector3f &_center)
+{
+	m_canvas->SetExtrinsic(_pos, _up, _center);
+	m_canvas->UpdateViewport();
+
 }

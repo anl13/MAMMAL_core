@@ -164,6 +164,7 @@
     <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="annotator.cpp" />
     <ClCompile Include="anno_utils.cpp" />
+    <ClCompile Include="ArcballCanvas.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="multiview_annotator.cpp" />
     <ClCompile Include="NanoRenderer.cpp" />

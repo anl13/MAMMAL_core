@@ -161,6 +161,9 @@
     <ClCompile Include="multiview_annotator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="ArcballCanvas.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\gpuutils.cu">

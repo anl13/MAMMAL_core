@@ -479,7 +479,13 @@ void test_discrete_scene()
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(cameras[0].R, cameras[0].T);
+	//m_renderer.s_camViewer.SetExtrinsic(cameras[0].R, cameras[0].T);
+	//m_renderer.s_camViewer.SetExtrinsic(R, T); 
+
+	Eigen::Vector3f pos(0, 0, 5);
+	Eigen::Vector3f up(0, 1, 0); 
+	Eigen::Vector3f center(0, 0, 0);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 
 
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
@@ -491,7 +497,6 @@ void test_discrete_scene()
 
 	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
 	std::vector<Eigen::Vector3f> points = read_points(point_file);
-	std::cout << "pointsize:  " << points.size() << std::endl;
 	std::vector<float> sizes(points.size(), 0.05f);
 	std::vector<Eigen::Vector3f> balls, colors;
 	balls = points;
@@ -501,7 +506,6 @@ void test_discrete_scene()
 		colors[i] = CM[0];
 	}
 	int id = 49;
-	std::cout << points[id] << std::endl; 
 	colors[id] = CM[1]; 
 	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(skelObject);

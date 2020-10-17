@@ -42,6 +42,7 @@ using namespace nanogui;
 #include <nanogui/canvas.h>
 #include <nanogui/shader.h>
 #include <nanogui/renderpass.h>
+
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <math.h>
@@ -78,7 +79,8 @@ public:
 		const float& cx, const float& cy,
 		const bool is_pinhole = false,
 		const int samples = 1, const bool has_depth = true, const bool has_stencil = false, const bool clear = true) 
-		: Canvas(parent, samples, has_depth, has_stencil, clear) {
+		: Canvas(parent, samples, has_depth, has_stencil, clear) 
+	{
 		set_size(Vector2i(width, height));
 		m_proj = CalcGLProjectionMatrix(width, height, fx, fy, cx, cy);
 		//// convert default GL viewport to default pinhole camera viewport (for pinhole camera only)
@@ -92,6 +94,9 @@ public:
 			// anliang; 20200515: use default I matrix. 
 			m_view = Matrix4f::identity();
 		}
+
+		m_width = width;
+		m_height = height; 
 	}
 
 	Matrix4f CalcGLProjectionMatrix(const int& width, const int& height, const float& fx, const float& fy, const float& cx, const float& cy)
@@ -148,6 +153,8 @@ public:
 protected:
 	std::vector<ref<RenderObject>> m_render_objects;
 	Matrix4f m_proj, m_view;
+	int m_width; 
+	int m_height; 
 };
 
 
@@ -157,29 +164,15 @@ public:
 		StaticCanvas(parent, width, height, fx, fy, cx, cy,is_pinhole)
 	{
 		m_rot_center = Eigen::Vector3f(0, 0, 0);
+		left_click_time = 0.0;
 	}
 
 	void SetRotCenter(const Eigen::Vector3f& rot_center) { m_rot_center = rot_center; }
 
-	void UpdateViewport(const Eigen::Matrix4f& deltaT)
-	{
-		m_viewRT = deltaT * m_viewRT;
-		// convert to nanogui::Matrix4f, in which the memory layout is "column major"
-		Matrix4f T_nano(0);
-		for (int r = 0; r < 4; ++r)
-		{
-			for (int c = 0; c < 4; ++c)
-			{
-				T_nano.m[r][c] = m_viewRT(c,r);
-			}
-		}
-
-		for (auto& it : m_render_objects)
-		{
-			Matrix4f new_view = m_view * T_nano;
-			it->SetView(new_view);
-		}
-	}
+	Eigen::Vector3f GetArcballCoord(const Eigen::Vector2f& planeCoord,
+		const Eigen::Vector3f& front,
+		const Eigen::Vector3f& up,
+		const Eigen::Vector3f& right);
 
 	void SetRenderObjects(std::vector<ref<RenderObject>> render_objects) override
 	{
@@ -195,10 +188,12 @@ public:
 					T_nano.m[r][c] = m_viewRT(c, r);
 				}
 			}
-			render_objects[i]->SetView(m_view * T_nano);
+			render_objects[i]->SetView(T_nano);
 		}
 		m_render_objects = render_objects;
 	}
+
+	void UpdateViewport();
 
 	void AddRenderObject(ref<RenderObject> render_object) override
 	{
@@ -216,124 +211,54 @@ public:
 		m_render_objects.push_back(render_object);
 	}
 
-	Eigen::Vector3f Project2Arcball(Eigen::Vector2f& p)
-	{
-		if (p.norm() < 1.f){
-			return Eigen::Vector3f(p[0], p[1], -std::sqrtf(1 - p.squaredNorm()));
-		}
-		else{
-			return Eigen::Vector3f(p.normalized()[0], p.normalized()[1], 0.f);
-		}
-	}
+	Eigen::Vector3f Project2Arcball(Eigen::Vector2f& p); 
 
-	Eigen::Matrix4f RotateAroundCenterAxis(const float& _theta, const Eigen::Vector3f& _w, const Eigen::Vector3f& _rot_center)
-	{
-		const float theta = _theta * 0.1;
-		const Eigen::Vector3f rot_center = _rot_center;
-		Eigen::Vector3f w = _w;
-		Eigen::Matrix4f T; 
-		T.setIdentity();
+	Eigen::Matrix4f RotateAroundCenterAxis(const float& _theta, const Eigen::Vector3f& _w, const Eigen::Vector3f& _rot_center);
 
-		if (std::fabsf(theta) < FLT_EPSILON) return T;
-		if (w.isZero()) return T;
+	void RotateViewport(const Vector2i &p, const Vector2i &rel);
 
-		w = w.normalized();		
+	void TranslateViewport(const Vector2i &p, const Vector2i &rel);
 
-		Eigen::Vector3f v = rot_center.cross(w);
-		Eigen::AngleAxisf psi(theta, w);
-		Eigen::Vector3f rho = theta * v;
-
-		T.topLeftCorner(3, 3) = psi.matrix();
-
-		Eigen::Matrix3f wwT;
-		for (int r = 0; r < 3; ++r)
-		{
-			for (int c = 0; c < 3; ++c)
-			{
-				wwT(r, c) = w(r) * w(c);
-			}
-		}
-
-		Eigen::Matrix3f w_hat; w_hat.setZero();
-		w_hat(0, 1) = -w(2);
-		w_hat(0, 2) = w(1);
-		w_hat(1, 2) = -w(0);
-		w_hat(1, 0) = w(2);
-		w_hat(2, 0) = -w(1);
-		w_hat(2, 1) = w(0);
-		T.topRightCorner(3, 1) = (sinf(theta) / theta * Eigen::Matrix3f::Identity() + (1 - sinf(theta) / theta) * wwT + (1 - cosf(theta)) / theta * w_hat) * rho;
-
-		return T;
-	}
-
-	void RotateViewport(const Vector2i &p, const Vector2i &rel)
-	{
-		const int canvas_width = size()[0];
-		const int canvas_height = size()[1];
-		//const float pixel_radius = std::min(canvas_height, canvas_width) / 2;
-		const float pixel_radius = std::max(canvas_height, canvas_width) / 2;
-
-		Vector2i pe = p + rel;
-		Eigen::Vector2f pBegin((p[0] - canvas_width / 2) / pixel_radius, (p[1] - canvas_height / 2) / pixel_radius);
-		Eigen::Vector2f pEnd((pe[0] - canvas_width / 2) / pixel_radius, (pe[1] - canvas_height / 2) / pixel_radius);
-
-		Eigen::Vector3f vBegin = Project2Arcball(pBegin);
-		Eigen::Vector3f vEnd = Project2Arcball(pEnd);
-		
-		const float theta = std::acosf(vBegin.dot(vEnd)); 
-		if (isnan(theta)) return;
-		Eigen::Vector3f w = (vBegin.cross(vEnd)).normalized();
-		Eigen::Matrix4f deltaT = RotateAroundCenterAxis(theta, w, m_rot_center);
-		UpdateViewport(deltaT);
-	}
-
-	void TranslateViewport(const Vector2i &p, const Vector2i &rel) {
-		float speed = 1e-3f;
-		float x = rel[0] * speed;
-		float y = rel[1] * speed;
-		Eigen::Matrix4f deltaT; deltaT.setIdentity();
-		deltaT.topRightCorner(3, 1) = Eigen::Vector3f(x,y,0);
-		UpdateViewport(deltaT);
-	}
-
-	void ZoomViewport(const Vector2i &p, const Vector2f &rel)
-	{
-		const float speed = 1e-1f;
-		float shift = rel[1] * speed;
-		Eigen::Matrix4f deltaT; deltaT.setIdentity();
-		deltaT(2,3) += shift;
-		UpdateViewport(deltaT);
-	}
-
-	virtual bool mouse_drag_event(const Vector2i &p, const Vector2i &rel, int button, int modifiers) override {
-
-		if (button == GLFW_MOUSE_BUTTON_LEFT + 1){
-			Vector2i newrel = rel;
-			newrel[1] *= -1;
-			RotateViewport(p, newrel);
-		}
-		if (button == GLFW_MOUSE_BUTTON_RIGHT + 1){
-			Vector2i newrel = rel;
-			newrel[0] *= 1; 
-			newrel[1] *= -1; 
-			TranslateViewport(p, newrel);
-		}
-		return true;
-	}
+	void ZoomViewport(const Vector2i &p, const Vector2f &rel);
 
 	virtual bool scroll_event(const Vector2i &p, const Vector2f &rel) override {
 		ZoomViewport(p, rel);
 		return true;
 	}
+
+	virtual bool mouse_drag_event(const Vector2i &p, const Vector2i &rel, int button, int modifiers) override;
+
+	virtual bool mouse_button_event(const Vector2i &p, int button, bool down, int modifiers) override
+	{
+		if (button == GLFW_MOUSE_BUTTON_MIDDLE && down)
+		{
+			canvas_state = (canvas_state + 1) % 2; 
+		}
+		return true; 
+	}
 	
 	void setViewRT(const Eigen::Matrix4f& view)
 	{
-		m_viewRT = Eigen::Matrix4f::Identity(); 
-		UpdateViewport(view);
+		m_viewRT =view; 
+		UpdateViewport();
 	}
+
+	int canvas_state = 0;
+
+	void SetExtrinsic(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _up, const Eigen::Vector3f& _center);
+	void SetExtrinsic(const Eigen::Matrix3f& R, const Eigen::Vector3f& T);
 private:
 	Eigen::Vector3f m_rot_center;
 	Eigen::Matrix4f m_viewRT = Eigen::Matrix4f::Identity();
+	Eigen::Vector3f pos;
+	Eigen::Vector3f up;
+	Eigen::Vector3f front; 
+	Eigen::Vector3f right; 
+	Eigen::Vector3f center; 
+	Eigen::Matrix3f R; 
+	Eigen::Matrix3f K;
+	Eigen::Vector3f T; 
+	double left_click_time; 
 };
 
 
@@ -345,7 +270,7 @@ enum test_enum {
 };
 
 static Screen *screen = nullptr;
-static Screen *screen2 = nullptr;
+//static Screen *screen2 = nullptr;
 
 class NanoRenderer
 {
@@ -409,19 +334,25 @@ public:
 
 	void UpdateCanvasView(const Eigen::Matrix4f& view)
 	{
-		m_canvas->UpdateViewport(view);
+		m_canvas->setViewRT(view); 
+		m_canvas->UpdateViewport();
 	}
 
 	void ApplyCanvasView()
 	{
-		m_canvas->UpdateViewport(Eigen::Matrix4f::Identity());
+		m_canvas->UpdateViewport();
 	}
+
+	void SetCanvasExtrinsic(const Eigen::Matrix3f &_R, const Eigen::Vector3f &_T); 
+	void SetCanvasExtrinsic(const Eigen::Vector3f &_pos, const Eigen::Vector3f &_up, const Eigen::Vector3f &_center); 
 
 	bool m_save_screen = false;
 	bool m_pause = false;
 	std::string m_results_folder = "H:/annotated_state/";
 	int out_frameid = 0; 
 	test_enum enumval = PIG_0;
+	bool m_control_panel_visible = false;
+
 	//Color colval = Color(0.5f, 0.5f, 0.7f, 1.f);
 	bool m_state_read = false; 
 	bool m_state_save_obj = false;
@@ -444,6 +375,10 @@ public:
 	void set_joint_pose(const std::vector<Eigen::Vector3f>& _pose); 
 	void set_pig_translation(const Eigen::Vector3f& trans); 
 	void set_pig_scale(const float& scale); 
+
+	Window* basic_widgets; 
+	Widget* tools; 
+	Window* nanogui_window; 
 
 private:
 	GLFWwindow* window = nullptr;

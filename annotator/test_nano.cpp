@@ -243,11 +243,7 @@ int test_depth()
 
 	std::vector<float4> colormap = getColorMapFloat4("anliang_render");
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_render");
-	/// read smal model 
-	Mesh obj;
-	obj.Load("D:/Projects/animal_calib/shapesolver/model.obj");
-	MeshFloat4 objfloat4(obj);
-	MeshEigen objeigen(obj);
+
 
 	std::vector<Camera> cams = readCameras();
 	Camera cam = cams[0];
@@ -255,27 +251,59 @@ int test_depth()
 	NanoRenderer renderer;
 	renderer.Init(1920, 1080, float(cam.K(0, 0)), float(cam.K(1, 1)), float(cam.K(0, 2)), float(cam.K(1, 2)),0);
 
-	Eigen::Matrix4f view_eigen = calcRenderExt(cam.R, cam.T);
-	nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
-	renderer.UpdateCanvasView(view_eigen);
+	Eigen::Matrix3f R = Eigen::Matrix3f::Identity(); 
+	Eigen::Vector3f T = Eigen::Vector3f::Zero(); 
+	T(2) = 0;
 
-	//std::vector<float4> colors_float4(obj.vertex_num, colormap[0]);
-	//renderer.ClearRenderObjects();
-	//auto smal_model = renderer.CreateRenderObject("smal_model", vs_phong_vertex_color, fs_phong_vertex_color);
-	//smal_model->SetIndices(objfloat4.indices);
-	//smal_model->SetBuffer("positions", objfloat4.vertices);
-	//smal_model->SetBuffer("normals", objfloat4.normals);
-	//smal_model->SetBuffer("incolor", colors_float4);
+
+	Eigen::Vector3f pos(0, 0, 5);
+	Eigen::Vector3f up(0, 1, 0);
+	Eigen::Vector3f center(0, 0, 0);
+	//renderer.SetCanvasExtrinsic(R, T); 
+	renderer.SetCanvasExtrinsic(pos, up, center);
+
+
+	/// read smal model 
+	Mesh obj;
+	obj.Load("D:/Projects/animal_calib/render/data/obj_model/ball.obj");
+	for (int i = 0; i < obj.vertex_num; i++)obj.vertices_vec[i] *= 0.05;
+	MeshFloat4 objfloat4(obj);
+	MeshEigen objeigen(obj);
+	std::vector<float4> colors_float4(obj.vertex_num, colormap[0]);
+	renderer.ClearRenderObjects();
+	auto smal_model = renderer.CreateRenderObject("smal_model", vs_phong_vertex_color, fs_phong_vertex_color);
+	smal_model->SetIndices(objfloat4.indices);
+	smal_model->SetBuffer("positions", objfloat4.vertices);
+	smal_model->SetBuffer("normals", objfloat4.normals);
+	smal_model->SetBuffer("incolor", colors_float4);
 
 	auto ball_model = renderer.CreateRenderObject("ball_model", vs_phong_vertex_color, fs_phong_vertex_color);
 	Mesh ballobj;
-	ballobj.Load("D:/Projects/animal_calib/render/data/obj_model/ball.obj");
+	ballobj.Load("H:/annotated_state/pig_2_frame_000000.obj");
+
 	std::vector<float4> colors_ball(ballobj.vertex_num, colormap[1]);
 	MeshFloat4 ballfloat4(ballobj); 
 	ball_model->SetIndices(ballfloat4.indices);
 	ball_model->SetBuffer("positions", ballfloat4.vertices); 
 	ball_model->SetBuffer("normals", ballfloat4.normals); 
 	ball_model->SetBuffer("incolor", colors_ball); 
+
+	Mesh planeobj;
+	planeobj.Load("D:/Projects/animal_calib/data/calibdata/scene_model/manual_scene_part0.obj");
+	MeshFloat4 boxfloat4(planeobj);
+	// create a renderObject, you need to specify which shader you want to use, and set corresponding buffers in the shader
+	// by using the straightforward interfaces provided. 
+	ref<RenderObject> box1 = renderer.CreateRenderObject("box1", vs_texture_object, fs_texture_object);
+	box1->SetIndices(boxfloat4.indices);
+	box1->SetBuffer("positions", boxfloat4.vertices);
+	box1->SetTexCoords(boxfloat4.textures);
+	cv::Mat tex0Image = cv::imread("D:/Projects/animal_calib/render/data/chessboard_black.png", cv::IMREAD_UNCHANGED);
+	cv::cvtColor(tex0Image, tex0Image, cv::COLOR_BGRA2RGBA);
+	box1->SetTexture(
+		"tex0",
+		nanogui::Texture::PixelFormat::RGBA,
+		nanogui::Texture::ComponentFormat::UInt8,
+		nanogui::Vector2i(tex0Image.cols, tex0Image.rows), tex0Image.data);
 
 	int frameIdx = 0;
 	while (!renderer.ShouldClose())

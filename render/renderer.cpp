@@ -96,9 +96,9 @@ void Renderer::s_MouseButtonCallBack(GLFWwindow* _windowPtr, int button, int act
 				Eigen::Vector3f newCenter = Eigen::Vector3f::Zero(); 
 				s_camViewer.SetExtrinsic(newCamPos, camUp, newCenter);
 #ifdef SHOW_CAM_POSE
-				std::cout << "newCamPos:" << newCamPos.transpose() << std::endl;
-				std::cout << "camUp: " << camUp.transpose() << std::endl;
-				std::cout << "newCenter: " << newCenter.transpose() << std::endl; 
+				std::cout << "newCamPos button:" << newCamPos.transpose() << std::endl;
+				std::cout << "camUp button    : " << camUp.transpose() << std::endl;
+				std::cout << "newCenter button: " << newCenter.transpose() << std::endl; 
 #endif 
 			}
 			s_leftClickTimeSeconds = seconds; 
@@ -186,9 +186,11 @@ void Renderer::s_CursorPoseCallBack(GLFWwindow* _windowPtr, double xPos, double 
 		// std::cout << camPos.transpose() << std::endl; 
 		const Eigen::Vector3f nowCamPos = Eigen::AngleAxisf(sensitivity * theta, rotationAxis) * (camPos - camCenter) + camCenter;
 		s_camViewer.SetExtrinsic(nowCamPos, camUp, camCenter);
+
+		
 #ifdef SHOW_CAM_POSE
 		std::cout << "nowCamPos:" << nowCamPos.transpose() << std::endl; 
-		std::cout << "nowcamUp: " << camUp.transpose() << std::endl; 
+		std::cout << "nowcamUp : " << camUp.transpose() << std::endl; 
 		std::cout << "camCen   :" << camCenter.transpose() << std::endl; 
 #endif 
 		break;
