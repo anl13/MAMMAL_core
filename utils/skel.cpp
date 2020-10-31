@@ -147,11 +147,11 @@ SkelTopology getSkelTopoByType(std::string type)
             5,9,5,6,5,5 // ceneter and tail 
         }; 
         A.kpt_conf_thresh = {
-            0.5, // nose 0
-            0.5, // eye left  1
-            0.5, // eye right   2 
-            0.5, // ear root left 3
-            0.5, // ear root right 4
+            0.8, // nose 0
+            0.8, // eye left  1
+            0.8, // eye right   2 
+            0.8, // ear root left 3
+            0.8, // ear root right 4
             0.8, // left shoulder 5
             0.8, // right shoulder 6
             0.8, // left elbow 7
@@ -165,9 +165,9 @@ SkelTopology getSkelTopoByType(std::string type)
             0.85, // foot left 15
             0.85, // foot right 16
             0.5, // neck 17
-            0.5, // tail root 18
-            0.5, // withers    19
-            0.3, // center 20
+            0.8, // tail root 18
+            0.8, // withers    19
+            0.8, // center 20
             0.5, // tail middle  21
             0.5  // tail end 22
         }; 

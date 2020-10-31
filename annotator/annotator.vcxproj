@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp" />
     <ClCompile Include="..\GMM\gmm.cpp" />
     <ClCompile Include="..\posesolver\clusterclique.cpp" />
     <ClCompile Include="..\posesolver\framedata.cpp" />
@@ -180,8 +181,17 @@
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\articulation\artist_config.json" />
+    <None Include="..\articulation\artist_config_sym.json" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties __JSONSchema="http://json.schemastore.org/apibuilder.json" />
+    </VisualStudio>
+  </ProjectExtensions>
 </Project>

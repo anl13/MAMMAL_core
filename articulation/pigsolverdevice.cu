@@ -357,6 +357,7 @@ __global__ void construct_sil_A_kernel2(
 	pcl::gpu::PtrSz<Eigen::Vector3f> d_points3d,
 	Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
 	float* d_depth, // 1920*1080
+	float* d_depth_interact, 
 	uchar* d_mask, // mask for all pigs, 1920*1080
 	uchar* d_scene_mask, // mask for scene oclussion, 1920*1080
 	uchar* d_distort_mask, // mask for distortion, 1920*1080
@@ -394,7 +395,7 @@ pcl::gpu::PtrSz<float> d_b //[pointnum],
 	if (code > 0 && code != idcode)return; // occlued by other pig
 
 	float depth_value = point2d(2);
-	if (fabsf(d_depth[index] - depth_value) >= 0.02)return; // invisible
+	if (fabsf(d_depth_interact[index] - depth_value) >= 0.02)return; // invisible
 
 	int index_half = v_half * W / 2 + u_half;
 	float rend_sdf_value = d_rend_sdf[index_half]*2 ;
@@ -514,11 +515,13 @@ pcl::gpu::PtrSz<float> d_b //[pointnum],
 
 void PigSolverDevice::calcSilhouetteJacobi_device(
 	Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
-	float* d_depth, int idcode, int paramNum, int view
+	float* d_depth, float* d_depth_interact, int idcode, int paramNum, int view
 )
 {
 	dim3 blocksize(32);
 	dim3 gridsize(pcl::device::divUp(m_vertexNum, blocksize.x));
+
+	int camid = m_viewids[view];
 
 	construct_sil_A_kernel2 << <gridsize, blocksize >> > (
 		m_device_verticesDeformed, // vertices of tpose
@@ -531,9 +534,8 @@ void PigSolverDevice::calcSilhouetteJacobi_device(
 		d_RP,
 		d_LP,
 		m_device_paramLines, 
-
 		m_device_bodyParts, m_device_verticesPosed, K, R, T,
-		d_depth, d_det_mask[view], d_const_scene_mask[view], d_const_distort_mask,
+		d_depth, d_depth_interact, d_det_mask[view], d_const_scene_mask[camid], d_const_distort_mask,
 		d_det_sdf[view], d_det_gradx[view], d_det_grady[view], d_rend_sdf,
 		1920, 1080, m_vertexNum, paramNum, idcode, 
 #ifdef DEBUG_SOLVER

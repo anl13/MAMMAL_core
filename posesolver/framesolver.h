@@ -12,6 +12,8 @@ public:
 		m_epi_type = "p2l";
 	}
 
+	~FrameSolver(); 
+
 	void configByJson(std::string jsonfile) override;
 
 	std::shared_ptr<SceneData> mp_sceneData;
@@ -23,6 +25,7 @@ public:
 	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
 
 	void pureTracking();
+	void pureTracking_jointlevel(); 
 
 	Renderer* mp_renderEngine;
 	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolverdevice;
@@ -37,6 +40,7 @@ public:
 	vector<MatchedInstance>                   m_matched; // matched raw data after matching()
 	vector<vector<DetInstance> >              m_unmatched; // [camnum, candnum]
 
+	vector<MatchedInstance> m_last_matched; // used for tracking
 		// matching & 3d data 
 	vector<vector<int> > m_clusters; // pigid, camid [candid]
 	vector<vector<Eigen::Vector3f> > m_skels3d;
@@ -62,14 +66,33 @@ public:
 	void matching_by_tracking();
 	void reproject_skels();
 	void solve_parametric_model();
+	void solve_parametric_model_pipeline2();
+	void solve_parametric_model_pipeline3(); 
+	void solve_parametric_model_optimonly();
 	void read_parametric_data();
 	void save_parametric_data();
-	//void solve_parametric_model_cpu(); 
+	void solve_parametric_model_cpu(); 
 
 	//void load_labeled_data();
 	void save_clusters();
 	void load_clusters();
 
+	// overall depth rendering. 
+	void init_parametric_solver(); 
+	void renderInteractDepth(bool withMask=false);
+	std::vector<cv::Mat> m_interMask;
+	std::vector<float*> d_interDepth; // depth rendering of all object
+	std::vector<uchar*> d_interMask; // render mask with occlusion 
+	void splitDetKeypoints(); 
+	void nmsKeypointCands(std::vector<Eigen::Vector3f>& list);
+	void reAssociateKeypoints(); // post-priori motion refinement
+	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_associated;
+
+	void optimizeSil(int maxIterTime); 
+	void optimizeSilWithAnchor(int maxIterTime); 
+	void saveAnchors(std::string folder);
+	void loadAnchors(std::string folder, bool andsolve=false); 
+	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_pool; 
 	// visualization function  
 	
 	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);

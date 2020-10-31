@@ -161,10 +161,10 @@ cv::Rect expand_box(const DetInstance& det )
 	if (maxx > 1919) maxx = 1919;
 	if (maxy > 1079) maxy = 1079;
 
-	roi.x = int(minx / 2);
-	roi.y = int(miny / 2); 
-	roi.width = int(maxx / 2 - minx / 2); 
-	roi.height = int(maxy / 2 - miny / 2); 
+	roi.x = int(minx);
+	roi.y = int(miny); 
+	roi.width = int(maxx - minx ); 
+	roi.height = int(maxy - miny ); 
 	return roi;
 }
 

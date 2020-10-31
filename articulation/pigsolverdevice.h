@@ -14,13 +14,29 @@
 #include "../utils/image_utils.h"
 #include "../utils/math_utils.h" 
 #include "gpuutils.h"
-#include "../GMM/gmm.h"
 
 //#define DEBUG_SIL
 //#define DEBUG_SOLVER
 
-#define USE_GPU_SOLVER 
+//#define USE_GPU_SOLVER 
 #define SHOW_FITTING_INFO
+
+typedef struct
+{
+	std::vector<Eigen::Vector3f> pose; // pose in rotation 
+	Eigen::Vector3f translation; 
+	float scale; 
+
+	std::vector<Eigen::Vector3f> joint_positions_62; // root relative 3D joint positions 
+	std::vector<Eigen::Vector3f> joint_positions_23; // root relative 3D joint positions 
+}AnchorPoseType;
+
+typedef struct {
+	std::vector<AnchorPoseType> anchors; 
+	
+	void load(std::string folder); 
+
+}AnchorPoseLib;
 
 class PigSolverDevice : public PigModelDevice
 {
@@ -37,17 +53,18 @@ public:
 		m_source.view_ids = _source.view_ids;
 		m_source.dets = _source.dets; 
 	}
+
+	void getTheta(Eigen::VectorXf& theta);
+	void setTheta(const Eigen::VectorXf& theta); 
+	void getThetaAnchor(Eigen::VectorXf& theta); 
+	void setThetaAnchor(const Eigen::VectorXf& theta); 
+
 	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams;  }
 	void setRenderer(Renderer * _p_render) { mp_renderEngine = _p_render; }
 	void setROIs(std::vector<ROIdescripter> _rois) { m_rois = _rois; }
 	std::vector<Eigen::Vector3f> getSkel3D() { return m_skel3d;  }
 	std::vector<int> getPoseToOptimize() { return m_poseToOptimize; }
 	std::vector<std::vector<Eigen::Vector3f> > getSkelsProj() { return m_skelProjs; }
-
-	std::vector<Eigen::VectorXf> m_anchor_data; 
-	std::vector<std::vector<Eigen::Vector3f> > m_anchor_joints; 
-	std::vector<std::vector<Eigen::Vector3f> > m_anchor_skel;
-	int determine_anchor_id(); 
 
 	// detection confidence for each joint, used for adapt 
 	// joint joint fitting weights 
@@ -66,7 +83,6 @@ public:
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
 	void fitPoseToJointSameTopo(const std::vector<Eigen::Vector3f> &_joints);
 
-	std::vector<Eigen::Vector3f> getRegressedSkel_host(); 
 
 	//=================TERMS====================
 	// J_joint: [3*jontnum+3, 3*jointnum]
@@ -79,7 +95,8 @@ public:
 		pcl::gpu::DeviceArray2D<float> &J_vert, bool with_vert=true);
 	void calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J);
 	void calcPose2DTerm_host(const DetInstance& det, int camid, const std::vector<Eigen::Vector3f>& skel2d,
-		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb,
+		float radius, bool is_converge_detect = false);
 	void calcJoint3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& skel3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcSkel3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& joints3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcAnchorTerm_host(int anchorid, const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
@@ -87,14 +104,17 @@ public:
 
 	void Calc2dJointProjectionTerm(
 		const MatchedInstance& source,
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight=false);
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb,
+		float track_radius = 80,
+		bool with_depth_weight=false, bool is_converge_detect=false);
+	
 	void CalcJointFloorTerm(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
 	);
 	void CalcJointBidirectFloorTerm( // foot_contact: 4 * bool , [9,10,15,16] left front, right font, left back, right back
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, std::vector<bool> foot_contact
 	);
-	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
+	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool adaptive_weight=false); 
 
 	void CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta);
 	void CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::MatrixXf& skelJ,
@@ -111,7 +131,7 @@ public:
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcSilhouetteJacobi_device(
 		Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
-		float* d_depth, int idcode, int paramNum, int view
+		float* d_depth, float* d_depth_interact, int idcode, int paramNum, int view
 	);
 
 	void CalcSilouettePoseTerm_cpu(
@@ -147,34 +167,61 @@ public:
 	std::vector<uchar*> d_const_scene_mask; // full size 
 	uchar* d_middle_mask; // half size 
 	int m_pig_id; // 0-3
+	std::vector<cv::Mat> c_const_scene_mask; 
+	cv::Mat c_const_distort_mask; 
 	std::vector<cv::Mat> m_rawimgs; 
 	std::vector<cv::Mat> m_scene_mask_chamfer; 
 	cv::Mat m_undist_mask_chamfer;
 
 	void postProcessing(); // post process: project skel, determine model visibility 
 	std::vector<std::vector<bool> > m_det_ignore; // [camid, jointid]
+
+
+	// use anchor to optimize 
+	void optimizeAnchor(int anchor_id);
+	void optimizePoseWithAnchor(); 
+	int searchAnchorSpace(); 
+	int m_anchor_id; 
+	AnchorPoseLib m_anchor_lib;
+	void calcSkel2DTermAnchor_host(const DetInstance& det, int camid, const std::vector<Eigen::Vector3f>& skel2d,
+		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	void CalcSkelProjectionTermAnchor(
+		const MatchedInstance& source,
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight = false);
+	float evaluate_error(); 
+	float evaluate_mask_error(); 
+	void CalcLambdaTerm(Eigen::MatrixXf& ATA); 
+	void CalcAnchorRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int anchor_id, bool adaptive_weight = false);
+	void computeDepthWeight(); 
+	bool m_use_gpu = false; 
+	std::vector<float* > d_depth_renders_interact; 
+	void optimizePoseSilOneStep(int iter); 
+	void optimizePoseSilWithAnchorOneStep(int iter); 
+
+
+	float m_valid_threshold;
+	float m_lambda;
+	float m_w_data_term;
+	float m_w_sil_term;
+	float m_w_reg_term;
+	float m_w_temp_term;
+	float m_w_floor_term;
+	float m_kpt_track_dist;
+	float m_w_anchor_term;
+
+	std::vector<float> gt_scales; 
+	float approxIOU(int view); 
+
 protected:
 
-	GMM m_gmm;
-	
 	// state indicator 
 	bool m_initScale;
 	float m_scaleCount; 
 
 	// config info, read from json file 
-	std::vector<CorrPair> m_skelCorr; 
-	SkelTopology m_skelTopo; 
+	
 	std::vector<int> m_poseToOptimize;
-	float m_valid_threshold; 
-	float m_lambda; 
-	float m_w_data_term; 
-	float m_w_sil_term; 
-	float m_w_reg_term; 
-	float m_w_temp_term;
-	float m_w_floor_term; 
-	float m_w_gmm_term; 
-	float m_kpt_track_dist; 
-	float m_w_anchor_term; 
+
 
 	// optimization source
 	MatchedInstance m_source; 
@@ -211,6 +258,4 @@ protected:
 	Eigen::MatrixXf h_J_joint; // [jointnum * paramNum]
 	Eigen::MatrixXf h_J_vert;  // [vertexnum * paramNum]
 	Eigen::MatrixXf h_J_skel;
-
-
 };

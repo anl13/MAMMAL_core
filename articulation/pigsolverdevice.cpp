@@ -23,25 +23,11 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 		exit(-1);
 	}
 
-	std::string topo_type = root["topo"].asString();
-	m_skelTopo = getSkelTopoByType(topo_type);
+
 	m_poseToOptimize.clear();
 	for (const auto& c : root["pose_to_solve"])
 	{
 		m_poseToOptimize.push_back(c.asInt());
-	}
-
-
-	// read optim pair;
-	m_skelCorr.clear();
-	for (auto const&c : root["optimize_pair"])
-	{
-		CorrPair pair;
-		pair.target = c[0].asInt();
-		pair.type = c[1].asInt();
-		pair.index = c[2].asInt();
-		pair.weight = c[3].asDouble();
-		m_skelCorr.push_back(pair);
 	}
 
 	m_valid_threshold = root["valid_threshold"].asFloat();
@@ -49,11 +35,17 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_w_data_term = root["data_term"].asFloat();
 	m_w_sil_term = root["sil_term"].asFloat();
 	m_w_reg_term = root["reg_term"].asFloat();
-	m_w_temp_term = root["temp_term"].asFloat(); 
-	m_w_floor_term = root["floor_term"].asFloat(); 
-	m_w_gmm_term = root["gmm_term"].asFloat(); 
-	m_kpt_track_dist = root["kpt_track_dist"].asFloat(); 
-	m_w_anchor_term = root["anchor_term"].asFloat(); 
+	m_w_temp_term = root["temp_term"].asFloat();
+	m_w_floor_term = root["floor_term"].asFloat();
+	m_kpt_track_dist = root["kpt_track_dist"].asFloat();
+	m_w_anchor_term = root["anchor_term"].asFloat();
+	m_use_gpu = root["use_gpu"].asBool(); 
+
+	gt_scales.resize(4); 
+	for (int i = 0; i < 4; i++)
+	{
+		gt_scales[i] = root["scales"][i].asFloat();
+	}
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -92,11 +84,14 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 
 	int paramNum = m_host_paramLines.size(); 
 	d_depth_renders.resize(10); 
+	d_depth_renders_interact.resize(10); 
 	int H = WINDOW_HEIGHT;
 	int W = WINDOW_WIDTH;
 	for (int i = 0; i < 10; i++)
-		cudaMalloc((void**)&d_depth_renders[i], H * W * sizeof(float)); 
-
+	{
+		cudaMalloc((void**)&d_depth_renders[i], H * W * sizeof(float));
+		cudaMalloc((void**)&d_depth_renders_interact[i], H * W * sizeof(float));
+	}
 	d_J_vert.create(paramNum, 3 * m_vertexNum); 
 	d_J_joint.create(paramNum, 3 * m_jointNum); 
 	
@@ -116,29 +111,28 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 
 	cudaMalloc((void**)&d_middle_mask, H/2*W /2* sizeof(uchar));
 
-	cudaMalloc((void**)&d_rend_sdf, H / 2 * W / 2 * sizeof(float));
-
-	cudaMalloc((void**)&d_const_distort_mask, H * W * sizeof(uchar));
-	d_const_scene_mask.resize(10);
-	d_det_mask.resize(10);
-	d_det_sdf.resize(10); 
-	d_det_gradx.resize(10); 
-	d_det_grady.resize(10); 
-
-	for (int i = 0; i < 10; i++)
+	if (m_use_gpu)
 	{
-		cudaMalloc((void**)&d_const_scene_mask[i], H*W * sizeof(float));
-		cudaMalloc((void**)&d_det_mask[i], H*W * sizeof(float)); 
-		cudaMalloc((void**)&d_det_sdf[i], W / 2 * H / 2 * sizeof(float)); 
-		cudaMalloc((void**)&d_det_gradx[i], W / 2 * H / 2 * sizeof(float)); 
-		cudaMalloc((void**)&d_det_grady[i], W / 2 * H / 2 * sizeof(float)); 
-	}
+		cudaMalloc((void**)&d_rend_sdf, H / 2 * W / 2 * sizeof(float));
+		cudaMalloc((void**)&d_const_distort_mask, H * W * sizeof(uchar));
+		d_const_scene_mask.resize(10);
+		d_det_mask.resize(10);
+		d_det_sdf.resize(10);
+		d_det_gradx.resize(10);
+		d_det_grady.resize(10);
 
+		for (int i = 0; i < 10; i++)
+		{
+			cudaMalloc((void**)&d_const_scene_mask[i], H*W * sizeof(float));
+			cudaMalloc((void**)&d_det_mask[i], H*W * sizeof(float));
+			cudaMalloc((void**)&d_det_sdf[i], W / 2 * H / 2 * sizeof(float));
+			cudaMalloc((void**)&d_det_gradx[i], W / 2 * H / 2 * sizeof(float));
+			cudaMalloc((void**)&d_det_grady[i], W / 2 * H / 2 * sizeof(float));
+		}
+	}
 
 	d_AT_sil.create(paramNum, m_vertexNum); 
 	d_b_sil.create(m_vertexNum); 
-
-
 
 	m_last_thetas.resize(paramNum); 
 	m_last_thetas.segment<3>(0) = m_host_translation;
@@ -152,55 +146,26 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_param_observe_num = Eigen::VectorXf::Zero(m_skelTopo.joint_num); 
 
 	m_scaleCount = 0.f; 
-
-	m_gmm.Load(); 
-
-	m_anchor_data.resize(9); 
-	m_anchor_joints.resize(9); 
-	m_anchor_skel.resize(9); 
-	for (int i = 0; i < 9; i++)
-	{
-		Eigen::VectorXf anchor = Eigen::VectorXf::Zero(3 + 3 * m_jointNum); 
-		if (i < 8)
-		{
-			std::stringstream ss;
-			ss << "D:/Projects/animal_calib/articulation/prior_" << i << ".txt";
-			std::ifstream inputfile(ss.str());
-			for (int k = 0; k < 3 + 3 * m_jointNum; k++)
-			{
-				inputfile >> anchor(k);
-			}
-			inputfile.close();
-		}
-		else
-		{
-			anchor.segment<3>(0) = m_anchor_data[5].segment<3>(0); 
-		}
-		m_anchor_data[i] = anchor; 
-
-		m_host_translation = anchor.segment<3>(0); 
-		for (int k = 0; k < m_jointNum; k++)
-		{
-			m_host_poseParam[k] = anchor.segment<3>(3 + 3 * k); 
-		}
-		UpdateVertices(); 
-		m_anchor_joints[i] = m_host_jointsPosed; 
-		m_anchor_skel[i] = getRegressedSkel_host(); 
-		std::stringstream ss; 
-		ss << "D:/Projects/animal_calib/articulation/used_prior_" << i << ".obj";
-		saveObj(ss.str()); 
-	}
+	// read anchor data 
 	m_host_translation.setZero();
 	for (int i = 0; i < m_jointNum; i++)m_host_poseParam[i].setZero(); 
 	UpdateVertices(); 
 
 	m_det_confs.resize(m_skelTopo.joint_num, 0); 
+
+	m_anchor_lib.load("D:/Projects/animal_calib/articulation/pose_libs/");
+
 }
 
 PigSolverDevice::~PigSolverDevice()
 {
-	for (int i = 0; i < 10; i++)cudaFree(d_depth_renders[i]); 
+	for (int i = 0; i < 10; i++)
+	{
+		cudaFree(d_depth_renders_interact[i]);
+		cudaFree(d_depth_renders[i]);
+	}
 	d_depth_renders.clear();
+	d_depth_renders_interact.clear(); 
 	
 	d_J_vert.release();
 	d_J_joint.release();
@@ -215,19 +180,22 @@ PigSolverDevice::~PigSolverDevice()
 	cudaFree(d_rend_sdf); 
 	cudaFree(d_const_distort_mask); 
 
-	for (int i = 0; i < 10; i++)
+	if (m_use_gpu)
 	{
-		cudaFree(d_const_scene_mask[i]);
-		cudaFree(d_det_mask[i]);
-		cudaFree(d_det_sdf[i]);
-		cudaFree(d_det_gradx[i]);
-		cudaFree(d_det_grady[i]);
+		for (int i = 0; i < 10; i++)
+		{
+			cudaFree(d_const_scene_mask[i]);
+			cudaFree(d_det_mask[i]);
+			cudaFree(d_det_sdf[i]);
+			cudaFree(d_det_gradx[i]);
+			cudaFree(d_det_grady[i]);
+		}
+		d_const_scene_mask.clear();
+		d_det_sdf.clear();
+		d_det_gradx.clear();
+		d_det_grady.clear();
+		d_det_mask.clear();
 	}
-	d_const_scene_mask.clear(); 
-	d_det_sdf.clear(); 
-	d_det_gradx.clear();
-	d_det_grady.clear(); 
-	d_det_mask.clear(); 
 }
 
 // Only point with more than 1 observations could be triangulated
@@ -310,6 +278,9 @@ void PigSolverDevice::globalAlign()
 	std::vector<float> weights(N, 0); 
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
+	if (m_initScale) return;
+	m_initScale = true;
+
 	// step1: compute scale by averaging bone length. 
 	std::vector<float> regBoneLens; 
 	std::vector<float> triBoneLens;
@@ -337,20 +308,23 @@ void PigSolverDevice::globalAlign()
 	else alpha = a / b;
 	if (alpha > 1.08) alpha = 1.08;
 	if (alpha < 0.95) alpha = 0.95;
-	std::cout << " alpha: " << alpha << std::endl; 
 	// running average
 	if(!m_initScale)
 		m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1); 
 	m_scaleCount += 1.f; 
-
-	m_initScale = true; 
-	UpdateVertices(); 
+	UpdateVertices();
 
 	// step2: compute translation of root joint. (here, tail root is root joint) 
 	skelReg = getRegressedSkel_host(); 
 	Eigen::Vector3f regCenter = skelReg[18];
 	Eigen::Vector3f triCenter = m_skel3d[18];
-	m_host_translation = triCenter - regCenter; 
+	if (triCenter.norm() > 0)
+	{
+		m_host_translation = triCenter - regCenter;
+		UpdateVertices();
+	}
+
+	computeDepthWeight(); 
 }
 
 void PigSolverDevice::fitPoseToVSameTopo(
@@ -462,25 +436,7 @@ void PigSolverDevice::fitPoseToJointSameTopo(
 	return;
 }
 
-std::vector<Eigen::Vector3f> 
-PigSolverDevice::getRegressedSkel_host()
-{
-	int N = m_skelTopo.joint_num; 
-	std::vector<Eigen::Vector3f> skels(N, Eigen::Vector3f::Zero()); 
-	for (int i = 0; i < m_skelCorr.size(); i++)
-	{
-		const CorrPair& P = m_skelCorr[i];
-		if (P.type == 1)
-		{
-			skels[P.target] += m_host_verticesPosed[P.index] * P.weight;
-		}
-		else
-		{
-			skels[P.target] += m_host_jointsPosed[P.index] * P.weight;
-		}
-	}
-	return skels; 
-}
+
 
 void PigSolverDevice::calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J)
 {
@@ -496,6 +452,8 @@ void PigSolverDevice::calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J)
 		if (jointId == 0)
 		{
 			rodriguesDerivative.block<3, 9>(0, 0) = EulerJacobiF(pose); 
+			//rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
+
 		}
 		else 
 			rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
@@ -611,10 +569,12 @@ void PigSolverDevice::calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J)
 void PigSolverDevice::calcPose2DTerm_host(
 	const DetInstance& det, 
 	int camid,
-	const std::vector<Eigen::Vector3f> & skel2d,
+	const std::vector<Eigen::Vector3f> & skel3d,
 	const Eigen::MatrixXf& Jacobi3d,
 	Eigen::MatrixXf& ATA,
-	Eigen::VectorXf& ATb
+	Eigen::VectorXf& ATb,
+	float track_radius, 
+	bool is_converge_detect
 )
 {
 	Camera& cam = m_cameras[camid];
@@ -630,31 +590,29 @@ void PigSolverDevice::calcPose2DTerm_host(
 
 	J = Eigen::MatrixXf::Zero(2 * N, 3 + 3 * M);
 
+	std::vector<Eigen::Vector3f> skels2d;
+	project(cam, skel3d, skels2d);
 	for (int i = 0; i < N; i++)
 	{
 		const CorrPair& P = m_skelCorr[i];
 		int t = P.target;
 		if (det.keypoints[t](2) < m_skelTopo.kpt_conf_thresh[t]) continue;
-		if (m_skelProjs.size() > 0)
+		if (is_converge_detect)
 		{
-			if (m_skelProjs[camid][t](2) < 1) {
-				continue;
-			}
-		}
-		if (m_skelProjs.size() > 0)
-		{
-			float dist = (m_skelProjs[camid][t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
-			//std::cout << "[used] pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
-
-			if (dist > m_kpt_track_dist * m_depth_weight[camid]) {
-				//std::cout << "pig " << m_pig_id << " cam " << camid << " skel " << t << " dist " << dist << " dw: " << m_depth_weight[camid] << std::endl;
+			float dist = (skels2d[t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
+			float weight = 1;
+			if (m_depth_weight[camid] > 0.1) weight = m_depth_weight[camid];
+	/*		if (camid == 2 && t == 16)
+			{
+				std::cout << "cam2 dist: " << dist << std::endl;
+			}*/
+			if (dist > track_radius * weight) {
 				continue;
 			}
 		}
 		m_det_confs[t] += 1; 
 
-
-		Eigen::Vector3f x_local = K * (R * skel2d[t] + T);
+		Eigen::Vector3f x_local = K * (R * skel3d[t] + T);
 		x_local(0);
 		x_local(1);
 		Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
@@ -662,14 +620,16 @@ void PigSolverDevice::calcPose2DTerm_host(
 		D(1, 1) = 1 / x_local(2);
 		D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
 		D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
-		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3) / m_depth_weight[camid];
+
+		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3);
+
 		Eigen::Vector2f u;
 		u(0) = x_local(0) / x_local(2);
 		u(1) = x_local(1) / x_local(2);
 		Eigen::Vector2f det_u;
 		det_u(0) = det.keypoints[t](0) / 1920; 
 		det_u(1) = det.keypoints[t](1) / 1080;
-		r.segment<2>(2 * i) = P.weight * (u - det_u) / m_depth_weight[camid];
+		r.segment<2>(2 * i) = P.weight * (u - det_u);
 	}
 
 	ATb = -J.transpose() * r;
@@ -678,6 +638,9 @@ void PigSolverDevice::calcPose2DTerm_host(
 
 void PigSolverDevice::optimizePose()
 {
+	std::cout << "optimize pose " << m_pig_id << std::endl; 
+	m_det_confs.resize(m_skelTopo.joint_num);
+	for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0;
 	directTriangulationHost();
 	int maxIterTime = 200; 
 	float terminal = 0.0001f; 
@@ -685,38 +648,15 @@ void PigSolverDevice::optimizePose()
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M;
 
-	float loss_2d, loss_reg, loss_temp, loss_anchor;
-	loss_anchor = -1; 
+	m_host_scale = gt_scales[m_pig_id];
 
-	//if (m_pig_id == 2)
-	//{
-	//	int anchorid = 1;
-	//	Eigen::VectorXf& data = m_anchor_data[anchorid];
-	//	m_host_translation(2) = data(2); 
-	//	for (int i = 0; i < m_jointNum; i++)
-	//	{
-	//		if (i == 0)
-	//		{
-	//			m_host_poseParam[i](1) = data(3 + 3 * i + 1);
-	//			m_host_poseParam[i](2) = data(3 + 3 * i + 2);
-	//		}
-	//		else
-	//		{
-	//			m_host_poseParam[i] = data.segment<3>(3 + 3 * i); 
-	//		}
-	//	}
-	//}
-	int anchor_index;
-	if (m_pig_id == 3) anchor_index = 0;
-	else if (m_pig_id == 2) anchor_index = 1; 
-	else anchor_index = 8;
+	float loss_2d, loss_reg, loss_temp;
 
-	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	int iterTime = 0; 
+
+	for (; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
-
-		m_det_confs.resize(m_skelTopo.joint_num); 
-		for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0; 
 
 		Eigen::VectorXf theta(paramNum);
 		theta.segment<3>(0) = m_host_translation;
@@ -734,45 +674,27 @@ void PigSolverDevice::optimizePose()
 		// data term
 		Eigen::MatrixXf ATA_data = Eigen::MatrixXf::Zero(paramNum, paramNum); // data term 
 		Eigen::VectorXf ATb_data = Eigen::VectorXf::Zero(paramNum);  // data term 
-		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data); 
 
-		//float lambda = m_lambda; // LM algorhtim
-		//float w_data = m_w_data_term;
-		//float w_reg = m_w_reg_term;
-		float lambda = m_lambda; // LM algorhtim
+		if(m_skelProjs.size() > 0)
+		for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0;
+		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, m_kpt_track_dist, false); 
+
 		float w_data = m_w_data_term;
 		float w_reg = m_w_reg_term;
 		float w_temp = m_w_temp_term;
 		float w_anchor = m_w_anchor_term; 
 		float w_floor = m_w_floor_term; 
-		//float w_gmm = m_w_gmm_term; 
-
-/*		Eigen::MatrixXf ATA_gmm; 
-		Eigen::VectorXf ATb_gmm;
-		m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);*/ 
-
-		Eigen::MatrixXf ATA_anchor = Eigen::MatrixXf::Zero(paramNum, paramNum); 
-		Eigen::VectorXf ATb_anchor = Eigen::VectorXf::Zero(paramNum);
-		Eigen::MatrixXf ATA_anchor2 = Eigen::MatrixXf::Zero(paramNum, paramNum);
-		Eigen::VectorXf ATb_anchor2 = Eigen::VectorXf::Zero(paramNum);
-
-		calcAnchorTerm_host(anchor_index, theta, ATA_anchor, ATb_anchor);
-		//calcAnchorTermHeight_host(anchor_index, h_J_skel, ATA_anchor2, ATb_anchor2);
-		ATA_anchor += ATA_anchor2; 
-		ATb_anchor += ATb_anchor2; 
-		loss_anchor = ATb_anchor.norm(); 
 
 		Eigen::MatrixXf ATA_floor; 
 		Eigen::VectorXf ATb_floor; 
 		CalcJointFloorTerm(ATA_floor, ATb_floor); 
-
 		
-		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(paramNum, paramNum);
+		Eigen::MatrixXf DTD;
+		CalcLambdaTerm(DTD);
 		
 		Eigen::MatrixXf ATA_temp = Eigen::MatrixXf::Zero(paramNum,paramNum); 
 		Eigen::VectorXf ATb_temp = Eigen::VectorXf::Zero(paramNum); 
 		
-		//CalcJointTempTerm(ATA_temp, ATb_temp, m_last_thetas, theta);
 		if (m_last_regressed_skel3d.size() > 0)
 		{
 			CalcJointTempTerm2(ATA_temp, ATb_temp, h_J_skel, m_last_regressed_skel3d);
@@ -780,14 +702,16 @@ void PigSolverDevice::optimizePose()
 
 		Eigen::MatrixXf ATA_reg;
 		Eigen::VectorXf ATb_reg;
-		CalcRegTerm(theta, ATA_reg, ATb_reg); 
+		CalcRegTerm(theta, ATA_reg, ATb_reg, false); 
 
-		//std::cout << "pig: " << m_pig_id << " iter: " << iterTime << " data term: " << ATb_data.norm() << std::endl;
-
-		Eigen::MatrixXf ATA = ATA_data * w_data + ATA_reg * w_reg + DTD * lambda + ATA_temp * w_temp
-			+ ATA_anchor * w_anchor + ATA_floor * w_floor; 
-		Eigen::VectorXf ATb = ATb_data * w_data + ATb_reg * w_reg + ATb_temp * w_temp
-			+ ATb_anchor * w_anchor + ATb_floor * w_floor;
+		Eigen::MatrixXf ATA = ATA_data * w_data + DTD 
+			+ ATA_temp * w_temp + ATA_reg * w_reg
+			+ ATA_floor * w_floor
+			; 
+		Eigen::VectorXf ATb = ATb_data * w_data + ATb_temp * w_temp
+			+ ATb_reg * w_reg
+			 + ATb_floor * w_floor
+			;
 
 		Eigen::VectorXf delta = ATA.ldlt().solve(ATb);
 
@@ -804,41 +728,23 @@ void PigSolverDevice::optimizePose()
 		loss_temp = ATb_temp.norm();
 		if (delta.norm() < terminal) break;
 	}
-	//if (m_pig_id == 2)
-	//{
-	//	int anchorid = 1;
-	//	Eigen::VectorXf& data = m_anchor_data[anchorid];
-	//	m_host_translation(2) = data(2);
-	//	for (int i = 0; i < m_jointNum; i++)
-	//	{
-	//		if (i == 0)
-	//		{
-	//			m_host_poseParam[i](1) = data(3 + 3 * i + 1);
-	//			m_host_poseParam[i](2) = data(3 + 3 * i + 2);
-	//		}
-	//		else
-	//		{
-	//			m_host_poseParam[i] = data.segment<3>(3 + 3 * i);
-	//		}
-	//	}
-	//}
-
-	
+	std::cout << "--iter: " << iterTime << std::endl;
 	std::cout << "--loss ATb_data: " << loss_2d << std::endl;
 	std::cout << "--loss ATb_reg : " << loss_reg << std::endl; 
 	std::cout << "--loss ATb_temp: " << loss_temp << std::endl; 
-	std::cout << "--loss ATb_anchor: " << loss_anchor << std::endl;
 }
 
 
 void PigSolverDevice::Calc2dJointProjectionTerm(
 	const MatchedInstance& source,
 	Eigen::MatrixXf& ATA_data, Eigen::VectorXf& ATb_data, 
-	bool with_depth_weight)
+	float track_radius, 
+	bool with_depth_weight, 
+	bool is_converge_detect)
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
 
-	std::vector<Eigen::Vector3f> skel2d = getRegressedSkel_host();
+	std::vector<Eigen::Vector3f> skel3d = getRegressedSkel_host();
 
 	// data term
 	ATA_data = Eigen::MatrixXf::Zero(paramNum, paramNum); // data term 
@@ -848,11 +754,13 @@ void PigSolverDevice::Calc2dJointProjectionTerm(
 		Eigen::MatrixXf H_view;
 		Eigen::VectorXf b_view;
 		int camid = source.view_ids[k];
-		calcPose2DTerm_host(source.dets[k], camid, skel2d, h_J_skel, H_view, b_view);
+		calcPose2DTerm_host(source.dets[k], camid, skel3d, h_J_skel,
+			H_view, b_view, track_radius, is_converge_detect);
 		float weight = 1; 
 		if (with_depth_weight)
 		{
-			weight = m_depth_weight[camid];
+			if(m_depth_weight[camid] > 0.1)
+				weight =  1 / m_depth_weight[camid];
 		}
 		ATA_data += H_view * weight;
 		ATb_data += b_view * weight;
@@ -863,12 +771,12 @@ void PigSolverDevice::renderDepths()
 {
 	// render images 
 	mp_renderEngine->clearAllObjs();
-	RenderObjectMesh* p_model = new RenderObjectMesh();
+	RenderObjectColor* p_model = new RenderObjectColor();
 	p_model->SetVertices(m_host_verticesPosed);
 	p_model->SetFaces(m_host_facesVert);
 	p_model->SetNormal(m_host_normalsFinal);
-	p_model->SetColors(m_host_normalsFinal);
-	mp_renderEngine->meshObjs.push_back(p_model);
+	p_model->SetColor(Eigen::Vector3f(1.0f,0.0f,0.0f));
+	mp_renderEngine->colorObjs.push_back(p_model);
 
 	const auto& cameras = m_cameras;
 
@@ -906,9 +814,9 @@ void PigSolverDevice::optimizePoseSilhouette(
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M; 
 
-	generateDataForSilSolver(); // generate mask opencv 
+	m_host_scale = gt_scales[m_pig_id];
 
-	cudaProfilerStart();
+	generateDataForSilSolver(); // generate mask opencv 
 
 	for (; iter < maxIter; iter++)
 	{
@@ -929,7 +837,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		// calc joint term 
 		Eigen::MatrixXf ATA_data; 
 		Eigen::VectorXf ATb_data; 
-		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, true); 
+		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, m_kpt_track_dist, false); 
 
 		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
 
@@ -965,11 +873,11 @@ void PigSolverDevice::optimizePoseSilhouette(
 		Eigen::MatrixXf ATA_sil;
 		Eigen::VectorXf ATb_sil;
 
-#ifdef USE_GPU_SOLVER
-		CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
-#else 
-		CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter); 
-#endif 
+		if(m_use_gpu)
+		    CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
+		else 
+		    CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter); 
+
 		//Eigen::MatrixXf ATA_sil2;
 		//Eigen::VectorXf ATb_sil2;
 		//CalcSilouettePoseTerm_cpu(ATA_sil2, ATb_sil2, iter); 
@@ -981,18 +889,6 @@ void PigSolverDevice::optimizePoseSilhouette(
 		//std::cout << "ATb cpu: " << std::endl << ATb_sil2.segment<9>(0).transpose() << std::endl;
 		//std::cout << "ATb gpu: " << std::endl << ATb_sil.segment<9>(0).transpose() << std::endl;
 
-		Eigen::MatrixXf ATA_floor; 
-		Eigen::VectorXf ATb_floor;
-		if (m_host_jointsPosed[2](2) < 0.11)
-		{
-			std::vector<bool> foot_contact = { 1,1,1,1 };
-			CalcJointFloorTerm(ATA_floor, ATb_floor);
-			//CalcJointBidirectFloorTerm(ATA_floor, ATb_floor, foot_contact);
-		}
-		else
-		{
-			CalcJointFloorTerm(ATA_floor, ATb_floor); 
-		}
 
 		float lambda = m_lambda;
 		float w_data = m_w_data_term;
@@ -1000,56 +896,31 @@ void PigSolverDevice::optimizePoseSilhouette(
 		float w_reg = m_w_reg_term;
 		float w_temp = m_w_temp_term;
 		float w_floor = m_w_floor_term; 
-		float w_gmm = m_w_gmm_term; 
 
-		Eigen::MatrixXf DTD = Eigen::MatrixXf::Identity(3 + 3 * M, 3 + 3 * M);
-		
+		Eigen::MatrixXf ATA_floor;
+		Eigen::VectorXf ATb_floor;
+		CalcJointFloorTerm(ATA_floor, ATb_floor);
+
+		Eigen::MatrixXf DTD;
+		CalcLambdaTerm(DTD);
+
+		Eigen::MatrixXf ATA_temp = Eigen::MatrixXf::Zero(paramNum, paramNum);
+		Eigen::VectorXf ATb_temp = Eigen::VectorXf::Zero(paramNum);
+
+		if (m_last_regressed_skel3d.size() > 0)
+		{
+			CalcJointTempTerm2(ATA_temp, ATb_temp, h_J_skel, m_last_regressed_skel3d);
+		}
+
 		Eigen::MatrixXf ATA_reg;
-		Eigen::VectorXf ATb_reg; 
-		CalcRegTerm(theta, ATA_reg, ATb_reg); 
-
-		Eigen::MatrixXf ATA_temp;
-		Eigen::VectorXf ATb_temp;
-		CalcJointTempTerm(ATA_temp, ATb_temp, m_last_thetas, theta); 
-
-		Eigen::MatrixXf ATA_gmm;
-		Eigen::VectorXf ATb_gmm; 
-		if (m_host_jointsPosed[2](2) < 0.1)
-		{
-			m_gmm.CalcAnchorTerm(theta, ATA_gmm, ATb_gmm, 0);
-			w_gmm = 0.5; 
-			maxIter = 40;
-			m_valid_threshold = 0.8;
-		}
-		else
-		{
-			m_gmm.CalcGMMTerm(theta, ATA_gmm, ATb_gmm);
-		}
-
-		if (m_host_jointsPosed[2](2) < 0.1)
-		{
-			w_temp = 1;
-			if (iter < maxIter / 2) w_sil = 0;
-			else w_sil = 0.00001; 
-		}
-		else {
-			w_temp = 0.01;
-			w_gmm = 0.001;
-		}
-
-		if (m_scaleCount < 2)
-		{
-			w_temp = 0; 
-		}
+		Eigen::VectorXf ATb_reg;
+		CalcRegTerm(theta, ATA_reg, ATb_reg, false);
 
 		Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
-			+ DTD * lambda + ATA_temp * w_temp
-			+ ATA_data * w_data + ATA_floor * w_floor + ATA_gmm * w_gmm;
+			+ DTD * lambda
+			+ ATA_data * w_data;
 		Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
-			+ ATb_temp * w_temp
-			+ ATb_data * w_data + ATb_floor * w_floor + ATb_gmm * w_gmm; 
-
-
+			+ ATb_data * w_data; 
 
 		Eigen::VectorXf delta = H.ldlt().solve(b);
 
@@ -1061,7 +932,6 @@ void PigSolverDevice::optimizePoseSilhouette(
 			std::cout << "ATb temp : " << (ATb_temp*w_temp).norm() << std::endl;
 			std::cout << "ATb reg  : " << (ATb_reg*w_reg).norm() << std::endl;
 			std::cout << "ATb floor: " << (ATb_floor*w_floor).norm() << std::endl;
-			std::cout << "ATb gmm  : " << (ATb_gmm*w_gmm).norm() << std::endl;
 		}
 #endif 
 		// update 
@@ -1072,9 +942,6 @@ void PigSolverDevice::optimizePoseSilhouette(
 			m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 		}
 	}
-
-
-	cudaProfilerStop(); 
 }
 
 //#define DEBUG_SIL
@@ -1085,7 +952,6 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	int paramNum = 3 + 3 * m_poseToOptimize.size();
 	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
 	ATb = Eigen::VectorXf::Zero(paramNum);
-	
 
 #ifdef DEBUG_SIL
 	std::vector<cv::Mat> chamfers_vis;
@@ -1127,8 +993,8 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
 
-		std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATA_sil.rows() << " " << d_ATA_sil.cols() << std::endl; 
-		std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATb_sil.size() << std::endl;
+		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATA_sil.rows() << " " << d_ATA_sil.cols() << std::endl; 
+		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATb_sil.size() << std::endl;
 		setConstant2D_device(d_ATA_sil, 0);
 		setConstant1D_device(d_ATb_sil, 0);
 
@@ -1137,6 +1003,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		setConstant1D_device(d_b_sil, 0); 
 #endif 
 		calcSilhouetteJacobi_device(K, R, T, d_depth_renders[view],
+			d_depth_renders_interact[camid],
 			1 << m_pig_id, paramNum, view);
 
 #ifdef DEBUG_SOLVER
@@ -1161,8 +1028,15 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		d_ATA_sil.download(ATA_view.data(), ATA_view.cols() * sizeof(float));
 		d_ATb_sil.download(ATb_view.data());
 
-		float weight = 1.f / sqrtf(m_depth_weight[camid]);
-		//float weight = 1.0f; 
+		float weight;
+		if (m_depth_weight[camid] > 0.1)
+		{
+			weight = 1.f / m_depth_weight[camid];
+		}
+		else
+		{
+			weight = 1.0f; 
+		}
 		ATA += ATA_view * weight; 
 		ATb += ATb_view * weight; 
 	}
@@ -1187,22 +1061,14 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter)
 {
-	int M = 3 + 3 * m_poseToOptimize.size();
-	ATA = Eigen::MatrixXf::Zero(M, M);
-	ATb = Eigen::VectorXf::Zero(M);
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
 	d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float)); 
 	d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float)); 
 
-	//Eigen::MatrixXf h_J_vert_cpu, h_J_joint_cpu;
-	//CalcPoseJacobiPartTheta_cpu(h_J_joint_cpu, h_J_vert_cpu, true); 
-
-	//Eigen::MatrixXf diff_vert = h_J_vert_cpu - h_J_vert;
-	//Eigen::MatrixXf diff_joint = h_J_joint_cpu - h_J_joint; 
-	//std::cout << "pose jacobi part diff vert: " << diff_vert.norm() << std::endl; 
-	//std::cout << "pose jacobi part diff joint: " << diff_joint.norm() << std::endl;
-
-	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, M);
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, paramNum);
 	Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
 
 #ifdef DEBUG_SIL
@@ -1238,6 +1104,7 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
 #endif 
 		Camera cam = m_rois[roiIdx].cam;
+		int camid = m_rois[roiIdx].viewid; 
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
@@ -1245,8 +1112,53 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		float wc = 0.01;
 
 		std::vector<unsigned char> visibility(m_vertexNum, 0); 
-		check_visibility(d_depth_renders[roiIdx], 1920, 1080, m_device_verticesPosed,
+		check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
 			K, R, T, visibility);
+
+		// approx IOU 
+		float total_overlay = 0;
+		float total_visible = 0; 
+		//cv::Mat vis_test;
+		//vis_test.create(cv::Size(1920, 1080), CV_8UC3); 
+		//vis_test = m_rois[roiIdx].mask * 24;
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			if (m_host_bodyParts[i] == TAIL) continue; // ignore tail and ear
+			if (visibility[i] == 0) continue; //only consider visible parts 
+			Eigen::Vector3f xlocal = m_host_verticesPosed[i];
+			Eigen::Vector3f x_proj = K * (R * xlocal + T);
+			int x = round(x_proj(0) / x_proj(2));
+			int y = round(x_proj(1) / x_proj(2));
+			if (x < 0 || x >= 1920 || y < 0 || y >= 1080)continue;
+			if (c_const_distort_mask.at<uchar>(y, x) == 0) continue;
+			if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue;
+			int m = m_rois[roiIdx].queryMask(xlocal);
+			total_visible += 1;
+			//cv::circle(vis_test, cv::Point(x, y), 3, cv::Scalar(0, 255, 0), -1);
+
+			if (m!=1)
+			{
+				continue;
+			}
+			total_overlay += 1;
+			//cv::circle(vis_test, cv::Point(x, y), 3, cv::Scalar(0, 0, 255), -1);
+		}
+
+		//if (m_pig_id == 3 && roiIdx == 0)
+		//{
+		//	cv::imshow("test", vis_test);
+		//	cv::imshow("mask", m_rois[roiIdx].mask * 60); 
+		//	cv::waitKey();
+		//	exit(-1);
+		//}
+		
+
+		float iou = total_overlay / total_visible; 
+		if (iou < 0.50)
+		{
+			//std::cout << "pig " << m_pig_id << " iter " << iter <<  " view " << camid << " : " << iou << std::endl;
+			continue; 
+		}
 
 		int visible = 0; 
 		for (int i = 0; i < m_vertexNum; i++)
@@ -1258,6 +1170,12 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 			// check visibiltiy 
 		
 			Eigen::Vector3f x_local = K * (R * x0 + T);
+			int x = round(x_local(0) / x_local(2)); 
+			int y = round(x_local(1) / x_local(2)); 
+			if (x < 0 || x >= 1920 || y < 0 || y >= 1080)continue;
+
+			if (c_const_distort_mask.at<uchar>(y, x) == 0) continue; 
+			if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue; 
 
 			int m = m_rois[roiIdx].queryMask(x0);
 			// TODO: 20200602 check occlusion
@@ -1272,7 +1190,7 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 			float ddx = queryPixel(m_rois[roiIdx].gradx, x0, cam);
 			float ddy = queryPixel(m_rois[roiIdx].grady, x0, cam);
 
-			Eigen::MatrixXf block2d = Eigen::MatrixXf::Zero(2, M);
+			Eigen::MatrixXf block2d = Eigen::MatrixXf::Zero(2, paramNum);
 			Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 			D(0, 0) = 1 / x_local(2);
 			D(1, 1) = 1 / x_local(2);
@@ -1293,8 +1211,9 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		stream_cpu.close(); 
 		std::cout << "visible cpu: " << visible << std::endl; 
 #endif 
-		int camid = m_source.view_ids[roiIdx];
-		float weight = m_depth_weight[camid];
+		float weight;
+		if(m_depth_weight[camid] > 0.1) weight= 1/m_depth_weight[camid];
+		else weight = 1; 
 		ATA += A.transpose() * A * weight;
 		ATb += A.transpose() * r * weight;
 
@@ -1459,6 +1378,8 @@ void PigSolverDevice::calcPoseJacobiFullTheta_device(
 		if (jointId == 0)
 		{
 			rodriguesDerivative.block<3, 9>(0, 0) = EulerJacobiF(pose);
+			//rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
+
 		}
 		else {
 			rodriguesDerivative.block<3, 9>(0, 9 * jointId) = RodriguesJacobiF(pose);
@@ -1552,11 +1473,14 @@ void PigSolverDevice::generateDataForSilSolver()
 			m_det_masks[camid], m_source.dets[view].keypoints, idcode
 		);
 
-		cudaMemcpy(d_middle_mask, m_det_masks_binary[view].data, 960 * 540 * sizeof(uchar), cudaMemcpyHostToDevice);
-		sdf2d_device(d_middle_mask, d_det_sdf[view], 960, 540);
-		sobel_device(d_det_sdf[view], d_det_gradx[view], d_det_grady[view], 960, 540);
-		
-		cudaMemcpy(d_det_mask[view], m_det_masks[camid].data, 1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
+		if (m_use_gpu)
+		{
+			cudaMemcpy(d_middle_mask, m_det_masks_binary[view].data, 960 * 540 * sizeof(uchar), cudaMemcpyHostToDevice);
+			sdf2d_device(d_middle_mask, d_det_sdf[view], 960, 540);
+			sobel_device(d_det_sdf[view], d_det_gradx[view], d_det_grady[view], 960, 540);
+
+			cudaMemcpy(d_det_mask[view], m_det_masks[camid].data, 1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
+		}
 	}
 
 	m_param_observe_num.setZero(); 
@@ -1746,19 +1670,6 @@ void PigSolverDevice::postProcessing()
 	for (int view = 0; view < m_cameras.size(); view++)
 	{
 		project(m_cameras[view], m_skel3d, m_skelProjs[view]);
-		for (int i = 0; i < m_skel3d.size(); i++)
-		{
-			float d = queryDepth(m_undist_mask_chamfer, m_skelProjs[view][i].x(), m_skelProjs[view][i].y());
-			m_skelProjs[view][i](2) = 1;
-
-			if (d < 5 || (i == 20 && d < 15) ) {
-				m_skelProjs[view][i](2) = 0;
-			}
-			float s = queryDepth(m_scene_mask_chamfer[view], m_skelProjs[view][i].x(), m_skelProjs[view][i].y());
-			if (s < 5 || ( i == 20 && s < 15) ) {
-				m_skelProjs[view][i](2) = 0; 
-			}
-		}
 	}
 
 	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
@@ -1830,7 +1741,8 @@ void PigSolverDevice::calcJoint3DTerm_host(
 void PigSolverDevice::CalcRegTerm(
 	const Eigen::VectorXf& theta,
 	Eigen::MatrixXf& ATA,
-	Eigen::VectorXf& ATb
+	Eigen::VectorXf& ATb,
+	bool adaptive_weight
 )
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
@@ -1838,143 +1750,150 @@ void PigSolverDevice::CalcRegTerm(
 	ATb = Eigen::VectorXf::Zero(paramNum);
 	ATb = -theta; 
 	ATb.segment<6>(0).setZero(); 
-	for (int i = 6; i < paramNum; i++)
-	{
-		ATA(i, i) *= m_param_reg_weight[i];
-		ATb(i) *= m_param_reg_weight[i];
-	}
-}
 
-void PigSolverDevice::calcAnchorTerm_host(int anchorid,
-	const Eigen::VectorXf& theta, 
-	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
-{
-	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
-	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum); 
-	ATb = Eigen::VectorXf::Zero(paramNum); 
-	
-	Eigen::VectorXf& data = m_anchor_data[anchorid];
-	ATb(2) = data(2) - theta(2);
-	ATb(4) = data(4) - theta(4);
-	ATb(5) = data(5) - theta(5); 
-	for (int i = 1; i < m_poseToOptimize.size(); i++)
-	{
-		int jid = m_poseToOptimize[i];
-		float weight = 1; 
-
-		ATb.segment<3>(3 + 3 * i) = data.segment<3>(3 + 3 * jid) - theta.segment<3>(3+3*i); 
-	}
+	if (!adaptive_weight) return;
 	if (m_det_confs[0] >= 2 && m_det_confs[1] >= 2 && m_det_confs[2] >= 2
 		&& m_det_confs[3] >= 2 && m_det_confs[4] >= 2)
 	{
-		std::vector<int> ignore = {19,20,21};
+		std::vector<int> ignore = { 19,20,21,1,2}; // 21,22,23
 		for (const int & k : ignore)
-			ATb.segment<3>(3 + 3 * k).setZero(); 
+		{
+			ATA.middleRows(3 + 3 * k, 3) *= 1;
+			ATb.segment<3>(3 + 3 * k) *= 1;
+		}
 	}
+
+	float w = 1;
+
 	if (m_det_confs[5] >= 1 && m_det_confs[7] >= 1 && m_det_confs[9] >= 1)
 	{
-		std::vector<int> ignore = {7,8,9,10 };
+		std::vector<int> ignore = { 8,9,10 };
+		float sum = m_det_confs[6] + m_det_confs[8] + m_det_confs[10];
+
 		for (const int & k : ignore)
-			ATb.segment<3>(3 + 3 * k).setZero();
+		{
+			ATA.middleRows(3 + 3 * k, 3) *= (w / sqrtf(sum));
+			ATb.segment<3>(3 + 3 * k) *= (w / sqrtf(sum));
+		}
 	}
 	if (m_det_confs[6] >= 1 && m_det_confs[8] >= 1 && m_det_confs[10] >= 1)
 	{
-		std::vector<int> ignore = { 3,4,5,6 };
+		std::vector<int> ignore = { 4,5,6 };
+		float sum = m_det_confs[6] + m_det_confs[8] + m_det_confs[10];
+
 		for (const int & k : ignore)
-			ATb.segment<3>(3 + 3 * k).setZero();
+		{
+			ATA.middleRows(3 + 3 * k, 3) *= (w / sqrtf(sum));
+			ATb.segment<3>(3 + 3 * k) *= (w / sqrtf(sum));
+		}
 	}
+
 	if (m_det_confs[11] >= 1 && m_det_confs[13] >= 1 && m_det_confs[15] >= 1)
 	{
-		std::vector<int> ignore = { 15,16,17,18 };
+		std::vector<int> ignore = { 16,17,18 };
+		float sum = m_det_confs[11] + m_det_confs[13] + m_det_confs[15];
+
 		for (const int & k : ignore)
-			ATb.segment<3>(3 + 3 * k).setZero();
+		{
+			ATA.middleRows(3 + 3 * k, 3) *= (w / sqrtf(sum));
+			ATb.segment<3>(3 + 3 * k) *= (w / sqrtf(sum));
+		}
 	}
 	if (m_det_confs[12] >= 1 && m_det_confs[14] >= 1 && m_det_confs[16] >= 1)
 	{
-		std::vector<int> ignore = { 11,12,13,14 };
+		std::vector<int> ignore = { 12,13,14 };
+		float sum = m_det_confs[12] + m_det_confs[14] + m_det_confs[16];
 		for (const int & k : ignore)
-			ATb.segment<3>(3 + 3 * k).setZero();
-	}
-	if (m_det_confs[20] >= 2 && m_det_confs[18] >= 2 && m_det_confs[0] >= 2)
-	{
-		ATb.segment<3>(3) *= 0.05;
-		ATA.middleRows(3, 3) *= 0.05;
-		ATb.segment<3>(0) *= 0.1;
-		ATA.middleRows(0, 3) *= 0.1;
+		{
+			ATA.middleRows(3 + 3 * k, 3) *= (w / sqrtf(sum));
+			ATb.segment<3>(3 + 3 * k) *= (w / sqrtf(sum));
+		}
 	}
 }
 
-// This jacobi is 
-void PigSolverDevice::calcAnchorTermHeight_host(
-	int anchorid, const Eigen::MatrixXf& Jacobi3d, 
-	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
-)
+//
+//int PigSolverDevice::determine_anchor_id()
+//{
+//	std::vector<Eigen::Vector3f> visible_skel = directTriangulationHost(); 
+//	std::vector<float> loss(m_anchor_skel.size(), 0);
+//	for (int index = 0; index < m_anchor_skel.size(); index++)
+//	{
+//		int valid_num = 0;
+//		for (int i = 0; i < m_skelTopo.joint_num; i++)
+//		{
+//			if (visible_skel[i].norm() > 0)
+//			{
+//				float diff = visible_skel[i](2) - m_anchor_skel[index][i](2) * m_host_scale;
+//				diff = fabsf(diff);
+//				if (i == 20 || i == 18 || i ==0)
+//				{
+//					loss[index] += diff * 10; 
+//					valid_num += 10;
+//				}
+//				else
+//				{
+//					loss[index] += diff;
+//					valid_num += 1;
+//				}
+//			}
+//		}
+//		loss[index] = loss[index] / valid_num; 
+//	}
+//	int min_index = 0; 
+//	float min_value = loss[min_index];
+//	for (int i = 0; i < loss.size(); i++)
+//	{
+//		std::cout << loss[i] << " , ";
+//		if (loss[i] < min_value)
+//		{
+//			min_index = i;
+//			min_value = loss[i];
+//		}
+//	}
+//	std::cout << std::endl;
+//	std::cout << "min index : " << min_index << std::endl; 
+//	return min_index; 
+//}
+
+
+void PigSolverDevice::getTheta(Eigen::VectorXf& theta)
 {
-	int paramNum = 3 + 3 * m_poseToOptimize.size();
-	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
-	ATb = Eigen::VectorXf::Zero(paramNum);
-	int N = m_skelCorr.size(); 
-	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(N, paramNum); 
-	Eigen::VectorXf b = Eigen::VectorXf::Zero(N); 
-	std::vector<Eigen::Vector3f> skel = getRegressedSkel_host(); 
-	for (int i = 0; i < N; i++)
+	int M = m_poseToOptimize.size();
+	int paramNum = 3 + 3 * M;
+	theta.resize(paramNum);
+	theta.setZero();
+	theta.segment<3>(0) = m_host_translation;
+	for (int i = 0; i < M; i++)
 	{
-		A.row(i) = Jacobi3d.row(3 * i + 2) * 5; 
-		int t = m_skelCorr[i].target; 
-		b(i) = m_host_scale * m_anchor_joints[anchorid][t](2) - skel[t](2); 
-		b(i) = b(i) * 5; 
+		int jIdx = m_poseToOptimize[i];
+		theta.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
 	}
-	for (int i = 0; i < N; i++)
-	{
-		int t = m_skelCorr[i].target;
-		if (m_det_confs[t] >= 1) {
-			b(i) = 0; 
-			continue;
-		}
-	}
-	ATA = A.transpose() * A; 
-	ATb = A.transpose() * b; 
 }
 
-int PigSolverDevice::determine_anchor_id()
+void PigSolverDevice::setTheta(const Eigen::VectorXf& theta)
 {
-	std::vector<Eigen::Vector3f> visible_skel = directTriangulationHost(); 
-	std::vector<float> loss(m_anchor_skel.size(), 0);
-	for (int index = 0; index < m_anchor_skel.size(); index++)
+	int M = m_poseToOptimize.size();
+	int paramNum = 3 + 3 * M;
+	m_host_translation = theta.segment<3>(0);
+	for (int i = 0; i < M; i++)
 	{
-		int valid_num = 0;
-		for (int i = 0; i < m_skelTopo.joint_num; i++)
-		{
-			if (visible_skel[i].norm() > 0)
-			{
-				float diff = visible_skel[i](2) - m_anchor_skel[index][i](2) * m_host_scale;
-				diff = fabsf(diff);
-				if (i == 20 || i == 18 || i ==0)
-				{
-					loss[index] += diff * 10; 
-					valid_num += 10;
-				}
-				else
-				{
-					loss[index] += diff;
-					valid_num += 1;
-				}
-			}
-		}
-		loss[index] = loss[index] / valid_num; 
+		int jIdx = m_poseToOptimize[i];
+		m_host_poseParam[jIdx] = theta.segment<3>(3 + 3 * i);
 	}
-	int min_index = 0; 
-	float min_value = loss[min_index];
-	for (int i = 0; i < loss.size(); i++)
+}
+
+void PigSolverDevice::computeDepthWeight()
+{
+	m_depth_weight.resize(m_cameras.size(), 0);
+	Eigen::Vector3f center = m_host_jointsPosed[2];
+
+	for (int camid = 0; camid < m_cameras.size(); camid++)
 	{
-		std::cout << loss[i] << " , ";
-		if (loss[i] < min_value)
-		{
-			min_index = i;
-			min_value = loss[i];
+		Eigen::Vector3f center_local = m_cameras[camid].R * center + m_cameras[camid].T;
+		float depth = center_local(2);
+		if (depth <= 0) m_depth_weight[camid] = 0.0f;
+		else {
+			m_depth_weight[camid] = 2 / (depth + 0.01);
 		}
 	}
-	std::cout << std::endl;
-	std::cout << "min index : " << min_index << std::endl; 
-	return min_index; 
 }

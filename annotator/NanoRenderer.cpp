@@ -5,6 +5,8 @@
 #include <opencv2/highgui.hpp>
 #include <fstream> 
 
+#define parameter_scale 6.0f
+
 NanoRenderer::NanoRenderer()
 {
 }
@@ -216,7 +218,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 "L_b_Ball_60",
 "L_b_Toe_61"
 };
-	joints_for_optimize = { 0, 2, 4, 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57, 21, 22, 23
+	joints_for_optimize = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57, 21, 22, 23
 	};
 	int N = joints_for_optimize.size(); 
 	m_widget_sliders.resize(N * 3 + 4);
@@ -229,6 +231,8 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	basic_widgets->set_layout(new BoxLayout(Orientation::Vertical, Alignment::Minimum, 1, 1));
 
 	int box_height = 20;
+
+	
 	// -- scale 
 	{
 		Widget *acombol = new Widget(basic_widgets);
@@ -237,10 +241,29 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 		name_label->set_fixed_size(Vector2i(150, box_height));
 		Label *axis_name_label = new Label(acombol, "", "sans-bold", box_height);
 		axis_name_label->set_fixed_size(Vector2i(50, box_height)); 
+
+		Button* leftbutton = new Button(acombol, "-");
+		leftbutton->set_fixed_size(Vector2i(box_height, box_height));
+
 		m_widget_sliders[0] = new Slider(acombol);
 		float renorm_value = m_pig_scale - 1 + 0.5;
 		m_widget_sliders[0]->set_value(renorm_value);
 		m_widget_sliders[0]->set_fixed_size(Vector2i(150, box_height));
+
+		Button* rightbutton = new Button(acombol, "+");
+		rightbutton->set_fixed_size(Vector2i(box_height, box_height));
+
+		leftbutton->set_callback([this]() {
+			m_pig_scale -= 0.01;
+			m_widget_sliders[0]->set_value(m_pig_scale -0.5);
+			m_widget_textboxes[0]->set_value(std::to_string(m_pig_scale));
+			});
+
+		rightbutton->set_callback([ this]() {
+			m_pig_scale += 0.01;
+			m_widget_sliders[0]->set_value(m_pig_scale - 0.5);
+			m_widget_textboxes[0]->set_value(std::to_string(m_pig_scale));
+			});
 
 		m_widget_textboxes[0] = new TextBox(acombol);
 		m_widget_textboxes[0]->set_fixed_size(Vector2i(150, box_height));
@@ -259,8 +282,8 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 		m_widget_reset_buttons[0]->set_fixed_size(Vector2i(60, box_height)); 
 		m_widget_reset_buttons[0]->set_callback([this]() {
 			m_pig_scale = m_pig_scale_init;
-			m_widget_sliders[0]->set_value(m_pig_scale_init - 0.5); 
-			m_widget_textboxes[0]->set_value(std::to_string(m_pig_scale_init)); 
+			m_widget_sliders[0]->set_value(m_pig_scale - 0.5); 
+			m_widget_textboxes[0]->set_value(std::to_string(m_pig_scale)); 
 			});
 	}
 	// -- translation 
@@ -275,10 +298,28 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 			Label *axis_name_label = new Label(acombol, axis_names[axis], "sans-bold", box_height);
 			axis_name_label->set_fixed_size(Vector2i(50, box_height));
 
+			Button* leftbutton = new Button(acombol, "-");
+			leftbutton->set_fixed_size(Vector2i(box_height, box_height));
+
 			m_widget_sliders[axis+1] = new Slider(acombol);
-			float renorm_value = m_pig_translation(axis) / 3 + 0.5;
+			float renorm_value = m_pig_translation(axis) / parameter_scale + 0.5;
 			m_widget_sliders[axis+1]->set_value(renorm_value);
 			m_widget_sliders[axis+1]->set_fixed_size(Vector2i(150, box_height));
+
+			Button* rightbutton = new Button(acombol, "+");
+			rightbutton->set_fixed_size(Vector2i(box_height, box_height));
+
+			leftbutton->set_callback([axis, this]() {
+				m_pig_translation(axis) -= 0.01;
+				m_widget_sliders[1 + axis]->set_value((m_pig_translation(axis) / parameter_scale + 0.5));
+				m_widget_textboxes[1 + axis]->set_value(std::to_string(m_pig_translation(axis)));
+				});
+
+			rightbutton->set_callback([axis, this]() {
+				m_pig_translation(axis) += 0.01;
+				m_widget_sliders[1 + axis]->set_value((m_pig_translation(axis) / parameter_scale + 0.5));
+				m_widget_textboxes[1 + axis]->set_value(std::to_string(m_pig_translation(axis)));
+				});
 
 			m_widget_textboxes[axis+1] = new TextBox(acombol);
 			m_widget_textboxes[axis + 1]->set_fixed_size(Vector2i(150, box_height));
@@ -288,7 +329,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 
 			TextBox *p_box = m_widget_textboxes[axis + 1];
 			m_widget_sliders[axis+1]->set_callback([p_box, axis, this](float value) {
-				float normalized_value = (value - 0.5) * 3;
+				float normalized_value = (value - 0.5) * parameter_scale;
 				p_box->set_value(std::to_string(normalized_value));
 				m_pig_translation(axis) = normalized_value;
 				});
@@ -299,8 +340,8 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 			m_pig_translation = m_pig_translation_init;
 			for (int axis = 0; axis < 3; axis++)
 			{
-				m_widget_sliders[1 + axis]->set_value(m_pig_translation_init(axis) / 3 + 0.5);
-				m_widget_textboxes[1 + axis]->set_value(std::to_string(m_pig_translation_init(axis)));
+				m_widget_sliders[1 + axis]->set_value(m_pig_translation(axis) / parameter_scale + 0.5);
+				m_widget_textboxes[1 + axis]->set_value(std::to_string(m_pig_translation(axis)));
 			}
 			});
 	}
@@ -323,10 +364,29 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 			Label *axis_name_label = new Label(acombol, axis_names[axis], "sans-bold", box_height);
 			axis_name_label->set_fixed_size(Vector2i(50, box_height));
 
+			Button* leftbutton = new Button(acombol, "-"); 
+			leftbutton->set_fixed_size(Vector2i(box_height, box_height));
+
+
 			m_widget_sliders[4+i*3+axis] = new Slider(acombol);
-			float renorm_value = m_joint_pose[joint_id](axis) / 3 + 0.5; 
+			float renorm_value = m_joint_pose[joint_id](axis) / parameter_scale + 0.5; 
 			m_widget_sliders[4+i * 3 + axis]->set_value(renorm_value);
 			m_widget_sliders[4+i * 3 + axis]->set_fixed_size(Vector2i(150, box_height));
+
+			Button* rightbutton = new Button(acombol, "+");
+			rightbutton->set_fixed_size(Vector2i(box_height, box_height));
+
+			leftbutton->set_callback([i, joint_id, axis, this]() {
+				m_joint_pose[joint_id](axis) -= 0.01;
+				m_widget_sliders[4 + 3 * i + axis]->set_value((m_joint_pose[joint_id](axis) / parameter_scale + 0.5));
+				m_widget_textboxes[4 + 3 * i + axis]->set_value(std::to_string(m_joint_pose[joint_id](axis)));
+				});
+
+			rightbutton->set_callback([i, joint_id, axis, this]() {
+				m_joint_pose[joint_id](axis) += 0.01;
+				m_widget_sliders[4 + 3 * i + axis]->set_value((m_joint_pose[joint_id](axis) / parameter_scale + 0.5));
+				m_widget_textboxes[4 + 3 * i + axis]->set_value(std::to_string(m_joint_pose[joint_id](axis)));
+				});
 
 			m_widget_textboxes[4+i*3+axis] = new TextBox(acombol);
 			m_widget_textboxes[4 + i * 3 + axis]->set_fixed_size(Vector2i(150, box_height));
@@ -336,7 +396,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 
 			TextBox* p_box = m_widget_textboxes[4 + i * 3 + axis];
 			m_widget_sliders[4 + i * 3 + axis]->set_callback([p_box,joint_id, axis,this](float value) {
-				float normalized_value = (value - 0.5) * 3;
+				float normalized_value = (value - 0.5) * parameter_scale;
 				p_box->set_value(std::to_string(normalized_value));
 				m_joint_pose[joint_id](axis) = normalized_value;
 				});
@@ -345,16 +405,17 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 		m_widget_reset_buttons[2+i] = new Button(acombol, "Reset");
 		m_widget_reset_buttons[2+i]->set_fixed_size(Vector2i(60, box_height));
 		m_widget_reset_buttons[2+i]->set_callback([i,joint_id, this]() {
+			std::cout << "reset " << i << std::endl; 
 			m_joint_pose[joint_id] = m_joint_pose_init[joint_id];
 			for (int axis = 0; axis < 3; axis++)
 			{
-				m_widget_sliders[4 + 3* i + axis]->set_value(m_joint_pose_init[joint_id](axis) / 3 + 0.5);
-				m_widget_textboxes[4 + 3* i + axis]->set_value(std::to_string(m_joint_pose_init[joint_id](axis)));
+				m_widget_sliders[4 + 3* i + axis]->set_value(m_joint_pose[joint_id](axis) / parameter_scale + 0.5);
+				m_widget_textboxes[4 + 3* i + axis]->set_value(std::to_string(m_joint_pose[joint_id](axis)));
 			}
 			});
 	}
 	
-	
+	m_overlay_transparency = 0.0f; 
 
 	// create high level control: 
 	// determine framenum, pigid, 
@@ -365,22 +426,34 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	FormHelper *gui = new FormHelper(screen);
 	nanogui_window = gui->add_window(Vector2i(10, 10), "Control Panel");
 	gui->add_group("Renderer Control");
-	gui->add_variable("string", m_results_folder);
+	gui->add_variable("Save Folder", m_results_folder);
 
 	gui->add_group("Choose Target");
 	gui->add_variable("Enumeration", enumval, enabled)->set_items({ "Pig0", "Pig1", "Pig2", "Pig3"});
 	//gui->add_variable("Color", colval);
-	gui->add_variable("int", out_frameid);
+	gui->add_variable("Frame ID", out_frameid);
+	
+	gui->add_variable("Overlay Alpha", m_overlay_transparency);
 
 	gui->add_group("Actions");
-	gui->add_button("Read Target", [this]() { m_state_read = true; })
-		->set_tooltip("Testing a much longer tooltip, that will wrap around to new lines multiple times.");
+	gui->add_button("Read Original", [this]() { m_state_read = true; })
+		->set_tooltip("Load fitted result from H:/pig_result_debug.");
+	
 	gui->add_button("Save State", [this]() {
 		m_state_save_state = true; 
 		});
 	gui->add_button("Save Obj", [this]() {
 		m_state_save_obj = true; 
 		});
+	gui->add_button("Load Labeled Last", [this]() {
+		m_state_load_last = true; 
+		})->set_tooltip("Load annotated pose of last frame if exist");
+	gui->add_button("Load Labeled This", [this]() {
+		m_state_load_this = true; 
+		})->set_tooltip("Load annotated pose if exist");
+	gui->add_button("Load Labeled Next", [this]() {
+		m_state_load_next = true;
+		})->set_tooltip("Load next annotated pose if exist");
 	nanogui_window->set_position(Vector2i(5,45));
 
 
@@ -399,7 +472,7 @@ void NanoRenderer::set_joint_pose(const std::vector<Eigen::Vector3f>& _pose)
 
 		for (int axis = 0; axis < 3; axis++)
 		{
-			float renorm_value = m_joint_pose[joint_id](axis) / 3 + 0.5;
+			float renorm_value = m_joint_pose[joint_id](axis) / parameter_scale + 0.5;
 			m_widget_sliders[4 + i * 3 + axis]->set_value(renorm_value);
 			m_widget_textboxes[4 + i * 3 + axis]->set_value(std::to_string(m_joint_pose[joint_id](axis)));
 		}
@@ -412,7 +485,7 @@ void NanoRenderer::set_pig_translation(const Eigen::Vector3f& trans)
 	m_pig_translation_init = trans; 
 	for (int axis = 0; axis < 3; axis++)
 	{
-		float renorm_value = trans(axis) / 3 + 0.5;
+		float renorm_value = trans(axis) / parameter_scale + 0.5;
 		m_widget_sliders[1 + axis]->set_value(renorm_value); 
 		m_widget_textboxes[1 + axis]->set_value(std::to_string(trans(axis))); 
 	}
@@ -430,7 +503,7 @@ void NanoRenderer::set_pig_scale(const float& scale)
 
 void NanoRenderer::CreateRenderImage(const std::string& name, const Vector2i& size, const Vector2i& pos)
 {
-	auto image_window = new Window(screen, name);
+	image_window = new Window(screen, name);
 	image_window->set_position(pos);
 	image_window->set_layout(new GroupLayout(3));
 
@@ -503,6 +576,7 @@ void NanoRenderer::Draw()
 	nanogui_window->set_visible(m_control_panel_visible);
 	basic_widgets->set_visible(m_control_panel_visible);
 	tools->set_visible(m_control_panel_visible);
+	//image_window->set_visible(false); 
 
 
 	if (!glfwWindowShouldClose(window))

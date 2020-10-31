@@ -179,6 +179,7 @@
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\articulation\gpuutils.h" />
     <ClInclude Include="..\articulation\pigmodeldevice.h" />
     <ClInclude Include="..\articulation\pigsolverdevice.h" />
     <ClInclude Include="..\articulation\vector_operations.hpp" />
@@ -197,6 +198,8 @@
   <ItemGroup>
     <None Include="..\articulation\artist_config.json" />
     <None Include="config.json" />
+    <None Include="confignew.json" />
+    <None Include="config_seq2.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

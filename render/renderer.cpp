@@ -15,7 +15,7 @@ Eigen::Vector2f         Renderer::s_beforePos;
 float                   Renderer::s_arcballRadius; 
 double                  Renderer::s_leftClickTimeSeconds; 
 
- #define SHOW_CAM_POSE
+ //#define SHOW_CAM_POSE
 
 void Renderer::s_Init(bool isHideWindow)
 {
@@ -317,7 +317,9 @@ void Renderer::InitShader()
 	meshShader = SimpleShader(m_shaderFolder + "/mesh_v.shader",
 		m_shaderFolder + "/mesh_f.shader"); 
 	positionShader = SimpleShader(m_shaderFolder + "/position_v.shader",
-		m_shaderFolder + "/position_f.shader"); 
+		m_shaderFolder + "/position_f.shader");
+	maskShader = SimpleShader(m_shaderFolder + "/mask_v.shader", 
+		m_shaderFolder + "/mask_f.shader");
 
 	std::cout << "init depth shader" << std::endl; 
 
@@ -349,6 +351,22 @@ void Renderer::Draw(std::string type)
 			colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 			colorObjs[i]->DrawWhole(colorShader);
 		}
+		else if (type == "mask")
+		{
+			maskShader.Use(); 
+			s_camViewer.ConfigShader(maskShader); 
+			maskShader.SetVec3("light_pos", lightPos); 
+			maskShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
+			colorObjs[i]->DrawWhole(maskShader); 
+		}
+		else if (type == "depth")
+		{
+			positionShader.Use();
+			s_camViewer.ConfigShader(positionShader);
+			positionShader.SetVec3("light_pos", lightPos);
+			positionShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			colorObjs[i]->DrawWhole(positionShader);
+		}
 	}
 	
 	for(int i = 0; i < texObjs.size(); i++)
@@ -374,14 +392,6 @@ void Renderer::Draw(std::string type)
 			meshShader.SetVec3("light_pos", lightPos);
 			meshShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 			meshObjs[i]->DrawWhole(meshShader);
-		}
-		else if (type == "depth")
-		{
-			positionShader.Use();
-			s_camViewer.ConfigShader(positionShader); 
-			positionShader.SetVec3("light_pos", lightPos);
-			positionShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
-			meshObjs[i]->DrawWhole(positionShader); 
 		}
 	}
 

@@ -199,7 +199,11 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="artist_shape_config.json" />
+    <None Include="artist_shape_config2.json" />
     <None Include="pig0.json" />
+    <None Include="pig1.json" />
+    <None Include="pig2.json" />
+    <None Include="pig3.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

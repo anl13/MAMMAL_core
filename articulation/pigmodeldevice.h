@@ -10,6 +10,7 @@
 #include "../utils/timer_util.h"
 #include "../VAE/decoder.h"
 #include "common.h" 
+#include "../utils/skel.h" 
 
 // gpu include 
 #include "vector_operations.hpp"
@@ -63,11 +64,14 @@ public:
 	Eigen::MatrixXf GetJRegressor() { return m_host_jregressor; }
 	Eigen::MatrixXf GetLBSWeights() { return m_host_lbsweights; }
 	std::vector<BODY_PART> GetBodyPart() { return m_host_bodyParts; }
+	SkelTopology GetTopo() { return m_skelTopo; }
 
 	void UpdateVertices();
 	void UpdateJoints();
 	void UpdateNormalFinal(); 
 	std::vector<Eigen::Vector3f> RegressJointsPosed(); 
+	std::vector<Eigen::Vector3f> getRegressedSkel_host();
+
 	//void UpdateNormals();
 
 	// texture
@@ -87,6 +91,9 @@ protected:
 	int m_faceNum; 
 	int m_texNum;
 	std::string m_folder;
+
+	SkelTopology m_skelTopo; 
+	std::vector<CorrPair> m_skelCorr;
 
 	// model state data 
 	std::vector<Eigen::Vector3f> m_host_verticesOrigin;

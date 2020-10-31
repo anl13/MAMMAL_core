@@ -484,23 +484,27 @@ void generate_nodegraph()
 	show_gpu_param();
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 
-	std::string pig_config = "D:/Projects/animal_calib/shapesolver/artist_shape_config.json";
+	std::string pig_config = "D:/Projects/animal_calib/shapesolver/artist_shape_config2.json";
 	ShapeSolver solver(pig_config);
-	solver.SaveObj("D:/Projects/animal_calib/shapesolver/model.obj");
+	solver.SaveObj("D:/Projects/animal_calib/shapesolver/data/model.obj");
 	NodeGraphGenerator graph;
 	Mesh model;
-	model.Load("model.obj");
+	model.Load("data/model.obj");
 
 	//graph.Generate(model); 
+
 	graph.model = model;
-	graph.LoadGeodesic("geodesic.txt");
+	//graph.CalcGeodesic();
+	//graph.SaveGeodesic("data/geodesic.txt");
+	graph.LoadGeodesic("data/geodesic.txt");
+
 	//graph.SampleNode(); 
-	graph.SampleNodeFromObj("reduce.txt");
+	graph.SampleNodeFromObj("data/manual_artist_head_node.obj");
+	
 	graph.GenKnn();
 	graph.GenNodeNet();
 
-	graph.Save("node_graph2.txt");
-	graph.VisualizeNodeNet("nodenet2.obj");
-	graph.VisualizeKnn("knn2.obj");
-	//graph.SaveGeodesic("geodesic.txt"); 
+	graph.Save("data/node_graph.txt");
+	graph.VisualizeNodeNet("data/nodenet.obj");
+	graph.VisualizeKnn("data/knn.obj");
 }

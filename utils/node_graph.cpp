@@ -144,7 +144,8 @@ void NodeGraphGenerator::CalcGeodesic()
 	// calc geodesic distance
 	const float cutSpacing = cutRate * nodeSpacing;
 #pragma omp parallel for
-	for (int srcIdx = 0; srcIdx < n; srcIdx++) {
+	for (int srcIdx = 0; srcIdx < n; srcIdx++) 
+	{
 		std::vector<int> tarIdxMap;
 		int start = -1;
 		for (int tarIdx = 0; tarIdx < n; tarIdx++) {
@@ -168,6 +169,8 @@ void NodeGraphGenerator::CalcGeodesic()
 		for (int i = 0; i < tarIdxMap.size(); i++)
 			if (dist[i] != FLT_MAX)
 				geodesic[srcIdx].insert(std::make_pair(tarIdxMap[i], dist[i]));
+
+		std::cout << "srcIdx: " << srcIdx << std::endl; 
 	}
 }
 
@@ -332,11 +335,9 @@ void NodeGraphGenerator::SampleNodeFromObj(
 )
 {
 	Mesh reduce;
-	reduce.Load("reduce.obj"); 
+	reduce.Load(filename); 
 
-	Mesh raw;
-	raw.Load("model.obj"); 
-
+	Mesh raw = model;
 
 	nodeIdx.resize(reduce.vertices_vec.size());
 	for (int i = 0; i < reduce.vertices_vec.size(); i++)

@@ -265,6 +265,8 @@ void ShapeSolver::CalcDeformTerm_sil(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
 		ATA += 0.0001 * A.transpose() * A;
 		ATb += 0.0001 * A.transpose() * r;
 	}
+
+	std::cout << "ATb deform: " << ATb.norm() << std::endl; 
 }
 
 void ShapeSolver::CalcSymTerm(
@@ -355,7 +357,7 @@ void ShapeSolver::CalcSmthTerm(
 	Eigen::VectorXf& ATb
 )
 {
-	/*std::vector<Eigen::Triplet<float>> triplets;*/
+	std::vector<Eigen::Triplet<float>> triplets;
 	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(3 * mp_nodeGraph->nodeNet.size(), 6 * mp_nodeGraph->nodeIdx.size()); 
 	Eigen::VectorXf b = Eigen::VectorXf::Zero(3 * mp_nodeGraph->nodeNet.size());
 	for (int ni = 0; ni < mp_nodeGraph->nodeIdx.size(); ni++) {
@@ -375,29 +377,29 @@ void ShapeSolver::CalcSmthTerm(
 
 
 
-			//// 1st row
-			//triplets.emplace_back(Eigen::Triplet<float>(row, coli + 1, r.z()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row, coli + 2, -r.y()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row, coli + 3, 1));
-			//triplets.emplace_back(Eigen::Triplet<float>(row, colj + 1, -s.z()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row, colj + 2, s.y()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row, colj + 3, -1));
+			// 1st row
+			triplets.emplace_back(Eigen::Triplet<float>(row, coli + 1, r.z()));
+			triplets.emplace_back(Eigen::Triplet<float>(row, coli + 2, -r.y()));
+			triplets.emplace_back(Eigen::Triplet<float>(row, coli + 3, 1));
+			triplets.emplace_back(Eigen::Triplet<float>(row, colj + 1, -s.z()));
+			triplets.emplace_back(Eigen::Triplet<float>(row, colj + 2, s.y()));
+			triplets.emplace_back(Eigen::Triplet<float>(row, colj + 3, -1));
 
-			//// 2nd row
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 1, coli + 0, -r.z()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 1, coli + 2, r.x()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 1, coli + 4, 1));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 1, colj + 0, s.z()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 1, colj + 2, -s.x()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 1, colj + 4, -1));
+			// 2nd row
+			triplets.emplace_back(Eigen::Triplet<float>(row + 1, coli + 0, -r.z()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 1, coli + 2, r.x()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 1, coli + 4, 1));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 1, colj + 0, s.z()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 1, colj + 2, -s.x()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 1, colj + 4, -1));
 
-			//// 3rd row
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 2, coli + 0, r.y()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 2, coli + 1, -r.x()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 2, coli + 5, 1));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 2, colj + 0, -s.y()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 2, colj + 1, s.x()));
-			//triplets.emplace_back(Eigen::Triplet<float>(row + 2, colj + 5, -1));
+			// 3rd row
+			triplets.emplace_back(Eigen::Triplet<float>(row + 2, coli + 0, r.y()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 2, coli + 1, -r.x()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 2, coli + 5, 1));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 2, colj + 0, -s.y()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 2, colj + 1, s.x()));
+			triplets.emplace_back(Eigen::Triplet<float>(row + 2, colj + 5, -1));
 
 			// bs
 			b.segment<3>(row) = s - r;
@@ -507,7 +509,6 @@ void ShapeSolver::setTargetModel(std::shared_ptr<MeshEigen> _targetModel)
 	m_tarTree = std::make_shared<KDTree<float>>(m_tarModel->vertices);
 	m_corr = Eigen::VectorXi::Constant(m_vertexNum, -1);
 	m_wDeform = Eigen::VectorXf::Ones(m_vertexNum);
-	m_deltaTwist.resize(6, mp_nodeGraph->nodeIdx.size());
 
 	m_srcModel = std::make_shared<MeshEigen>();
 	m_srcModel->vertices = m_verticesFinal;
@@ -576,6 +577,8 @@ void ShapeSolver::updateWarpField()
 
 void ShapeSolver::solveNonrigidDeform(int maxIterTime, float updateThresh)
 {
+	m_deltaTwist.resize(6, mp_nodeGraph->nodeIdx.size());
+
 	Eigen::MatrixXf ATA, ATAs, ATAsym;
 	Eigen::VectorXf ATb, ATbs, ATbsym;
 	Eigen::MatrixXf ATA_sil; 
@@ -589,6 +592,7 @@ void ShapeSolver::solveNonrigidDeform(int maxIterTime, float updateThresh)
 
 	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
 	{
+		std::cout << "iterTime: " << iterTime << std::endl; 
 		for (int obid = 0; obid < obs.size(); obid++)
 		{
 			SetPose(obs[obid].pose);
@@ -606,35 +610,42 @@ void ShapeSolver::solveNonrigidDeform(int maxIterTime, float updateThresh)
 			usedviews = obs[obid].usedViews;
 
 			CalcDeformTerm_sil(ATA_sil, ATb_sil);
-			//CalcSmthTerm(ATAs, ATbs);
-			CalcSymTerm(ATAsym, ATbsym);
 			//Eigen::MatrixXf ATA_point; 
 			//Eigen::VectorXf ATb_point; 
 			//CalcPointTerm(ATA_point, ATb_point); 
 
-			Eigen::MatrixXf ATA_lap; 
-			Eigen::VectorXf ATb_lap;
-			CalcLaplacianTerm(ATA_lap, ATb_lap); 
 
-			CalcEarTerm(ATA_ear, ATb_ear); 
-			ATA += ATA_ear * w_ear; 
-			ATb += ATb_ear * w_ear; 
 
-			//ATA += ATAs * m_wSmth;
-			//ATb += ATbs * m_wSmth;
+			//CalcEarTerm(ATA_ear, ATb_ear); 
+			//ATA += ATA_ear * w_ear; 
+			//ATb += ATb_ear * w_ear; 
+
+
 			//ATA += ATA_point * w_point; 
 			//ATb += ATb_point * w_point; 
-			ATA += ATAsym * m_wSym;
-			ATb += ATbsym * m_wSym;
 
-			ATA += ATA_lap * w_lap; 
-			ATb += ATb_lap * w_lap; 
+
+
 
 			ATA += ATA_sil * w_sil;
 			ATb += ATb_sil * w_sil;
 		}
+		CalcSymTerm(ATAsym, ATbsym);
+		ATA += ATAsym * m_wSym;
+		ATb += ATbsym * m_wSym;
 
-		Eigen::MatrixXf ATAr(6 * mp_nodeGraph->nodeIdx.size(), 6 * mp_nodeGraph->nodeIdx.size());
+		CalcSmthTerm(ATAs, ATbs);
+		ATA += ATAs * m_wSmth;
+		ATb += ATbs * m_wSmth;
+
+		//Eigen::MatrixXf ATA_lap; 
+		//Eigen::VectorXf ATb_lap;
+		//CalcLaplacianTerm(ATA_lap, ATb_lap); 
+		//ATA += ATA_lap * w_lap; 
+		//ATb += ATb_lap * w_lap; 
+
+
+		Eigen::MatrixXf ATAr(paramNum, paramNum);
 		ATAr.setIdentity();
 
 		ATA += ATAr * m_wRegular;

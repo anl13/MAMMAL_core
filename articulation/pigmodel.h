@@ -75,8 +75,8 @@ public:
 		
 	void InitNodeAndWarpField(); 
 	void UpdateModelShapedByKNN(); // updateverticesdeformed
-	void SaveWarpField();
-	void LoadWarpField();
+	void SaveWarpField(std::string filename);
+	void LoadWarpField(std::string filename);
 
 	// public methods for latent code
 	void setLatent(Eigen::VectorXf _l) { m_latentCode = _l; }

@@ -15,6 +15,7 @@ void main()
 	//test_regressor(); 
 
 	//test_visdesigned();
-	test_lay();
+	//test_lay();
 
+	test_visanchors(); 
 }

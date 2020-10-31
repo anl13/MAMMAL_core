@@ -650,10 +650,10 @@ void PigModel::InitNodeAndWarpField()
 		m_warpField.middleCols(4 * i, 4).setIdentity();	
 }
 
-void PigModel::SaveWarpField()
+void PigModel::SaveWarpField(std::string filename)
 {
-	std::string filename = m_folder + "/warpfield.txt";
-	std::ofstream os(filename);
+	std::string filename1 = m_folder + "/" + filename;
+	std::ofstream os(filename1);
 	if (os.is_open())
 	{
 		os << m_warpField.transpose();
@@ -661,10 +661,10 @@ void PigModel::SaveWarpField()
 	}
 }
 
-void PigModel::LoadWarpField()
+void PigModel::LoadWarpField(std::string filename)
 {
-	std::string filename = m_folder + "/warpfield.txt";
-	std::ifstream is(filename);
+	std::string filename1 = m_folder + "/" + filename;
+	std::ifstream is(filename1);
 	if (is.is_open())
 	{
 		if (m_warpField.cols() == 0)

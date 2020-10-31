@@ -20,6 +20,20 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 		exit(-1);
 	}
 
+	std::string topo_type = root["topo"].asString();
+	m_skelTopo = getSkelTopoByType(topo_type);
+	// read optim pair;
+	m_skelCorr.clear();
+	for (auto const&c : root["optimize_pair"])
+	{
+		CorrPair pair;
+		pair.target = c[0].asInt();
+		pair.type = c[1].asInt();
+		pair.index = c[2].asInt();
+		pair.weight = c[3].asDouble();
+		m_skelCorr.push_back(pair);
+	}
+
 	// read basic params 
 	m_folder = root["folder"].asString();
 	m_jointNum = root["joint_num"].asInt();
@@ -257,6 +271,8 @@ void PigModelDevice::UpdateLocalSE3_host()
 		if (jointId == 0)
 		{
 			matrix.block<3, 3>(0, 0) = EulerToRotRad(pose);
+			//matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+
 			matrix.block<3, 1>(0, 3) = m_host_jointsDeformed[jointId] + m_host_translation;
 		}
 		else
@@ -418,4 +434,24 @@ std::vector<Eigen::Vector3f> PigModelDevice::RegressJointsPosed()
 		}
 	}
 	return joints; 
+}
+
+std::vector<Eigen::Vector3f>
+PigModelDevice::getRegressedSkel_host()
+{
+	int N = m_skelTopo.joint_num;
+	std::vector<Eigen::Vector3f> skels(N, Eigen::Vector3f::Zero());
+	for (int i = 0; i < m_skelCorr.size(); i++)
+	{
+		const CorrPair& P = m_skelCorr[i];
+		if (P.type == 1)
+		{
+			skels[P.target] += m_host_verticesPosed[P.index] * P.weight;
+		}
+		else
+		{
+			skels[P.target] += m_host_jointsPosed[P.index] * P.weight;
+		}
+	}
+	return skels;
 }

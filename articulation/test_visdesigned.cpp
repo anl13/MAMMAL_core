@@ -48,6 +48,10 @@ std::vector<std::pair<int, int> > config = {
 {9300, 500}
 }; 
 
+std::vector<int> pig_id = {
+
+};
+
 //std::vector <std::vector<Eigen::Vector3f> > readAllJoints()
 //{
 //	std::vector<std::vector<Eigen::Vector3f> > all_joints; 
@@ -112,7 +116,7 @@ int test_visdesigned()
 	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
 	MeshEigen ballMeshEigen(ballMesh);
 	MeshEigen stickMeshEigen(stickMesh);
-
+	  
 	// model data 
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
 	PigModelDevice smal(smal_config);
@@ -331,6 +335,16 @@ int test_visdesigned()
 }
 
 
+std::vector<Eigen::Vector3f> swap_leg(std::vector<Eigen::Vector3f> pose1, std::vector<Eigen::Vector3f> pose2,
+	std::vector<int> leg1, std::vector<int> leg2)
+{
+	std::vector<Eigen::Vector3f> pose = pose1; 
+	for (int i = 0; i < 4; i++)
+	{
+		pose[leg1[i]] = pose2[leg2[i]];
+	}
+	return pose; 
+}
 
 int test_lay()
 {
@@ -342,31 +356,151 @@ int test_lay()
 	pig.readState(state_file_0); 
 	pose0 = pig.GetPose(); 
 	pig.UpdateVertices(); 
-	pig.saveObj("lay/pose0.obj");
+	//pig.saveObj("lay/pose0.obj");
 
 	std::vector<Eigen::Vector3f> pose1; 
-	std::string state_file_1 = "H:/pig_results_debug/state/pig_3_frame_000682.txt";
+	std::string state_file_1 = "H:/annotated_state/pig_3_frame_000682.txt";
 	pig.readState(state_file_1); 
 	Eigen::Vector3f trans = pig.GetTranslation();
 	trans(0) = 0; trans(1) = 0; 
 	pig.SetTranslation(trans); 
 	pose1 = pig.GetPose(); 
 	pig.UpdateVertices(); 
-	pig.saveObj("lay/pose1.obj"); 
+	//pig.saveObj("lay/pose1.obj"); 
 
-	std::vector<Eigen::Vector3f> pose2; 
-	pose2 = pose0; 
+	
 	std::vector<int> left_front_leg = { 13,14,15,16};
 	std::vector<int> right_front_leg = { 5,6,7,8 };
 	std::vector<int> right_back_leg = { 38,39,40,41 };
 	std::vector<int> left_back_leg = { 54,55,56,57 };
-	for (int i = 0; i < 4; i++)
-	{
-		pose2[left_back_leg[i]] = pose1[right_back_leg[i]];
-	}
-	pig.SetPose(pose2); 
-	pig.UpdateVertices(); 
-	pig.saveObj("lay/pose2.obj");
+	
+	std::vector<std::vector<int> > all_legs = { left_front_leg, right_front_leg, left_back_leg, right_back_leg };
 
+	std::vector<std::vector<int> > swap_types = {
+		{}, {0}, {1}, {2}, {3}, {0,1}, {0,2}, {0,3}, {1,2}, {1,3}, {2,3}, {0,1,2}, {0,2,3}, {0,1,3}, {1,2,3},
+	{0,1,2,3}
+	};
+	
+	for (int i = 0; i < swap_types.size(); i++)
+	{
+		std::vector<Eigen::Vector3f> pose2 = pose0;
+		for (int k = 0; k < swap_types[i].size(); k++)
+		{
+			pose2 = swap_leg(pose2, pose1, all_legs[swap_types[i][k]], all_legs[swap_types[i][k]]);
+		}
+
+		pig.SetPose(pose2);
+		pig.UpdateVertices();
+		
+		pig.saveObj("lay/pose" + std::to_string(i) +".obj");
+		pig.saveState("lay/pose" + std::to_string(i) + ".txt");
+	}
+	
+	system("pause");
 	return 0; 
+}
+
+
+
+
+int test_leg()
+{
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
+	PigModelDevice pig(smal_config);
+
+	std::vector<Eigen::Vector3f> pose0;  // generate by sample
+	std::string state_file_0 = "H:/annotated_state/pig_1_frame_000130.txt";
+	pig.readState(state_file_0);
+	pose0 = pig.GetPose();
+	pig.UpdateVertices();
+	pig.saveState("leg/pose0.txt");
+	pig.saveObj("leg/pose0.obj");
+
+	std::vector<Eigen::Vector3f> pose1;
+	std::string state_file_1 = "F:/projects/model_preprocess/designed_pig/pig_prior/c++/state_eulerglobal_002099.txt";
+	pig.readState(state_file_1);
+	Eigen::Vector3f trans = pig.GetTranslation();
+	trans(0) = 0; trans(1) = 0;
+	pig.SetTranslation(trans);
+	pose1 = pig.GetPose();
+	pig.UpdateVertices();
+	pig.saveState("leg/pose1.txt");
+	pig.saveObj("leg/pose1.obj");
+
+	system("pause");
+	return 0;
+}
+
+
+
+int test_visanchors()
+{
+	std::cout << "In render scene now!" << std::endl;
+
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+	std::vector<Camera> cams = readCameras();
+
+	// init a camera 
+	Eigen::Matrix3f K = cams[0].K;
+	K.row(0) /= 1920;
+	K.row(1) /= 1080;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << 0.182088, 0.260274, 0.94821;
+	Eigen::Vector3f pos; pos << -1.13278, -1.31876, 0.559579;
+	Eigen::Vector3f center; center << -0.223822, -0.243763, 0.0899532;
+
+
+	// init renderer 
+	Renderer::s_Init();
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+	//m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
+
+	// init element obj
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	// model data 
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
+	PigModelDevice smal(smal_config);
+
+	PigSolverDevice solver(smal_config);
+
+	for (int i = 0; i < solver.m_anchor_lib.anchors.size(); i++)
+	{
+		m_renderer.clearAllObjs();
+
+
+		
+		solver.SetTranslation(solver.m_anchor_lib.anchors[i].translation);
+		solver.SetPose(solver.m_anchor_lib.anchors[i].pose); 
+		solver.UpdateVertices();
+		solver.UpdateNormalFinal(); 
+
+		RenderObjectColor* p_model = new RenderObjectColor();
+		p_model->SetVertices(solver.GetVertices());
+		p_model->SetNormal(solver.GetNormals()); 
+		p_model->SetFaces(solver.GetFacesVert());
+		p_model->SetColor(CM[0]);
+
+		m_renderer.colorObjs.push_back(p_model); 
+		
+		m_renderer.createScene(conf_projectFolder);
+		m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+		m_renderer.Draw();
+		cv::Mat img = m_renderer.GetImage();
+		std::stringstream outss;
+		outss << "pose_libs_vis/anchor_" << i << ".png";
+		cv::imwrite(outss.str(), img);
+	}
+
+
+	return 0;
 }

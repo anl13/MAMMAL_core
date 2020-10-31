@@ -510,3 +510,10 @@ Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiFNumeric(const Eigen::Vec
 	return dR; 
 }
 
+std::vector<Eigen::Vector3f> doubleToFloat(const std::vector<Eigen::Vector3d>& list)
+{
+	std::vector<Eigen::Vector3f> listf;
+	listf.resize(list.size()); 
+	for (int i = 0; i < list.size(); i++)listf[i] = list[i].cast<float>(); 
+	return listf;
+}

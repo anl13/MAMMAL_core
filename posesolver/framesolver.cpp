@@ -4,7 +4,7 @@
 #include "tracking.h"
 #include "../utils/timer_util.h" 
 
-void FrameSolver::configByJson(std::string jsonfile) 
+void FrameSolver::configByJson(std::string jsonfile)
 {
 	Json::Value root;
 	Json::CharReaderBuilder rbuilder;
@@ -46,13 +46,28 @@ void FrameSolver::configByJson(std::string jsonfile)
 		int id = c.asInt();
 		camids.push_back(id);
 	}
-	m_camids = camids; 
-	m_camNum = m_camids.size(); 
+	m_camids = camids;
+	m_camNum = m_camids.size();
 
 	instream.close();
-	mp_sceneData = std::make_shared<SceneData>(); 
-}
+	mp_sceneData = std::make_shared<SceneData>();
 
+	d_interDepth.resize(m_camNum); 
+	int H = WINDOW_HEIGHT;
+	int W = WINDOW_WIDTH;
+	for (int i = 0; i < m_camNum; i++)
+	{
+		cudaMalloc((void**)&d_interDepth[i], H * W * sizeof(float));
+	}
+}
+FrameSolver::~FrameSolver()
+{
+	for (int i = 0; i < m_camNum; i++)
+	{
+		cudaFree(d_interDepth[i]); 
+	}
+
+}
 
 void FrameSolver::reproject_skels()
 {
@@ -354,8 +369,6 @@ void FrameSolver::detNMS()
 
 }
 
-
-
 void FrameSolver::tracking() // naive 3d 2 3d tracking
 {
 	if (m_frameid == m_startid) {
@@ -388,47 +401,92 @@ void FrameSolver::tracking() // naive 3d 2 3d tracking
 
 void FrameSolver::solve_parametric_model()
 {
-	if (mp_bodysolverdevice.empty()) mp_bodysolverdevice.resize(4);
+	m_skels3d.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
-		if (mp_bodysolverdevice[i] == nullptr)
-		{
-			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
-			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
-			//mp_bodysolver[i]->InitNodeAndWarpField();
-			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
-			mp_bodysolverdevice[i]->m_undist_mask_chamfer = mp_sceneData->m_undist_mask_chamfer;
-			mp_bodysolverdevice[i]->m_scene_mask_chamfer = mp_sceneData->m_scene_mask_chamfer;
-			mp_bodysolverdevice[i]->m_pig_id = i;
-			std::cout << "init model " << i << std::endl;
-		}
+		mp_bodysolverdevice[i]->setSource(m_matched[i]);
+		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
+		mp_bodysolverdevice[i]->globalAlign();
+		setConstDataToSolver(i);
+		mp_bodysolverdevice[i]->optimizePose();
 	}
+
+	if (m_solve_sil_iters > 0)
+	{
+		optimizeSil(m_solve_sil_iters); 
+	}
+
+	for(int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->postProcessing();
+		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
+	}
+
+	// postprocess
+	m_last_matched = m_matched; 
+}
+
+
+void FrameSolver::solve_parametric_model_pipeline2()
+{
+	m_skels3d.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->setSource(m_matched[i]);
+		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
+		mp_bodysolverdevice[i]->globalAlign();
+		setConstDataToSolver(i);
+		
+		std::vector<ROIdescripter> rois;
+		getROI(rois, i);
+		mp_bodysolverdevice[i]->setROIs(rois);
+		mp_bodysolverdevice[i]->searchAnchorSpace();
+		mp_bodysolverdevice[i]->optimizeAnchor(mp_bodysolverdevice[i]->m_anchor_id);
+
+		//mp_bodysolverdevice[i]->optimizePoseWithAnchor();
+	}
+
+	if (m_solve_sil_iters > 0)
+	{
+		optimizeSilWithAnchor(m_solve_sil_iters);
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->postProcessing();
+		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
+	}
+
+	// postprocess
+	m_last_matched = m_matched;
+}
+
+// This pipeline only search for best anchor point
+void FrameSolver::solve_parametric_model_pipeline3()
+{
+	init_parametric_solver(); 
 
 	m_skels3d.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]);
 		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
-		//if( (m_frameid - m_startid) % 25 == 0) // update scale parameter every  seconds 
 		mp_bodysolverdevice[i]->globalAlign();
 		setConstDataToSolver(i);
-		mp_bodysolverdevice[i]->optimizePose();
-		TimerUtil::Timer<std::chrono::milliseconds> tt;
-		if (m_solve_sil_iters > 0)
-		{
-			if (i < 4) {
-				//std::vector<ROIdescripter> rois;
-				//getROI(rois, i);
-				//mp_bodysolverdevice[i]->setROIs(rois);
+		// mask are necessary for measure anchor point
+		std::vector<ROIdescripter> rois;
+		getROI(rois, i);
+		mp_bodysolverdevice[i]->setROIs(rois);
+		mp_bodysolverdevice[i]->searchAnchorSpace();
+		mp_bodysolverdevice[i]->optimizeAnchor(mp_bodysolverdevice[i]->m_anchor_id);
+	}
 
-				tt.Start();
-				mp_bodysolverdevice[i]->optimizePoseSilhouette(m_solve_sil_iters);
-				std::cout << "solve sil elapsed: " << tt.Elapsed() << " ms" << std::endl;
+	// postprocess
+	m_last_matched = m_matched;
 
-			}
-		}
+	for (int i = 0; i < 4; i++)
+	{
 		mp_bodysolverdevice[i]->postProcessing();
-
 		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
 	}
 }
@@ -485,21 +543,7 @@ void FrameSolver::save_parametric_data()
 
 void FrameSolver::read_parametric_data()
 {
-	if (mp_bodysolverdevice.empty()) mp_bodysolverdevice.resize(4);
-	m_skels3d.resize(4);
-	for (int i = 0; i < 4; i++)
-	{
-		if (mp_bodysolverdevice[i] == nullptr)
-		{
-			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
-			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
-			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
-			mp_bodysolverdevice[i]->m_pig_id = i;
-			mp_bodysolverdevice[i]->m_undist_mask_chamfer = mp_sceneData->m_undist_mask_chamfer;
-			mp_bodysolverdevice[i]->m_scene_mask_chamfer = mp_sceneData->m_scene_mask_chamfer;
-			std::cout << "init model " << i << std::endl;
-		}
-	}
+	init_parametric_solver(); 
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -585,87 +629,6 @@ void FrameSolver::matching_by_tracking()
 	}
 }
 
-void FrameSolver::pureTracking()
-{
-	m_skels3d_last = m_skels3d;
-	std::vector<std::vector<std::vector<Eigen::Vector3f> > > skels2d;
-	skels2d.resize(4);
-	for (int i = 0; i < 4; i++)
-	{
-		skels2d[i] = mp_bodysolverdevice[i]->getSkelsProj();
-	}
-	m_clusters.clear();
-	m_clusters.resize(4);
-	for (int pid = 0; pid < 4; pid++)m_clusters[pid].resize(m_camNum, -1);
-
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		Eigen::MatrixXf sim;
-		int boxnum = m_detUndist[camid].size();
-		sim.resize(4, boxnum);
-		for (int i = 0; i < 4; i++)
-		{
-			for (int j = 0; j < boxnum; j++)
-			{
-
-				float dist = distSkel2DTo2D(skels2d[i][camid],
-					m_detUndist[camid][j].keypoints,
-					m_topo);
-				sim(i, j) = dist;
-			}
-
-		}
-		std::vector<int> mm = solveHungarian(sim);
-
-		for (int i = 0; i < 4; i++)
-		{
-			if (mm[i] >= 0)
-			{
-				int candid = mm[i];
-				if (sim(i, candid) > 100000)continue;
-				else m_clusters[i][camid] = candid;
-			}
-		}
-	}
-
-	// post processing to get matched data
-	m_matched.clear();
-	m_matched.resize(m_clusters.size());
-	vector<vector<bool> > be_matched;
-	be_matched.resize(m_camNum);
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		be_matched[camid].resize(m_detUndist[camid].size(), false);
-	}
-
-	for (int i = 0; i < m_clusters.size(); i++)
-	{
-		m_matched[i].view_ids.clear();
-		m_matched[i].dets.clear();
-		for (int camid = 0; camid < m_camNum; camid++)
-		{
-			int candid = m_clusters[i][camid];
-			if (candid < 0) continue;
-			be_matched[camid][candid] = true;
-			m_matched[i].view_ids.push_back(camid);
-			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
-
-		}
-	}
-
-	m_unmatched.clear();
-	m_unmatched.resize(m_camNum);
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		for (int candid = 0; candid < be_matched[camid].size(); candid++)
-		{
-			if (!be_matched[camid][candid])
-			{
-				m_unmatched[camid].push_back(m_detUndist[camid][candid]);
-			}
-		}
-	}
-}
 
 void FrameSolver::save_clusters()
 {
@@ -828,18 +791,421 @@ void FrameSolver::setConstDataToSolver(int id)
 		exit(-1);
 	}
 
-	if (!mp_bodysolverdevice[id]->init_backgrounds)
+	if (m_use_gpu)
 	{
-		for (int i = 0; i < 10; i++)
-			cudaMemcpy(mp_bodysolverdevice[id]->d_const_scene_mask[i], 
-				mp_sceneData->m_scene_masks[i].data,
+		if (!mp_bodysolverdevice[id]->init_backgrounds)
+		{
+			for (int i = 0; i < m_camNum; i++)
+				cudaMemcpy(mp_bodysolverdevice[id]->d_const_scene_mask[i],
+					mp_sceneData->m_scene_masks[i].data,
+					1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
+			cudaMemcpy(mp_bodysolverdevice[id]->d_const_distort_mask,
+				mp_sceneData->m_undist_mask.data,
 				1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
-		cudaMemcpy(mp_bodysolverdevice[id]->d_const_distort_mask, 
-			mp_sceneData->m_undist_mask.data,
-			1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
-		mp_bodysolverdevice[id]->init_backgrounds = true;
+			mp_bodysolverdevice[id]->init_backgrounds = true;
+		}
+	}
+	else {
+		if (!mp_bodysolverdevice[id]->init_backgrounds)
+		{
+			mp_bodysolverdevice[id]->c_const_scene_mask = mp_sceneData->m_scene_masks;
+			mp_bodysolverdevice[id]->c_const_distort_mask = mp_sceneData->m_undist_mask; 
+			mp_bodysolverdevice[id]->init_backgrounds = true; 
+		}
 	}
 	mp_bodysolverdevice[id]->m_pig_id = id;
 	mp_bodysolverdevice[id]->m_det_masks = drawMask();
 
+}
+
+
+void FrameSolver::pureTracking()
+{
+	m_skels3d_last = m_skels3d;
+	std::vector<std::vector<std::vector<Eigen::Vector3f> > > skels2d;
+	skels2d.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		skels2d[i] = mp_bodysolverdevice[i]->getSkelsProj();
+	}
+	m_clusters.clear();
+	m_clusters.resize(4);
+	for (int pid = 0; pid < 4; pid++)m_clusters[pid].resize(m_camNum, -1);
+
+	float threshold = 500; 
+	//renderInteractDepth(true); 
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		Eigen::MatrixXf sim;
+		int boxnum = m_detUndist[camid].size();
+		sim.resize(4, boxnum);
+		for (int i = 0; i < 4; i++)
+		{
+			for (int j = 0; j < boxnum; j++)
+			{
+				float dist = distSkel2DTo2D(skels2d[i][camid],
+					m_detUndist[camid][j].keypoints,
+					m_topo);
+
+				int viewid = find_in_list(camid, m_last_matched[i].view_ids);
+				float dist2;
+				if (viewid < 0) dist2 = dist; 
+				else
+				{
+					dist2 = distSkel2DTo2D(m_last_matched[i].dets[viewid].keypoints,
+						m_detUndist[camid][j].keypoints,
+						m_topo); // calc last 2D detection to current detection
+				}
+				sim(i, j) = dist + dist2;
+
+				if (sim(i, j) > threshold) sim(i, j) = threshold;
+			}
+		}
+
+		//std::cout << "sim: " << camid << std::endl << sim << std::endl;
+
+		std::vector<int> mm = solveHungarian(sim);
+
+		//for (int i = 0; i < mm.size(); i++)
+		//	std::cout << mm[i] << "  ";
+		//std::cout << std::endl; 
+
+		for (int i = 0; i < 4; i++)
+		{
+			if (mm[i] >= 0)
+			{
+				int candid = mm[i];
+				if (sim(i, candid) >= threshold)continue;
+				else m_clusters[i][camid] = candid;
+			}
+		}
+	}
+
+	// post processing to get matched data
+	m_matched.clear();
+	m_matched.resize(m_clusters.size());
+	vector<vector<bool> > be_matched;
+	be_matched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		be_matched[camid].resize(m_detUndist[camid].size(), false);
+	}
+
+	for (int i = 0; i < m_clusters.size(); i++)
+	{
+		m_matched[i].view_ids.clear();
+		m_matched[i].dets.clear();
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			int candid = m_clusters[i][camid];
+			if (candid < 0) continue;
+			be_matched[camid][candid] = true;
+			m_matched[i].view_ids.push_back(camid);
+			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
+
+		}
+	}
+
+	m_unmatched.clear();
+	m_unmatched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int candid = 0; candid < be_matched[camid].size(); candid++)
+		{
+			if (!be_matched[camid][candid])
+			{
+				m_unmatched[camid].push_back(m_detUndist[camid][candid]);
+			}
+		}
+	}
+}
+
+void FrameSolver::init_parametric_solver()
+{
+	if (mp_bodysolverdevice.empty()) mp_bodysolverdevice.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		if (mp_bodysolverdevice[i] == nullptr)
+		{
+			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
+			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
+			//mp_bodysolver[i]->InitNodeAndWarpField();
+			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
+			mp_bodysolverdevice[i]->m_undist_mask_chamfer = mp_sceneData->m_undist_mask_chamfer;
+			mp_bodysolverdevice[i]->m_scene_mask_chamfer = mp_sceneData->m_scene_mask_chamfer;
+			mp_bodysolverdevice[i]->m_pig_id = i;
+			if (mp_bodysolverdevice[i]->m_use_gpu != m_use_gpu)
+			{
+				std::cout << "Sorry! please agree on use gpu or not. " << std::endl; 
+				system("pause"); 
+				exit(-1); 
+			}
+			std::cout << "init model " << i << std::endl;
+		}
+	}
+}
+
+
+void FrameSolver::renderInteractDepth(bool withmask)
+{
+	if(withmask)
+		if (m_interMask.size() != m_camNum) m_interMask.resize(m_camNum); 
+	std::vector<Eigen::Vector3f> id_colors = {
+		{1.0f, 0.0f,0.0f},
+	{0.0f, 1.0f, 0.0f},
+	{0.0f, 0.0f, 1.0f},
+	{1.0f, 1.0f, 0.0f}
+	};
+	mp_renderEngine->clearAllObjs();
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->UpdateNormalFinal();
+		RenderObjectColor* p_model = new RenderObjectColor();
+		p_model->SetVertices(mp_bodysolverdevice[i]->GetVertices());
+		p_model->SetFaces(mp_bodysolverdevice[i]->GetFacesVert());
+		p_model->SetNormal(mp_bodysolverdevice[i]->GetNormals());
+		p_model->SetColor(id_colors[i]);
+		mp_renderEngine->colorObjs.push_back(p_model);
+	}
+
+	for (int view = 0; view < m_camNum; view++)
+	{
+		int camid = view; 
+		Camera cam = m_camsUndist[camid];
+		mp_renderEngine->s_camViewer.SetExtrinsic(cam.R, cam.T);
+
+		float * depth_device = mp_renderEngine->renderDepthDevice();
+		cudaMemcpy(d_interDepth[view], depth_device, 
+			WINDOW_WIDTH*WINDOW_HEIGHT * sizeof(float),
+			cudaMemcpyDeviceToDevice);
+		
+		if (withmask)
+		{
+			mp_renderEngine->Draw("mask"); 
+			m_interMask[view] = mp_renderEngine->GetImage();
+		}
+	}
+
+	mp_renderEngine->clearAllObjs();
+	
+	for (int pid = 0; pid < mp_bodysolverdevice.size(); pid++)
+	{
+		for (int i = 0; i < m_camNum; i++)
+		{
+			cudaMemcpy(mp_bodysolverdevice[pid]->d_depth_renders_interact[i],
+				d_interDepth[i], WINDOW_WIDTH*WINDOW_HEIGHT * sizeof(float),
+				cudaMemcpyDeviceToDevice);
+		}
+	}
+}
+
+void FrameSolver::optimizeSil(int maxIterTime)
+{
+	for (int pid = 0; pid < 4; pid++)
+	{
+		mp_bodysolverdevice[pid]->generateDataForSilSolver(); 
+		if (!m_use_gpu)
+		{
+			std::vector<ROIdescripter> rois;
+			getROI(rois, pid);
+			mp_bodysolverdevice[pid]->setROIs(rois);
+		}
+	}
+
+	int iter = 0; 
+	for (; iter < maxIterTime; iter++)
+	{
+		renderInteractDepth(); 
+		for (int pid = 0; pid < 4; pid++)
+		{
+			mp_bodysolverdevice[pid]->optimizePoseSilOneStep(iter); 
+		}
+	}
+}
+
+void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
+{
+	for (int pid = 0; pid < 4; pid++)
+	{
+		mp_bodysolverdevice[pid]->generateDataForSilSolver();
+		if (!m_use_gpu)
+		{
+			std::vector<ROIdescripter> rois;
+			getROI(rois, pid);
+			mp_bodysolverdevice[pid]->setROIs(rois);
+		}
+	}
+
+	int iter = 0;
+	for (; iter < maxIterTime; iter++)
+	{
+		renderInteractDepth();
+		for (int pid = 0; pid < 4; pid++)
+		{
+			mp_bodysolverdevice[pid]->optimizePoseSilWithAnchorOneStep(iter);
+		}
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->postProcessing();
+		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
+	}
+	m_last_matched = m_matched;
+
+}
+
+void FrameSolver::saveAnchors(std::string folder)
+{
+	std::stringstream ss; 
+	ss << folder << "/anchor_" << std::setw(6) << std::setfill('0') << m_frameid <<
+		".txt"; 
+	std::ofstream outfile(ss.str()); 
+	for(int i = 0; i < 4; i++)
+	    outfile << mp_bodysolverdevice[i]->m_anchor_id << std::endl; 
+	outfile.close(); 
+}
+
+void FrameSolver::loadAnchors(std::string folder, bool andsolve)
+{
+	std::stringstream ss; 
+	ss << folder << "/anchor_" << std::setw(6) << std::setfill('0') << m_frameid <<
+		".txt";
+	std::ifstream infile(ss.str()); 
+	m_skels3d.resize(4); 
+	for (int i = 0; i < 4; i++)
+	{
+		if (andsolve)
+		{
+			mp_bodysolverdevice[i]->setSource(m_matched[i]);
+			mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
+			mp_bodysolverdevice[i]->globalAlign();
+			setConstDataToSolver(i);
+			// mask are necessary for measure anchor point
+			std::vector<ROIdescripter> rois;
+			getROI(rois, i);
+			mp_bodysolverdevice[i]->setROIs(rois);
+		}
+
+		infile >> mp_bodysolverdevice[i]->m_anchor_id;
+
+		if(andsolve)
+			mp_bodysolverdevice[i]->optimizeAnchor(mp_bodysolverdevice[i]->m_anchor_id);
+	}
+
+	if(andsolve)
+	if (m_solve_sil_iters > 0)
+	{
+		optimizeSilWithAnchor(m_solve_sil_iters);
+	}
+
+	if(andsolve)
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->postProcessing();
+		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
+	}
+	
+	infile.close(); 
+	// postprocess
+	m_last_matched = m_matched;
+}
+
+void FrameSolver::nmsKeypointCands(std::vector<Eigen::Vector3f>& list)
+{
+	std::vector<Eigen::Vector3f> raw = list; 
+	list.clear(); 
+	for (int i = 0; i < raw.size(); i++)
+	{
+		if (i == 0) list.push_back(raw[i]); 
+		else
+		{
+			bool repeat = false; 
+			for (int j = 0; j < list.size(); j++)
+			{
+				Eigen::Vector3f diff = list[j] - raw[i];
+				float d = diff.norm(); 
+				if (d < 20)
+				{
+					repeat = true;
+					break; 
+				}
+			}
+			if (!repeat) list.push_back(raw[i]);
+		}
+	}
+}
+
+void FrameSolver::splitDetKeypoints()
+{
+	m_keypoints_pool.resize(m_camNum); 
+	for (int view = 0; view < m_camNum; view++)
+	{
+		m_keypoints_pool[view].resize(m_topo.joint_num); 
+		for (int candid = 0; candid < m_keypoints_undist[view].size(); candid++)
+		{
+			for (int jid = 0; jid < m_topo.joint_num; jid++)
+			{
+				if (m_keypoints_undist[view][candid][jid].norm() > 0)
+				{
+					m_keypoints_pool[view][jid].push_back(m_keypoints_undist[view][candid][jid]);
+				}
+			}
+		}
+	}
+
+	// nms 
+	for (int view = 0; view < m_camNum; view++)
+	{
+		for (int jid = 0; jid < m_topo.joint_num; jid++)
+		{
+			nmsKeypointCands( m_keypoints_pool[view][jid]);
+		}
+	}
+}
+
+void FrameSolver::reAssociateKeypoints()
+{
+	m_keypoints_associated.resize(4); 
+	for (int i = 0; i < 4; i++)
+	{
+		m_keypoints_associated[i].resize(m_camNum); 
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+
+		}
+	}
+}
+
+
+
+void FrameSolver::solve_parametric_model_optimonly()
+{
+	m_skels3d.resize(4);
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->setSource(m_matched[i]);
+		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
+		mp_bodysolverdevice[i]->globalAlign();
+		setConstDataToSolver(i);
+
+		std::vector<ROIdescripter> rois;
+		getROI(rois, i);
+		mp_bodysolverdevice[i]->setROIs(rois);
+		mp_bodysolverdevice[i]->m_w_anchor_term = 0.001;
+	}
+
+	if (m_solve_sil_iters > 0)
+	{
+		optimizeSilWithAnchor(m_solve_sil_iters);
+	}
+
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->postProcessing();
+		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
+	}
+
+	// postprocess
+	m_last_matched = m_matched;
 }

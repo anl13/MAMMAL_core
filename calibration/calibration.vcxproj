@@ -73,6 +73,7 @@
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\opencv450.props" />
+    <Import Project="..\props\gl-pcl.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -121,7 +122,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\associate\skel.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\renderer.cpp" />
     <ClCompile Include="..\render\render_object.cpp" />
@@ -131,16 +131,23 @@
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
-    <ClCompile Include="..\utils\model.cpp" />
-    <ClCompile Include="annotator.cpp" />
+    <ClCompile Include="..\utils\mesh.cpp" />
+    <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="BASolver.cpp" />
     <ClCompile Include="calibration.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="annotator.h" />
+    <ClInclude Include="..\render\cuda_utils_render.h" />
+    <ClInclude Include="..\utils\image_utils.h" />
+    <ClInclude Include="..\utils\math_utils.h" />
+    <ClInclude Include="..\utils\mesh.h" />
+    <ClInclude Include="..\utils\skel.h" />
     <ClInclude Include="BASolver.h" />
     <ClInclude Include="calibration.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

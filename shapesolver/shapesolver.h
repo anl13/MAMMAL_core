@@ -56,8 +56,8 @@ public:
 	float m_maxDist = 0.35;
 	float w_point = 0.1; 
 	float m_wSym = 4;
-	float w_lap = 1; 
-	float w_sil = 0.002;
+	float w_lap = 5; 
+	float w_sil = 0.00001;
 	float w_ear = 0.001;
 	float m_maxAngle = float(EIGEN_PI) / 6;
 	Eigen::Matrix<float, -1, -1, Eigen::ColMajor> m_vertJacobiNode;

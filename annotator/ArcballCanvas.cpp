@@ -128,11 +128,7 @@ Eigen::Vector3f ArcballCanvas::Project2Arcball(Eigen::Vector2f& p)
 
 void ArcballCanvas::RotateViewport(const Vector2i &p, const Vector2i &rel)
 {
-
 #if 1
-	// 2020/10/17
-	// this is wired, p.x + rel.x is ok, but p.x is not ok. 
-	// I trully cant understand now. 
 	Eigen::Vector2f nowPos = Eigen::Vector2f(p.x() + rel.x(), p.y() + rel.y());
 	const Eigen::Vector3f camCenter = center; 
 	const Eigen::Vector3f camPos = pos; 
@@ -243,7 +239,6 @@ void ArcballCanvas::ZoomViewport(const Vector2i &p, const Vector2f &rel)
 
 bool ArcballCanvas::mouse_drag_event(const Vector2i &p, const Vector2i &rel, int button, int modifiers)
 {
-
 	if (button == GLFW_MOUSE_BUTTON_LEFT + 1) 
 	{ // left button rotate 
 		RotateViewport(p, rel);
@@ -252,4 +247,18 @@ bool ArcballCanvas::mouse_drag_event(const Vector2i &p, const Vector2i &rel, int
 		TranslateViewport(p, rel);
 	}
 	return true;
+}
+
+
+bool ArcballCanvas::keyboard_event(int key, int scancode, int action, int modifiers)
+{
+	std::cout << "key: " << key << "  scancode: " << scancode << "  action: " << action << "  modifier: " << modifiers << std::endl; 
+
+	return true; 
+}
+
+bool ArcballCanvas::keyboard_character_event(unsigned int codepoint)
+{
+	std::cout << "code point: " << codepoint << std::endl; 
+	return true; 
 }

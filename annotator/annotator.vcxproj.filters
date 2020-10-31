@@ -164,6 +164,9 @@
     <ClCompile Include="ArcballCanvas.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\gpuutils.cu">
@@ -181,5 +184,9 @@
     <CudaCompile Include="..\render\cuda_utils_render.cu">
       <Filter>other</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\articulation\artist_config.json" />
+    <None Include="..\articulation\artist_config_sym.json" />
   </ItemGroup>
 </Project>

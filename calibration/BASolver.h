@@ -22,7 +22,8 @@ public:
 	void setObs(const std::vector<std::vector<Eigen::Vector2d> >& in_obs) {
 		m_obs = in_obs;
 	}
-	void addMarker(const vector<Vec3>& marks, const Vec3& mark3d); 
+	void addMarker(const vector<Eigen::Vector3d>& marks, const Eigen::Vector3d& mark3d); 
+	void addMarkerF(const vector<Eigen::Vector3f>& marks, const Eigen::Vector3f& mark3d); 
 
 	void initMarkers(vector<int> camids, int pointNum); 
 	void readInit(std::string _folder);
@@ -31,6 +32,11 @@ public:
 	std::vector<Eigen::Vector3d> getAddedPoints(){return m_added_points;}
 	std::vector<Eigen::Vector3d> getRvecs() { return m_rvecs;  }
 	std::vector<Eigen::Vector3d> getTvecs() { return m_tvecs;  }
+	std::vector<Eigen::Vector3f> getPointsF();
+	std::vector<Eigen::Vector3f> getAddedPointsF();
+	std::vector<Eigen::Vector3f> getRvecsF(); 
+	std::vector<Eigen::Vector3f> getTvecsF(); 
+	
 	double getRatio() {return m_ratio; }
 	void solve_again(); 
 
@@ -39,7 +45,7 @@ private:
 	/// observations 
 	std::string m_folder; 
 	std::vector<std::vector<Eigen::Vector2d>> m_obs; // 2d points on image plane 
-	std::vector<std::vector<Vec3> > m_added_markers; // [pid, camid], is x < 0, then invisible. 
+	std::vector<std::vector<Eigen::Vector3d> > m_added_markers; // [pid, camid], is x < 0, then invisible. 
 	int last_add_marker_id; 
 	/// variables to solve 
 	double m_ratio; 

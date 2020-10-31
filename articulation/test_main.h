@@ -37,3 +37,5 @@ void test_regressor();
 int test_visdesigned(); 
 
 int test_lay(); 
+int test_leg();
+int test_visanchors(); 

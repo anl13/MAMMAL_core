@@ -4,6 +4,8 @@
 #include "../render/render_object.h"
 #include "../render/render_utils.h"
 
+#include "../utils/image_utils.h"
+
 std::vector<Camera> readCameras()
 {
 	std::vector<Camera> cams; 
@@ -23,9 +25,9 @@ std::vector<Camera> readCameras()
 			std::cout << "can not open file " << ss.str() << std::endl;
 			exit(-1);
 		}
-		Vec3 rvec, tvec;
+		Eigen::Vector3f rvec, tvec;
 		for (int i = 0; i < 3; i++) {
-			double a;
+			float a;
 			camfile >> a;
 			rvec(i) = a;
 		}
@@ -36,7 +38,7 @@ std::vector<Camera> readCameras()
 			tvec(i) = a;
 		}
 
-		Camera camUndist = getDefaultCameraUndist();
+		Camera camUndist = Camera::getDefaultCameraUndist();
 		camUndist.SetRT(rvec, tvec);
 		cams.push_back(camUndist);
 		camfile.close();
@@ -108,22 +110,22 @@ void show_scene()
 	m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[0].T.cast<float>());
 
 	// init element obj
-	const ObjData ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	const ObjData stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	const ObjData squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
-	const ObjData cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	const Mesh ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	const Mesh stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	const Mesh squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
+	const Mesh cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
 	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareObj.faces, false);
-	chess_floor->SetVertices(squareObj.vertices);
-	chess_floor->SetTexcoords(squareObj.texcoords);
+	chess_floor->SetFaces(squareObj.faces_v_vec);
+	chess_floor->SetVertices(squareObj.vertices_vec);
+	chess_floor->SetTexcoords(squareObj.textures_vec);
 	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 
 	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
-	std::vector<Eigen::Vector3d> points = read_points(point_file);
-	std::vector<Eigen::Vector3d> selected_points = points;
+	std::vector<Eigen::Vector3f> points = read_points(point_file);
+	std::vector<Eigen::Vector3f> selected_points = points;
 
 	std::vector<float> sizes(selected_points.size(), 0.05f);
 	std::vector<Eigen::Vector3f> balls, colors;

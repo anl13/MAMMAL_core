@@ -212,10 +212,21 @@ void BASolver::solve_init_calib(bool optim_points)
 	}
 }
 
-void BASolver::addMarker(const vector<Vec3>& marks, const Vec3& mark3d)
+void BASolver::addMarker(const vector<Eigen::Vector3d>& marks, const Eigen::Vector3d& mark3d)
 {
 	m_added_markers.push_back(marks); 
 	m_added_points.push_back(mark3d); 
+}
+
+void BASolver::addMarkerF(const vector<Eigen::Vector3f>& marks,
+	const Eigen::Vector3f& mark3d)
+{
+	std::vector<Eigen::Vector3d> marks_d; 
+	marks_d.resize(marks.size());
+	for (int i = 0; i < marks.size(); i++) marks_d[i] = marks[i].cast<double>();
+	m_added_markers.push_back(marks_d);
+
+	m_added_points.push_back(mark3d.cast<double>()); 
 }
 
 void BASolver::solve_again()
@@ -274,4 +285,25 @@ void BASolver::solve_again()
 	options.eta = 0.0001; 
 	Solver::Summary summary; 
 	Solve(options, &problem, &summary); 
+}
+
+
+std::vector<Eigen::Vector3f> BASolver::getPointsF()
+{
+	return doubleToFloat(m_points); 
+}
+
+std::vector<Eigen::Vector3f> BASolver::getAddedPointsF()
+{
+	return doubleToFloat(m_added_points); 
+}
+
+std::vector<Eigen::Vector3f> BASolver::getRvecsF()
+{
+	return doubleToFloat(m_rvecs); 
+}
+
+std::vector<Eigen::Vector3f> BASolver::getTvecsF()
+{
+	return doubleToFloat(m_tvecs); 
 }

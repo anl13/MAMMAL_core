@@ -11,9 +11,9 @@ Calibrator::Calibrator(std::string _folder)
 	m_camNum = m_camids.size(); 
     for(int i = 0; i < m_camNum; i++)
     {
-        auto raw_cam = getDefaultCameraRaw();
+        auto raw_cam = Camera::getDefaultCameraRaw();
         m_cams.push_back(raw_cam); 
-        auto undist_cam = getDefaultCameraUndist(); 
+        auto undist_cam = Camera::getDefaultCameraUndist(); 
         m_camsUndist.push_back(undist_cam); 
     }
 	m_K = m_camsUndist[0].K;
@@ -21,9 +21,9 @@ Calibrator::Calibrator(std::string _folder)
     getColorMap("anliang_rgb", m_CM); 
 }
  
-vector<Eigen::Vector2d> Calibrator::readMarkers(std::string filename)
+vector<Eigen::Vector2f> Calibrator::readMarkers(std::string filename)
 {
-	vector<Eigen::Vector2d> points; 
+	vector<Eigen::Vector2f> points; 
 	std::ifstream is(filename); 
 	if (!is.is_open())
 	{
@@ -36,7 +36,7 @@ vector<Eigen::Vector2d> Calibrator::readMarkers(std::string filename)
 		is >> x; 
 		if(is.eof()) break; 
 		is >> y; 
-		points.push_back(Eigen::Vector2d(x, y)); 
+		points.push_back(Eigen::Vector2f(x, y)); 
 	}
 	is.close(); 
 
@@ -45,7 +45,7 @@ vector<Eigen::Vector2d> Calibrator::readMarkers(std::string filename)
 
 void Calibrator::readAllMarkers(std::string folder)
 {
-	vector<vector<Eigen::Vector2d> > allPoints; 
+	vector<vector<Eigen::Vector2f> > allPoints; 
 	for (int i = 0; i < m_camids.size(); i++)
 	{
 		std::stringstream ss; 
@@ -64,17 +64,17 @@ void Calibrator::unprojectMarkers()
     // init 
     m_i_markers.resize(camNum); 
     // compute
-	Eigen::Matrix3d invK = m_K.inverse(); 
+	Eigen::Matrix3f invK = m_K.inverse(); 
 	for (int camid = 0; camid < camNum; camid++)
 	{
 		int pNum = m_markers[camid].size(); 
         m_i_markers[camid].resize(pNum); 
 		for (int i = 0; i < pNum; i++)
 		{
-			Eigen::Vector3d ph; 
+			Eigen::Vector3f ph; 
 			ph.block<2, 1>(0, 0) = m_markers[camid][i];
 			ph(2) = 1; 
-			Eigen::Vector3d pImagePlane = invK * ph; 
+			Eigen::Vector3f pImagePlane = invK * ph; 
 			m_i_markers[camid][i] = pImagePlane.segment<2>(0); 
 		}
 	}
@@ -148,25 +148,25 @@ void Calibrator::save_results(std::string result_folder)
 void Calibrator::evaluate()
 {
     // project initial markers 
-	vector<vector<Vec3> > projs; 
+	vector<vector<Eigen::Vector3f> > projs; 
 	projs.resize(m_camNum); 
 	std::cout << out_points.size() << std::endl; 
 	for(int v = 0; v < m_camNum; v++)
 	{
-		vector<Vec3> proj;
+		vector<Eigen::Vector3f> proj;
 		project(m_camsUndist[v], out_points, proj); 
 		projs[v] = proj; 
 	}
 
     // porject added markers 
-    vector<vector<Vec3> > projs_new; 
+    vector<vector<Eigen::Vector3f> > projs_new; 
     projs_new.resize(m_added.size()); 
     for(int i = 0; i < projs_new.size(); i++)
     {
         projs_new[i].resize(m_camNum); 
         for(int camid = 0; camid < m_camNum; camid++)
         {
-            Vec3 p2d = project(m_camsUndist[camid], out_points_new[i]);
+            Eigen::Vector3f p2d = project(m_camsUndist[camid], out_points_new[i]);
             projs_new[i][camid] = p2d; 
         }
     }
@@ -180,10 +180,10 @@ void Calibrator::evaluate()
     {
         for(int i = 0; i < m_markers[v].size(); i++)
         {
-            Vec2 gt = m_markers[v][i];
-            Vec3 projection = projs[v][i];
+            Eigen::Vector3f gt = m_markers[v][i];
+            Eigen::Vector3f projection = projs[v][i];
             // std::cout << gt.transpose() << " ......  " << projection.transpose() << std::endl; 
-            Vec2 err = gt - projection.segment<2>(0);
+            Eigen::Vector2f err = gt - projection.segment<2>(0);
             total_errs += err.norm(); 
             num+=1; 
         }
@@ -192,11 +192,11 @@ void Calibrator::evaluate()
     {
         for(int camid = 0; camid < m_camNum; camid++)
         {
-            Vec3 gt  = m_added[i][camid];
-            Vec3 est = m_projs_added[i][camid];
+            Eigen::Vector3f gt  = m_added[i][camid];
+            Eigen::Vector3f est = m_projs_added[i][camid];
             if(gt(0) < 0) continue; 
             // std::cout << gt.transpose() << " ......  " << est.transpose() << std::endl; 
-            Vec2 err = gt.segment<2>(0) - est.segment<2>(0);
+            Eigen::Vector2f err = gt.segment<2>(0) - est.segment<2>(0);
             total_errs += err.norm(); 
             num += 1; 
         }
@@ -209,10 +209,10 @@ void Calibrator::draw_points()
     cloneImgs(m_imgsUndist, m_imgsDraw); 
     for(int v = 0; v < m_camNum; v++)
     {
-        std::vector<Vec3> points; 
+        std::vector<Eigen::Vector3f> points; 
         for(int i = 0; i < m_markers[v].size(); i++)
         {
-            Vec3 p;
+            Eigen::Vector3f p;
             p.segment<2>(0) = m_markers[v][i];
             p(2) = 1; 
             points.push_back(p); 
@@ -220,8 +220,8 @@ void Calibrator::draw_points()
         my_draw_points(m_imgsDraw[v], points, m_CM[1], 10); 
         my_draw_points(m_imgsDraw[v], m_projs_markers[v], m_CM[2], 8);
     
-        std::vector<Vec3> points2d_gt_added;
-        std::vector<Vec3> points2d_est_added; 
+        std::vector<Eigen::Vector3f> points2d_gt_added;
+        std::vector<Eigen::Vector3f> points2d_est_added; 
         for(int i = 0; i < m_added.size(); i++)
         {
             if(m_added[i][v](0) < 0) continue; 
@@ -241,7 +241,7 @@ void Calibrator::draw_points()
 
 void Calibrator::readImgs()
 {
-    std::string m_imgDir = folder + "/data/backgrounds/bg";
+    std::string m_imgDir = folder + "/data/calibdata/backgrounds/bg";
     for(int camid = 0; camid < m_camNum; camid++)
     {
         std::stringstream ss; 
@@ -264,10 +264,12 @@ void Calibrator::readImgs()
     cloneImgs(m_imgsUndist, m_imgsDraw); 
 }
 
+
+
 void CallBackFunc(int event, int x, int y, int flags, void* userdata)
 {
-    Vec3 empty = {-1,-1,-1}; 
-    vector<Vec3>* data = (vector<Vec3>*) userdata; 
+    Eigen::Vector3f empty = {-1,-1,-1}; 
+    vector<Eigen::Vector3f>* data = (vector<Eigen::Vector3f>*) userdata; 
     int length = data->size(); 
     int cols = sqrt(length); 
     if(cols * cols < length) cols+=1; 
@@ -331,7 +333,7 @@ void Calibrator::reload_added()
 {
     std::string path = folder+"/data/calibdata/add_marker/";
     m_added.clear(); 
-    vector<vector<Vec3> > tmp; 
+    vector<vector<Eigen::Vector3f> > tmp; 
     tmp.resize(m_camNum); 
     for(int v = 0; v < m_camNum; v++)
     {
@@ -361,7 +363,7 @@ void Calibrator::reload_added()
 
     for(int i = 0; i < tmp[0].size(); i++)
     {
-        vector<Vec3> p_list; 
+        vector<Eigen::Vector3f> p_list; 
         for(int camid = 0; camid < m_camNum; camid++)
         {
             p_list.push_back(tmp[camid][i]); 
@@ -375,7 +377,7 @@ void Calibrator::reload_added()
     {
         std::vector<Camera> visible_cams;
         // std::vector<Vec2> points2d; 
-        std::vector<Vec3> points2d; 
+        std::vector<Eigen::Vector3f> points2d; 
         for(int camid = 0; camid < m_camNum; camid++)
         {
             if(m_added[i][camid](0) < 0) continue; 
@@ -385,7 +387,7 @@ void Calibrator::reload_added()
             points2d.push_back(m_added[i][camid]); 
         }
         // Vec3 p3d = NViewDLT(visible_cams, points2d);
-        Vec3 p3d = triangulate_ceres(visible_cams, points2d);
+        Eigen::Vector3f p3d = triangulate_ceres(visible_cams, points2d);
         out_points_new[i] = p3d; 
     }
 
@@ -393,13 +395,13 @@ void Calibrator::reload_added()
 
     if(m_added.size() >= 3)
     {
-        Vec3 p1 = out_points_new[0];
-        Vec3 p2 = out_points_new[1]; 
-        Vec3 p3 = out_points_new[2]; 
+        Eigen::Vector3f p1 = out_points_new[0];
+        Eigen::Vector3f p2 = out_points_new[1]; 
+        Eigen::Vector3f p3 = out_points_new[2]; 
         // check pependicular
-        Vec3 v1 = p2 - p1; 
-        Vec3 v2 = p3 - p1; 
-        double angle = std::acos(v1.dot(v2));
+        Eigen::Vector3f v1 = p2 - p1; 
+        Eigen::Vector3f v2 = p3 - p1; 
+        float angle = std::acos(v1.dot(v2));
         std::cout << "In reality, v1.norm == 0.5m, p3.z == 0.6m" << std::endl; 
         std::cout << "v1:         " << v1.transpose() << std::endl; 
         std::cout << "v2:         " << v2.transpose() << std::endl; 
@@ -415,7 +417,7 @@ void Calibrator::interactive_mark()
 {
     while(true)
     {
-        std::vector<Vec3> marks; 
+        std::vector<Eigen::Vector3f> marks; 
         marks.resize(m_camNum); 
         for(int i = 0; i < m_camNum; i++) marks[i] = {-1, -1, -1}; 
 
@@ -434,7 +436,7 @@ void Calibrator::interactive_mark()
             m_added.push_back(marks); 
             std::vector<Camera> visible_cams;
             // std::vector<Vec2> points2d; 
-            std::vector<Vec3> points2d; 
+            std::vector<Eigen::Vector3f> points2d; 
             for(int camid = 0; camid < m_camNum; camid++)
             {
                 std::cout << marks[camid].transpose() << std::endl;
@@ -445,16 +447,16 @@ void Calibrator::interactive_mark()
                 points2d.push_back(marks[camid]); 
             }
             // Vec3 p3d = NViewDLT(visible_cams, points2d);
-            Vec3 p3d = triangulate_ceres(visible_cams, points2d); 
+            Eigen::Vector3f p3d = triangulate_ceres(visible_cams, points2d); 
             for(int camid = 0; camid < m_camNum; camid++)
             {
                 if(marks[camid](0) < 0) continue; 
                 marks[camid] = m_camsUndist[camid].inv_K * marks[camid]; 
             }
             
-            ba.addMarker(marks, p3d); 
+            ba.addMarkerF(marks, p3d); 
             ba.solve_again(); 
-            out_points_new = ba.getAddedPoints(); 
+            out_points_new = ba.getAddedPointsF(); 
             evaluate();
             draw_points(); 
         }
@@ -481,12 +483,12 @@ int Calibrator::calib_pipeline()
 	//ba.solve_init_calib(true); 
 	std::cout << "initial calibration done. " << std::endl; 
 
-	out_points = ba.getPoints(); 
-	out_rvecs = ba.getRvecs(); 
-	out_tvecs = ba.getTvecs(); 
+	out_points = ba.getPointsF(); 
+	out_rvecs = ba.getRvecsF(); 
+	out_tvecs = ba.getTvecsF(); 
     out_ratio = ba.getRatio(); 
 
-    double z = 0; 
+    float z = 0; 
     for(int i = 0; i < out_points.size(); i++) z += out_points[i](2); 
     z /= out_points.size(); 
     std::cout << "average floor height: " <<  z << std::endl; 
@@ -520,17 +522,17 @@ int Calibrator::calib_pipeline()
     {
         for(int i = 0; i < m_added.size(); i++)
         {
-            vector<Vec3> marks; 
+            vector<Eigen::Vector3f> marks; 
             marks.resize(m_camNum); 
             for(int camid = 0; camid < m_camNum; camid++)
                 marks[camid] = m_camsUndist[camid].inv_K * m_added[i][camid]; 
-            ba.addMarker(marks, out_points_new[i]); 
+            ba.addMarkerF(marks, out_points_new[i]); 
         }
         ba.solve_again();
-        out_points = ba.getPoints();
-        out_points_new = ba.getAddedPoints(); 
-        out_rvecs = ba.getRvecs(); 
-        out_tvecs = ba.getTvecs(); 
+        out_points = ba.getPointsF();
+        out_points_new = ba.getAddedPointsF(); 
+        out_rvecs = ba.getRvecsF(); 
+        out_tvecs = ba.getTvecsF(); 
         for(int camid = 0; camid < m_camNum; camid++) 
         {
             m_camsUndist[camid].SetRT(out_rvecs[camid], out_tvecs[camid]);
@@ -563,8 +565,8 @@ void Calibrator::read_results_rt(std::string result_folder)
             std::cout << "error openning " << ss.str() << std::endl; 
             exit(-1); 
         }
-        Eigen::Vector3d r_vec; 
-        Eigen::Vector3d t_vec;
+        Eigen::Vector3f r_vec; 
+        Eigen::Vector3f t_vec;
         for(int j = 0; j < 3; j++)
         {
             is >> r_vec(j); 
@@ -587,3 +589,4 @@ void Calibrator::test_epipolar()
 
     test_epipolar_all(m_camsUndist, m_imgsUndist, m_markers);
 }
+

@@ -7,14 +7,11 @@ in VS_OUT
 } fs_in;
 
 out vec4 out_color;
-
-uniform samplerCube depth_cube;  
-uniform sampler2D object_texture;      
+   
 uniform vec3 object_color;
 uniform vec3 light_pos;
 uniform float far_plane;
 uniform vec3 view_pos;
-
 
 void main()
 {            
@@ -24,20 +21,6 @@ void main()
     float material_diffuse = 0.6;
     float material_specular = 0.01;
     float material_shininess = 1;
-    // vec3 light_distance = fs_in.pos - light_pos;
-    // float current_depth = (length(light_distance))/far_plane;      
-    // int samples = 20;
-    // float view_distance = length(view_pos - fs_in.pos);
-    // float disk_radius = (1.0+view_distance / far_plane) * 0.01;
-    // float bias = disk_radius;
-    // for(int i = 0; i < samples; ++i)
-    // {
-    //     if(current_depth > texture(depth_cube, light_distance + grid_sampling_disk[i] * disk_radius).r + bias)
-    //     {
-    //         shadow += 1.0;
-    //     }
-    // }
-    // shadow /= float(samples);
 
     // ambient
     float ambient = material_ambient;
@@ -55,7 +38,7 @@ void main()
 
     
     out_color =  (ambient + (1.0 - shadow) * (diffuse + specular)) * vec4(object_color,1.0);
-
+   
     /// render normal 
     // out_color = vec4(fs_in.normal, 1.0); 
 

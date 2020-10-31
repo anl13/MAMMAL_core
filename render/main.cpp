@@ -189,12 +189,12 @@ void test_depth()
 	Mesh obj;
 	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
 
-	RenderObjectMesh* p_model = new RenderObjectMesh();
+	RenderObjectColor* p_model = new RenderObjectColor();
 	p_model->SetVertices(obj.vertices_vec);
 	p_model->SetFaces(obj.faces_v_vec);
-	p_model->SetColors(obj.normals_vec);
+	p_model->SetColor(Eigen::Vector3f(1.0f, 0.0f, 0.0f));
 	p_model->SetNormal(obj.normals_vec);
-	m_renderer.meshObjs.push_back(p_model); 
+	m_renderer.colorObjs.push_back(p_model); 
 
 	m_renderer.s_camViewer.SetExtrinsic(cams[0].R, cams[0].T);
 
@@ -253,7 +253,7 @@ void test_depth()
 		else colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f); 
 	}
 	std::cout << tt.Elapsed() << " mcs" << std::endl; 
-	m_renderer.meshObjs.clear(); 
+	m_renderer.clearAllObjs();
 
 	RenderObjectMesh* meshcolor = new RenderObjectMesh(); 
 	meshcolor->SetVertices(obj.vertices_vec);
@@ -604,7 +604,92 @@ void test_artist_labeled_sample()
 	};
 }
 
+
+void test_mask()
+{
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
+
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
+	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+
+	// init renderer 
+	Renderer::s_Init(true);
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	Mesh obj;
+	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
+	MeshEigen objeigen(obj);
+
+	RenderObjectColor * p_model = new RenderObjectColor();
+	p_model->SetVertices(obj.vertices_vec);
+	p_model->SetFaces(obj.faces_v_vec);
+	p_model->SetNormal(obj.normals_vec);
+	p_model->SetColor(Eigen::Vector3f(1.0f, 0.0f, 0.0f));
+
+	RenderObjectColor *p_model2 = new RenderObjectColor(); 
+	for (int i = 0; i < ballMesh.vertex_num; i++)
+	{
+		ballMesh.vertices_vec[i] = ballMesh.vertices_vec[i] * 0.6 + Eigen::Vector3f(0.2, 0, 0); 
+	}
+	p_model2->SetVertices(ballMesh.vertices_vec); 
+	p_model2->SetFaces(ballMesh.faces_v_vec); 
+	p_model2->SetNormal(ballMesh.normals_vec); 
+	p_model2->SetColor(Eigen::Vector3f(0.0f, 1.f, 0.f)); 
+
+	m_renderer.colorObjs.push_back(p_model);
+	m_renderer.colorObjs.push_back(p_model2); 
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	//while (!glfwWindowShouldClose(windowPtr))
+	//{
+	//	m_renderer.Draw("mask");
+
+	//	glfwSwapBuffers(windowPtr);
+	//	glfwPollEvents();
+	//};
+	m_renderer.Draw("mask"); 
+	cv::Mat mask = m_renderer.GetImage();
+	for (int i = 0; i < mask.rows; i++)
+	{
+		for (int j = 0; j < mask.cols; j++)
+		{
+			if (mask.at<cv::Vec3b>(i, j)[0] != 0 && mask.at<cv::Vec3b>(i, j)[0] != 255)
+			{
+				mask.at<cv::Vec3b>(i, j)[0] = 255; 
+				mask.at<cv::Vec3b>(i, j)[1] = 255;
+				mask.at<cv::Vec3b>(i, j)[2] = 255;
+				std::cout << i << ',' << j << std::endl;
+			}
+		}
+	}
+	cv::namedWindow("mask", cv::WINDOW_NORMAL); 
+	cv::imshow("mask", mask); 
+	cv::waitKey(); 
+}
+
+
 void main()
 {
-	test_discrete_scene(); 
+	test_depth(); 
 }

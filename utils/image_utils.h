@@ -132,3 +132,6 @@ cv::Mat pseudoColor(cv::Mat depth);
 void computeGradient(cv::Mat input, cv::Mat& outx, cv::Mat& outy);
 
 cv::Mat drawCVDepth(Eigen::MatrixXf vertices, Eigen::MatrixXu faces, Camera cam);
+
+
+float silhouette_iou(const cv::Mat& mask1, const cv::Mat& mask2); 

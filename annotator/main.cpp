@@ -4,6 +4,6 @@
 
 void main()
 {
-	//multiview_annotator();
-	test_depth();
+	multiview_annotator();
+	//test_depth();
 }

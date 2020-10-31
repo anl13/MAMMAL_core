@@ -911,4 +911,7 @@ cv::Mat drawCVDepth(Eigen::MatrixXf vertices, Eigen::MatrixXu faces, Camera cam)
 	return image; 
 }
 
-
+float silhouette_iou(const cv::Mat& mask1, const cv::Mat& mask2)
+{
+	return 0; 
+}

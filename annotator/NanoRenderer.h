@@ -236,6 +236,11 @@ public:
 		}
 		return true; 
 	}
+
+	virtual bool keyboard_event(int key, int scancode, int action, int modifiers) override; 
+
+	virtual bool keyboard_character_event(unsigned int codepoint);
+
 	
 	void setViewRT(const Eigen::Matrix4f& view)
 	{
@@ -357,6 +362,9 @@ public:
 	bool m_state_read = false; 
 	bool m_state_save_obj = false;
 	bool m_state_save_state = false; 
+	bool m_state_load_last = false; 
+	bool m_state_load_this = false; 
+	bool m_state_load_next = false;
 
 	/// variables and widgets for parameter maniplation 
 	Eigen::Vector3f m_pig_translation; 
@@ -366,6 +374,7 @@ public:
 	Eigen::Vector3f m_pig_translation_init; 
 	float m_pig_scale_init; 
 	std::vector<Eigen::Vector3f> m_joint_pose_init; 
+	float m_overlay_transparency;
 
 	std::vector<int> joints_for_optimize; // M 
 	std::vector<Slider*> m_widget_sliders;  // 3 * M + 3 + 1 
@@ -379,6 +388,7 @@ public:
 	Window* basic_widgets; 
 	Widget* tools; 
 	Window* nanogui_window; 
+	Window* image_window;
 
 private:
 	GLFWwindow* window = nullptr;
