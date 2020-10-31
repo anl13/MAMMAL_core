@@ -19,6 +19,7 @@ Calibrator::Calibrator(std::string _folder)
 	m_K = m_camsUndist[0].K;
     readImgs(); 
     getColorMap("anliang_rgb", m_CM); 
+	m_draw_size = 100; 
 }
  
 vector<Eigen::Vector3f> Calibrator::readMarkers(std::string filename)
@@ -247,7 +248,9 @@ void Calibrator::draw_points()
     
         std::vector<Eigen::Vector3f> points2d_gt_added;
         std::vector<Eigen::Vector3f> points2d_est_added; 
-        for(int i = 0; i < m_added.size(); i++)
+		int draw_size = m_added.size(); 
+		if (draw_size > m_draw_size) draw_size = m_draw_size; 
+        for(int i = 0; i < draw_size; i++)
         {
             if(m_added[i][v](0) < 0) continue; 
             points2d_gt_added.push_back(m_added[i][v]);
@@ -412,6 +415,12 @@ void Calibrator::reload_added()
         std::cout << "v1.norm():  " << v1.norm() << std::endl; 
         std::cout << "v2.norm():  " << v2.norm() << std::endl; 
         std::cout << "p3.z:       " << p3(2) << std::endl; 
+
+		Eigen::Vector3f q1 = out_points_new[3];
+		Eigen::Vector3f q2 = out_points_new[5]; 
+		Eigen::Vector3f q3 = out_points_new[6];
+		std::cout << "width  = " << (q3 - q1).transpose() << std::endl; 
+		std::cout << "height = " << (q2 - q1).transpose() << std::endl; 
     }
 }
 
@@ -424,6 +433,7 @@ void Calibrator::interactive_mark()
         for(int i = 0; i < m_camNum; i++) marks[i] = {-1, -1, -1}; 
 
         cv::Mat output; 
+		
         packImgBlock(m_imgsDraw, output); 
         cv::namedWindow("add_marker", cv::WINDOW_NORMAL); 
         cv::setMouseCallback("add_marker", CallBackFunc, &marks); 
@@ -466,6 +476,18 @@ void Calibrator::interactive_mark()
         {
             
         }
+		else if (char(key) == 's')
+		{
+			for (int i = 0; i < m_imgsDraw.size(); i++)
+			{
+				cv::imwrite(folder + "/data/calibdata/tmp/markers"+std::to_string(i)+".png", m_imgsDraw[i]);
+			}
+		}
+		else if (char(key) == 'f')
+		{
+			m_draw_size += 1;
+			draw_points(); 
+		}
     };
 }
 
@@ -508,15 +530,13 @@ int Calibrator::calib_pipeline()
     evaluate(); 
     draw_points(); 
 
-	cv::Mat output;
-	packImgBlock(m_imgsDraw, output); 
-	cv::namedWindow("raw", cv::WINDOW_NORMAL); 
-	cv::imshow("raw", output); 
-	int key = cv::waitKey(); 
+	//cv::Mat output;
+	//packImgBlock(m_imgsDraw, output); 
+	//cv::namedWindow("raw", cv::WINDOW_NORMAL); 
+	//cv::imshow("raw", output); 
+	//int key = cv::waitKey(); 
 
 	save_results("D:/Projects/animal_calib/data/calibdata/tmp/"); 
-
-	return 0; 
 
     // re-calib with addtional data 
     reload_added(); 
@@ -587,7 +607,7 @@ void Calibrator::test_epipolar()
     std::string marker_folder = folder+"/data/calibdata/markers";
 	
 	readAllMarkers(marker_folder); 
-    read_results_rt(folder+"/data/calibdata/adjust/"); 
+    read_results_rt(folder+"/data/calibdata/tmp/"); 
 
     test_epipolar_all(m_camsUndist, m_imgsUndist, m_markers);
 }

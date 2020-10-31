@@ -156,8 +156,8 @@ int main()
 
 	std::string folder = "D:/Projects/animal_calib/"; 
 	Calibrator calib(folder); 
-	//calib.test_epipolar(); 
+	calib.test_epipolar(); 
 
-	calib.calib_pipeline(); 
+	//calib.calib_pipeline(); 
 	return 0; 
 }

@@ -154,8 +154,8 @@ void BASolver::initMarkers(vector<int> camids, int pointNum)
 	{
 		int c = index / 6;
 		int r = index % 6; 
-		m_points[index][0] = (c - c_dxi) * 0.0848; 
-		m_points[index][1] = (r - c_dyi) * 0.0848 * m_ratio; 
+		m_points[index][0] = (c - c_dxi) * 0.1243; 
+		m_points[index][1] = (r - c_dyi) * 0.1243 * m_ratio; 
 		m_points[index][2] = 0; 
 	}
 }

@@ -52,6 +52,7 @@ private:
 
     BASolver ba;
 
+	int m_draw_size; 
     vector<vector<Eigen::Vector3f> > m_projs_markers; 
     vector<vector<Eigen::Vector3f> > m_projs_added; 
     vector<vector<Eigen::Vector3f> > m_added; 
