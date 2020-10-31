@@ -101,3 +101,4 @@ Eigen::Vector3f Mat2Euler(Eigen::Matrix3f);
 
 Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiFNumeric(const Eigen::Vector3f& euler);
 std::vector<Eigen::Vector3f> doubleToFloat(const std::vector<Eigen::Vector3d>& list); 
+std::vector<Eigen::Vector3d> floatToDouble(const std::vector<Eigen::Vector3f>& list); 

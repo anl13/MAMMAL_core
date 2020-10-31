@@ -238,7 +238,7 @@ void test_epipole(
 void test_epipolar(
     const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2f> > &joints2d, 
+    const std::vector< std::vector<Eigen::Vector3f> > &joints2d, 
     int camid0, 
     int camid1,
     int jid)
@@ -252,8 +252,8 @@ void test_epipolar(
     Eigen::Vector3f e0_homo = cam0.K * E0; 
     Eigen::Vector2f e0 = e0_homo.block<2,1>(0,0) / e0_homo(2); 
 
-    Eigen::Vector2f point1 = joints2d[camid1][jid]; 
-    Eigen::Vector2f point0 = joints2d[camid0][jid]; 
+    Eigen::Vector2f point1 = joints2d[camid1][jid].segment<2>(0); 
+    Eigen::Vector2f point0 = joints2d[camid0][jid].segment<2>(0); 
 
     int color_jid = (jid * 5) % colormap.size();  
     Eigen::Vector3i c = colormap[color_jid]; 
@@ -298,7 +298,7 @@ void test_epipole_all(
 
 void test_epipolar_all(const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2f> > &joints2d)
+    const std::vector< std::vector<Eigen::Vector3f> > &joints2d)
 {
     int jointNum = joints2d[0].size(); 
     for(int cam1 = 0; cam1 < cameras.size(); cam1 ++)

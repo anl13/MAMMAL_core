@@ -21,9 +21,9 @@ Calibrator::Calibrator(std::string _folder)
     getColorMap("anliang_rgb", m_CM); 
 }
  
-vector<Eigen::Vector2f> Calibrator::readMarkers(std::string filename)
+vector<Eigen::Vector3f> Calibrator::readMarkers(std::string filename)
 {
-	vector<Eigen::Vector2f> points; 
+	vector<Eigen::Vector3f> points; 
 	std::ifstream is(filename); 
 	if (!is.is_open())
 	{
@@ -36,7 +36,7 @@ vector<Eigen::Vector2f> Calibrator::readMarkers(std::string filename)
 		is >> x; 
 		if(is.eof()) break; 
 		is >> y; 
-		points.push_back(Eigen::Vector2f(x, y)); 
+		points.push_back(Eigen::Vector3f(x, y, 1)); 
 	}
 	is.close(); 
 
@@ -45,7 +45,7 @@ vector<Eigen::Vector2f> Calibrator::readMarkers(std::string filename)
 
 void Calibrator::readAllMarkers(std::string folder)
 {
-	vector<vector<Eigen::Vector2f> > allPoints; 
+	vector<vector<Eigen::Vector3f> > allPoints; 
 	for (int i = 0; i < m_camids.size(); i++)
 	{
 		std::stringstream ss; 
@@ -72,10 +72,10 @@ void Calibrator::unprojectMarkers()
 		for (int i = 0; i < pNum; i++)
 		{
 			Eigen::Vector3f ph; 
-			ph.block<2, 1>(0, 0) = m_markers[camid][i];
+			ph = m_markers[camid][i];
 			ph(2) = 1; 
 			Eigen::Vector3f pImagePlane = invK * ph; 
-			m_i_markers[camid][i] = pImagePlane.segment<2>(0); 
+			m_i_markers[camid][i] = pImagePlane; 
 		}
 	}
 }
@@ -144,6 +144,31 @@ void Calibrator::save_results(std::string result_folder)
     os1.close(); 
 }
 
+void Calibrator::readImgs()
+{
+	std::string m_imgDir = folder + "/data/calibdata/backgrounds/bg";
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		std::stringstream ss;
+		ss << m_imgDir << m_camids[camid] << ".png";
+		cv::Mat img = cv::imread(ss.str());
+		if (img.empty())
+		{
+			std::cout << "img is empty! " << ss.str() << std::endl;
+			exit(-1);
+		}
+		m_imgs.push_back(img);
+	}
+
+	m_imgsUndist.resize(m_camNum);
+	for (int i = 0; i < m_camNum; i++)
+	{
+		my_undistort(m_imgs[i], m_imgsUndist[i], m_cams[i], m_camsUndist[i]);
+	}
+
+	cloneImgs(m_imgsUndist, m_imgsDraw);
+}
+
 
 void Calibrator::evaluate()
 {
@@ -183,7 +208,7 @@ void Calibrator::evaluate()
             Eigen::Vector3f gt = m_markers[v][i];
             Eigen::Vector3f projection = projs[v][i];
             // std::cout << gt.transpose() << " ......  " << projection.transpose() << std::endl; 
-            Eigen::Vector2f err = gt - projection.segment<2>(0);
+            Eigen::Vector2f err = gt.segment<2>(0) - projection.segment<2>(0);
             total_errs += err.norm(); 
             num+=1; 
         }
@@ -213,7 +238,7 @@ void Calibrator::draw_points()
         for(int i = 0; i < m_markers[v].size(); i++)
         {
             Eigen::Vector3f p;
-            p.segment<2>(0) = m_markers[v][i];
+            p = m_markers[v][i];
             p(2) = 1; 
             points.push_back(p); 
         }
@@ -239,30 +264,7 @@ void Calibrator::draw_points()
     // int key = cv::waitKey(); 
 }
 
-void Calibrator::readImgs()
-{
-    std::string m_imgDir = folder + "/data/calibdata/backgrounds/bg";
-    for(int camid = 0; camid < m_camNum; camid++)
-    {
-        std::stringstream ss; 
-        ss << m_imgDir << m_camids[camid] << ".png";
-        cv::Mat img = cv::imread(ss.str()); 
-        if(img.empty())
-        {
-            std::cout << "img is empty! " << ss.str() << std::endl; 
-            exit(-1); 
-        }
-        m_imgs.push_back(img);
-    }
 
-    m_imgsUndist.resize(m_camNum); 
-    for(int i = 0; i < m_camNum; i++)
-    {
-        my_undistort(m_imgs[i], m_imgsUndist[i], m_cams[i], m_camsUndist[i]); 
-    }
-
-    cloneImgs(m_imgsUndist, m_imgsDraw); 
-}
 
 
 
@@ -354,7 +356,7 @@ void Calibrator::reload_added()
             inputstream >> x; 
             if(inputstream.eof()) break;
             inputstream >> y; 
-            Eigen::Vector3d p;
+            Eigen::Vector3f p;
             p(0) = x; p(1) = y; p(2) = 1; 
             tmp[v].push_back(p); 
         };
@@ -479,8 +481,8 @@ int Calibrator::calib_pipeline()
 
 	ba.initMarkers(m_camids, 42); 
 	ba.readInit(folder); 
-	//ba.setObs(m_i_markers); 
-	//ba.solve_init_calib(true); 
+	ba.setObs(m_i_markers); 
+	ba.solve_init_calib(true); 
 	std::cout << "initial calibration done. " << std::endl; 
 
 	out_points = ba.getPointsF(); 
@@ -589,4 +591,4 @@ void Calibrator::test_epipolar()
 
     test_epipolar_all(m_camsUndist, m_imgsUndist, m_markers);
 }
-
+ 

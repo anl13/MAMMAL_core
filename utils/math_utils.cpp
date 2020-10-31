@@ -517,3 +517,14 @@ std::vector<Eigen::Vector3f> doubleToFloat(const std::vector<Eigen::Vector3d>& l
 	for (int i = 0; i < list.size(); i++)listf[i] = list[i].cast<float>(); 
 	return listf;
 }
+
+std::vector<Eigen::Vector3d> floatToDouble(const std::vector<Eigen::Vector3f>& list)
+{
+	std::vector<Eigen::Vector3d> listd; 
+	listd.resize(list.size()); 
+	for (int i = 0; i < list.size(); i++)
+	{
+		listd[i] = list[i].cast<double>(); 
+	}
+	return listd; 
+}

@@ -691,5 +691,5 @@ void test_mask()
 
 void main()
 {
-	test_depth(); 
+	test_discrete_scene(); 
 }

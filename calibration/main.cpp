@@ -49,7 +49,7 @@ std::vector<Camera> readCameras()
 std::vector<cv::Mat> readImgs()
 {
 	std::string folder = "D:/Projects/animal_calib/";
-	std::string m_imgDir = folder + "/data/backgrounds/bg";
+	std::string m_imgDir = folder + "/data/calibdata/backgrounds/bg";
 	std::vector<int> m_camids = {
 		0,1,2,5,6,7,8,9,10,11
 	};
@@ -70,17 +70,6 @@ std::vector<cv::Mat> readImgs()
 	return m_imgs; 
 }
 
-void test_calib(std::string folder)
-{
-	Calibrator calibrator(folder);
-	calibrator.calib_pipeline();
-}
-
-void test_epipolar(std::string folder)
-{
-	Calibrator calib(folder);
-	calib.test_epipolar();
-}
 
 void show_scene()
 {
@@ -98,28 +87,30 @@ void show_scene()
 		0, 0, 1;
 	std::cout << K << std::endl;
 
-	Eigen::Vector3f up; up << 0, 0, -1;
-	Eigen::Vector3f pos; pos << -1, 1.5, -0.8;
-	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+
 
 	// init renderer 
-	Renderer::s_Init();
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	//m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-	m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[0].T.cast<float>());
-
+	//m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[0].T.cast<float>());
+	Eigen::Vector3f pos(0, 0, 5);
+	Eigen::Vector3f up(0, 1, 0);
+	Eigen::Vector3f center(0, 0, 0);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 	// init element obj
 	const Mesh ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	const Mesh stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
 	const Mesh squareObj(conf_projectFolder + "/render/data/obj_model/square.obj");
 	const Mesh cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	const MeshEigen ballObjEigen(ballObj); 
 
 	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard_black.png");
 	chess_floor->SetFaces(squareObj.faces_v_vec);
 	chess_floor->SetVertices(squareObj.vertices_vec);
-	chess_floor->SetTexcoords(squareObj.textures_vec);
+	chess_floor->SetTexcoords(squareObj.textures_vec, 1);
+	chess_floor->SetNormal(squareObj.normals_vec, 2); 
 	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 
@@ -136,7 +127,7 @@ void show_scene()
 		balls[i] = selected_points[i].cast<float>();
 		colors[i] = CM[0];
 	}
-	BallStickObject* skelObject = new BallStickObject(ballObj, balls, sizes, colors);
+	BallStickObject* skelObject = new BallStickObject(ballObjEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(skelObject);
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -157,10 +148,16 @@ void show_scene()
 
 }
 
+
+
 int main()
 {
-	show_scene();
-	//test_epipolar("D:/Projects/animal_calib/"); 
+	//show_scene();
 
+	std::string folder = "D:/Projects/animal_calib/"; 
+	Calibrator calib(folder); 
+	//calib.test_epipolar(); 
+
+	calib.calib_pipeline(); 
 	return 0; 
 }

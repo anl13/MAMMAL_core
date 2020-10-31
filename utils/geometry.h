@@ -63,14 +63,14 @@ Eigen::Vector3f triangulate_ceres(const std::vector<Camera> cams, const std::vec
 void test_epipolar(
     const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2f> > &joints2d, 
+    const std::vector< std::vector<Eigen::Vector3f> > &joints2d, 
     int camid0, 
     int camid1,
     int jid); 
 
 void test_epipolar_all(const std::vector<Camera> &cameras, 
     std::vector<cv::Mat> &imgs, 
-    const std::vector< std::vector<Eigen::Vector2f> > &joints2d); 
+    const std::vector< std::vector<Eigen::Vector3f> > &joints2d); 
 
 void test_epipole(
     const std::vector<Camera> &cameras, 

@@ -56,15 +56,15 @@ private:
     vector<vector<Eigen::Vector3f> > m_projs_added; 
     vector<vector<Eigen::Vector3f> > m_added; 
     vector<vector<Eigen::Vector3f> > m_m_dets;  
-    vector<vector<Eigen::Vector2f> > m_markers; // [camNum; pointNum]
+    vector<vector<Eigen::Vector3f> > m_markers; // [camNum; pointNum]
     Eigen::Matrix3f                  m_K; 
-    vector<vector<Eigen::Vector2f> > m_i_markers; // markers on image plane
+    vector<vector<Eigen::Vector3f> > m_i_markers; // markers on image plane
     vector<int>                      m_camids; 
     int                              m_camNum; 
     std::vector<Camera>              m_cams;
     std::vector<Camera>              m_camsUndist; 
     std::vector<Eigen::Vector3i>     m_CM; 
 
-    vector<Eigen::Vector2f> readMarkers(std::string filename); 
+    vector<Eigen::Vector3f> readMarkers(std::string filename); 
     void readImgs(); 
 };

@@ -19,8 +19,14 @@ public:
 	};
 	~BASolver() {};
 
-	void setObs(const std::vector<std::vector<Eigen::Vector2d> >& in_obs) {
-		m_obs = in_obs;
+	void setObs(const std::vector<std::vector<Eigen::Vector3f> >& in_obs) {
+		m_obs.resize(in_obs.size()); 
+		for (int i = 0; i < in_obs.size(); i++)
+		{
+			m_obs[i].resize(in_obs[i].size()); 
+			for (int j = 0; j < in_obs[i].size(); j++)
+				m_obs[i][j] = in_obs[i][j].segment<2>(0).cast<double>();
+		}
 	}
 	void addMarker(const vector<Eigen::Vector3d>& marks, const Eigen::Vector3d& mark3d); 
 	void addMarkerF(const vector<Eigen::Vector3f>& marks, const Eigen::Vector3f& mark3d); 
