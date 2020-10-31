@@ -105,6 +105,31 @@ struct ReprojectionErrorRatio {
 	double z; 
 };
 
+
+struct HeightTerm {
+	HeightTerm()
+	{
+	
+	}
+
+	template <typename T>
+	bool operator()(const T* const point, 
+		T* residuals) const {
+
+		// The error is the difference between the predicted and observed position.
+		residuals[0] = point[2];
+		return true;
+	}
+
+	// Factory to hide the construction of the CostFunction object from
+	// the client code.
+	static ceres::CostFunction* Create() {
+		return (new ceres::AutoDiffCostFunction<HeightTerm, 1, 3>(
+			new HeightTerm()));
+	}
+};
+
+
 void BASolver::readInit(std::string _folder)
 {
 	m_folder = _folder;
@@ -154,8 +179,8 @@ void BASolver::initMarkers(vector<int> camids, int pointNum)
 	{
 		int c = index / 6;
 		int r = index % 6; 
-		m_points[index][0] = (c - c_dxi) * 0.1243; 
-		m_points[index][1] = (r - c_dyi) * 0.1243 * m_ratio; 
+		m_points[index][0] = (c - c_dxi) * 0.1298; 
+		m_points[index][1] = (r - c_dyi) * 0.1298 * m_ratio; 
 		m_points[index][2] = 0; 
 	}
 }
@@ -188,6 +213,11 @@ void BASolver::solve_init_calib(bool optim_points)
 				); 
 			}
 		}
+	}
+	for (int pid = 0; pid < 42; pid++)
+	{
+		CostFunction *cost = HeightTerm::Create();
+		problem.AddResidualBlock(cost, NULL, m_points[pid].data());
 	}
 
 	Solver::Options options; 
@@ -263,6 +293,11 @@ void BASolver::solve_again()
 			// }
 		}
 	}
+	//for (int pid = 0; pid < 42; pid++)
+	//{
+	//	CostFunction *cost = HeightTerm::Create();
+	//	problem.AddResidualBlock(cost, NULL, m_points[pid].data());
+	//}
 
 	// add new markers 
 	for(int i = 0; i < m_added_markers.size(); i++)
