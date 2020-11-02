@@ -5,6 +5,7 @@
 #include "../render/render_utils.h"
 
 #include "../utils/image_utils.h"
+#include "../utils/math_utils.h" 
 
 std::vector<Camera> readCameras()
 {
@@ -114,7 +115,7 @@ void show_scene()
 	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	m_renderer.texObjs.push_back(chess_floor);
 
-	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
+	std::string point_file = conf_projectFolder + "/data/calibdata/tmp/points3d.txt";
 	std::vector<Eigen::Vector3f> points = read_points(point_file);
 	std::vector<Eigen::Vector3f> selected_points = points;
 
@@ -148,16 +149,287 @@ void show_scene()
 
 }
 
+// map between artist designed scene mesh to 
+void show_artist_scene()
+{
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
+	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+
+	// init renderer 
+	Renderer::s_Init();
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	chess_floor->SetFaces(squareMesh.faces_v_vec);
+	chess_floor->SetVertices(squareMesh.vertices_vec);
+	chess_floor->SetNormal(squareMesh.normals_vec, 2);
+	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
+	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	m_renderer.texObjs.push_back(chess_floor);
+
+	Eigen::Matrix3f tmp;
+	tmp << 50.7, 0, -225, -320, 0, -225, -320, 0, 190;
+	Eigen::Matrix3f pointsRaw = tmp.transpose();
+	Eigen::Matrix3f pointsNew;
+	tmp << -1, 0.91, 0, -1, -0.91, 0, 1, -0.91, 0;
+	pointsNew = tmp.transpose();
+	float scale = (pointsNew.col(0) - pointsNew.col(1)).norm() /
+		(pointsRaw.col(0) - pointsNew.col(1)).norm();
+	pointsRaw = pointsRaw * scale;
+	Eigen::Matrix3f R;
+	R << 0, 0, 1, 1, 0, 0, 0, 1, 0;
+	pointsRaw = R * pointsRaw;
+	Eigen::Vector3f T = (pointsNew.col(0) + pointsNew.col(2)) / 2 -
+		(pointsRaw.col(0) + pointsRaw.col(2)) / 2;
+	pointsRaw = pointsRaw.colwise() + T;
+
+	float scale2 = ((pointsNew.col(0) - pointsNew.col(1)).norm() + (pointsNew.col(0) - pointsNew.col(2)).norm() + (pointsNew.col(1) - pointsNew.col(2)).norm())
+		/ ((pointsRaw.col(0) - pointsRaw.col(1)).norm() + (pointsRaw.col(0) - pointsRaw.col(2)).norm() + (pointsRaw.col(1) - pointsRaw.col(2)).norm());
+	pointsRaw = pointsRaw * scale2;
+
+	std::cout << "pointsRaw: " << std::endl << pointsRaw << std::endl;
+	std::cout << "pointsNew: " << std::endl << pointsNew << std::endl;
+	std::cout << "R: " << std::endl << R << std::endl;
+
+	std::vector<Eigen::Vector3f> points;
+	points.push_back(pointsRaw.col(0));
+	points.push_back(pointsRaw.col(1));
+	points.push_back(pointsRaw.col(2));
+	points.push_back(pointsNew.col(0));
+	points.push_back(pointsNew.col(1));
+	points.push_back(pointsNew.col(2));
+
+	std::vector<float> sizes(6, 0.05f);
+	std::vector<Eigen::Vector3f> balls, colors;
+	balls = points;
+	colors.resize(points.size());
+	for (int i = 0; i < points.size(); i++)
+	{
+		if (i < 3)
+			colors[i] = CM[0];
+		else colors[i] = CM[1];
+	}
+	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
+	m_renderer.skels.push_back(skelObject);
+
+	Mesh sceneMesh("F:/projects/model_preprocess/designed_pig/scenes/scene_triangle.obj", false);
+	for (int i = 0; i < sceneMesh.vertex_num; i++)
+	{
+		sceneMesh.vertices_vec[i] = scale2 * (R * (scale * sceneMesh.vertices_vec[i]) + T);
+		//sceneMesh.normals_vec[i] = R * sceneMesh.normals_vec[i];
+	}
+	sceneMesh.CalcNormal();
+
+	RenderObjectColor* p_scene = new RenderObjectColor();
+	p_scene->SetFaces(sceneMesh.faces_v_vec);
+	p_scene->SetVertices(sceneMesh.vertices_vec);
+	p_scene->SetNormal(sceneMesh.normals_vec);
+
+	p_scene->SetColor(CM[0]);
+
+	m_renderer.colorObjs.push_back(p_scene);
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		//glEnable(GL_CULL_FACE);
+		glDisable(GL_CULL_FACE);
+		m_renderer.Draw();
+
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
+}
+
+// map between artist designed scene mesh to 
+void adjust_calibration()
+{
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> CM0 = getColorMapEigenF("anliang_rgb"); 
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
+	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+
+	// init renderer 
+	Renderer::s_Init();
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	//RenderObjectTexture* chess_floor = new RenderObjectTexture();
+	//chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
+	//chess_floor->SetFaces(squareMesh.faces_v_vec);
+	//chess_floor->SetVertices(squareMesh.vertices_vec);
+	//chess_floor->SetNormal(squareMesh.normals_vec, 2);
+	//chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
+	//chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//m_renderer.texObjs.push_back(chess_floor);
+
+	std::string point_file = conf_projectFolder + "/data/calibdata/tmp/points3d.txt";
+	std::vector<Eigen::Vector3f> points = read_points(point_file);
+	std::vector<Eigen::Vector3f> selected_points;
+
+	Eigen::Matrix3f R = Eigen::Matrix3f::Zero();
+	R(0, 0) = 1; 
+	R(1, 1) = -1; 
+	R(2, 2) = -1;
+
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i] = R * (points[i]);
+	}
+	Eigen::Vector3f translation;
+	translation = -(points[45] + points[48]) / 2;
+	for (int i = 0; i < points.size(); i++)
+	{
+		points[i] = points[i] + translation; 
+	}
+
+	//save 
+	std::ofstream pointfile("D:/Projects/animal_calib/data/calibdata/adjust_new/points3d.txt"); 
+	for (int i = 0; i < points.size(); i++)
+	{
+		pointfile << points[i].transpose() << std::endl; 
+	}
+	pointfile.close(); 
+	std::vector<int> m_camids = {
+		0,1,2,5,6,7,8,9,10,11
+	};
+	int m_camNum = m_camids.size();
+	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust/";
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		std::stringstream ss;
+		ss << m_camDir << std::setw(2) << std::setfill('0') << m_camids[camid] << ".txt";
+		std::ifstream camfile;
+		camfile.open(ss.str());
+		if (!camfile.is_open())
+		{
+			std::cout << "can not open file " << ss.str() << std::endl;
+			exit(-1);
+		}
+		Eigen::Vector3f rvec, tvec;
+		for (int i = 0; i < 3; i++) {
+			float a;
+			camfile >> a;
+			rvec(i) = a;
+		}
+		for (int i = 0; i < 3; i++)
+		{
+			double a;
+			camfile >> a;
+			tvec(i) = a;
+		}
+
+		Eigen::Matrix3f Rmat = GetRodrigues(rvec);
+		Rmat = Rmat * R; 
+		Eigen::Vector3f T; 
+		T = Rmat * translation + tvec;
+		Eigen::Vector3f rvec_2 = Mat2Rotvec(Rmat); 
+		std::stringstream ss_out; 
+		ss_out << "D:/Projects/animal_calib/data/calibdata/adjust_new/" << std::setw(2) << std::setfill('0') << m_camids[camid] << ".txt";
+		std::ofstream outfile(ss_out.str()); 
+		outfile << rvec_2 << std::endl << tvec;
+		outfile.close(); 
+	}
+
+
+	selected_points.push_back(points[45]);
+	selected_points.push_back(points[47]);
+	selected_points.push_back(points[48]);
+	
+	std::vector<float> sizes(points.size(), 0.05f);
+	std::vector<Eigen::Vector3f> balls, colors;
+	balls = points;
+	colors.resize(points.size());
+	for (int i = 0; i < points.size(); i++)
+	{
+		colors[i] = CM[1];
+	}
+	colors[45] = CM0[0];
+	colors[47] = CM0[0];
+	colors[48] = CM0[0];
+	std::cout << "45: " << points[45].transpose() << std::endl; 
+	std::cout << "47: " << points[47].transpose() << std::endl; 
+	std::cout << "48: " << points[48].transpose() << std::endl; 
+	std::cout << "42: " << points[42].transpose() << std::endl; 
+	std::cout << "43: " << points[43].transpose() << std::endl;
+	std::cout << "44: " << points[44].transpose() << std::endl; 
+	std::cout << "49: " << points[49].transpose() << std::endl; 
+	std::cout << "50: " << points[50].transpose() << std::endl; 
+
+	colors[50] = CM0[1];
+	std::cout << "55: " << points[55].transpose() << std::endl; 
+	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
+	m_renderer.skels.push_back(skelObject);
+
+	m_renderer.createScene("D:/Projects/animal_calib"); 
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		//glEnable(GL_CULL_FACE);
+		glDisable(GL_CULL_FACE);
+		m_renderer.Draw();
+
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
+}
 
 int main()
 {
+	adjust_calibration(); 
 	//show_scene();
 
-	std::string folder = "D:/Projects/animal_calib/"; 
-	Calibrator calib(folder); 
-	//calib.test_epipolar(); 
+	//std::string folder = "D:/Projects/animal_calib/"; 
+	//Calibrator calib(folder); 
+	//////calib.test_epipolar(); 
 
-	calib.calib_pipeline(); 
+	//calib.calib_pipeline(); 
 	return 0; 
 }

@@ -943,6 +943,7 @@ void FrameSolver::init_parametric_solver()
 			std::cout << "init model " << i << std::endl;
 		}
 	}
+	m_skels3d.resize(4); 
 }
 
 

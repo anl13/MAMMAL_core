@@ -4,7 +4,7 @@
   "sequence":  "E:/sequences/20190704_noon",
   "imgExtension": "jpg",
   //"camfolder": "/home/al17/animal/animal_calib/results/",
-  "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust/",
+  "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust_new/",
   "startid": 0,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "framenum": 9000,

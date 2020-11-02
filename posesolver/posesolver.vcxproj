@@ -207,7 +207,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" />
+      <UserProperties confignew_1json__JSONSchema="https://batect.dev/configSchema.json" config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

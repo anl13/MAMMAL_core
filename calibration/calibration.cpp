@@ -129,6 +129,8 @@ void Calibrator::save_results(std::string result_folder)
     {
         os << out_points_new[i].transpose() << "\n"; 
     }
+	std::cout << "save out_points: " << out_points.size() << std::endl;
+	std::cout << "save out_points_new:" << out_points_new.size() << std::endl;
     os.close(); 
 
     // save ratio 
@@ -535,9 +537,6 @@ int Calibrator::calib_pipeline()
 	//cv::namedWindow("raw", cv::WINDOW_NORMAL); 
 	//cv::imshow("raw", output); 
 	//int key = cv::waitKey(); 
-
-	save_results("D:/Projects/animal_calib/data/calibdata/tmp/"); 
-
     // re-calib with addtional data 
     reload_added(); 
     if(m_added.size() > 0)
@@ -568,7 +567,8 @@ int Calibrator::calib_pipeline()
     // interactive calib 
     interactive_mark(); 
     //save_added();
-    //save_results("results"); 
+	save_results("D:/Projects/animal_calib/data/calibdata/tmp/");
+
 
 	return 0; 
 }
