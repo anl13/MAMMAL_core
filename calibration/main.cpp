@@ -14,7 +14,7 @@ std::vector<Camera> readCameras()
 		0,1,2,5,6,7,8,9,10,11
 	};
 	int m_camNum = m_camids.size(); 
-	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust/"; 
+	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust_new/"; 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss;
@@ -252,7 +252,7 @@ void show_artist_scene()
 	p_scene->SetColor(CM[0]);
 
 	m_renderer.colorObjs.push_back(p_scene);
-
+	
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
 	while (!glfwWindowShouldClose(windowPtr))
@@ -339,7 +339,7 @@ void adjust_calibration()
 		0,1,2,5,6,7,8,9,10,11
 	};
 	int m_camNum = m_camids.size();
-	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust/";
+	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/tmp/";
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss;
@@ -365,14 +365,14 @@ void adjust_calibration()
 		}
 
 		Eigen::Matrix3f Rmat = GetRodrigues(rvec);
-		Rmat = Rmat * R; 
-		Eigen::Vector3f T; 
-		T = Rmat * translation + tvec;
-		Eigen::Vector3f rvec_2 = Mat2Rotvec(Rmat); 
+		Eigen::Matrix3f R2 = Rmat * R.transpose(); 
+		Eigen::Vector3f T = -R.transpose() * translation;
+		T = Rmat * T + tvec;
+		Eigen::Vector3f rvec_2 = Mat2Rotvec(R2); 
 		std::stringstream ss_out; 
 		ss_out << "D:/Projects/animal_calib/data/calibdata/adjust_new/" << std::setw(2) << std::setfill('0') << m_camids[camid] << ".txt";
 		std::ofstream outfile(ss_out.str()); 
-		outfile << rvec_2 << std::endl << tvec;
+		outfile << rvec_2 << std::endl << T;
 		outfile.close(); 
 	}
 
@@ -409,6 +409,18 @@ void adjust_calibration()
 	m_renderer.createScene("D:/Projects/animal_calib"); 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	std::vector<Camera> cams = readCameras(); 
+	std::vector<cv::Mat> imgs(cams.size()); 
+	for (int i = 0; i < cams.size(); i++)
+	{
+		m_renderer.s_camViewer.SetExtrinsic(cams[i].R, cams[i].T);
+		m_renderer.Draw(); 
+		imgs[i] = m_renderer.GetImage(); 
+	}
+	cv::Mat packed; 
+	packImgBlock(imgs, packed); 
+	cv::imwrite("D:/Projects/animal_calib/data/calibdata/adjust_new/img.png", packed); 
 
 	while (!glfwWindowShouldClose(windowPtr))
 	{

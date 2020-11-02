@@ -188,5 +188,6 @@
   <ItemGroup>
     <None Include="..\articulation\artist_config.json" />
     <None Include="..\articulation\artist_config_sym.json" />
+    <None Include="..\posesolver\confignew.json" />
   </ItemGroup>
 </Project>
