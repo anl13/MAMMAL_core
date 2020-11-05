@@ -803,6 +803,8 @@ void FrameSolver::setConstDataToSolver(int id)
 				mp_sceneData->m_undist_mask.data,
 				1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
 			mp_bodysolverdevice[id]->init_backgrounds = true;
+			mp_bodysolverdevice[id]->c_const_scene_mask = mp_sceneData->m_scene_masks;
+			mp_bodysolverdevice[id]->c_const_distort_mask = mp_sceneData->m_undist_mask;
 		}
 	}
 	else {
@@ -902,7 +904,6 @@ void FrameSolver::pureTracking()
 			be_matched[camid][candid] = true;
 			m_matched[i].view_ids.push_back(camid);
 			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
-
 		}
 	}
 
@@ -1046,14 +1047,6 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 			mp_bodysolverdevice[pid]->optimizePoseSilWithAnchorOneStep(iter);
 		}
 	}
-
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->postProcessing();
-		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
-	}
-	m_last_matched = m_matched;
-
 }
 
 void FrameSolver::saveAnchors(std::string folder)
@@ -1098,6 +1091,8 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 	if (m_solve_sil_iters > 0)
 	{
 		optimizeSilWithAnchor(m_solve_sil_iters);
+		reAssocProcessStep1();
+		optimizeSilWithAnchor(m_solve_sil_iters);
 	}
 
 	if(andsolve)
@@ -1137,6 +1132,7 @@ void FrameSolver::nmsKeypointCands(std::vector<Eigen::Vector3f>& list)
 	}
 }
 
+// 20201103: split all detected keypoints without fine track
 void FrameSolver::splitDetKeypoints()
 {
 	m_keypoints_pool.resize(m_camNum); 
@@ -1147,7 +1143,7 @@ void FrameSolver::splitDetKeypoints()
 		{
 			for (int jid = 0; jid < m_topo.joint_num; jid++)
 			{
-				if (m_keypoints_undist[view][candid][jid].norm() > 0)
+				if (m_keypoints_undist[view][candid][jid](2) > m_topo.kpt_conf_thresh[jid])
 				{
 					m_keypoints_pool[view][jid].push_back(m_keypoints_undist[view][candid][jid]);
 				}
@@ -1165,15 +1161,133 @@ void FrameSolver::splitDetKeypoints()
 	}
 }
 
+
 void FrameSolver::reAssociateKeypoints()
 {
 	m_keypoints_associated.resize(4); 
+	m_skelVis.resize(4);
+	renderInteractDepth();
 	for (int i = 0; i < 4; i++)
 	{
 		m_keypoints_associated[i].resize(m_camNum); 
+		m_skelVis[i].resize(m_camNum); 
+		mp_bodysolverdevice[i]->computeAllSkelVisibility(); 
+		m_skelVis[i] = mp_bodysolverdevice[i]->m_skel_vis;
 		for (int camid = 0; camid < m_camNum; camid++)
 		{
+			m_keypoints_associated[i][camid].resize(m_topo.joint_num, Eigen::Vector3f::Zero()); 
+		}
+	}
 
+	std::cout << "CHECK VISI: " << std::endl;
+	std::cout << m_skelVis[1][3][2] << std::endl; 
+	std::cout << m_skelVis[2][8][6] << std::endl; 
+	std::cout << m_skelVis[3][8][6] << std::endl; 
+
+	if (m_skels3d.size() < 1) m_skels3d.resize(4); 
+
+	for (int i = 0; i < 4; i++)
+	{
+		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host(); 
+	}
+	reproject_skels(); 
+	
+
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		// associate for each camera 
+		for (int i = 0; i < m_topo.joint_num; i++)
+		{
+			std::vector<int> id_table; 
+			for (int pid = 0; pid < 4; pid++)
+			{
+				if(m_skelVis[pid][camid][i] > 0)
+					id_table.push_back(pid); 
+			}
+			int M = id_table.size(); // candidate number for associate  
+			int N = m_keypoints_pool[camid][i].size(); 
+			Eigen::MatrixXf sim(M, N); 
+			for (int rowid = 0; rowid < M; rowid++)
+			{
+				for (int colid = 0; colid < N; colid++)
+				{
+					sim(rowid, colid) = (m_keypoints_pool[camid][i][colid].segment<2>(0)
+						- m_projs[camid][id_table[rowid]][i].segment<2>(0)).norm();
+					if (sim(rowid, colid) > 200) sim(rowid, colid) = 200;
+				}
+			}
+			std::vector<int> assign = solveHungarian(sim);
+			for (int rowid = 0; rowid < M; rowid++)
+			{
+				int pid = id_table[rowid];
+				int colid = assign[rowid];
+				if (colid < 0) continue; 
+				if (sim(rowid, colid) >= 200) continue; 
+				m_keypoints_associated[pid][camid][i] = m_keypoints_pool[camid][i][colid];
+				m_keypoints_pool[camid][i][colid].setZero();
+			}
+		}
+	}
+
+	// reassoc swap 
+	std::vector<std::vector<int> > joint_levels = {
+		{9, 10, 15, 16}, // bottom level: foot 
+	{7,8,13,14}, // middle level: elbow
+	{5,6,11,12} // top level: shoulder
+	};
+	for (int k = 0; k < joint_levels.size(); k++)
+	{
+		std::vector<int> ids_to_swap = joint_levels[k];
+
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			std::vector<Eigen::Vector3f> remain_pool;
+			for (int i = 0; i < ids_to_swap.size(); i++)
+			{
+				int id = ids_to_swap[i];
+				for (int candid = 0; candid < m_keypoints_pool[camid][id].size(); candid++)
+				{
+					if (m_keypoints_pool[camid][id][candid](2) == 0)continue;
+					remain_pool.push_back(m_keypoints_pool[camid][id][candid]);
+				}
+			}
+			std::vector<int> pig_id_table;
+			std::vector<int> joint_id_table;
+			std::vector<Eigen::Vector3f> projPool;
+			for (int pid = 0; pid < 4; pid++)
+			{
+				for (int i = 0; i < ids_to_swap.size(); i++)
+				{
+					int id = ids_to_swap[i];
+					if (m_keypoints_associated[pid][camid][id](2) == 0
+						&& m_skelVis[pid][camid][id] > 0)
+					{
+						pig_id_table.push_back(pid);
+						joint_id_table.push_back(id);
+						projPool.push_back(m_projs[camid][pid][id]);
+					}
+				}
+			}
+			int M = remain_pool.size();
+			int N = projPool.size();
+			Eigen::MatrixXf sim = Eigen::MatrixXf::Zero(M, N);
+			for (int i = 0; i < M; i++)
+			{
+				for (int j = 0; j < N; j++)
+				{
+					float dist = (remain_pool[i].segment<2>(0) - projPool[j].segment<2>(0)).norm();
+					sim(i, j) = dist > 200 ? 200 : dist;
+				}
+			}
+			std::vector<int> match = solveHungarian(sim);
+			for (int i = 0; i < match.size(); i++)
+			{
+				if (match[i] < 0) continue;
+				if (sim(i, match[i]) >= 200) continue;
+				int j = match[i];
+				m_keypoints_associated[pig_id_table[j]][camid][joint_id_table[j]]
+					= remain_pool[i];
+			}
 		}
 	}
 }
@@ -1199,6 +1313,8 @@ void FrameSolver::solve_parametric_model_optimonly()
 	if (m_solve_sil_iters > 0)
 	{
 		optimizeSilWithAnchor(m_solve_sil_iters);
+		reAssocProcessStep1(); 
+		optimizeSilWithAnchor(m_solve_sil_iters);
 	}
 
 	for (int i = 0; i < 4; i++)
@@ -1209,4 +1325,98 @@ void FrameSolver::solve_parametric_model_optimonly()
 
 	// postprocess
 	m_last_matched = m_matched;
+}
+
+cv::Mat FrameSolver::visualizeReassociation()
+{
+	std::vector<cv::Mat> reassoc; 
+	cloneImgs(m_imgsUndist, reassoc);
+
+	for (int id = 0; id < 4; id++)
+	{
+		for (int i= 0; i < m_matched[id].view_ids.size(); i++)
+		{
+			Eigen::Vector3i color;
+			color(0) = m_CM[id](2);
+			color(1) = m_CM[id](1);
+			color(2) = m_CM[id](0);
+			int camid = m_matched[id].view_ids[i];
+			
+			my_draw_box(reassoc[camid], m_matched[id].dets[i].box, color);
+
+			if (m_matched[id].dets[i].mask.size() > 0)
+				my_draw_mask(reassoc[camid], m_matched[id].dets[i].mask, color, 0.5);
+		}
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			drawSkelMonoColor(reassoc[camid], m_keypoints_associated[id][camid], id, m_topo);
+		}
+	}
+
+	cv::Mat packed;
+	packImgBlock(reassoc, packed);
+	return packed; 
+}
+
+cv::Mat FrameSolver::visualizeVisibility()
+{
+	std::vector<cv::Mat> imgdata;
+	cloneImgs(m_imgsUndist, imgdata);
+	reproject_skels();
+
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int id = 0; id < m_projs[camid].size(); id++)
+		{
+			std::vector<Eigen::Vector3f> joints = m_projs[camid][id];
+			for (int i = 0; i < m_topo.joint_num; i++)
+			{
+				if (m_skelVis[id][camid][i] == 0) m_projs[camid][id][i](2) = 0; 
+			}
+			drawSkelMonoColor(imgdata[camid], m_projs[camid][id], id, m_topo);
+		}
+	}
+
+	cv::Mat packed;
+	packImgBlock(imgdata, packed);
+	return packed;
+}
+
+cv::Mat FrameSolver::visualizeSwap()
+{
+	std::vector<cv::Mat> swap_list(4); 
+	for (int i = 0; i < 4; i++)
+	{
+		swap_list[i] = mp_bodysolverdevice[i]->debug_vis_reassoc_swap(); 
+	}
+	cv::Mat output; 
+	packImgBlock(swap_list, output); 
+	return output; 
+}
+
+void FrameSolver::reAssocProcessStep1()
+{
+	splitDetKeypoints();
+	reAssociateKeypoints();
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->m_isReAssoc = true;
+		mp_bodysolverdevice[i]->m_keypoints_reassociated = m_keypoints_associated[i];
+		mp_bodysolverdevice[i]->m_reassoc_swapped = m_keypoints_associated[i];
+	}
+}
+
+void FrameSolver::reAssocProcessStep2()
+{
+	for(int i = 0; i < 4; i++)
+		mp_bodysolverdevice[i]->reAssocSwap();
+}
+
+cv::Mat FrameSolver::visualizeRawAssoc()
+{
+	std::vector<cv::Mat> imglist(4); 
+	for (int i = 0; i < 4; i++)
+	{
+		imglist[i] = mp_bodysolverdevice[i]->debug_source_visualize(); 
+	}
 }

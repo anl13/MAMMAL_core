@@ -40,7 +40,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_kpt_track_dist = root["kpt_track_dist"].asFloat();
 	m_w_anchor_term = root["anchor_term"].asFloat();
 	m_use_gpu = root["use_gpu"].asBool(); 
-
+	m_iou_thres = root["iou_thres"].asFloat(); 
 	gt_scales.resize(4); 
 	for (int i = 0; i < 4; i++)
 	{
@@ -155,6 +155,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 
 	m_anchor_lib.load("D:/Projects/animal_calib/articulation/pose_libs/");
 
+	m_isReAssoc = false;
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -432,7 +433,7 @@ void PigSolverDevice::fitPoseToJointSameTopo(
 
 	float time = TT.Elapsed();
 
-	std::cout << "iter : " << iterTime << "  ATb: " << loss << "  tpi: " << time / iterTime << std::endl;
+	//std::cout << "iter : " << iterTime << "  ATb: " << loss << "  tpi: " << time / iterTime << std::endl;
 	return;
 }
 
@@ -574,8 +575,7 @@ void PigSolverDevice::calcPose2DTerm_host(
 	Eigen::MatrixXf& ATA,
 	Eigen::VectorXf& ATb,
 	float track_radius, 
-	bool is_converge_detect
-)
+	bool is_converge_detect)
 {
 	Camera& cam = m_cameras[camid];
 	Eigen::Matrix3f R = cam.R;
@@ -602,10 +602,6 @@ void PigSolverDevice::calcPose2DTerm_host(
 			float dist = (skels2d[t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
 			float weight = 1;
 			if (m_depth_weight[camid] > 0.1) weight = m_depth_weight[camid];
-	/*		if (camid == 2 && t == 16)
-			{
-				std::cout << "cam2 dist: " << dist << std::endl;
-			}*/
 			if (dist > track_radius * weight) {
 				continue;
 			}
@@ -780,14 +776,13 @@ void PigSolverDevice::renderDepths()
 
 	const auto& cameras = m_cameras;
 
-	for (int view = 0; view < m_source.view_ids.size(); view++)
+	for (int camid = 0; camid < cameras.size(); camid++)
 	{
-		int camid = m_source.view_ids[view];
 		Camera cam = m_cameras[camid];
 		mp_renderEngine->s_camViewer.SetExtrinsic(cam.R, cam.T);
 
 		float * depth_device = mp_renderEngine->renderDepthDevice();
-		cudaMemcpy(d_depth_renders[view], depth_device, WINDOW_WIDTH*WINDOW_HEIGHT * sizeof(float),
+		cudaMemcpy(d_depth_renders[camid], depth_device, WINDOW_WIDTH*WINDOW_HEIGHT * sizeof(float),
 			cudaMemcpyDeviceToDevice);
 	}
 	mp_renderEngine->clearAllObjs(); 
@@ -964,14 +959,14 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 #endif 
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
-		if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
-			//std::cout << "view " << view << " is invalid. " << m_valid_keypoint_ratio[view] << std::endl;
-			continue;
-		}
+		//if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
+		//	//std::cout << "view " << view << " is invalid. " << m_valid_keypoint_ratio[view] << std::endl;
+		//	continue;
+		//}
 		int camid = m_viewids[view];
 		// compute detection image data 
 
-		convertDepthToMaskHalfSize_device(d_depth_renders[view], d_middle_mask, 1920, 1080);
+		convertDepthToMaskHalfSize_device(d_depth_renders[camid], d_middle_mask, 1920, 1080);
 		sdf2d_device(d_middle_mask, d_rend_sdf, 960, 540);
 
 #ifdef DEBUG_SIL
@@ -993,6 +988,40 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
 
+		// approx IOU 
+		std::vector<unsigned char> visibility(m_vertexNum, 0);
+		check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
+			K, R, T, visibility);
+		float total_overlay = 0;
+		float total_visible = 0;
+		//cv::Mat vis_test;
+		//vis_test.create(cv::Size(1920, 1080), CV_8UC3); 
+		//vis_test = m_rois[roiIdx].mask * 24;
+		for (int i = 0; i < m_vertexNum; i++)
+		{
+			if (m_host_bodyParts[i] == TAIL) continue; // ignore tail and ear
+			if (visibility[i] == 0) continue; //only consider visible parts 
+			Eigen::Vector3f xlocal = m_host_verticesPosed[i];
+			Eigen::Vector3f x_proj = K * (R * xlocal + T);
+			int x = round(x_proj(0) / x_proj(2));
+			int y = round(x_proj(1) / x_proj(2));
+			if (x < 0 || x >= 1920 || y < 0 || y >= 1080)continue;
+			if (c_const_distort_mask.at<uchar>(y, x) == 0) continue;
+			if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue;
+			int m = m_rois[view].queryMask(xlocal);
+			total_visible += 1;
+			if (m != 1)
+			{
+				continue;
+			}
+			total_overlay += 1;
+		}
+		float iou = total_overlay / total_visible;
+		if (iou < m_iou_thres)
+		{
+			continue;
+		}
+
 		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATA_sil.rows() << " " << d_ATA_sil.cols() << std::endl; 
 		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATb_sil.size() << std::endl;
 		setConstant2D_device(d_ATA_sil, 0);
@@ -1002,7 +1031,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		setConstant2D_device(d_AT_sil, 0); 
 		setConstant1D_device(d_b_sil, 0); 
 #endif 
-		calcSilhouetteJacobi_device(K, R, T, d_depth_renders[view],
+		calcSilhouetteJacobi_device(K, R, T, d_depth_renders[camid],
 			d_depth_renders_interact[camid],
 			1 << m_pig_id, paramNum, view);
 
@@ -1091,8 +1120,8 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		r.setZero(); 
 
 		cv::Mat P;
-
-		computeSDF2d_device(d_depth_renders[roiIdx],d_middle_mask, P, 1920,1080);
+		int camid = m_source.view_ids[roiIdx];
+		computeSDF2d_device(d_depth_renders[camid],d_middle_mask, P, 1920,1080);
 
 
 #ifdef DEBUG_SIL
@@ -1104,7 +1133,6 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
 #endif 
 		Camera cam = m_rois[roiIdx].cam;
-		int camid = m_rois[roiIdx].viewid; 
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
@@ -1141,22 +1169,11 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 				continue;
 			}
 			total_overlay += 1;
-			//cv::circle(vis_test, cv::Point(x, y), 3, cv::Scalar(0, 0, 255), -1);
 		}
 
-		//if (m_pig_id == 3 && roiIdx == 0)
-		//{
-		//	cv::imshow("test", vis_test);
-		//	cv::imshow("mask", m_rois[roiIdx].mask * 60); 
-		//	cv::waitKey();
-		//	exit(-1);
-		//}
-		
-
 		float iou = total_overlay / total_visible; 
-		if (iou < 0.50)
+		if (iou < m_iou_thres)
 		{
-			//std::cout << "pig " << m_pig_id << " iter " << iter <<  " view " << camid << " : " << iou << std::endl;
 			continue; 
 		}
 
@@ -1811,51 +1828,6 @@ void PigSolverDevice::CalcRegTerm(
 	}
 }
 
-//
-//int PigSolverDevice::determine_anchor_id()
-//{
-//	std::vector<Eigen::Vector3f> visible_skel = directTriangulationHost(); 
-//	std::vector<float> loss(m_anchor_skel.size(), 0);
-//	for (int index = 0; index < m_anchor_skel.size(); index++)
-//	{
-//		int valid_num = 0;
-//		for (int i = 0; i < m_skelTopo.joint_num; i++)
-//		{
-//			if (visible_skel[i].norm() > 0)
-//			{
-//				float diff = visible_skel[i](2) - m_anchor_skel[index][i](2) * m_host_scale;
-//				diff = fabsf(diff);
-//				if (i == 20 || i == 18 || i ==0)
-//				{
-//					loss[index] += diff * 10; 
-//					valid_num += 10;
-//				}
-//				else
-//				{
-//					loss[index] += diff;
-//					valid_num += 1;
-//				}
-//			}
-//		}
-//		loss[index] = loss[index] / valid_num; 
-//	}
-//	int min_index = 0; 
-//	float min_value = loss[min_index];
-//	for (int i = 0; i < loss.size(); i++)
-//	{
-//		std::cout << loss[i] << " , ";
-//		if (loss[i] < min_value)
-//		{
-//			min_index = i;
-//			min_value = loss[i];
-//		}
-//	}
-//	std::cout << std::endl;
-//	std::cout << "min index : " << min_index << std::endl; 
-//	return min_index; 
-//}
-
-
 void PigSolverDevice::getTheta(Eigen::VectorXf& theta)
 {
 	int M = m_poseToOptimize.size();
@@ -1895,5 +1867,58 @@ void PigSolverDevice::computeDepthWeight()
 		else {
 			m_depth_weight[camid] = 2 / (depth + 0.01);
 		}
+	}
+}
+
+std::vector<float> PigSolverDevice::regressSkelVisibility(int camid)
+{
+	renderDepths();
+	std::vector<unsigned char> visibility(m_vertexNum, 0);
+	Eigen::Matrix3f K = m_cameras[camid].K;
+	Eigen::Matrix3f R = m_cameras[camid].R; 
+	Eigen::Vector3f T = m_cameras[camid].T; 
+	check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
+		K, R, T, visibility);
+	//check_visibility(d_depth_renders[camid], 1920, 1080, m_device_verticesPosed,
+	//	K, R, T, visibility);
+	std::vector<float> skel_vis(m_skelTopo.joint_num, 0); 
+	auto skel = getRegressedSkel_host(); 
+	for (int i = 0; i < m_skelCorr.size(); i++)
+	{
+		Eigen::Vector3f X = skel[i];
+		Eigen::Vector3f x_proj = K * (R * X + T);
+		int x = round(x_proj(0) / x_proj(2));
+		int y = round(x_proj(1) / x_proj(2));
+		if (x < 0 || x >= 1920 || y < 0 || y >= 1080)continue;
+		if (c_const_distort_mask.at<uchar>(y, x) == 0) continue;
+		if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue;
+
+		int t = m_skelCorr[i].target; 
+		int type = m_skelCorr[i].type; 
+
+		if (type == 1)
+		{
+			int index = m_skelCorr[i].index; 
+			skel_vis[t] = visibility[index];
+		}
+		else
+		{
+			int jid = m_skelCorr[i].index; 
+			for (int k = 0; k < m_host_jregressor_list[jid].size(); k++)
+			{
+				skel_vis[t] += visibility[m_host_jregressor_list[jid][k].first] * m_host_jregressor_list[jid][k].second;
+			}
+		}
+	}
+	
+	return skel_vis; 
+}
+
+void PigSolverDevice::computeAllSkelVisibility()
+{
+	m_skel_vis.resize(m_cameras.size()); 
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		m_skel_vis[camid] = regressSkelVisibility(camid); 
 	}
 }

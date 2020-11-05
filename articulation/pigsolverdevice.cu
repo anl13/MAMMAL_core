@@ -402,6 +402,7 @@ pcl::gpu::PtrSz<float> d_b //[pointnum],
 	if (rend_sdf_value > 10)return; // only consider contours 
 
 	float det_sdf_value = d_det_sdf[index_half]*2;
+	if (det_sdf_value > 40) return; //ignore too far away points which may be caused by other errors
 	float dx = d_det_gradx[index_half]*2;
 	float dy = d_det_grady[index_half]*2;
 

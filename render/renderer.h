@@ -54,6 +54,7 @@ public:
 	SimpleShader meshShader; 
 	SimpleShader positionShader; 
 	SimpleShader maskShader; 
+	SimpleShader lightingShader; 
 	
 	std::vector<RenderObjectColor*> colorObjs; 
 	std::vector<RenderObjectMesh*> meshObjs; 

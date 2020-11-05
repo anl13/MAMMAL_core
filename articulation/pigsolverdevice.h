@@ -77,7 +77,7 @@ public:
 	void optimizePoseSilhouette(
 		int maxIter);
 
-	void debug_source_visualize(std::string folder, int frameid); 
+	cv::Mat debug_source_visualize(); 
 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
@@ -107,6 +107,11 @@ public:
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb,
 		float track_radius = 80,
 		bool with_depth_weight=false, bool is_converge_detect=false);
+
+	void Calc2dSkelProjectionTermReassoc(
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight = false);
+	void Calc2DSkelTermReassoc_host(const std::vector<Eigen::Vector3f>& skel_det, const std::vector<Eigen::Vector3f>& skel3d, int camid,
+		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
 	
 	void CalcJointFloorTerm(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
@@ -208,9 +213,22 @@ public:
 	float m_w_floor_term;
 	float m_kpt_track_dist;
 	float m_w_anchor_term;
+	float m_iou_thres; 
 
 	std::vector<float> gt_scales; 
 	float approxIOU(int view); 
+
+	std::vector < std::vector<Eigen::Vector3f> > m_skelProjs; // [viewid, jointid] (u,v,visibility)
+	std::vector<float> regressSkelVisibility(int camid); // assume d_depth_render_interact exist. 
+	void computeAllSkelVisibility(); 
+	std::vector<std::vector<float> > m_skel_vis;
+	void projectSkels(); 
+
+	std::vector<std::vector<Eigen::Vector3f> > m_keypoints_reassociated; // camnum, jointnum
+	bool m_isReAssoc; 
+	std::vector<std::vector<Eigen::Vector3f> > m_reassoc_swapped; // camnum, jointnum
+	void reAssocSwap(); 
+	cv::Mat debug_vis_reassoc_swap(); 
 
 protected:
 
@@ -236,7 +254,6 @@ protected:
 	std::vector<float> m_param_reg_weight; // weight to regularize different joints 
 	Eigen::VectorXf m_param_temp_weight; // temporal weight per joint
 	Eigen::VectorXf m_param_observe_num; // joint observation for each joint
-	std::vector < std::vector<Eigen::Vector3f> > m_skelProjs; // [viewid, jointid] (u,v,visibility)
 
 	// render engine 
 	Renderer* mp_renderEngine;

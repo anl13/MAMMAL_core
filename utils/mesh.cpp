@@ -105,6 +105,7 @@ void Mesh::Load(const std::string& filename, bool isCalcNormal)
 	textures_vec.clear(); 
 	faces_v_vec.clear(); 
 	faces_t_vec.clear(); 
+	vertices_vec_t.clear(); 
 
 	std::fstream reader;
 	reader.open(filename.c_str(), std::ios::in);
@@ -173,6 +174,63 @@ void Mesh::Load(const std::string& filename, bool isCalcNormal)
 
 	if(isCalcNormal)
 		CalcNormal(); 
+
+	// map texture 
+	if (texture_num > 0)
+	{
+		vertices_vec_t.resize(texture_num);
+		tex2vert.resize(texture_num, -1);
+		normals_vec_t.resize(texture_num); 
+		for (int i = 0; i < face_num; i++)
+		{
+			Eigen::Vector3u fv = faces_v_vec[i];
+			Eigen::Vector3u ft = faces_t_vec[i];
+			for (int k = 0; k < 3; k++)
+			{
+				if (tex2vert[ft(k)] < 0)
+				{
+					tex2vert[ft(k)] = fv[k];
+				}
+				else
+				{
+					if (tex2vert[ft(k)] != fv[k])
+					{
+						std::cout << "error: " << ft(k) << " --> " << tex2vert[ft(k)] << " by " << fv[k] << std::endl;
+					}
+				}
+			}
+		}
+		for (int i = 0; i < texture_num; i++)
+		{
+			if (tex2vert[i] < 0)
+			{
+				std::cout << "false tex2vert map. " << std::endl; 
+				continue; 
+			}
+			vertices_vec_t[i] = vertices_vec[tex2vert[i]];
+			normals_vec_t[i] = normals_vec[tex2vert[i]];
+		}
+	}
+}
+
+void Mesh::ReMapTexture()
+{
+	// map texture 
+	if (texture_num > 0)
+	{
+		vertices_vec_t.resize(texture_num);
+		normals_vec_t.resize(texture_num);
+		for (int i = 0; i < texture_num; i++)
+		{
+			if (tex2vert[i] < 0)
+			{
+				std::cout << "false tex2vert map. " << std::endl;
+				continue;
+			}
+			vertices_vec_t[i] = vertices_vec[tex2vert[i]];
+			normals_vec_t[i] = normals_vec[tex2vert[i]];
+		}
+	}
 }
 
 void Mesh::Save(const std::string &filename) const

@@ -334,8 +334,7 @@ int main()
 	//solve_shape(); 
 	//test_shapemodel(); 
 	//test_bone_var();
+	generate_nodegraph(); 
 
-	test_modify_head(); 
-	//generate_nodegraph(); 
 	return 0; 
 }

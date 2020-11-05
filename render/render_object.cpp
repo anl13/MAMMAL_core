@@ -185,28 +185,33 @@ void RenderObjectTexture::SetTexcoords(const std::vector<Eigen::Vector2f>& texco
 void RenderObjectTexture::SetTexture(const std::string& texturePath)
 {
 	int width, height, nrComponents;
-	unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &nrComponents, 0);
-	if (data)
+	//unsigned char *data = stbi_load(texturePath.c_str(), &width, &height, &nrComponents, 0);
+	cv::Mat a = cv::imread(texturePath); 
+	cv::cvtColor(a, a, cv::COLOR_BGR2RGB); 
+	//std::cout << "nrCompo: " << nrComponents << std::endl; 
+
+	if (1)
 	{
 		GLenum format;
-		if (nrComponents == 1)
-			format = GL_RED;
-		else if (nrComponents == 3)
-			format = GL_RGB;
-		else if (nrComponents == 4)
-			format = GL_RGBA;
-
-		glBindTexture(GL_TEXTURE_2D, textureID);
-		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-
-		glGenerateMipmap(GL_TEXTURE_2D);
+		//if (nrComponents == 1)
+		//	format = GL_RED;
+		//else if (nrComponents == 3)
+		//	format = GL_RGB;
+		//else if (nrComponents == 4)
+		//	format = GL_RGBA;
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		stbi_image_free(data);
+		format = GL_RGB; 
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, a.cols, a.rows, 0, format, GL_UNSIGNED_BYTE, a.data);
+
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		//stbi_image_free(data);
 	}
 	else
 	{

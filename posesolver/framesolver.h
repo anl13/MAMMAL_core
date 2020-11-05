@@ -25,7 +25,6 @@ public:
 	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
 
 	void pureTracking();
-	void pureTracking_jointlevel(); 
 
 	Renderer* mp_renderEngine;
 	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolverdevice;
@@ -51,7 +50,7 @@ public:
 	float       m_epi_thres;
 	std::string m_epi_type;
 
-	vector<vector<vector<Eigen::Vector3f> > > m_projs; // [viewid, candid, kptid]
+	vector<vector<vector<Eigen::Vector3f> > > m_projs; // [viewid, pigid, kptid]
 
 		// shape solver 
 	void getROI(vector<ROIdescripter>& rois, int id = 0);
@@ -86,13 +85,21 @@ public:
 	void splitDetKeypoints(); 
 	void nmsKeypointCands(std::vector<Eigen::Vector3f>& list);
 	void reAssociateKeypoints(); // post-priori motion refinement
-	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_associated;
+	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_associated; // idnum, camnum, jointnum
+	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_pool; // camnum, jointnum, candnum
+	std::vector< std::vector<std::vector<float> > > m_skelVis; // idnum, camnum, jointnum
+	cv::Mat visualizeReassociation(); 
+	cv::Mat visualizeKeypointsPool(); 
+	cv::Mat visualizeVisibility(); 
+	cv::Mat visualizeSwap(); 
+	cv::Mat visualizeRawAssoc();
+	void reAssocProcessStep1();
+	void reAssocProcessStep2();
 
 	void optimizeSil(int maxIterTime); 
 	void optimizeSilWithAnchor(int maxIterTime); 
 	void saveAnchors(std::string folder);
 	void loadAnchors(std::string folder, bool andsolve=false); 
-	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_pool; 
 	// visualization function  
 	
 	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);

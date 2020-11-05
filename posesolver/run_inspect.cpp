@@ -67,8 +67,8 @@ int run_inspect()
 			frame.pureTracking(); 
 		////frame.load_clusters(); 
 
-		//frame.save_clusters(); 
-		//frame.load_clusters(); 
+		frame.save_clusters(); 
+		frame.load_clusters(); 
 
 		cv::Mat assoc = frame.visualizeIdentity2D();
 		std::stringstream ss;
@@ -84,12 +84,37 @@ int run_inspect()
 			//frame.solve_parametric_model_pipeline3();
 			//frame.saveAnchors(test_result_folder+"/anchor_state69/"); 
 			if (frameid == start)
+			{
 				frame.loadAnchors(test_result_folder + "/anchor_state69_smth", true);
+			}
 			else
 			{
 				frame.loadAnchors(test_result_folder + "/anchor_state69_smth", false);
 				frame.solve_parametric_model_optimonly();
 			}
+
+			//frame.reAssocProcessStep1();
+			cv::Mat reassoc = frame.visualizeReassociation(); 
+			std::stringstream ss_reassoc; 
+			ss_reassoc << test_result_folder << "/reassoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
+			cv::imwrite(ss_reassoc.str(), reassoc); 
+
+			//cv::Mat reproj = frame.visualizeVisibility(); 
+			//std::stringstream ss_proj; 
+			//ss_proj << test_result_folder << "/proj/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_proj.str(), reproj); 
+
+			
+			cv::Mat beforeimg = frame.visualizeSwap();
+			std::stringstream ss_before; 
+			ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_before.str(), beforeimg); 
+
+			//frame.reAssocProcessStep2(); 
+			//cv::Mat swapimg = frame.visualizeSwap(); 
+			//std::stringstream ss_swap; 
+			//ss_swap << test_result_folder << "/swap/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
+			//cv::imwrite(ss_swap.str(), swapimg); 
 
 			frame.save_parametric_data(); 
 
@@ -98,8 +123,6 @@ int run_inspect()
 
 			for (int pid = 0; pid < 4; pid++)
 			{
-				solvers[pid]->debug_source_visualize(test_result_folder, frameid); 
-
 				RenderObjectColor* p_model = new RenderObjectColor();
 				solvers[pid]->UpdateNormalFinal();
 

@@ -72,7 +72,7 @@ std::vector<Camera> readCameras()
 void test_shader()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 
 	// init a camera 
 	Eigen::Matrix3f K;
@@ -93,7 +93,6 @@ void test_shader()
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 
-
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
 	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
@@ -101,48 +100,49 @@ void test_shader()
 	MeshEigen ballMeshEigen(ballMesh); 
 	MeshEigen stickMeshEigen(stickMesh); 
 
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareMesh.faces_v_vec);
-	chess_floor->SetVertices(squareMesh.vertices_vec);
-	chess_floor->SetNormal(squareMesh.normals_vec, 2); 
-	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
-	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor);
-
-	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
-	std::vector<Eigen::Vector3f> points = read_points(point_file);
-	std::cout << "pointsize:  " << points.size() << std::endl;
-	std::vector<float> sizes(points.size(), 0.05f);
-	std::vector<Eigen::Vector3f> balls, colors;
-	balls = points; 
-	colors.resize(points.size());
-	for (int i = 0; i < points.size(); i++)
-	{
-		colors[i] = CM[0];
-	}
-	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
-	m_renderer.skels.push_back(skelObject);
+	//std::string point_file = conf_projectFolder + "/data/calibdata/adjust_new/points3d.txt";
+	//std::vector<Eigen::Vector3f> points = read_points(point_file);
+	//std::cout << "pointsize:  " << points.size() << std::endl;
+	//std::vector<float> sizes(points.size(), 0.05f);
+	//std::vector<Eigen::Vector3f> balls, colors;
+	//balls = points; 
+	//colors.resize(points.size());
+	//for (int i = 0; i < points.size(); i++)
+	//{
+	//	colors[i] = CM[0];
+	//}
+	//BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
+	//m_renderer.skels.push_back(skelObject);
 
 	Mesh obj;
-	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
-	MeshEigen objeigen(obj); 
+	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	for (int i = 0; i < obj.vertices_vec.size(); i++)
+	{
+		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0.21); 
+	}
 
-	//RenderObjectMesh* p_model = new RenderObjectMesh();
-	//p_model->SetVertices(obj.vertices_vec);
-	//p_model->SetFaces(obj.faces_v_vec);
-	//p_model->SetColors(obj.normals_vec); 
+	obj.ReMapTexture(); 
+
+	//RenderObjectColor * p_model = new RenderObjectColor(); 
+	//p_model->SetVertices(obj.vertices_vec); 
+	//p_model->SetFaces(obj.faces_v_vec); 
 	//p_model->SetNormal(obj.normals_vec); 
+	//p_model->SetColor(CM[0]); 
+	//m_renderer.colorObjs.push_back(p_model); 
 
-	RenderObjectColor * p_model = new RenderObjectColor(); 
-	p_model->SetVertices(obj.vertices_vec); 
-	p_model->SetFaces(obj.faces_v_vec); 
-	p_model->SetNormal(obj.normals_vec); 
-	p_model->SetColor(Eigen::Vector3f(0.2f, 0.8f, 0.5f)); 
+	RenderObjectTexture* p_model = new RenderObjectTexture();
+	p_model->SetTexture(conf_projectFolder + "/render/data/white_tex.png");
+	p_model->SetFaces(obj.faces_t_vec);
+	p_model->SetVertices(obj.vertices_vec_t);
+	p_model->SetNormal(obj.normals_vec_t, 2);
+	p_model->SetTexcoords(obj.textures_vec, 1);
+	p_model->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	m_renderer.texObjs.push_back(p_model);
 
-	m_renderer.colorObjs.push_back(p_model); 
-	//m_renderer.meshObjs.push_back(p_model); 
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 0.5f, 0.5f, 1.0f)); 
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f)); 
+
+	m_renderer.createScene(conf_projectFolder); 
+
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
@@ -575,5 +575,5 @@ void test_mask()
 
 void main()
 {
-	test_discrete_scene(); 
+	test_shader(); 
 }

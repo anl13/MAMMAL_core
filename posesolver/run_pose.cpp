@@ -80,9 +80,6 @@ int run_pose()
 
 		for (int pid = 0; pid < 4; pid++)
 		{
-			solvers[pid]->debug_source_visualize(frame.result_folder, frameid);
-			//std::cout << "pig " << pid << "  scale: " << solvers[pid]->GetScale() << std::endl;
-
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();
 

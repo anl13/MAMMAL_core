@@ -321,6 +321,9 @@ void Renderer::InitShader()
 	maskShader = SimpleShader(m_shaderFolder + "/mask_v.shader", 
 		m_shaderFolder + "/mask_f.shader");
 
+	lightingShader = SimpleShader(m_shaderFolder + "/texture_v.shader",
+		m_shaderFolder + "/texture_f_multilight.shader");
+
 	std::cout << "init depth shader" << std::endl; 
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -334,7 +337,8 @@ void Renderer::Draw(std::string type)
 		m_backgroundColor(2),
 		m_backgroundColor(3));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
+	//Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
+	Eigen::Vector3f lightPos = Eigen::Vector3f(0, 0, 3);
 
 	// 2. render scene as normal using the generated depth/shadow map  
 	// --------------------------------------------------------------
@@ -371,16 +375,107 @@ void Renderer::Draw(std::string type)
 	
 	for(int i = 0; i < texObjs.size(); i++)
 	{
-		if (type == "color")
-		{
-			textureShader.Use();
-			s_camViewer.ConfigShader(textureShader);
-			textureShader.SetVec3("light_pos", lightPos);
-			textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-			textureShader.SetInt("object_texture", 2);
-			glActiveTexture(GL_TEXTURE2);
-			texObjs[i]->DrawWhole(textureShader);
-		}
+#if 0
+		textureShader.Use();
+		s_camViewer.ConfigShader(textureShader);
+		textureShader.SetVec3("light_pos", lightPos);
+		textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+		textureShader.SetInt("object_texture", 0);
+		glActiveTexture(GL_TEXTURE0);
+		texObjs[i]->DrawWhole(textureShader);
+		
+#else
+		lightingShader.Use(); 
+		s_camViewer.ConfigShader(lightingShader); 
+		lightingShader.SetInt("object_texture", 0);
+		lightingShader.SetFloat("material.shininess", 1);
+		lightingShader.SetFloat("material.diffuse", 0.6f);
+		lightingShader.SetFloat("material.specular", 0.01f); 
+		lightingShader.SetFloat("material.ambient", 0.5); 
+
+		/*
+		   Here we set all the uniforms for the 5/6 types of lights we have. We have to set them manually and index
+		   the proper PointLight struct in the array to set each uniform variable. This can be done more code-friendly
+		   by defining light types as classes and set their values in there, or by using a more efficient uniform approach
+		   by using 'Uniform buffer objects', but that is something we'll discuss in the 'Advanced GLSL' tutorial.
+		*/
+		std::vector<Eigen::Vector3f> pointLightPositions = {
+			Eigen::Vector3f(0,0,4),
+			Eigen::Vector3f(3, 0, 1.2),
+			Eigen::Vector3f(-3, 0, 1.2),
+			Eigen::Vector3f(0,2, 1.2),
+			Eigen::Vector3f(0, -2, 1.2),
+			Eigen::Vector3f(0,0,-6)
+		};
+		// directional light
+		lightingShader.SetVec3("dirLight.direction", 0, 0, 3.f);
+		lightingShader.SetVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+		lightingShader.SetVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+		lightingShader.SetVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+		// point light 1
+		lightingShader.SetVec3("pointLights[0].position", pointLightPositions[0]);
+		lightingShader.SetVec3("pointLights[0].ambient", 0.05, 0.05, 0.05);
+		lightingShader.SetVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+		lightingShader.SetVec3("pointLights[0].specular", 1.f, 1.f, 1.f);
+		lightingShader.SetFloat("pointLights[0].constant", 1);
+		lightingShader.SetFloat("pointLights[0].linear", 0.09);
+		lightingShader.SetFloat("pointLights[0].quadratic", 0.032);
+		// point light 2
+		lightingShader.SetVec3("pointLights[1].position", pointLightPositions[1]);
+		lightingShader.SetVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+		lightingShader.SetVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+		lightingShader.SetVec3("pointLights[1].specular", 0.4f, 0.4f, 0.4f);
+		lightingShader.SetFloat("pointLights[1].constant", 1.0f);
+		lightingShader.SetFloat("pointLights[1].linear", 0.09);
+		lightingShader.SetFloat("pointLights[1].quadratic", 0.032);
+		// point light 3
+		lightingShader.SetVec3("pointLights[2].position", pointLightPositions[2]);
+		lightingShader.SetVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+		lightingShader.SetVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+		lightingShader.SetVec3("pointLights[2].specular", 0.4f, 0.4f, 0.4f);
+		lightingShader.SetFloat("pointLights[2].constant", 1.0f);
+		lightingShader.SetFloat("pointLights[2].linear", 0.09);
+		lightingShader.SetFloat("pointLights[2].quadratic", 0.032);
+		// point light 4
+		lightingShader.SetVec3("pointLights[3].position", pointLightPositions[3]);
+		lightingShader.SetVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+		lightingShader.SetVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+		lightingShader.SetVec3("pointLights[3].specular", 0.4f, 0.4f, 0.4f);
+		lightingShader.SetFloat("pointLights[3].constant", 1.0f);
+		lightingShader.SetFloat("pointLights[3].linear", 0.09);
+		lightingShader.SetFloat("pointLights[3].quadratic", 0.032);
+		// point light 5
+		lightingShader.SetVec3("pointLights[4].position", pointLightPositions[4]);
+		lightingShader.SetVec3("pointLights[4].ambient", 0.05f, 0.05f, 0.05f);
+		lightingShader.SetVec3("pointLights[4].diffuse", 0.8f, 0.8f, 0.8f);
+		lightingShader.SetVec3("pointLights[4].specular", 0.4f, 0.4f, 0.4f);
+		lightingShader.SetFloat("pointLights[4].constant", 1.0f);
+		lightingShader.SetFloat("pointLights[4].linear", 0.09);
+		lightingShader.SetFloat("pointLights[4].quadratic", 0.032);
+		// point light 6
+		lightingShader.SetVec3("pointLights[5].position", pointLightPositions[5]);
+		lightingShader.SetVec3("pointLights[5].ambient", 0.05f, 0.05f, 0.05f);
+		lightingShader.SetVec3("pointLights[5].diffuse", 0.8f, 0.8f, 0.8f);
+		lightingShader.SetVec3("pointLights[5].specular", 0.4f, 0.4f, 0.4f);
+		lightingShader.SetFloat("pointLights[5].constant", 1.0f);
+		lightingShader.SetFloat("pointLights[5].linear", 0.09);
+		lightingShader.SetFloat("pointLights[5].quadratic", 0.032);
+
+		// spotLight
+		lightingShader.SetVec3("spotLight.position", s_camViewer.GetPos());
+		lightingShader.SetVec3("spotLight.direction", s_camViewer.GetFront());
+		lightingShader.SetVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
+		lightingShader.SetVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
+		lightingShader.SetVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+		lightingShader.SetFloat("spotLight.constant", 1.0f);
+		lightingShader.SetFloat("spotLight.linear", 0.09);
+		lightingShader.SetFloat("spotLight.quadratic", 0.032);
+		lightingShader.SetFloat("spotLight.cutOff", cosf(12.5f/180*M_PI));
+		lightingShader.SetFloat("spotLight.outerCutOff", cosf(15.f / 180 * M_PI));
+		
+		glActiveTexture(GL_TEXTURE0);
+		texObjs[i]->DrawWhole(lightingShader);
+#endif
 	}
 
 	for(int i = 0; i < meshObjs.size(); i++)
@@ -518,7 +613,7 @@ void Renderer::createScene(std::string conf_projectFolder)
 	obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
 	//obj = ballMesh; 
 	RenderObjectTexture* p_scene = new RenderObjectTexture();
-	p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_black.png");
+	p_scene->SetTexture(conf_projectFolder + "/render/data/previous_board.png");
 	p_scene->SetFaces(obj.faces_v_vec);
 	p_scene->SetVertices(obj.vertices_vec);
 	p_scene->SetNormal(obj.normals_vec, 2);

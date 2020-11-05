@@ -29,7 +29,11 @@ public:
 	std::vector<Eigen::Vector3u> faces_v_vec; 
 	std::vector<Eigen::Vector3u> faces_t_vec; 
 	std::vector<Eigen::Vector2f> textures_vec; 
+	std::vector<Eigen::Vector3f> vertices_vec_t; 
+	std::vector<int> tex2vert; 
+	std::vector<Eigen::Vector3f> normals_vec_t; 
 	
+	void ReMapTexture(); 
 	void CalcNormal();
 	void Load(const std::string& filename, bool isCalcNormal=true);
 	void Save(const std::string& filename) const; 

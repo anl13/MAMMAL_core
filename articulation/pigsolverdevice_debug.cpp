@@ -1,6 +1,8 @@
 #include "pigsolverdevice.h"
+#include "../utils/geometry.h"
+#include "../utils/Hungarian.h"
 
-void PigSolverDevice::debug_source_visualize(std::string folder, int frameid)
+cv::Mat PigSolverDevice::debug_source_visualize()
 {
 	std::vector<Eigen::Vector3i> m_CM;
 	getColorMap("anliang_rgb", m_CM); 
@@ -10,10 +12,9 @@ void PigSolverDevice::debug_source_visualize(std::string folder, int frameid)
 	{
 		int camid = m_source.view_ids[i];
 		drawSkelDebug(m_imgdet[camid], m_source.dets[i].keypoints, m_skelTopo);
-		my_draw_box(m_imgdet[camid], m_source.dets[i].box, m_CM[m_pig_id]);
+		//my_draw_box(m_imgdet[camid], m_source.dets[i].box, m_CM[m_pig_id]);
 		//my_draw_mask(m_imgsDetect[camid], m_matched[id].dets[i].mask, m_CM[id], 0.5);
 	}
-
 
 	std::vector<cv::Mat> crop_list(12);
 	for (int k = 0; k < crop_list.size(); k++)
@@ -32,16 +33,10 @@ void PigSolverDevice::debug_source_visualize(std::string folder, int frameid)
 		crop_list[camid] = img2; 
 	}
 	cv::Mat output;
-	if (crop_list.size() > 0)
-	{
-		packImgBlock(crop_list, output);
-		std::stringstream ss;
-		ss << folder << "/fitting/" << m_pig_id << "/det_" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss.str(), output);
-		//cv::imshow("test", output); 
-		//cv::waitKey(); 
-	}
-	return;
+
+	packImgBlock(crop_list, output);
+
+	return output;
 }
 
 
@@ -340,6 +335,7 @@ void PigSolverDevice::optimizePoseWithAnchor()
 		float track_radius = m_kpt_track_dist - iterTime * 10;
 		track_radius = track_radius > 30 ? track_radius : 30;
 		bool is_converge_radius = true;
+	
 		//if (iterTime > 20) is_converge_radius = true;
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
 		//Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, 80, false, false); 
@@ -419,12 +415,14 @@ void PigSolverDevice::CalcLambdaTerm(Eigen::MatrixXf& ATA)
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum); 
 	// "pose_to_solve": [ 0, 2, 4, 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57, 21, 22, 23],
 	std::vector<float> rot_weights = { // size same to M 
-		0.0001, 0.01, 0.01,
+		//0.0001, 0.01, 0.01,
+		0.0001, 0.0001, 0.0001,
 		0.0001, 0.0001, 0.0001, 0.0001,
 		0.0001, 0.0001, 0.0001, 0.0001,
 		0.0001, 0.0001, 0.0001, 0.0001,
 		0.0001, 0.0001, 0.0001, 0.0001,
-		2, 2, 2
+		0.0001, 0.0001,0.0001
+		//2,2,2
 	};
 	for (int i = 0; i < rot_weights.size(); i++)
 	{
@@ -469,45 +467,45 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 		}
 	}
 
-	if (m_det_confs[5] >= 3 && m_det_confs[7] >= 3 && m_det_confs[9] >= 3)
+	if (/*m_det_confs[5] >= 3 &&*/ m_det_confs[7] >= 3 && m_det_confs[9] >= 3)
 	{
 		std::vector<int> ignore = {7,8,9,10 };
 
 		float w_leg = weight; 
-		if (m_det_confs[5] + m_det_confs[7] + m_det_confs[9] > 18) w_leg *= 0.1;
+		if (m_det_confs[5] + m_det_confs[7] + m_det_confs[9] > 18) w_leg *= 0.01;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (m_det_confs[6] >= 3 && m_det_confs[8] >= 3 && m_det_confs[10] >= 3)
+	if (/*m_det_confs[6] >= 2 && */m_det_confs[8] >= 2 && m_det_confs[10] >= 2)
 	{
 		std::vector<int> ignore = { 3,4,5,6 };
 		float w_leg = weight;
-		if (m_det_confs[6] + m_det_confs[8] + m_det_confs[10] > 18) w_leg *= 0.1;
+		if (m_det_confs[6] + m_det_confs[8] + m_det_confs[10] > 18) w_leg *= 0.01;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (m_det_confs[11] >= 3 && m_det_confs[13] >= 3 && m_det_confs[15] >= 3)
+	if (/*m_det_confs[11] >= 2 &&*/ m_det_confs[13] >= 2 && m_det_confs[15] >= 2)
 	{
 		std::vector<int> ignore = { 15,16,17,18 };
 		float w_leg = weight;
-		if (m_det_confs[11] + m_det_confs[13] + m_det_confs[15] > 18) w_leg *= 0.1;
+		if (m_det_confs[11] + m_det_confs[13] + m_det_confs[15] > 18) w_leg *= 0.01;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (m_det_confs[12] >= 3 && m_det_confs[14] >= 3 && m_det_confs[16] >= 3)
+	if (/*m_det_confs[12] >= 2 &&*/ m_det_confs[14] >= 2 && m_det_confs[16] >= 2)
 	{
 		std::vector<int> ignore = { 11,12,13,14 };
 		float w_leg = weight;
-		if (m_det_confs[12] + m_det_confs[14] + m_det_confs[16] > 18) w_leg *= 0.1;
+		if (m_det_confs[12] + m_det_confs[14] + m_det_confs[16] > 18) w_leg *= 0.01;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
@@ -516,10 +514,10 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 	}
 	if (m_det_confs[20] >= 2 && m_det_confs[18] >= 2 && m_det_confs[0] >= 2)
 	{
-		ATb.segment<3>(3) *= 0;
-		ATA.middleRows(3, 3) *= 0;
-		ATb.segment<3>(0) *= 0;
-		ATA.middleRows(0, 3) *= 0 ;
+		ATb.segment<3>(3) *= 0.01;
+		ATA.middleRows(3, 3) *= 0.01;
+		ATb.segment<3>(0) *= 0.01;
+		ATA.middleRows(0, 3) *= 0.01 ;
 	}
 }
 
@@ -657,7 +655,15 @@ void PigSolverDevice::optimizePoseSilOneStep(int iter)
 	track_radius = track_radius > 30 ? track_radius : 30;
 	bool is_converge_radius = false;
 	if (iter > 20) is_converge_radius = true;
-	Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
+
+	if (m_isReAssoc)
+	{
+		Calc2dSkelProjectionTermReassoc(ATA_data, ATb_data, true);
+	}
+	else
+	{
+		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
+	}
 
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
 
@@ -826,7 +832,15 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	track_radius = track_radius > 20 ? track_radius : 20;
 	bool is_converge_radius = false;
 	if (iter > 20) is_converge_radius = true;
-	Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
+	if (m_isReAssoc)
+	{
+		//std::cout << "pig: " << m_pig_id << "  iter: " << iter << std::endl; 
+		Calc2dSkelProjectionTermReassoc(ATA_data, ATb_data, false);
+	}
+	else
+	{
+		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
+	}
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
 
 	// compute terms
@@ -901,4 +915,229 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		int jIdx = m_poseToOptimize[i];
 		m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 	}
+
+//#ifdef SHOW_FITTING_INFO
+//	std::cout << "iter: " << iter << std::endl; 
+//	std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
+//	std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
+//	std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
+//	std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
+//	std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
+//	std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
+//#endif 
+}
+
+void PigSolverDevice::Calc2dSkelProjectionTermReassoc(
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
+	std::vector<Eigen::Vector3f> skel3d = getRegressedSkel_host();
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum); 
+	ATb = Eigen::VectorXf::Zero(paramNum); 
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		Eigen::MatrixXf H;
+		Eigen::VectorXf b; 
+		Calc2DSkelTermReassoc_host(m_reassoc_swapped[camid], skel3d, camid, h_J_skel, H, b);
+		float weight = 1; 
+		if (with_depth_weight)
+		{
+			if (m_depth_weight[camid] > 0.1)
+				weight = 1 / m_depth_weight[camid];
+		}
+
+		ATA += H * weight; 
+		ATb += b * weight; 
+
+		//std::cout << "cam " << camid << " b.norm: " << b.norm() << "  w: " << weight << std::endl;
+	}
+}
+
+
+void PigSolverDevice::Calc2DSkelTermReassoc_host(const std::vector<Eigen::Vector3f>& skel_det, const std::vector<Eigen::Vector3f>& skel3d, int camid,
+	const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	const Camera& cam = m_cameras[camid];
+	Eigen::Matrix3f R = cam.R; 
+	Eigen::Matrix3f K = cam.K; 
+	Eigen::Vector3f T = cam.T; 
+	K.row(0) /= 1920; 
+	K.row(1) /= 1080;
+	int N = m_skelCorr.size();
+	int M = m_poseToOptimize.size(); 
+	int paramNum = 3 + 3 * M; 
+	Eigen::VectorXf r = Eigen::VectorXf::Zero(2 * N); 
+	Eigen::MatrixXf J = Eigen::MatrixXf::Zero(2 * N, 3 + 3 * M); 
+	
+	std::vector<Eigen::Vector3f> skels2d; 
+	project(cam, skel3d, skels2d); 
+	for (int i = 0; i < N; i++)
+	{
+		const CorrPair& P = m_skelCorr[i];
+		int t = P.target;
+		if (skel_det[t](2) == 0) continue;
+		//if (camid == 3) // top view do not trust leg
+		//{
+		//	if (t >= 5 && t <= 16) continue; 
+		//}
+		m_det_confs[t] += 1;
+
+		Eigen::Vector3f x_local = K * (R * skel3d[t] + T);
+		x_local(0);
+		x_local(1);
+		Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
+		D(0, 0) = 1 / x_local(2);
+		D(1, 1) = 1 / x_local(2);
+		D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
+		D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
+
+		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3);
+
+		Eigen::Vector2f u;
+		u(0) = x_local(0) / x_local(2);
+		u(1) = x_local(1) / x_local(2);
+		Eigen::Vector2f det_u;
+		det_u(0) = skel_det[t](0) / 1920;
+		det_u(1) = skel_det[t](1) / 1080;
+		r.segment<2>(2 * i) = P.weight * (u - det_u);
+	}
+
+	ATb = -J.transpose() * r;
+	ATA = J.transpose() * J;
+}
+
+void PigSolverDevice::reAssocSwap()
+{
+	projectSkels();
+
+	m_reassoc_swapped = m_keypoints_reassociated;
+
+	std::vector<int> ids_to_swap = { 9,10,15,16 };
+
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		std::vector<Eigen::Vector3f> det_pool;
+		std::vector<Eigen::Vector3f> model_pool;
+		std::vector<int> id_table_det;
+		std::vector<int> id_table_model;
+		// push to pool
+		for (int i = 0; i < ids_to_swap.size(); i++)
+		{
+			int id = ids_to_swap[i];
+			if (m_keypoints_reassociated[camid][id](2) > m_skelTopo.kpt_conf_thresh[id])
+			{
+				det_pool.push_back(m_keypoints_reassociated[camid][id]);
+				id_table_det.push_back(id); 
+				m_reassoc_swapped[camid][id].setZero(); 
+			}
+			//if (m_skel_vis[camid][id] > 0)
+			//{
+				model_pool.push_back(m_skelProjs[camid][id]);
+				id_table_model.push_back(id); 
+			//}
+		}
+		// reassign
+		if (det_pool.size() == 0) continue; 
+
+		Eigen::MatrixXf sim = Eigen::MatrixXf::Zero(det_pool.size(), model_pool.size());
+		for (int i = 0; i < sim.rows(); i++)
+		{
+			for (int j = 0; j < sim.cols(); j++)
+			{
+				float dist = (det_pool[i].segment<2>(0) - model_pool[j].segment<2>(0)).norm(); 
+				if (dist > 100) dist = 100; 
+				sim(i, j) = dist; 
+			}
+		}
+
+		std::vector<int> match = solveHungarian(sim); 
+		for (int i = 0; i < det_pool.size(); i++)
+		{
+			if (match[i] > -1 && sim(i,match[i]) < 100)
+			{
+				int raw_id = id_table_det[i];
+				int match_id = id_table_model[match[i]];
+				m_reassoc_swapped[camid][match_id] = det_pool[i];
+			}
+		}
+	}
+
+}
+
+void PigSolverDevice::projectSkels()
+{
+	m_skelProjs.resize(m_cameras.size()); 
+	auto skel = getRegressedSkel_host();
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		m_skelProjs[camid].resize(m_skelTopo.joint_num, Eigen::Vector3f::Zero());
+		for (int kpt_id = 0; kpt_id < m_skelTopo.joint_num; kpt_id++)
+		{
+			if (skel[kpt_id].norm() == 0) continue;
+			Eigen::Vector3f p = skel[kpt_id];
+			m_skelProjs[camid][kpt_id] = project(m_cameras[camid], p);
+		}
+	}
+}
+
+Eigen::Vector4f estimateBox(const std::vector<Eigen::Vector3f>& keypoints)
+{
+	float minx = 1920; 
+	float miny = 1080;
+	float maxx = 0; 
+	float maxy = 0;
+	for(int i = 0; i < keypoints.size(); i++)
+	{
+		if (keypoints[i](2) == 0) continue; 
+		minx = minx > keypoints[i](0) ? keypoints[i](0) : minx; 
+		maxx = maxx > keypoints[i](0) ? maxx : keypoints[i](0);
+		miny = miny > keypoints[i](1) ? keypoints[i](1) : miny; 
+		maxy = maxy > keypoints[i](1) ? maxy : keypoints[i](1); 
+	}
+	minx = minx - 50 > 0 ? minx - 50 : 0;
+	miny = miny - 50 > 0 ? miny - 50 : 0; 
+	maxx = maxx + 50 < 1919 ? maxx + 50 : 1919;
+	maxy = maxy + 50 < 1079 ? maxy + 50 : 1079;
+
+	Eigen::Vector4f box(minx, miny, maxx, maxy); 
+	return box; 
+}
+
+bool isValidBox(const Eigen::Vector4f& box)
+{
+	if (box(0) >= box(2)) return false;
+	if (box(1) >= box(3)) return false;
+	return true; 
+}
+
+cv::Mat PigSolverDevice::debug_vis_reassoc_swap()
+{
+	std::vector<Eigen::Vector3i> m_CM;
+	getColorMap("anliang_rgb", m_CM);
+	std::vector<cv::Mat> m_imgdet;
+	cloneImgs(m_rawimgs, m_imgdet);
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		drawSkelDebug(m_imgdet[camid], m_reassoc_swapped[camid], m_skelTopo);
+	}
+
+	std::vector<cv::Mat> crop_list(12);
+	for (int k = 0; k < crop_list.size(); k++)
+	{
+		crop_list[k] = cv::Mat(cv::Size(256, 256), CV_8UC3);
+		crop_list[k].setTo(cv::Scalar(255, 255, 255));
+	}
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		Eigen::Vector4f box = estimateBox(m_reassoc_swapped[camid]);
+		if (!isValidBox(box))continue; 
+		cv::Mat raw_img = m_imgdet[camid];
+		cv::Rect2i roi(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+		cv::Mat img = raw_img(roi);
+		cv::Mat img2 = resizeAndPadding(img, 256, 256);
+		crop_list[camid] = img2;
+	}
+	cv::Mat output;
+	packImgBlock(crop_list, output);
+	return output;
 }
