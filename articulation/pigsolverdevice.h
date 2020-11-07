@@ -227,7 +227,6 @@ public:
 	std::vector<std::vector<Eigen::Vector3f> > m_keypoints_reassociated; // camnum, jointnum
 	bool m_isReAssoc; 
 	std::vector<std::vector<Eigen::Vector3f> > m_reassoc_swapped; // camnum, jointnum
-	void reAssocSwap(); 
 	cv::Mat debug_vis_reassoc_swap(); 
 
 protected:

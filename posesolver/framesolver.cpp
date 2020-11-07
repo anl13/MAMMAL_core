@@ -606,6 +606,7 @@ void FrameSolver::matching_by_tracking()
 			be_matched[camid][candid] = true;
 			m_matched[i].view_ids.push_back(camid);
 			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
+			m_matched[i].candids.push_back(candid); 
 		}
 	}
 
@@ -689,6 +690,7 @@ void FrameSolver::load_clusters()
 			be_matched[camid][candid] = true;
 			m_matched[i].view_ids.push_back(camid);
 			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
+			m_matched[i].candids.push_back(candid); 
 		}
 	}
 
@@ -1406,17 +1408,76 @@ void FrameSolver::reAssocProcessStep1()
 	}
 }
 
-void FrameSolver::reAssocProcessStep2()
-{
-	for(int i = 0; i < 4; i++)
-		mp_bodysolverdevice[i]->reAssocSwap();
-}
-
 cv::Mat FrameSolver::visualizeRawAssoc()
 {
 	std::vector<cv::Mat> imglist(4); 
 	for (int i = 0; i < 4; i++)
 	{
 		imglist[i] = mp_bodysolverdevice[i]->debug_source_visualize(); 
+	}
+}
+
+
+// 2020/11/07
+// reassoc without tracked joints 
+
+void FrameSolver::determineTracked()
+{
+	m_detTracked.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		m_detTracked[camid].resize(m_detUndist[camid].size());
+		for (int k = 0; k < m_detTracked[camid].size(); k++)
+		{
+			m_detTracked[camid][k].resize(m_topo.joint_num, 0);
+		}
+	}
+
+	m_modelTracked.resize(4);
+	for (int pid = 0; pid < 4; pid++)
+	{
+		m_modelTracked[pid].resize(m_camNum);
+		for (int camid = 0; camid < m_modelTracked[pid].size(); camid++)
+		{
+			m_modelTracked[pid][camid].resize(m_topo.joint_num);
+		}
+	}
+
+	if (m_skels3d.size() < 1) m_skels3d.resize(4);
+
+	for (int i = 0; i < 4; i++)
+	{
+		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
+	}
+	reproject_skels();
+
+	for (int pid = 0; pid < 4; pid++)
+	{
+		for (int view = 0; view < m_matched[pid].view_ids.size(); view++)
+		{
+			int  camid = m_matched[pid].view_ids[view];
+			int candid = m_matched[pid].candids[view];
+			for (int i = 0; i < m_topo.joint_num; i++)
+			{
+				Eigen::Vector3f pointDetect = m_detUndist[camid][candid].keypoints[i];
+				Eigen::Vector3f pointProj = m_projs[camid][pid][i];
+				if (pointProj.norm() == 0)
+				{
+					m_detTracked[camid][candid][i] = -1;
+					m_modelTracked[pid][camid][i] = -1;
+					continue;
+				}
+				if (pointDetect(2) < m_topo.kpt_conf_thresh[i])
+				{
+					m_detTracked[camid][candid][i] = -1;
+					continue;
+				}
+				if ((pointDetect.segment<2>(0) - pointProj.segment<2>(0)).norm() < 30)
+				{
+					m_detTracked[camid][candid][i] = pid;
+					m_modelTracked[pid][camid][i] = candid;
+				}
+			}
+		}
 	}
 }

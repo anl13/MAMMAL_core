@@ -1006,64 +1006,6 @@ void PigSolverDevice::Calc2DSkelTermReassoc_host(const std::vector<Eigen::Vector
 	ATA = J.transpose() * J;
 }
 
-void PigSolverDevice::reAssocSwap()
-{
-	projectSkels();
-
-	m_reassoc_swapped = m_keypoints_reassociated;
-
-	std::vector<int> ids_to_swap = { 9,10,15,16 };
-
-	for (int camid = 0; camid < m_cameras.size(); camid++)
-	{
-		std::vector<Eigen::Vector3f> det_pool;
-		std::vector<Eigen::Vector3f> model_pool;
-		std::vector<int> id_table_det;
-		std::vector<int> id_table_model;
-		// push to pool
-		for (int i = 0; i < ids_to_swap.size(); i++)
-		{
-			int id = ids_to_swap[i];
-			if (m_keypoints_reassociated[camid][id](2) > m_skelTopo.kpt_conf_thresh[id])
-			{
-				det_pool.push_back(m_keypoints_reassociated[camid][id]);
-				id_table_det.push_back(id); 
-				m_reassoc_swapped[camid][id].setZero(); 
-			}
-			//if (m_skel_vis[camid][id] > 0)
-			//{
-				model_pool.push_back(m_skelProjs[camid][id]);
-				id_table_model.push_back(id); 
-			//}
-		}
-		// reassign
-		if (det_pool.size() == 0) continue; 
-
-		Eigen::MatrixXf sim = Eigen::MatrixXf::Zero(det_pool.size(), model_pool.size());
-		for (int i = 0; i < sim.rows(); i++)
-		{
-			for (int j = 0; j < sim.cols(); j++)
-			{
-				float dist = (det_pool[i].segment<2>(0) - model_pool[j].segment<2>(0)).norm(); 
-				if (dist > 100) dist = 100; 
-				sim(i, j) = dist; 
-			}
-		}
-
-		std::vector<int> match = solveHungarian(sim); 
-		for (int i = 0; i < det_pool.size(); i++)
-		{
-			if (match[i] > -1 && sim(i,match[i]) < 100)
-			{
-				int raw_id = id_table_det[i];
-				int match_id = id_table_model[match[i]];
-				m_reassoc_swapped[camid][match_id] = det_pool[i];
-			}
-		}
-	}
-
-}
-
 void PigSolverDevice::projectSkels()
 {
 	m_skelProjs.resize(m_cameras.size()); 

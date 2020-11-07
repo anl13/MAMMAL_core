@@ -34,6 +34,7 @@ struct DetInstance // class storing data of an instance
 struct MatchedInstance{
     vector<int> view_ids; 
     vector<DetInstance> dets; 
+	vector<int> candids; 
 }; 
 
 vector<Eigen::Vector3f> convertMatToVec(const Eigen::MatrixXf& skel); 

@@ -89,12 +89,21 @@ public:
 	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_pool; // camnum, jointnum, candnum
 	std::vector< std::vector<std::vector<float> > > m_skelVis; // idnum, camnum, jointnum
 	cv::Mat visualizeReassociation(); 
-	cv::Mat visualizeKeypointsPool(); 
 	cv::Mat visualizeVisibility(); 
 	cv::Mat visualizeSwap(); 
 	cv::Mat visualizeRawAssoc();
 	void reAssocProcessStep1();
-	void reAssocProcessStep2();
+	// method 2 
+	void reAssocWithoutTracked(); 
+	void determineTracked(); 
+	
+	// camid, candid, jointid, correspond to m_detUndist
+	// each value means tracked pig id
+	vector<vector<vector<int> > > m_detTracked; 
+	
+	// pidid, camid, jointid
+	// each value means tracked candid in m_detUndist
+	vector<vector<vector<int> > > m_modelTracked; 
 
 	void optimizeSil(int maxIterTime); 
 	void optimizeSilWithAnchor(int maxIterTime); 
