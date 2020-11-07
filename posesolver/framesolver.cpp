@@ -1091,8 +1091,8 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 	if (m_solve_sil_iters > 0)
 	{
 		optimizeSilWithAnchor(m_solve_sil_iters);
-		reAssocProcessStep1();
-		optimizeSilWithAnchor(m_solve_sil_iters);
+		//reAssocProcessStep1();
+		//optimizeSilWithAnchor(m_solve_sil_iters);
 	}
 
 	if(andsolve)
