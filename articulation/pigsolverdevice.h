@@ -229,6 +229,8 @@ public:
 	std::vector<std::vector<Eigen::Vector3f> > m_reassoc_swapped; // camnum, jointnum
 	cv::Mat debug_vis_reassoc_swap(); 
 
+	//std::vector<std::vector<Eigen::
+
 protected:
 
 	// state indicator 

@@ -1415,6 +1415,9 @@ cv::Mat FrameSolver::visualizeRawAssoc()
 	{
 		imglist[i] = mp_bodysolverdevice[i]->debug_source_visualize(); 
 	}
+	cv::Mat output;
+	packImgBlock(imglist, output); 
+	return output; 
 }
 
 
@@ -1429,7 +1432,7 @@ void FrameSolver::determineTracked()
 		m_detTracked[camid].resize(m_detUndist[camid].size());
 		for (int k = 0; k < m_detTracked[camid].size(); k++)
 		{
-			m_detTracked[camid][k].resize(m_topo.joint_num, 0);
+			m_detTracked[camid][k].resize(m_topo.joint_num, -1);
 		}
 	}
 
@@ -1439,7 +1442,7 @@ void FrameSolver::determineTracked()
 		m_modelTracked[pid].resize(m_camNum);
 		for (int camid = 0; camid < m_modelTracked[pid].size(); camid++)
 		{
-			m_modelTracked[pid][camid].resize(m_topo.joint_num);
+			m_modelTracked[pid][camid].resize(m_topo.joint_num, -1);
 		}
 	}
 
@@ -1455,7 +1458,7 @@ void FrameSolver::determineTracked()
 	{
 		for (int view = 0; view < m_matched[pid].view_ids.size(); view++)
 		{
-			int  camid = m_matched[pid].view_ids[view];
+			int camid = m_matched[pid].view_ids[view];
 			int candid = m_matched[pid].candids[view];
 			for (int i = 0; i < m_topo.joint_num; i++)
 			{
@@ -1470,6 +1473,7 @@ void FrameSolver::determineTracked()
 				if (pointDetect(2) < m_topo.kpt_conf_thresh[i])
 				{
 					m_detTracked[camid][candid][i] = -1;
+					m_modelTracked[pid][camid][i] = -1;
 					continue;
 				}
 				if ((pointDetect.segment<2>(0) - pointProj.segment<2>(0)).norm() < 30)
@@ -1480,4 +1484,34 @@ void FrameSolver::determineTracked()
 			}
 		}
 	}
+}
+
+cv::Mat FrameSolver::debug_visDetTracked()
+{
+	std::vector<cv::Mat> track_list;
+	cloneImgs(m_imgsUndist, track_list);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for(int pid = 0; pid < 4; pid++)
+		{
+			std::vector<Eigen::Vector3f> keypoints(m_topo.joint_num, Eigen::Vector3f::Zero());
+			int candid_gt = m_clusters[pid][camid];
+			for (int i = 0; i < m_topo.joint_num; i++)
+			{
+				if (m_modelTracked[pid][camid][i] >= 0)
+				{
+					int candid = m_modelTracked[pid][camid][i];
+					if (candid != candid_gt)
+					{
+						std::cout << "pig " << pid << ", cam " << camid << "  jid: " << i << std::endl;
+					}
+					keypoints[i] = m_detUndist[camid][candid].keypoints[i];
+				}
+			}
+			drawSkelMonoColor(track_list[camid], keypoints, pid, m_topo);
+		}
+	}
+	cv::Mat output;
+	packImgBlock(track_list, output);
+	return output;
 }

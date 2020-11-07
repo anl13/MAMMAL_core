@@ -96,6 +96,7 @@ public:
 	// method 2 
 	void reAssocWithoutTracked(); 
 	void determineTracked(); 
+	cv::Mat debug_visDetTracked(); 
 	
 	// camid, candid, jointid, correspond to m_detUndist
 	// each value means tracked pig id

@@ -18,5 +18,5 @@
   //"pig_config": "D:/Projects/animal_calib/articulation/pigmodel_config.json",
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
   "use_gpu": true,
-  "solve_sil_iters": 40
+  "solve_sil_iters": 10
 }

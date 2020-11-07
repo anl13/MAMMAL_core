@@ -93,6 +93,12 @@ int run_inspect()
 				frame.solve_parametric_model_optimonly();
 			}
 
+			frame.determineTracked(); 
+			cv::Mat tracked = frame.debug_visDetTracked();
+			std::stringstream ss_tracked;
+			ss_tracked << test_result_folder << "/tracked/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_tracked.str(), tracked); 
+
 			//frame.reAssocProcessStep1();
 			//cv::Mat reassoc = frame.visualizeReassociation(); 
 			//std::stringstream ss_reassoc; 
