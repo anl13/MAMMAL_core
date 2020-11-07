@@ -733,9 +733,9 @@ float PigSolverDevice::evaluate_mask_error()
 	{
 		int camid = m_source.view_ids[viewid];
 		Camera cam = m_cameras[camid];
-
+		
 		std::vector<unsigned char> visibility(m_vertexNum, 0);
-		check_visibility(d_depth_renders[viewid], 1920, 1080, m_device_verticesPosed,
+		check_visibility(d_depth_renders[camid], 1920, 1080, m_device_verticesPosed,
 			cam.K, cam.R, cam.T, visibility);
 
 		

@@ -39,7 +39,7 @@ int run_inspect()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(true);
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -185,18 +185,18 @@ int run_inspect()
 			cv::imwrite(all_render_file.str(), blend);
 		}
 
-		//if (frameid == start ) {
-		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-		//	while (!glfwWindowShouldClose(windowPtr))
-		//	{
-		//		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		if (frameid == start ) {
+			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+			while (!glfwWindowShouldClose(windowPtr))
+			{
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		//		m_renderer.Draw();
+				m_renderer.Draw();
 
-		//		glfwSwapBuffers(windowPtr);
-		//		glfwPollEvents();
-		//	};
-		//}
+				glfwSwapBuffers(windowPtr);
+				glfwPollEvents();
+			};
+		}
 	}
 
  	return 0;
