@@ -337,8 +337,8 @@ void Renderer::Draw(std::string type)
 		m_backgroundColor(2),
 		m_backgroundColor(3));
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	//Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
-	Eigen::Vector3f lightPos = Eigen::Vector3f(0, 0, 3);
+	Eigen::Vector3f lightPos = s_camViewer.GetPos(); 
+	//Eigen::Vector3f lightPos = Eigen::Vector3f(0, 0, 3);
 
 	// 2. render scene as normal using the generated depth/shadow map  
 	// --------------------------------------------------------------

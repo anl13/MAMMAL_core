@@ -227,6 +227,16 @@ public:
 	std::vector<std::vector<Eigen::Vector3f> > m_keypoints_reassociated; // camnum, jointnum
 	bool m_isReAssoc; 
 	cv::Mat debug_vis_reassoc_swap();
+	
+	/*
+	Legid: 
+		-- 0: left front 
+		-- 1: right front
+		-- 2: left back 
+		-- 3: right front 
+	*/
+	std::vector<int> findBestViewsForLeg(int legid); 
+
 protected:
 
 	// state indicator 

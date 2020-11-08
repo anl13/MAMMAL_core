@@ -1083,3 +1083,12 @@ cv::Mat PigSolverDevice::debug_vis_reassoc_swap()
 	packImgBlock(crop_list, output);
 	return output;
 }
+
+std::vector<int> findBestViewsForLeg(int legid)
+{
+	std::vector<std::vector<int> > leg_ids = {
+		{5,7,9},
+	{6,8,10},
+	{11,13,15}, {12,14,16}
+	};
+}
