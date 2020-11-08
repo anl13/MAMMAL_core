@@ -83,6 +83,7 @@ public:
 	std::vector<float*> d_interDepth; // depth rendering of all object
 	std::vector<uchar*> d_interMask; // render mask with occlusion 
 	void splitDetKeypoints(); 
+	void splitDetKeypointsWithoutTracked();
 	void nmsKeypointCands(std::vector<Eigen::Vector3f>& list);
 	void reAssociateKeypoints(); // post-priori motion refinement
 	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_associated; // idnum, camnum, jointnum
@@ -97,6 +98,9 @@ public:
 	void reAssocWithoutTracked(); 
 	void determineTracked(); 
 	cv::Mat debug_visDetTracked(); 
+	void nms2(std::vector<Eigen::Vector3f>& pool, int jointid,
+		const std::vector<std::vector<Eigen::Vector3f> >& ref);
+
 	
 	// camid, candid, jointid, correspond to m_detUndist
 	// each value means tracked pig id

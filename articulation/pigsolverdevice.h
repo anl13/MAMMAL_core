@@ -180,7 +180,7 @@ public:
 
 	void postProcessing(); // post process: project skel, determine model visibility 
 	std::vector<std::vector<bool> > m_det_ignore; // [camid, jointid]
-
+	std::vector<std::vector<int> > m_visRegressorList; //[jointid]
 
 	// use anchor to optimize 
 	void optimizeAnchor(int anchor_id);

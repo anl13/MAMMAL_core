@@ -66,8 +66,22 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 		}
 	}
 
-
 	instream.close();
+	m_visRegressorList.resize(m_jointNum);
+	std::ifstream visRegFile(m_folder + "/vis_regressor.txt");
+	if (visRegFile.is_open())
+		for (int i = 0; i < m_jointNum; i++)
+		{
+			int id, num;
+			visRegFile >> id >> num;
+			if (num == 0)continue;
+			m_visRegressorList[i].resize(num);
+			for (int k = 0; k < num; k++)
+			{
+				visRegFile >> m_visRegressorList[i][k];
+			}
+		}
+	visRegFile.close();
 
 	// pre-allocate device memory 
 	m_initScale = false; 
@@ -1877,10 +1891,10 @@ std::vector<float> PigSolverDevice::regressSkelVisibility(int camid)
 	Eigen::Matrix3f K = m_cameras[camid].K;
 	Eigen::Matrix3f R = m_cameras[camid].R; 
 	Eigen::Vector3f T = m_cameras[camid].T; 
-	check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
-		K, R, T, visibility);
-	//check_visibility(d_depth_renders[camid], 1920, 1080, m_device_verticesPosed,
+	//check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
 	//	K, R, T, visibility);
+	check_visibility(d_depth_renders[camid], 1920, 1080, m_device_verticesPosed,
+		K, R, T, visibility); // use single depth because other' estimation is not trustable either.
 	std::vector<float> skel_vis(m_skelTopo.joint_num, 0); 
 	auto skel = getRegressedSkel_host(); 
 	for (int i = 0; i < m_skelCorr.size(); i++)
@@ -1890,8 +1904,10 @@ std::vector<float> PigSolverDevice::regressSkelVisibility(int camid)
 		int x = round(x_proj(0) / x_proj(2));
 		int y = round(x_proj(1) / x_proj(2));
 		if (x < 0 || x >= 1920 || y < 0 || y >= 1080)continue;
-		if (c_const_distort_mask.at<uchar>(y, x) == 0) continue;
-		if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue;
+
+		// we alwayes need to consider false fitting results
+		//if (c_const_distort_mask.at<uchar>(y, x) == 0) continue;
+		//if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue;
 
 		int t = m_skelCorr[i].target; 
 		int type = m_skelCorr[i].type; 
@@ -1904,10 +1920,11 @@ std::vector<float> PigSolverDevice::regressSkelVisibility(int camid)
 		else
 		{
 			int jid = m_skelCorr[i].index; 
-			for (int k = 0; k < m_host_jregressor_list[jid].size(); k++)
+			for (int k = 0; k < m_visRegressorList[jid].size(); k++)
 			{
-				skel_vis[t] += visibility[m_host_jregressor_list[jid][k].first] * m_host_jregressor_list[jid][k].second;
+				skel_vis[t] += visibility[m_visRegressorList[jid][k]];
 			}
+			skel_vis[t] /= m_visRegressorList[jid].size();
 		}
 	}
 	

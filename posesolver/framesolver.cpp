@@ -1515,3 +1515,106 @@ cv::Mat FrameSolver::debug_visDetTracked()
 	packImgBlock(track_list, output);
 	return output;
 }
+
+
+// 20201103: split all detected keypoints without fine track
+void FrameSolver::nms2(std::vector<Eigen::Vector3f>& pool, int jointid, const std::vector<std::vector<Eigen::Vector3f> >& ref)
+{
+	std::vector<std::vector<int> > joint_levels = {
+		{9, 10, 15, 16}, // bottom level: foot 
+	{7,8,13,14}, // middle level: elbow
+	{5,6,11,12} // top level: shoulder
+	};
+	std::vector<Eigen::Vector3f> pool_bk = pool;
+	std::vector<bool> repeat(pool.size(), false);
+
+	if (jointid < 5 || jointid > 16)
+	{
+		for (int i = 0; i < pool.size(); i++)
+		{
+			for (int j = 0; j < ref[jointid].size(); j++)
+			{
+				if ((pool[i].segment<2>(0) - ref[jointid][j].segment<2>(0)).norm() < 10)
+					repeat[i] = true;
+				if (repeat[i]) break;
+			}
+		}
+	}
+	else {
+
+		int level = -1;
+		for (int i = 0; i < 3; i++)
+		{
+			if (in_list(jointid, joint_levels[i]))level = i;
+		}
+		for (int i = 0; i < pool.size(); i++)
+		{
+			for (int k = 0; k < joint_levels[level].size(); k++)
+			{
+				if (repeat[i]) break;
+				int jid = joint_levels[level][k];
+				for (int j = 0; j < ref[jid].size(); j++)
+				{
+					if ((pool[i].segment<2>(0) - ref[jid][j].segment<2>(0)).norm() < 10)
+					{
+						repeat[i] = true;
+					}
+					if (repeat[i])break;
+				}
+			}
+		}
+	}
+
+	pool.clear();
+	for (int i = 0; i < pool_bk.size(); i++)
+	{
+		if (!repeat[i])pool.push_back(pool_bk[i]);
+	}
+}
+
+void FrameSolver::splitDetKeypointsWithoutTracked()
+{
+	std::vector<std::vector<std::vector<Eigen::Vector3f> > >  keypoints_trackedPool;
+	m_keypoints_pool.resize(m_camNum);
+	keypoints_trackedPool.resize(m_camNum);
+	for (int view = 0; view < m_camNum; view++)
+	{
+		m_keypoints_pool[view].resize(m_topo.joint_num);
+		keypoints_trackedPool[view].resize(m_topo.joint_num);
+		for (int candid = 0; candid < m_detUndist[view].size(); candid++)
+		{
+			for (int jid = 0; jid < m_topo.joint_num; jid++)
+			{
+				if (m_detUndist[view][candid].keypoints[jid](2) < m_topo.kpt_conf_thresh[jid])continue;
+
+				if (m_detTracked[view][candid][jid] >= 0) {
+					keypoints_trackedPool[view][jid].push_back(m_detUndist[view][candid].keypoints[jid]);
+					continue; // only consider untracked points
+				}
+				else
+				{
+					m_keypoints_pool[view][jid].push_back(m_detUndist[view][candid].keypoints[jid]);
+				}
+			}
+		}
+	}
+
+	// nms : nms for same type, just merge 
+	for (int view = 0; view < m_camNum; view++)
+	{
+		for (int jid = 0; jid < m_topo.joint_num; jid++)
+		{
+			nmsKeypointCands(m_keypoints_pool[view][jid]);
+		}
+	}
+
+	// nms: nms for same level. could not simply merge
+
+	for (int view = 0; view < m_camNum; view++)
+	{
+		for (int jid = 0; jid < m_topo.joint_num; jid++)
+		{
+			nms2(m_keypoints_pool[view][jid], jid, keypoints_trackedPool[view]);
+		}
+	}
+}
