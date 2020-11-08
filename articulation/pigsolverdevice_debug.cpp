@@ -455,7 +455,7 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 		ATb.segment<3>(3 + 3 * i) = A.pose[jid] - theta.segment<3>(3+3*i); 
 	}
 
-	float weight = 0.05;
+	float weight = 1;
 	if (m_det_confs[0] >= 2 && m_det_confs[1] >= 2 && m_det_confs[2] >= 2
 		&& m_det_confs[3] >= 2 && m_det_confs[4] >= 2)
 	{
@@ -467,7 +467,7 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 		}
 	}
 
-	if (/*m_det_confs[5] >= 3 &&*/ m_det_confs[7] >= 3 && m_det_confs[9] >= 3)
+	if (m_det_confs[5] >= 3 && m_det_confs[7] >= 3 && m_det_confs[9] >= 3)
 	{
 		std::vector<int> ignore = {7,8,9,10 };
 
@@ -479,7 +479,7 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (/*m_det_confs[6] >= 2 && */m_det_confs[8] >= 2 && m_det_confs[10] >= 2)
+	if (m_det_confs[6] >= 2 && m_det_confs[8] >= 2 && m_det_confs[10] >= 2)
 	{
 		std::vector<int> ignore = { 3,4,5,6 };
 		float w_leg = weight;
@@ -490,7 +490,7 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (/*m_det_confs[11] >= 2 &&*/ m_det_confs[13] >= 2 && m_det_confs[15] >= 2)
+	if (m_det_confs[11] >= 2 && m_det_confs[13] >= 2 && m_det_confs[15] >= 2)
 	{
 		std::vector<int> ignore = { 15,16,17,18 };
 		float w_leg = weight;
@@ -501,7 +501,7 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (/*m_det_confs[12] >= 2 &&*/ m_det_confs[14] >= 2 && m_det_confs[16] >= 2)
+	if (m_det_confs[12] >= 2 && m_det_confs[14] >= 2 && m_det_confs[16] >= 2)
 	{
 		std::vector<int> ignore = { 11,12,13,14 };
 		float w_leg = weight;

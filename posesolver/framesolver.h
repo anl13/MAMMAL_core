@@ -44,7 +44,6 @@ public:
 	vector<vector<int> > m_clusters; // pigid, camid [candid]
 	vector<vector<Eigen::Vector3f> > m_skels3d;
 	vector<vector<Eigen::Vector3f> > m_skels3d_last;
-	void detNMS();
 	bool m_use_gpu;
 	int m_solve_sil_iters;
 	float       m_epi_thres;
@@ -93,6 +92,8 @@ public:
 	cv::Mat visualizeVisibility(); 
 	cv::Mat visualizeSwap(); 
 	cv::Mat visualizeRawAssoc();
+
+	// 20201108: assoc with 
 	void reAssocProcessStep1();
 	// method 2 
 	void reAssocWithoutTracked(); 
@@ -101,8 +102,19 @@ public:
 	cv::Mat debug_visDetTracked(); 
 	void nms2(std::vector<Eigen::Vector3f>& pool, int jointid,
 		const std::vector<std::vector<Eigen::Vector3f> >& ref);
-
 	
+	// pipeline controlling 
+	void DARKOV_Step0_topdownassoc(bool isLoad); // matching by tracking / puretracking 
+	void DARKOV_Step1_setsource();  // set source data to solvers 
+	void DARKOV_Step2_loadanchor(); // only load and set anchor id, without any fitting or align 
+	void DARKOV_Step2_searchanchor(); 
+	void DARKOV_Step2_optimanchor(); 
+	void DARKOV_Step3_reassoc_type2(); // type2 contains three small steps: find tracked, assign untracked, solve mix-up
+	void DARKOV_Step3_reassoc_type1(); 
+	void DARKOV_Step4_fitrawsource();  // fit model to raw source 
+	void DARKOV_Step4_fitreassoc();    // fit model to reassociated keypoints and silhouettes 
+	void DARKOV_Step5_postprocess();   // some postprocessing step 
+
 	// camid, candid, jointid, correspond to m_detUndist
 	// each value means tracked pig id
 	vector<vector<vector<int> > > m_detTracked; 

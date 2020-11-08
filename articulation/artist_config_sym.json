@@ -74,11 +74,11 @@
   "lambda": 0.05,
   "data_term": 1,
   "sil_term": 0.0001,
-  "reg_term": 0.004,
+  "reg_term": 0.001,
   "temp_term": 1,
 
-  "floor_term": 1,
-  "anchor_term": 0.5,
+  "floor_term": 10,
+  "anchor_term": 1,
   "gmm_term": 0.0,
   "reg_weights": [ [ 2, 1, 1, 1 ] ],
   "kpt_track_dist": 400, // px  * depthweight

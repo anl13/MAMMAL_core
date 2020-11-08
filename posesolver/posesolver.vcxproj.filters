@@ -117,6 +117,9 @@
     <ClCompile Include="scenedata.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="framesolver_pipeline.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="config.json" />

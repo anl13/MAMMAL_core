@@ -4,6 +4,8 @@
 #include "tracking.h"
 #include "../utils/timer_util.h" 
 
+//#define VIS_ASSOC_STEP 
+
 void FrameSolver::configByJson(std::string jsonfile)
 {
 	Json::Value root;
@@ -265,108 +267,6 @@ int FrameSolver::_countValid(const std::vector<Eigen::Vector3f>& skel)
 		if (skel[i](2) >= m_topo.kpt_conf_thresh[i]) valid++;
 	}
 	return valid;
-}
-
-
-void FrameSolver::detNMS()
-{
-	// cornor case
-	if (m_detUndist.size() == 0) return;
-
-	// discard some ones with large overlap 
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		// do nms on each view 
-		int cand_num = m_detUndist[camid].size();
-		std::vector<int> is_discard(cand_num, 0);
-		for (int i = 0; i < cand_num; i++)
-		{
-			for (int j = i + 1; j < cand_num; j++)
-			{
-				if (is_discard[i] > 0 || is_discard[j] > 0) continue;
-				int overlay = _compareSkel(m_detUndist[camid][i].keypoints,
-					m_detUndist[camid][i].keypoints);
-				int validi = _countValid(m_detUndist[camid][i].keypoints);
-				int validj = _countValid(m_detUndist[camid][j].keypoints);
-				float iou, iou1, iou2;
-				IoU_xyxy_ratio(m_detUndist[camid][i].box, m_detUndist[camid][j].box,
-					iou, iou1, iou2);
-				if (overlay >= 3 && (iou1 > 0.8 || iou2 > 0.8))
-				{
-					if (validi > validj && iou2 > 0.8) is_discard[j] = 1;
-					else if (validi<validj && iou1 > 0.8) is_discard[i] = 1;
-				}
-			}
-		}
-		std::vector<DetInstance> clean_dets;
-		for (int i = 0; i < cand_num; i++)
-		{
-			if (is_discard[i] > 0) continue;
-			clean_dets.push_back(m_detUndist[camid][i]);
-		}
-		m_detUndist[camid] = clean_dets;
-	}
-
-	// clean leg joints 
-	drawRawMaskImgs();
-	std::vector<std::pair<int, int> > legs = {
-		{7,9},{5,7},
-	{8,10},{6,8},
-	{13,15},{11,13},
-	{14,16},{12,14}
-	};
-	std::vector<int> leg_up = { 5,6,11,12 };
-	std::vector<int> leg_middle = { 7,8,13,14 };
-	std::vector<int> leg_down = { 9,10,15,16 };
-	std::vector<int> all_legs = { 5,6,11,12 ,7,8,13,14,9,10,15,16 };
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		for (int candid = 0; candid < m_detUndist[camid].size(); candid++)
-		{
-			// remove those out of box 
-			for (int i = 0; i < all_legs.size(); i++)
-			{
-				DetInstance& det = m_detUndist[camid][candid];
-				Eigen::Vector3f& point = det.keypoints[all_legs[i]];
-				Eigen::Vector2f uv = point.segment<2>(0);
-				if (!in_box_test(uv, det.box))
-				{
-					point(2) = 0; continue;
-				}
-				int idcode = 1 << candid;
-				int x = int(round(uv(0)));
-				int y = int(round(uv(1)));
-				if (m_rawMaskImgs[camid].at<uchar>(y, x) != idcode) {
-					point(2) = 0; continue;
-				}
-			}
-			// remove those bones that cross over background. 
-			for (int i = 0; i < legs.size(); i++)
-			{
-				int p1_index = legs[i].first;
-				int p2_index = legs[i].second;
-				Eigen::Vector3f& p1 = m_detUndist[camid][candid].keypoints[p1_index];
-				Eigen::Vector3f& p2 = m_detUndist[camid][candid].keypoints[p2_index];
-				if (p1(2) > m_topo.kpt_conf_thresh[p1_index] &&
-					p2(2) > m_topo.kpt_conf_thresh[p2_index])
-				{
-					int n = 20;
-					double dx = (p2(0) - p1(0)) / 20;
-					double dy = (p2(1) - p1(1)) / 20;
-					for (int k = 1; k < 20; k++)
-					{
-						int x = int(round(p1(0) + dx * k));
-						int y = int(round(p1(1) + dy * k));
-						if (m_rawMaskImgs[camid].at<uchar>(y, x) == 0)
-						{
-							p2(2) = 0; break;
-						}
-					}
-				}
-			}
-		}
-	}
-
 }
 
 void FrameSolver::tracking() // naive 3d 2 3d tracking
@@ -820,6 +720,10 @@ void FrameSolver::setConstDataToSolver(int id)
 	mp_bodysolverdevice[id]->m_pig_id = id;
 	mp_bodysolverdevice[id]->m_det_masks = drawMask();
 
+	// mask necessary for measure anchor point
+	std::vector<ROIdescripter> rois;
+	getROI(rois, id);
+	mp_bodysolverdevice[id]->setROIs(rois);
 }
 
 
@@ -1032,12 +936,6 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 	for (int pid = 0; pid < 4; pid++)
 	{
 		mp_bodysolverdevice[pid]->generateDataForSilSolver();
-		if (!m_use_gpu)
-		{
-			std::vector<ROIdescripter> rois;
-			getROI(rois, pid);
-			mp_bodysolverdevice[pid]->setROIs(rois);
-		}
 	}
 
 	int iter = 0;
@@ -1064,50 +962,16 @@ void FrameSolver::saveAnchors(std::string folder)
 
 void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 {
-	std::stringstream ss; 
-	ss << folder << "/anchor_" << std::setw(6) << std::setfill('0') << m_frameid <<
-		".txt";
-	std::ifstream infile(ss.str()); 
-	m_skels3d.resize(4); 
-	for (int i = 0; i < 4; i++)
+	DARKOV_Step1_setsource(); 
+	DARKOV_Step2_loadanchor(); 
+
+	if (andsolve)
 	{
-		if (andsolve)
-		{
-			mp_bodysolverdevice[i]->setSource(m_matched[i]);
-			mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
-			mp_bodysolverdevice[i]->globalAlign();
-			setConstDataToSolver(i);
-			// mask are necessary for measure anchor point
-			std::vector<ROIdescripter> rois;
-			getROI(rois, i);
-			mp_bodysolverdevice[i]->setROIs(rois);
-		}
-
-		infile >> mp_bodysolverdevice[i]->m_anchor_id;
-
-		if(andsolve)
-			mp_bodysolverdevice[i]->optimizeAnchor(mp_bodysolverdevice[i]->m_anchor_id);
+		DARKOV_Step4_fitrawsource(); 
+		DARKOV_Step3_reassoc_type2(); 
+		DARKOV_Step4_fitreassoc(); 
+		DARKOV_Step5_postprocess(); 
 	}
-
-	if(andsolve)
-	if (m_solve_sil_iters > 0)
-	{
-		optimizeSilWithAnchor(m_solve_sil_iters);
-		//reAssocProcessStep1();
-		reAssocWithoutTracked();
-		//optimizeSilWithAnchor(m_solve_sil_iters);
-	}
-
-	if(andsolve)
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->postProcessing();
-		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
-	}
-	
-	infile.close(); 
-	// postprocess
-	m_last_matched = m_matched;
 }
 
 void FrameSolver::nmsKeypointCands(std::vector<Eigen::Vector3f>& list)
@@ -1315,8 +1179,11 @@ void FrameSolver::solve_parametric_model_optimonly()
 
 	if (m_solve_sil_iters > 0)
 	{
+		for (int i = 0; i < 4; i++)
+			mp_bodysolverdevice[i]->m_isReAssoc = false; 
 		optimizeSilWithAnchor(m_solve_sil_iters);
-		reAssocProcessStep1(); 
+		//reAssocProcessStep1(); 
+		reAssocWithoutTracked();
 		optimizeSilWithAnchor(m_solve_sil_iters);
 	}
 
@@ -1645,13 +1512,14 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 		}
 	}
 
+#ifdef VIS_ASSOC_STEP
 	for (int i = 0; i < 4; i++)
 	{
 		mp_bodysolverdevice[i]->m_keypoints_reassociated = m_keypoints_associated[i];
 	}
 	cv::Mat output = visualizeSwap();
 	cv::imwrite("H:/pig_results_anchor/before_swap/step1.png", output); 
-
+#endif 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		// associate for each camera 
@@ -1676,7 +1544,6 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 					if (sim(rowid, colid) > 200) sim(rowid, colid) = 200;
 				}
 			}
-			std::cout << "sim: " << camid <<"," << i << std::endl << sim << std::endl; 
 			std::vector<int> assign = solveHungarian(sim);
 			for (int rowid = 0; rowid < M; rowid++)
 			{
@@ -1690,13 +1557,14 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 		}
 	}
 
+#ifdef  VIS_ASSOC_STEP
 	for (int i = 0; i < 4; i++)
 	{
 		mp_bodysolverdevice[i]->m_keypoints_reassociated = m_keypoints_associated[i];
 	}
 	output = visualizeSwap();
 	cv::imwrite("H:/pig_results_anchor/before_swap/step2.png", output);
-
+#endif 
 	// reassoc swap 
 	std::vector<std::vector<int> > joint_levels = {
 		{9, 10, 15, 16}, // bottom level: foot 
@@ -1759,6 +1627,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 		}
 	}
 
+#ifdef VIS_ASSOC_STEP
 	for (int i = 0; i < 4; i++)
 	{
 		mp_bodysolverdevice[i]->m_keypoints_reassociated = m_keypoints_associated[i];
@@ -1766,6 +1635,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 	
 	output = visualizeSwap();
 	cv::imwrite("H:/pig_results_anchor/before_swap/step3.png", output);
+#endif 
 }
 
 void FrameSolver::reAssocWithoutTracked()

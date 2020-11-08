@@ -293,6 +293,8 @@ void PigSolverDevice::globalAlign()
 	std::vector<float> weights(N, 0); 
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
+	m_host_scale = gt_scales[m_pig_id];
+	m_initScale = true;
 	if (m_initScale) return;
 	m_initScale = true;
 
@@ -606,6 +608,7 @@ void PigSolverDevice::calcPose2DTerm_host(
 
 	std::vector<Eigen::Vector3f> skels2d;
 	project(cam, skel3d, skels2d);
+	
 	for (int i = 0; i < N; i++)
 	{
 		const CorrPair& P = m_skelCorr[i];
@@ -615,7 +618,7 @@ void PigSolverDevice::calcPose2DTerm_host(
 		{
 			float dist = (skels2d[t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
 			float weight = 1;
-			if (m_depth_weight[camid] > 0.1) weight = m_depth_weight[camid];
+			if (m_depth_weight.size() > 0 && m_depth_weight[camid] > 0.1) weight = m_depth_weight[camid];
 			if (dist > track_radius * weight) {
 				continue;
 			}
@@ -1072,7 +1075,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		d_ATb_sil.download(ATb_view.data());
 
 		float weight;
-		if (m_depth_weight[camid] > 0.1)
+		if (m_depth_weight.size() > 0 && m_depth_weight[camid] > 0.1)
 		{
 			weight = 1.f / m_depth_weight[camid];
 		}
@@ -1243,7 +1246,7 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		std::cout << "visible cpu: " << visible << std::endl; 
 #endif 
 		float weight;
-		if(m_depth_weight[camid] > 0.1) weight= 1/m_depth_weight[camid];
+		if(m_depth_weight.size() > 0 && m_depth_weight[camid] > 0.1) weight= 1/m_depth_weight[camid];
 		else weight = 1; 
 		ATA += A.transpose() * A * weight;
 		ATb += A.transpose() * r * weight;

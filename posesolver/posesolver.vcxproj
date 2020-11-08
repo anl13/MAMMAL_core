@@ -154,6 +154,7 @@
     <ClCompile Include="clusterclique.cpp" />
     <ClCompile Include="framedata.cpp" />
     <ClCompile Include="framesolver.cpp" />
+    <ClCompile Include="framesolver_pipeline.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="matching.cpp" />
     <ClCompile Include="mce\AdjacencyListAlgorithm.cpp" />
