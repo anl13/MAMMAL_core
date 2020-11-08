@@ -93,13 +93,12 @@ int run_inspect()
 				frame.solve_parametric_model_optimonly();
 			}
 
-			frame.determineTracked(); 
-			cv::Mat tracked = frame.debug_visDetTracked();
-			std::stringstream ss_tracked;
-			ss_tracked << test_result_folder << "/tracked/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_tracked.str(), tracked); 
+			//frame.reAssocWithoutTracked(); 
+			//cv::Mat tracked = frame.debug_visDetTracked();
+			//std::stringstream ss_tracked;
+			//ss_tracked << test_result_folder << "/tracked/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_tracked.str(), tracked); 
 
-			frame.reAssocProcessStep1();
 			cv::Mat reassoc = frame.visualizeReassociation(); 
 			std::stringstream ss_reassoc; 
 			ss_reassoc << test_result_folder << "/reassoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
@@ -111,16 +110,10 @@ int run_inspect()
 			cv::imwrite(ss_proj.str(), reproj); 
 
 			
-			//cv::Mat beforeimg = frame.visualizeSwap();
-			//std::stringstream ss_before; 
-			//ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_before.str(), beforeimg); 
-
-			//frame.reAssocProcessStep2(); 
-			//cv::Mat swapimg = frame.visualizeSwap(); 
-			//std::stringstream ss_swap; 
-			//ss_swap << test_result_folder << "/swap/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
-			//cv::imwrite(ss_swap.str(), swapimg); 
+			cv::Mat beforeimg = frame.visualizeSwap();
+			std::stringstream ss_before; 
+			ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_before.str(), beforeimg); 
 
 			frame.save_parametric_data(); 
 

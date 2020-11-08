@@ -96,6 +96,7 @@ public:
 	void reAssocProcessStep1();
 	// method 2 
 	void reAssocWithoutTracked(); 
+	void reAssocKeypointsWithoutTracked(); 
 	void determineTracked(); 
 	cv::Mat debug_visDetTracked(); 
 	void nms2(std::vector<Eigen::Vector3f>& pool, int jointid,

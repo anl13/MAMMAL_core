@@ -938,7 +938,7 @@ void PigSolverDevice::Calc2dSkelProjectionTermReassoc(
 	{
 		Eigen::MatrixXf H;
 		Eigen::VectorXf b; 
-		Calc2DSkelTermReassoc_host(m_reassoc_swapped[camid], skel3d, camid, h_J_skel, H, b);
+		Calc2DSkelTermReassoc_host(m_keypoints_reassociated[camid], skel3d, camid, h_J_skel, H, b);
 		float weight = 1; 
 		if (with_depth_weight)
 		{
@@ -1060,7 +1060,7 @@ cv::Mat PigSolverDevice::debug_vis_reassoc_swap()
 	cloneImgs(m_rawimgs, m_imgdet);
 	for (int camid = 0; camid < m_cameras.size(); camid++)
 	{
-		drawSkelDebug(m_imgdet[camid], m_reassoc_swapped[camid], m_skelTopo);
+		drawSkelDebug(m_imgdet[camid], m_keypoints_reassociated[camid], m_skelTopo);
 	}
 
 	std::vector<cv::Mat> crop_list(12);
@@ -1071,7 +1071,7 @@ cv::Mat PigSolverDevice::debug_vis_reassoc_swap()
 	}
 	for (int camid = 0; camid < m_cameras.size(); camid++)
 	{
-		Eigen::Vector4f box = estimateBox(m_reassoc_swapped[camid]);
+		Eigen::Vector4f box = estimateBox(m_keypoints_reassociated[camid]);
 		if (!isValidBox(box))continue; 
 		cv::Mat raw_img = m_imgdet[camid];
 		cv::Rect2i roi(box[0], box[1], box[2] - box[0], box[3] - box[1]);

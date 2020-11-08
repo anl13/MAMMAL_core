@@ -1912,20 +1912,12 @@ std::vector<float> PigSolverDevice::regressSkelVisibility(int camid)
 		int t = m_skelCorr[i].target; 
 		int type = m_skelCorr[i].type; 
 
-		if (type == 1)
+		for (int k = 0; k < m_visRegressorList[t].size(); k++)
 		{
-			int index = m_skelCorr[i].index; 
-			skel_vis[t] = visibility[index];
+			skel_vis[t] += visibility[m_visRegressorList[t][k]];
 		}
-		else
-		{
-			int jid = m_skelCorr[i].index; 
-			for (int k = 0; k < m_visRegressorList[jid].size(); k++)
-			{
-				skel_vis[t] += visibility[m_visRegressorList[jid][k]];
-			}
-			skel_vis[t] /= m_visRegressorList[jid].size();
-		}
+		skel_vis[t] /= m_visRegressorList[t].size();
+		
 	}
 	
 	return skel_vis; 
