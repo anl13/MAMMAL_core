@@ -1093,7 +1093,8 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 	if (m_solve_sil_iters > 0)
 	{
 		optimizeSilWithAnchor(m_solve_sil_iters);
-		reAssocProcessStep1();
+		//reAssocProcessStep1();
+		reAssocWithoutTracked();
 		//optimizeSilWithAnchor(m_solve_sil_iters);
 	}
 
@@ -1181,10 +1182,10 @@ void FrameSolver::reAssociateKeypoints()
 		}
 	}
 
-	std::cout << "CHECK VISI: " << std::endl;
-	std::cout << m_skelVis[1][3][2] << std::endl; 
-	std::cout << m_skelVis[2][8][6] << std::endl; 
-	std::cout << m_skelVis[3][8][6] << std::endl; 
+	//std::cout << "CHECK VISI: " << std::endl;
+	//std::cout << m_skelVis[1][3][2] << std::endl; 
+	//std::cout << m_skelVis[2][8][6] << std::endl; 
+	//std::cout << m_skelVis[3][8][6] << std::endl; 
 
 	if (m_skels3d.size() < 1) m_skels3d.resize(4); 
 
