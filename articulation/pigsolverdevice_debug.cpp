@@ -455,7 +455,7 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 		ATb.segment<3>(3 + 3 * i) = A.pose[jid] - theta.segment<3>(3+3*i); 
 	}
 
-	float weight = 1;
+	float weight = 0.05;
 	if (m_det_confs[0] >= 2 && m_det_confs[1] >= 2 && m_det_confs[2] >= 2
 		&& m_det_confs[3] >= 2 && m_det_confs[4] >= 2)
 	{
@@ -472,40 +472,40 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 		std::vector<int> ignore = {7,8,9,10 };
 
 		float w_leg = weight; 
-		if (m_det_confs[5] + m_det_confs[7] + m_det_confs[9] > 18) w_leg *= 0.01;
+		if (m_det_confs[5] + m_det_confs[7] + m_det_confs[9] > 18) w_leg *= 0.1;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (m_det_confs[6] >= 2 && m_det_confs[8] >= 2 && m_det_confs[10] >= 2)
+	if (m_det_confs[6] >= 3 && m_det_confs[8] >= 3 && m_det_confs[10] >= 3)
 	{
 		std::vector<int> ignore = { 3,4,5,6 };
 		float w_leg = weight;
-		if (m_det_confs[6] + m_det_confs[8] + m_det_confs[10] > 18) w_leg *= 0.01;
+		if (m_det_confs[6] + m_det_confs[8] + m_det_confs[10] > 18) w_leg *= 0.1;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (m_det_confs[11] >= 2 && m_det_confs[13] >= 2 && m_det_confs[15] >= 2)
+	if (m_det_confs[11] >= 3 && m_det_confs[13] >= 3 && m_det_confs[15] >= 3)
 	{
 		std::vector<int> ignore = { 15,16,17,18 };
 		float w_leg = weight;
-		if (m_det_confs[11] + m_det_confs[13] + m_det_confs[15] > 18) w_leg *= 0.01;
+		if (m_det_confs[11] + m_det_confs[13] + m_det_confs[15] > 18) w_leg *= 0.1;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
 			ATb.segment<3>(3 + 3 * k) *= w_leg;
 		}
 	}
-	if (m_det_confs[12] >= 2 && m_det_confs[14] >= 2 && m_det_confs[16] >= 2)
+	if (m_det_confs[12] >= 3 && m_det_confs[14] >= 3 && m_det_confs[16] >= 3)
 	{
 		std::vector<int> ignore = { 11,12,13,14 };
 		float w_leg = weight;
-		if (m_det_confs[12] + m_det_confs[14] + m_det_confs[16] > 18) w_leg *= 0.01;
+		if (m_det_confs[12] + m_det_confs[14] + m_det_confs[16] > 18) w_leg *= 0.1;
 		for (const int & k : ignore)
 		{
 			ATA.middleRows<3>(3 + 3 * k) *= w_leg;
@@ -514,10 +514,10 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 	}
 	if (m_det_confs[20] >= 2 && m_det_confs[18] >= 2 && m_det_confs[0] >= 2)
 	{
-		ATb.segment<3>(3) *= 0.01;
-		ATA.middleRows(3, 3) *= 0.01;
-		ATb.segment<3>(0) *= 0.01;
-		ATA.middleRows(0, 3) *= 0.01 ;
+		ATb.segment<3>(3) *= 0.0;
+		ATA.middleRows(3, 3) *= 0.0;
+		ATb.segment<3>(0) *= 0.0;
+		ATA.middleRows(0, 3) *= 0.0 ;
 	}
 }
 

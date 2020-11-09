@@ -99,21 +99,21 @@ int run_inspect()
 			//ss_tracked << test_result_folder << "/tracked/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			//cv::imwrite(ss_tracked.str(), tracked); 
 
-			cv::Mat reassoc = frame.visualizeReassociation(); 
-			std::stringstream ss_reassoc; 
-			ss_reassoc << test_result_folder << "/reassoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
-			cv::imwrite(ss_reassoc.str(), reassoc); 
+			//cv::Mat reassoc = frame.visualizeReassociation(); 
+			//std::stringstream ss_reassoc; 
+			//ss_reassoc << test_result_folder << "/reassoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
+			//cv::imwrite(ss_reassoc.str(), reassoc); 
 
-			cv::Mat reproj = frame.visualizeVisibility(); 
-			std::stringstream ss_proj; 
-			ss_proj << test_result_folder << "/proj/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_proj.str(), reproj); 
+			//cv::Mat reproj = frame.visualizeVisibility(); 
+			//std::stringstream ss_proj; 
+			//ss_proj << test_result_folder << "/proj/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_proj.str(), reproj); 
 
-			
-			cv::Mat beforeimg = frame.visualizeSwap();
-			std::stringstream ss_before; 
-			ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_before.str(), beforeimg); 
+			//
+			//cv::Mat beforeimg = frame.visualizeSwap();
+			//std::stringstream ss_before; 
+			//ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_before.str(), beforeimg); 
 
 			frame.save_parametric_data(); 
 

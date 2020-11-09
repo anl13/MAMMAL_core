@@ -967,9 +967,10 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 
 	if (andsolve)
 	{
+		DARKOV_Step2_optimanchor(); 
 		DARKOV_Step4_fitrawsource(); 
-		DARKOV_Step3_reassoc_type2(); 
-		DARKOV_Step4_fitreassoc(); 
+		//DARKOV_Step3_reassoc_type2(); 
+		//DARKOV_Step4_fitreassoc(); 
 		DARKOV_Step5_postprocess(); 
 	}
 }
