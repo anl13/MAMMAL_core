@@ -39,7 +39,7 @@ int run_inspect()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(false);
+	Renderer::s_Init(true);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -65,58 +65,47 @@ int run_inspect()
 			frame.load_clusters();
 		else
 			frame.pureTracking(); 
-		////frame.load_clusters(); 
-
-		frame.save_clusters(); 
 		//frame.load_clusters(); 
 
-		cv::Mat assoc = frame.visualizeIdentity2D();
-		std::stringstream ss;
-		ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss.str(), assoc);
+		//frame.save_clusters(); 
+		//frame.load_clusters(); 
+
+		//cv::Mat assoc = frame.visualizeIdentity2D();
+		//std::stringstream ss;
+		//ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		//cv::imwrite(ss.str(), assoc);
 
 		// pipeline 3 
 		if(true)
 		{
 			std::cout << " traditional optimization. " << std::endl; 
-			//frame.solve_parametric_model();
-			//frame.solve_parametric_model_pipeline2(); 
-			//frame.solve_parametric_model_pipeline3();
-			//frame.saveAnchors(test_result_folder+"/anchor_state69/"); 
 			if (frameid == start)
 			{
 				frame.loadAnchors(test_result_folder + "/anchor_state69_smth", true);
+				frame.reAssocWithoutTracked();
 			}
 			else
 			{
 				frame.loadAnchors(test_result_folder + "/anchor_state69_smth", false);
 				frame.solve_parametric_model_optimonly();
+				frame.save_parametric_data();
+
 			}
 
-			//frame.reAssocWithoutTracked(); 
-			//cv::Mat tracked = frame.debug_visDetTracked();
-			//std::stringstream ss_tracked;
-			//ss_tracked << test_result_folder << "/tracked/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_tracked.str(), tracked); 
+			cv::Mat reassoc = frame.visualizeReassociation();
+			std::stringstream ss_reassoc;
+			ss_reassoc << test_result_folder << "/reassoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_reassoc.str(), reassoc);
 
-			//cv::Mat reassoc = frame.visualizeReassociation(); 
-			//std::stringstream ss_reassoc; 
-			//ss_reassoc << test_result_folder << "/reassoc/" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
-			//cv::imwrite(ss_reassoc.str(), reassoc); 
+			cv::Mat reproj = frame.visualizeVisibility();
+			std::stringstream ss_proj;
+			ss_proj << test_result_folder << "/proj/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_proj.str(), reproj);
 
-			//cv::Mat reproj = frame.visualizeVisibility(); 
-			//std::stringstream ss_proj; 
-			//ss_proj << test_result_folder << "/proj/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_proj.str(), reproj); 
-
-			//
-			//cv::Mat beforeimg = frame.visualizeSwap();
-			//std::stringstream ss_before; 
-			//ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_before.str(), beforeimg); 
-
-			frame.save_parametric_data(); 
-
+			cv::Mat beforeimg = frame.visualizeSwap();
+			std::stringstream ss_before;
+			ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_before.str(), beforeimg);
 			m_renderer.clearAllObjs();
 			auto solvers = frame.mp_bodysolverdevice;
 
@@ -179,23 +168,23 @@ int run_inspect()
 			overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
 			std::stringstream all_render_file;
-			all_render_file << test_result_folder << "/render_all/optim_noanchor2/" << std::setw(6) << std::setfill('0')
+			all_render_file << test_result_folder << "/render_all/optim_anchor/" << std::setw(6) << std::setfill('0')
 				<< frameid << "_anchor_baseline.png";
 			cv::imwrite(all_render_file.str(), blend);
 		}
 
-		if (frameid == start ) {
-			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-			while (!glfwWindowShouldClose(windowPtr))
-			{
-				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//if (frameid == start ) {
+		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		//	while (!glfwWindowShouldClose(windowPtr))
+		//	{
+		//		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-				m_renderer.Draw();
+		//		m_renderer.Draw();
 
-				glfwSwapBuffers(windowPtr);
-				glfwPollEvents();
-			};
-		}
+		//		glfwSwapBuffers(windowPtr);
+		//		glfwPollEvents();
+		//	};
+		//}
 	}
 
  	return 0;

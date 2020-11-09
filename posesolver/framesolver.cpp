@@ -4,7 +4,7 @@
 #include "tracking.h"
 #include "../utils/timer_util.h" 
 
-//#define VIS_ASSOC_STEP 
+#define VIS_ASSOC_STEP 
 
 void FrameSolver::configByJson(std::string jsonfile)
 {
@@ -810,6 +810,7 @@ void FrameSolver::pureTracking()
 			be_matched[camid][candid] = true;
 			m_matched[i].view_ids.push_back(camid);
 			m_matched[i].dets.push_back(m_detUndist[camid][candid]);
+			m_matched[i].candids.push_back(candid); 
 		}
 	}
 
@@ -1044,6 +1045,10 @@ void FrameSolver::reAssociateKeypoints()
 		for (int camid = 0; camid < m_camNum; camid++)
 		{
 			m_keypoints_associated[i][camid].resize(m_topo.joint_num, Eigen::Vector3f::Zero()); 
+			for (int k = 0; k < m_topo.joint_num; k++)
+			{
+				m_keypoints_associated[i][camid][k] = Eigen::Vector3f::Zero(); 
+			}
 		}
 	}
 
@@ -1164,38 +1169,20 @@ void FrameSolver::reAssociateKeypoints()
 
 void FrameSolver::solve_parametric_model_optimonly()
 {
-	m_skels3d.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
-		mp_bodysolverdevice[i]->setSource(m_matched[i]);
-		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
-		mp_bodysolverdevice[i]->globalAlign();
-		setConstDataToSolver(i);
-
-		std::vector<ROIdescripter> rois;
-		getROI(rois, i);
-		mp_bodysolverdevice[i]->setROIs(rois);
-		mp_bodysolverdevice[i]->m_w_anchor_term = 0.001;
+		mp_bodysolverdevice[i]->m_w_anchor_term = 0.01; 
+		mp_bodysolverdevice[i]->m_iou_thres = 0.0;
+		
 	}
+	m_solve_sil_iters = 10;
+	DARKOV_Step4_fitrawsource(); 
 
-	if (m_solve_sil_iters > 0)
-	{
-		for (int i = 0; i < 4; i++)
-			mp_bodysolverdevice[i]->m_isReAssoc = false; 
-		optimizeSilWithAnchor(m_solve_sil_iters);
-		//reAssocProcessStep1(); 
-		reAssocWithoutTracked();
-		optimizeSilWithAnchor(m_solve_sil_iters);
-	}
+	DARKOV_Step3_reassoc_type2();
+	m_solve_sil_iters = 40;
+	DARKOV_Step4_fitreassoc(); 
 
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->postProcessing();
-		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
-	}
-
-	// postprocess
-	m_last_matched = m_matched;
+	DARKOV_Step5_postprocess(); 
 }
 
 cv::Mat FrameSolver::visualizeReassociation()
@@ -1301,6 +1288,8 @@ void FrameSolver::determineTracked()
 		for (int k = 0; k < m_detTracked[camid].size(); k++)
 		{
 			m_detTracked[camid][k].resize(m_topo.joint_num, -1);
+			for (int i = 0; i < m_topo.joint_num; i++)
+				m_detTracked[camid][k][i] = -1; 
 		}
 	}
 
@@ -1311,6 +1300,10 @@ void FrameSolver::determineTracked()
 		for (int camid = 0; camid < m_modelTracked[pid].size(); camid++)
 		{
 			m_modelTracked[pid][camid].resize(m_topo.joint_num, -1);
+			for (int i = 0; i < m_topo.joint_num; i++)
+			{
+				m_modelTracked[pid][camid][i] = -1; 
+			}
 		}
 	}
 
@@ -1402,7 +1395,7 @@ void FrameSolver::nms2(std::vector<Eigen::Vector3f>& pool, int jointid, const st
 		{
 			for (int j = 0; j < ref[jointid].size(); j++)
 			{
-				if ((pool[i].segment<2>(0) - ref[jointid][j].segment<2>(0)).norm() < 10)
+				if ((pool[i].segment<2>(0) - ref[jointid][j].segment<2>(0)).norm() < 20)
 					repeat[i] = true;
 				if (repeat[i]) break;
 			}
@@ -1509,6 +1502,10 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 					int candid = m_modelTracked[i][camid][k];
 					m_keypoints_associated[i][camid][k] = m_detUndist[camid][candid].keypoints[k];
 				}
+				else
+				{
+					m_keypoints_associated[i][camid][k] = Eigen::Vector3f::Zero();
+				}
 			}
 		}
 	}
@@ -1519,7 +1516,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 		mp_bodysolverdevice[i]->m_keypoints_reassociated = m_keypoints_associated[i];
 	}
 	cv::Mat output = visualizeSwap();
-	cv::imwrite("H:/pig_results_anchor/before_swap/step1.png", output); 
+	cv::imwrite("H:/pig_results_anchor/swap/" + std::to_string(m_frameid) + "_step1.png", output); 
 #endif 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
@@ -1542,7 +1539,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 				{
 					sim(rowid, colid) = (m_keypoints_pool[camid][i][colid].segment<2>(0)
 						- m_projs[camid][id_table[rowid]][i].segment<2>(0)).norm();
-					if (sim(rowid, colid) > 200) sim(rowid, colid) = 200;
+					if (sim(rowid, colid) > 150) sim(rowid, colid) = 150;
 				}
 			}
 			std::vector<int> assign = solveHungarian(sim);
@@ -1551,7 +1548,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 				int pid = id_table[rowid];
 				int colid = assign[rowid];
 				if (colid < 0) continue;
-				if (sim(rowid, colid) >= 200) continue;
+				if (sim(rowid, colid) >= 150) continue;
 				m_keypoints_associated[pid][camid][i] = m_keypoints_pool[camid][i][colid];
 				m_keypoints_pool[camid][i][colid].setZero();
 			}
@@ -1564,7 +1561,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 		mp_bodysolverdevice[i]->m_keypoints_reassociated = m_keypoints_associated[i];
 	}
 	output = visualizeSwap();
-	cv::imwrite("H:/pig_results_anchor/before_swap/step2.png", output);
+	cv::imwrite("H:/pig_results_anchor/swap/" + std::to_string(m_frameid) + "_step2.png", output);
 #endif 
 	// reassoc swap 
 	std::vector<std::vector<int> > joint_levels = {
@@ -1635,7 +1632,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 	}
 	
 	output = visualizeSwap();
-	cv::imwrite("H:/pig_results_anchor/before_swap/step3.png", output);
+	cv::imwrite("H:/pig_results_anchor/swap/" + std::to_string(m_frameid) + "_step3.png", output);
 #endif 
 }
 
