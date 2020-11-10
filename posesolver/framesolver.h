@@ -64,7 +64,7 @@ public:
 	void matching_by_tracking();
 	void reproject_skels();
 	void solve_parametric_model();
-	void solve_parametric_model_pipeline2();
+	void pipeline2_searchanchor();
 	void solve_parametric_model_pipeline3(); 
 	void solve_parametric_model_optimonly();
 	void read_parametric_data();

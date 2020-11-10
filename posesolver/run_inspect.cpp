@@ -81,7 +81,8 @@ int run_inspect()
 			std::cout << " traditional optimization. " << std::endl; 
 			if (frameid == start)
 			{
-				frame.loadAnchors(test_result_folder + "/anchor_state69_smth", true);
+				//frame.loadAnchors(test_result_folder + "/anchor_state69_smth", true);
+				//frame.read_parametric_data();
 				frame.reAssocWithoutTracked();
 			}
 			else
@@ -89,7 +90,6 @@ int run_inspect()
 				frame.loadAnchors(test_result_folder + "/anchor_state69_smth", false);
 				frame.solve_parametric_model_optimonly();
 				frame.save_parametric_data();
-
 			}
 
 			cv::Mat reassoc = frame.visualizeReassociation();
@@ -106,7 +106,12 @@ int run_inspect()
 			std::stringstream ss_before;
 			ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_before.str(), beforeimg);
+			
+			//frame.pipeline2_searchanchor();
+			//frame.saveAnchors(test_result_folder + "/anchor_state251");
+			
 			m_renderer.clearAllObjs();
+
 			auto solvers = frame.mp_bodysolverdevice;
 
 			for (int pid = 0; pid < 4; pid++)

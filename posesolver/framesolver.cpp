@@ -327,38 +327,12 @@ void FrameSolver::solve_parametric_model()
 }
 
 
-void FrameSolver::solve_parametric_model_pipeline2()
+void FrameSolver::pipeline2_searchanchor()
 {
-	m_skels3d.resize(4);
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->setSource(m_matched[i]);
-		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
-		mp_bodysolverdevice[i]->globalAlign();
-		setConstDataToSolver(i);
-		
-		std::vector<ROIdescripter> rois;
-		getROI(rois, i);
-		mp_bodysolverdevice[i]->setROIs(rois);
-		mp_bodysolverdevice[i]->searchAnchorSpace();
-		mp_bodysolverdevice[i]->optimizeAnchor(mp_bodysolverdevice[i]->m_anchor_id);
-
-		//mp_bodysolverdevice[i]->optimizePoseWithAnchor();
-	}
-
-	if (m_solve_sil_iters > 0)
-	{
-		optimizeSilWithAnchor(m_solve_sil_iters);
-	}
-
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->postProcessing();
-		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
-	}
-
-	// postprocess
-	m_last_matched = m_matched;
+	DARKOV_Step1_setsource();
+	DARKOV_Step2_searchanchor(); 
+	DARKOV_Step2_optimanchor();
+	DARKOV_Step5_postprocess(); 
 }
 
 // This pipeline only search for best anchor point
@@ -1170,10 +1144,8 @@ void FrameSolver::reAssociateKeypoints()
 void FrameSolver::solve_parametric_model_optimonly()
 {
 	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->m_w_anchor_term = 0.01; 
-		mp_bodysolverdevice[i]->m_iou_thres = 0.0;
-		
+	{ 
+		mp_bodysolverdevice[i]->m_iou_thres = 0.0;	
 	}
 	m_solve_sil_iters = 10;
 	DARKOV_Step4_fitrawsource(); 

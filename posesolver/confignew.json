@@ -7,7 +7,7 @@
   "imgExtension": "jpg",
   //"camfolder": "/home/al17/animal/animal_calib/results/",
   "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust_new/",
-  "startid": 750,
+  "startid": 1267,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "framenum": 500,
   "epipolar_threshold": 25,
