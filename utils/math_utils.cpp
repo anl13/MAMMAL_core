@@ -124,17 +124,24 @@ float L2LDist(const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::V
     return fabs(d); 
 }
 
-float p2ldist( Eigen::Vector3f x,  Eigen::Vector3f line){
-    x.normalize(); 
-    line.normalize(); 
-    return (x.cross(line)).norm(); 
+//https://mathworld.wolfram.com/Point-LineDistance3-Dimensional.html
+float p2ldist( Eigen::Vector3f x0,  Eigen::Vector3f x1,  Eigen::Vector3f x2)
+{
+	Eigen::Vector3f line = x2 - x1;
+	Eigen::Vector3f x_line = x1 - x0;
+	float d = (line.cross(x_line)).norm() / line.norm(); 
+	return d; 
 }
 
-float p2ldist( Eigen::Vector3f x,  Eigen::Vector3f a,  Eigen::Vector3f b)
+float p2ldist(Eigen::Vector3f x3d, Eigen::Vector3f u2d)
 {
-    Eigen::Vector3f line = a-b; 
-    Eigen::Vector3f x_line = x-b;
-    return p2ldist(x_line, line); 
+	// note that, x3d must be in local coordinate system. 
+	// u2d: in image uv. (1920,1080)
+	Eigen::Vector3f u2dnorm;
+	u2dnorm(0) /= 1920; 
+	u2dnorm(1) /= 1080; 
+	u2dnorm(2) = 1; 
+	return p2ldist(x3d, Eigen::Vector3f(0, 0, 0), u2dnorm);
 }
 
 /******************* vector comparison ******************/

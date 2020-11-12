@@ -42,12 +42,13 @@ public:
 	vector<MatchedInstance> m_last_matched; // used for tracking
 		// matching & 3d data 
 	vector<vector<int> > m_clusters; // pigid, camid [candid]
-	vector<vector<Eigen::Vector3f> > m_skels3d;
+	vector<vector<Eigen::Vector3f> > m_skels3d; // pigid, kptid
 	vector<vector<Eigen::Vector3f> > m_skels3d_last;
 	bool m_use_gpu;
 	int m_solve_sil_iters;
 	float       m_epi_thres;
 	std::string m_epi_type;
+	std::string m_anchor_folder; 
 
 	vector<vector<vector<Eigen::Vector3f> > > m_projs; // [viewid, pigid, kptid]
 

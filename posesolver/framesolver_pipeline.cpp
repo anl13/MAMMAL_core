@@ -41,7 +41,7 @@ void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers
 
 void FrameSolver::DARKOV_Step2_loadanchor() // only load and set anchor id, without any fitting or align 
 {
-	std::string anchor_folder = "H:/pig_results_anchor/anchor_state69_smth/";
+	std::string anchor_folder = m_anchor_folder;
 	std::stringstream ss;
 	ss << anchor_folder << "/anchor_" << std::setw(6) << std::setfill('0') << m_frameid <<
 		".txt";

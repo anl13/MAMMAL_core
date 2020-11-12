@@ -214,6 +214,7 @@ public:
 	float m_kpt_track_dist;
 	float m_w_anchor_term;
 	float m_iou_thres; 
+	std::string m_anchor_folder; 
 
 	std::vector<float> gt_scales; 
 	float approxIOU(int view); 

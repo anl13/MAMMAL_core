@@ -60,15 +60,7 @@ int run_inspect()
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
-
-		if (frameid == start)
-			frame.load_clusters();
-		else
-			frame.pureTracking(); 
-		//frame.load_clusters(); 
-
-		//frame.save_clusters(); 
-		//frame.load_clusters(); 
+		frame.load_clusters(); 
 
 		//cv::Mat assoc = frame.visualizeIdentity2D();
 		//std::stringstream ss;
@@ -78,37 +70,43 @@ int run_inspect()
 		// pipeline 3 
 		if(true)
 		{
-			std::cout << " traditional optimization. " << std::endl; 
+#if 1
 			if (frameid == start)
 			{
-				//frame.loadAnchors(test_result_folder + "/anchor_state69_smth", true);
+				frame.loadAnchors(test_result_folder + "", true);
 				//frame.read_parametric_data();
 				frame.reAssocWithoutTracked();
+				frame.save_parametric_data(); 
 			}
 			else
 			{
-				frame.loadAnchors(test_result_folder + "/anchor_state69_smth", false);
+				frame.loadAnchors(test_result_folder + "", false);
 				frame.solve_parametric_model_optimonly();
 				frame.save_parametric_data();
 			}
 
 			cv::Mat reassoc = frame.visualizeReassociation();
 			std::stringstream ss_reassoc;
-			ss_reassoc << test_result_folder << "/reassoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_reassoc.str(), reassoc);
 
 			cv::Mat reproj = frame.visualizeVisibility();
 			std::stringstream ss_proj;
-			ss_proj << test_result_folder << "/proj/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_proj.str(), reproj);
 
 			cv::Mat beforeimg = frame.visualizeSwap();
 			std::stringstream ss_before;
-			ss_before << test_result_folder << "/before_swap/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_before.str(), beforeimg);
 			
+			cv::Mat rawfit = frame.visualizeRawAssoc();
+			std::stringstream ss_rawassoc; 
+			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_rawassoc.str(), rawfit); 
+#endif 
 			//frame.pipeline2_searchanchor();
-			//frame.saveAnchors(test_result_folder + "/anchor_state251");
+			//frame.saveAnchors(test_result_folder + "/anchor_state_251");
 			
 			m_renderer.clearAllObjs();
 
@@ -173,7 +171,7 @@ int run_inspect()
 			overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
 			std::stringstream all_render_file;
-			all_render_file << test_result_folder << "/render_all/optim_anchor/" << std::setw(6) << std::setfill('0')
+			all_render_file << test_result_folder << "/render_all/optim_newanchor/" << std::setw(6) << std::setfill('0')
 				<< frameid << "_anchor_baseline.png";
 			cv::imwrite(all_render_file.str(), blend);
 		}

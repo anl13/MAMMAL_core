@@ -41,6 +41,8 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_w_anchor_term = root["anchor_term"].asFloat();
 	m_use_gpu = root["use_gpu"].asBool(); 
 	m_iou_thres = root["iou_thres"].asFloat(); 
+	m_anchor_folder = root["anchor_folder"].asString();
+
 	gt_scales.resize(4); 
 	for (int i = 0; i < 4; i++)
 	{
@@ -167,7 +169,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 
 	m_det_confs.resize(m_skelTopo.joint_num, 0); 
 
-	m_anchor_lib.load("D:/Projects/animal_calib/articulation/pose_lib/");
+	m_anchor_lib.load(m_anchor_folder);
 
 	m_isReAssoc = false;
 }

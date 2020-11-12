@@ -4,7 +4,7 @@
 #include "tracking.h"
 #include "../utils/timer_util.h" 
 
-#define VIS_ASSOC_STEP 
+//#define VIS_ASSOC_STEP 
 
 void FrameSolver::configByJson(std::string jsonfile)
 {
@@ -41,6 +41,7 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_pigConfig = root["pig_config"].asString();
 	m_use_gpu = root["use_gpu"].asBool();
 	m_solve_sil_iters = root["solve_sil_iters"].asInt();
+	m_anchor_folder = root["anchor_folder"].asString(); 
 
 	std::vector<int> camids;
 	for (auto const &c : root["camids"])
@@ -1388,7 +1389,7 @@ void FrameSolver::nms2(std::vector<Eigen::Vector3f>& pool, int jointid, const st
 				int jid = joint_levels[level][k];
 				for (int j = 0; j < ref[jid].size(); j++)
 				{
-					if ((pool[i].segment<2>(0) - ref[jid][j].segment<2>(0)).norm() < 10)
+					if ((pool[i].segment<2>(0) - ref[jid][j].segment<2>(0)).norm() < 20)
 					{
 						repeat[i] = true;
 					}
@@ -1408,11 +1409,14 @@ void FrameSolver::nms2(std::vector<Eigen::Vector3f>& pool, int jointid, const st
 void FrameSolver::splitDetKeypointsWithoutTracked()
 {
 	std::vector<std::vector<std::vector<Eigen::Vector3f> > >  keypoints_trackedPool;
+	m_keypoints_pool.clear(); 
 	m_keypoints_pool.resize(m_camNum);
 	keypoints_trackedPool.resize(m_camNum);
 	for (int view = 0; view < m_camNum; view++)
 	{
 		m_keypoints_pool[view].resize(m_topo.joint_num);
+		for (int i = 0; i < m_keypoints_pool[view].size(); i++)
+			m_keypoints_pool[view][i].clear(); 
 		keypoints_trackedPool[view].resize(m_topo.joint_num);
 		for (int candid = 0; candid < m_detUndist[view].size(); candid++)
 		{
@@ -1450,6 +1454,22 @@ void FrameSolver::splitDetKeypointsWithoutTracked()
 			nms2(m_keypoints_pool[view][jid], jid, keypoints_trackedPool[view]);
 		}
 	}
+
+#ifdef VIS_ASSOC_STEP
+	for (int view = 0; view < m_camNum; view++)
+	{
+		std::cout << "view: " << view << std::endl; 
+		for (int jid = 0; jid < m_topo.joint_num; jid++)
+		{
+			std::cout << " -- jointid: " << jid << std::endl; 
+			for (int k = 0; k < m_keypoints_pool[view][jid].size(); k++)
+			{
+				std::cout << "    -- " <<  m_keypoints_pool[view][jid][k].transpose() << std::endl; 
+			}
+		}
+	}
+	std::cout << "----------------------------------------" << std::endl; 
+#endif 
 }
 
 
@@ -1492,9 +1512,16 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 #endif 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
+#ifdef VIS_ASSOC_STEP
+		std::cout << "camid: " << camid << std::endl; 
+#endif 
+		Camera cam = m_camsUndist[camid];
 		// associate for each camera 
 		for (int i = 0; i < m_topo.joint_num; i++)
 		{
+#ifdef VIS_ASSOC_STEP
+			std::cout << "joint: " << i << std::endl; 
+#endif 
 			std::vector<int> id_table;
 			for (int pid = 0; pid < 4; pid++)
 			{
@@ -1504,25 +1531,35 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 			}
 			int M = id_table.size(); // candidate number for associate  
 			int N = m_keypoints_pool[camid][i].size();
+			
 			Eigen::MatrixXf sim(M, N);
+			Eigen::MatrixXf sim2(M, N);
 			for (int rowid = 0; rowid < M; rowid++)
 			{
 				for (int colid = 0; colid < N; colid++)
 				{
 					sim(rowid, colid) = (m_keypoints_pool[camid][i][colid].segment<2>(0)
 						- m_projs[camid][id_table[rowid]][i].segment<2>(0)).norm();
-					if (sim(rowid, colid) > 150) sim(rowid, colid) = 150;
+
+					Eigen::Vector3f plocal = cam.R * m_skels3d[id_table[rowid]][i] + cam.T;
+					float d = p2ldist(plocal, m_keypoints_pool[camid][i][colid]);
+					sim2(rowid, colid) = d; 
+					if (sim(rowid, colid) > 120) sim(rowid, colid) = 120;
 				}
 			}
+#ifdef VIS_ASSOC_STEP
+			std::cout << "sim: " << std::endl << sim << std::endl; 
+			std::cout << "sim2: " << std::endl << sim2 << std::endl; 
+#endif 
 			std::vector<int> assign = solveHungarian(sim);
 			for (int rowid = 0; rowid < M; rowid++)
 			{
 				int pid = id_table[rowid];
 				int colid = assign[rowid];
 				if (colid < 0) continue;
-				if (sim(rowid, colid) >= 150) continue;
+				if (sim(rowid, colid) >= 120) continue;
 				m_keypoints_associated[pid][camid][i] = m_keypoints_pool[camid][i][colid];
-				m_keypoints_pool[camid][i][colid].setZero();
+				m_keypoints_pool[camid][i][colid] = Eigen::Vector3f::Zero(); 
 			}
 		}
 	}
@@ -1547,19 +1584,21 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 
 		for (int camid = 0; camid < m_camNum; camid++)
 		{
+			const Camera& cam = m_camsUndist[camid];
 			std::vector<Eigen::Vector3f> remain_pool;
 			for (int i = 0; i < ids_to_swap.size(); i++)
 			{
 				int id = ids_to_swap[i];
 				for (int candid = 0; candid < m_keypoints_pool[camid][id].size(); candid++)
 				{
-					if (m_keypoints_pool[camid][id][candid](2) == 0)continue;
-					remain_pool.push_back(m_keypoints_pool[camid][id][candid]);
+					if (m_keypoints_pool[camid][id][candid](2) < m_topo.kpt_conf_thresh[id])continue;
+					else remain_pool.push_back(m_keypoints_pool[camid][id][candid]);
 				}
 			}
 			std::vector<int> pig_id_table;
 			std::vector<int> joint_id_table;
 			std::vector<Eigen::Vector3f> projPool;
+			std::vector<Eigen::Vector3f> pool3d; 
 			for (int pid = 0; pid < 4; pid++)
 			{
 				for (int i = 0; i < ids_to_swap.size(); i++)
@@ -1571,25 +1610,45 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 						pig_id_table.push_back(pid);
 						joint_id_table.push_back(id);
 						projPool.push_back(m_projs[camid][pid][id]);
+						pool3d.push_back(m_skels3d[pid][id]);
 					}
 				}
 			}
 			int M = remain_pool.size();
 			int N = projPool.size();
 			Eigen::MatrixXf sim = Eigen::MatrixXf::Zero(M, N);
+			Eigen::MatrixXf sim2 = Eigen::MatrixXf::Zero(M, N); 
 			for (int i = 0; i < M; i++)
 			{
 				for (int j = 0; j < N; j++)
 				{
-					float dist = (remain_pool[i].segment<2>(0) - projPool[j].segment<2>(0)).norm();
-					sim(i, j) = dist > 200 ? 200 : dist;
+					float dist = (remain_pool[i].segment<2>(0) - projPool[j].segment<2>(0)).norm(); 
+					sim(i, j) = dist > 120 ? 120 : dist;
+					Eigen::Vector3f plocal = cam.R * pool3d[j] + cam.T; 
+					float d = p2ldist(plocal, remain_pool[i]);
+					sim2(i, j) = d; 
 				}
 			}
+
+#ifdef VIS_ASSOC_STEP
+			std::cout << "camid: " << camid << std::endl; 
+			for (int t = 0; t < pig_id_table.size(); t++)
+			{
+				std::cout << "(" << pig_id_table[t] << "," << joint_id_table[t] << ") ";
+			}
+			for (int i = 0; i < remain_pool.size(); i++)
+			{
+				std::cout << "  -- " << remain_pool[i].transpose() << std::endl; 
+			}
+			std::cout << std::endl << " [sim]: " <<  sim << std::endl;
+			std::cout << " [sim2]: " << std::endl << sim2 << std::endl; 
+#endif 
+
 			std::vector<int> match = solveHungarian(sim);
 			for (int i = 0; i < match.size(); i++)
 			{
 				if (match[i] < 0) continue;
-				if (sim(i, match[i]) >= 200) continue;
+				if (sim(i, match[i]) >= 120) continue;
 				int j = match[i];
 				m_keypoints_associated[pig_id_table[j]][camid][joint_id_table[j]]
 					= remain_pool[i];

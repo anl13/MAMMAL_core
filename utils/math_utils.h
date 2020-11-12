@@ -52,8 +52,8 @@ Eigen::Matrix<float, 3, 9, Eigen::ColMajor> RodriguesJacobiF(const Eigen::Vector
 //refering to: http://mathworld.wolfram.com/Line-LineDistance.html
 float L2LDist(const Eigen::Vector3f& x1, const Eigen::Vector3f& x2, const Eigen::Vector3f& x3, const Eigen::Vector3f& x4); 
 float L2LDist(const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c); 
-float p2ldist(Eigen::Vector3f x,  Eigen::Vector3f line); 
 float p2ldist(Eigen::Vector3f x,  Eigen::Vector3f a,  Eigen::Vector3f b); // a,b form a line 
+float p2ldist(Eigen::Vector3f x3d, Eigen::Vector3f u2d); 
 
 /******************* vector comparison ******************/
 bool my_equal(std::vector<int> a, std::vector<int> b); 
