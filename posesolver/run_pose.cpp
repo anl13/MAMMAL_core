@@ -26,7 +26,7 @@ int run_pose()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/config_seq2.json");
+	frame.configByJson(conf_projectFolder + "/posesolver/config.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -40,7 +40,7 @@ int run_pose()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(true);
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -48,7 +48,7 @@ int run_pose()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "H:/pig_results_debug_seq2/";
+	frame.result_folder = "H:/pig_results_vis/";
 	frame.is_smth = false;
 	int start = frame.get_start_id();
 	frame.init_parametric_solver(); 
@@ -59,15 +59,9 @@ int run_pose()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		if (frameid == start)
-			frame.matching_by_tracking(); 
-			//frame.load_clusters(); 
-		else frame.pureTracking();
+		frame.load_clusters(); 
 
 	    frame.solve_parametric_model();
-
-		frame.save_clusters();
-		frame.save_parametric_data();
 
 		cv::Mat assoc = frame.visualizeIdentity2D();
 		std::stringstream ss;
@@ -138,26 +132,18 @@ int run_pose()
 		cv::imwrite(all_render_file.str(), blend);
 
 
-		//std::stringstream file2;
-		//file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')
-		//	<< frameid << ".png";
+		if (frameid == start + framenum- 1) {
+			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+			while (!glfwWindowShouldClose(windowPtr))
+			{
+				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		//cv::imwrite(file2.str(), packed_render);
+				m_renderer.Draw();
 
-
-
-		//if (frameid == start + framenum- 1) {
-		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-		//	while (!glfwWindowShouldClose(windowPtr))
-		//	{
-		//		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-		//		m_renderer.Draw();
-
-		//		glfwSwapBuffers(windowPtr);
-		//		glfwPollEvents();
-		//	};
-		//}
+				glfwSwapBuffers(windowPtr);
+				glfwPollEvents();
+			};
+		}
 	}
 
 	return 0;

@@ -48,10 +48,7 @@ public:
 	PigSolverDevice& operator=(const PigSolverDevice&) = delete; 
 
 	void setSource(const MatchedInstance& _source) { 
-		m_source.view_ids.clear(); 
-		m_source.dets.clear(); 
-		m_source.view_ids = _source.view_ids;
-		m_source.dets = _source.dets; 
+		m_source = _source; 
 	}
 
 	void getTheta(Eigen::VectorXf& theta);

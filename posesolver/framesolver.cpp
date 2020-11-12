@@ -1544,7 +1544,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 					Eigen::Vector3f plocal = cam.R * m_skels3d[id_table[rowid]][i] + cam.T;
 					float d = p2ldist(plocal, m_keypoints_pool[camid][i][colid]);
 					sim2(rowid, colid) = d; 
-					if (sim(rowid, colid) > 120) sim(rowid, colid) = 120;
+					if (sim(rowid, colid) > 80) sim(rowid, colid) = 80;
 				}
 			}
 #ifdef VIS_ASSOC_STEP
@@ -1557,7 +1557,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 				int pid = id_table[rowid];
 				int colid = assign[rowid];
 				if (colid < 0) continue;
-				if (sim(rowid, colid) >= 120) continue;
+				if (sim(rowid, colid) >= 80) continue;
 				m_keypoints_associated[pid][camid][i] = m_keypoints_pool[camid][i][colid];
 				m_keypoints_pool[camid][i][colid] = Eigen::Vector3f::Zero(); 
 			}
@@ -1623,7 +1623,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 				for (int j = 0; j < N; j++)
 				{
 					float dist = (remain_pool[i].segment<2>(0) - projPool[j].segment<2>(0)).norm(); 
-					sim(i, j) = dist > 120 ? 120 : dist;
+					sim(i, j) = dist > 80 ? 80 : dist;
 					Eigen::Vector3f plocal = cam.R * pool3d[j] + cam.T; 
 					float d = p2ldist(plocal, remain_pool[i]);
 					sim2(i, j) = d; 
@@ -1648,7 +1648,7 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 			for (int i = 0; i < match.size(); i++)
 			{
 				if (match[i] < 0) continue;
-				if (sim(i, match[i]) >= 120) continue;
+				if (sim(i, match[i]) >= 80) continue;
 				int j = match[i];
 				m_keypoints_associated[pig_id_table[j]][camid][joint_id_table[j]]
 					= remain_pool[i];

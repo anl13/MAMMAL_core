@@ -708,9 +708,9 @@ void PigSolverDevice::optimizePoseSilOneStep(int iter)
 
 	Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
 		+ DTD * lambda
-		+ ATA_data * w_data;
+		+ ATA_data * w_data + ATA_floor * w_floor + ATA_temp * w_temp;
 	Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
-		+ ATb_data * w_data;
+		+ ATb_data * w_data + ATb_floor * w_floor + ATb_temp * w_temp;
 
 	Eigen::VectorXf delta = H.ldlt().solve(b);
 

@@ -125,7 +125,7 @@ SkelTopology getSkelTopoByType(std::string type)
     else if (type=="UNIV") // universal animal model 
     {
         A.joint_num = 23; 
-        A.bone_num = 23; 
+        A.bone_num = 19; 
         A.label_names = {
          "nose", "eye_left", "eye_right", "ear_root_left", "ear_root_right", 
         "shoulder_left", "shoulder_right", "elbow_left", "elbow_right", "paw_left", "paw_right", 
@@ -135,8 +135,8 @@ SkelTopology getSkelTopoByType(std::string type)
         };
         A.bones = {
         {0,1}, {0,2}, {1,2}, {1,3}, {2,4},
-        {0,17}, {17,5},{17,6}, {5,7}, {7,9}, {6,8}, {8,10},
-        {17,19}, {19,20}, {20,18}, {18,21}, {21,22},
+         {5,7}, {7,9}, {6,8}, {8,10},
+        {20,18},
         {18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
 		{0,20},{5,20},{6,20}
         };

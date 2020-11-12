@@ -295,15 +295,14 @@ void PigSolverDevice::globalAlign()
 	std::vector<float> weights(N, 0); 
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
-	m_host_scale = gt_scales[m_pig_id];
-	m_initScale = true;
+	//m_host_scale = gt_scales[m_pig_id];
+	//m_initScale = true;
 	if (m_initScale) return;
-	m_initScale = true;
 
 	// step1: compute scale by averaging bone length. 
 	std::vector<float> regBoneLens; 
 	std::vector<float> triBoneLens;
-	std::vector<int> bone_not_for_shape = {0,1,2,3,4};
+	std::vector<int> bone_not_for_shape = {0,1,2,3,4,16,17,18,9,10,11};
 	for (int bid = 0; bid < m_skelTopo.bones.size(); bid++)
 	{
 		if (in_list(bid, bone_not_for_shape))continue; 
@@ -325,11 +324,13 @@ void PigSolverDevice::globalAlign()
 	float alpha; 
 	if (a == 0 || b == 0) alpha = m_host_scale; 
 	else alpha = a / b;
-	if (alpha > 1.08) alpha = 1.08;
-	if (alpha < 0.95) alpha = 0.95;
+	std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
 	// running average
-	if(!m_initScale)
-		m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1); 
+	if (!m_initScale)
+	{
+		m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1);
+		m_initScale = true; 
+	}
 	m_scaleCount += 1.f; 
 	UpdateVertices();
 
