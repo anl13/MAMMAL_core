@@ -74,6 +74,7 @@ public:
 	void setTargetModel(std::shared_ptr<MeshEigen> m_tarModel);
 	void updateWarpField();
 	void updateIterModel();
+	void solveNonrigidDeformVHull(int maxIterTime, float updateThresh);
 	void solveNonrigidDeform(int maxIterTime, float updateThresh);
 	void totalSolveProcedure();
 	//void solvePoseAndShape(int maxIterTime);

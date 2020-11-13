@@ -1,5 +1,5 @@
 {
-  "folder": "D:/Projects/animal_calib/data/artist_model_sym/",
+  "folder": "D:/Projects/animal_calib/data/artist_model_sym3/",
   "joint_num": 62,
   "vertex_num": 11239,
   "tex_num": 12208,
@@ -48,7 +48,7 @@
   "gmm_term": 0.0,
   "reg_weights": [ [ 2, 1, 1, 1 ] ],
   "kpt_track_dist": 400, // px  * depthweight
-  "scales": [ 1.32, 1.32, 1.300, 1.300 ],
+  "scales": [ 1.37, 1.37, 1.300, 1.300 ],
   "iou_thres": 0.77
 }
 

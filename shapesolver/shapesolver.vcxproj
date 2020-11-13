@@ -133,6 +133,7 @@
     <ClCompile Include="..\articulation\pigmodel.cpp" />
     <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp" />
     <ClCompile Include="..\articulation\pigsolver_fitting.cpp" />
     <ClCompile Include="..\articulation\pigsolver_jacobi.cpp" />
     <ClCompile Include="..\articulation\pigsolver_sil.cpp" />
@@ -140,6 +141,7 @@
     <ClCompile Include="..\posesolver\clusterclique.cpp" />
     <ClCompile Include="..\posesolver\framedata.cpp" />
     <ClCompile Include="..\posesolver\framesolver.cpp" />
+    <ClCompile Include="..\posesolver\framesolver_pipeline.cpp" />
     <ClCompile Include="..\posesolver\matching.cpp" />
     <ClCompile Include="..\posesolver\mce\AdjacencyListAlgorithm.cpp" />
     <ClCompile Include="..\posesolver\mce\Algorithm.cpp" />

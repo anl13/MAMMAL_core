@@ -494,12 +494,12 @@ void generate_nodegraph()
 	//graph.Generate(model); 
 
 	graph.model = model;
-	//graph.CalcGeodesic();
+	graph.CalcGeodesic();
 	//graph.SaveGeodesic("data/geodesic.txt");
 	graph.LoadGeodesic("data/geodesic.txt");
 
-	//graph.SampleNode(); 
-	graph.SampleNodeFromObj("data/manual_artist_head_node.obj");
+	graph.SampleNode(); 
+	//graph.SampleNodeFromObj("data/manual_artist_head_node.obj");
 	
 	graph.GenKnn();
 	graph.GenNodeNet();

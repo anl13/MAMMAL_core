@@ -129,6 +129,12 @@
     <ClCompile Include="assist_functions.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\framesolver_pipeline.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\posesolver\framedata.h">

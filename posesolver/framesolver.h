@@ -71,6 +71,7 @@ public:
 	void read_parametric_data();
 	void save_parametric_data();
 	void solve_parametric_model_cpu(); 
+	void solve_scales(); 
 
 	//void load_labeled_data();
 	void save_clusters();

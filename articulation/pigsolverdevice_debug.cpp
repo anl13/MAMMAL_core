@@ -455,15 +455,25 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 		ATb.segment<3>(3 + 3 * i) = A.pose[jid] - theta.segment<3>(3+3*i); 
 	}
 
+	float all_conf = 0; 
+	for (int i = 0; i < m_det_confs.size(); i++)
+	{
+		//std::cout << " i : " << i << " , " << m_det_confs[i] << std::endl; 
+		all_conf += m_det_confs[i];
+	}
+	//std::cout << "pig " << m_pig_id << "  " << all_conf << std::endl; 
+
 	float weight = 0.05;
+	if (all_conf > 130) weight = 0.001; 
+	else weight = 1; 
 	if (m_det_confs[0] >= 2 && m_det_confs[1] >= 2 && m_det_confs[2] >= 2
 		&& m_det_confs[3] >= 2 && m_det_confs[4] >= 2)
 	{
 		std::vector<int> ignore = {19,20,21};
 		for (const int & k : ignore)
 		{
-			ATA.middleRows<3>(3 + 3 * k) *= weight;
-			ATb.segment<3>(3 + 3 * k) *= weight;
+			ATA.middleRows<3>(3 + 3 * k) *= 0.001;
+			ATb.segment<3>(3 + 3 * k) *= 0.001;
 		}
 	}
 
@@ -632,8 +642,8 @@ void PigSolverDevice::CalcAnchorRegTerm(const Eigen::VectorXf& theta,
 
 void PigSolverDevice::optimizePoseSilOneStep(int iter)
 {
-	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
-	int M = m_poseToOptimize.size(); 
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	int M = m_poseToOptimize.size();
 	UpdateVertices();
 	UpdateNormalFinal();
 
@@ -654,32 +664,25 @@ void PigSolverDevice::optimizePoseSilOneStep(int iter)
 	float track_radius = m_kpt_track_dist - iter * 10;
 	track_radius = track_radius > 30 ? track_radius : 30;
 	bool is_converge_radius = false;
-	if (iter > 20) is_converge_radius = true;
+	if (iter > 20) is_converge_radius = false;
 
-	if (m_isReAssoc)
-	{
-		Calc2dSkelProjectionTermReassoc(ATA_data, ATb_data, true);
-	}
-	else
-	{
-		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
-	}
+	Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
 
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
 
 	// compute terms
 
-	Eigen::MatrixXf ATA_sil;
-	Eigen::VectorXf ATb_sil;
+	Eigen::MatrixXf ATA_sil = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	Eigen::VectorXf ATb_sil = Eigen::VectorXf::Zero(paramNum);
 
-	renderDepths(); 
-#ifdef USE_GPU_SOLVER
-	CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
-#else 
-	CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter);
-#endif 
-
-
+	if(m_w_sil_term > 0)
+	{
+		renderDepths();
+		if (m_use_gpu)
+			CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
+		else
+			CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter);
+	}
 	float lambda = m_lambda;
 	float w_data = m_w_data_term;
 	float w_sil = m_w_sil_term;
@@ -828,10 +831,10 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	// calc joint term 
 	Eigen::MatrixXf ATA_data;
 	Eigen::VectorXf ATb_data;
-	float track_radius = m_kpt_track_dist - iter * 4;
-	track_radius = track_radius > 20 ? track_radius : 20;
+	float track_radius = m_kpt_track_dist - iter * 10;
+	track_radius = track_radius > 30 ? track_radius : 30;
 	bool is_converge_radius = false;
-	if (iter > 20) is_converge_radius = true;
+	if (iter > 20) is_converge_radius = false;
 	if (m_isReAssoc)
 	{
 		//std::cout << "pig: " << m_pig_id << "  iter: " << iter << std::endl; 
@@ -845,26 +848,30 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 
 	// compute terms
 
-	Eigen::MatrixXf ATA_sil;
-	Eigen::VectorXf ATb_sil;
+	Eigen::MatrixXf ATA_sil = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	Eigen::VectorXf ATb_sil = Eigen::VectorXf::Zero(paramNum);
 
-	renderDepths();
-	if(m_use_gpu)
-	    CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
-	else 
-	    CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter);
-
+	if (m_w_sil_term > 0)
+	{
+		renderDepths();
+		if (m_use_gpu)
+			CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
+		else
+			CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter);
+	}
 
 	float lambda = m_lambda;
 	float w_data = m_w_data_term;
-	float w_sil; 
-	if (iter < 20) w_sil = m_w_sil_term * 0.01; 
-	else w_sil = m_w_sil_term;
+	//float w_sil; 
+	//if (iter < 20) w_sil = m_w_sil_term * 0.01; 
+	//else w_sil = m_w_sil_term;
+	float w_sil = m_w_sil_term;
 	float w_reg = m_w_reg_term;
 	float w_temp = m_w_temp_term;
 	float w_floor; 
-	if (iter > 30) w_floor = m_w_floor_term * 100; 
-	else  w_floor = m_w_floor_term;
+	//if (iter > 30) w_floor = m_w_floor_term * 100; 
+	//else  w_floor = m_w_floor_term;
+	w_floor = m_w_floor_term;
 	float w_anchor = m_w_anchor_term; 
 
 	Eigen::MatrixXf ATA_floor;
@@ -916,15 +923,15 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 	}
 
-//#ifdef SHOW_FITTING_INFO
-//	std::cout << "iter: " << iter << std::endl; 
-//	std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
-//	std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
-//	std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
-//	std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
-//	std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
-//	std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
-//#endif 
+	
+	//std::cout << "iter: " << iter << std::endl; 
+	//std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
+	//std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
+	//std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
+	//std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
+	//std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
+	//std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
+
 }
 
 void PigSolverDevice::Calc2dSkelProjectionTermReassoc(

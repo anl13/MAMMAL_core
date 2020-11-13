@@ -184,6 +184,8 @@ void ShapeSolver::CalcDeformTerm(
 	std::cout << "deform r: " << b.norm() << std::endl;
 }
 
+#define DEBUG_SIL 
+
 void ShapeSolver::CalcDeformTerm_sil(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
 {
 	int nodeNum = mp_nodeGraph->nodeIdx.size();
@@ -216,11 +218,21 @@ void ShapeSolver::CalcDeformTerm_sil(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
 	std::vector<Eigen::Triplet<float>> triplets;
 
 
+#ifdef DEBUG_SIL
+	std::vector<cv::Mat> chamfers_vis;
+	std::vector<cv::Mat> chamfers_vis_det;
+	std::vector<cv::Mat> gradx_vis;
+	std::vector<cv::Mat> grady_vis;
+	std::vector<cv::Mat> diff_vis;
+	std::vector<cv::Mat> diff_xvis;
+	std::vector<cv::Mat> diff_yvis;
+#endif 
 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
 		int camid = m_source.view_ids[roiIdx];
 		if (!in_list(camid, usedviews)) continue; 
+		std::cout << "camid: " << camid << std::endl; 
 		Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_vertexNum, paramNum);
 		Eigen::VectorXf r = Eigen::VectorXf::Zero(m_vertexNum);
 		cv::Mat P = computeSDF2dFromDepthf(renders[roiIdx]);
@@ -228,6 +240,18 @@ void ShapeSolver::CalcDeformTerm_sil(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
 		Eigen::Matrix3f R = cam.R;
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
+
+
+#ifdef DEBUG_SIL
+		chamfers_vis.emplace_back(visualizeSDF2d(P));
+
+		cv::Mat chamfer_vis = visualizeSDF2d(m_rois[roiIdx].chamfer);
+
+		chamfers_vis_det.push_back(chamfer_vis);
+		diff_vis.emplace_back(visualizeSDF2d(P - m_rois[roiIdx].chamfer, 32));
+#endif 
+
+		int visible_num = 0; 
 		for (int i = 0; i < m_vertexNum; i++)
 		{
 			if (m_bodyParts[i] == TAIL || m_bodyParts[i] == L_EAR
@@ -251,6 +275,8 @@ void ShapeSolver::CalcDeformTerm_sil(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
 			float p = queryPixel(P, x0, m_rois[roiIdx].cam);
 			if (p > 50) continue;
 
+			visible_num += 1; 
+
 			Eigen::MatrixXf block2d;
 			Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 			D(0, 0) = 1 / x_local(2);
@@ -262,10 +288,28 @@ void ShapeSolver::CalcDeformTerm_sil(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
 			r(i) = p - d;
 			A.row(i) = block2d.row(0) * ddx + block2d.row(1) * ddy;
 		}
+		std::cout << " ---visible num: " << visible_num << std::endl; 
 		ATA += 0.0001 * A.transpose() * A;
 		ATb += 0.0001 * A.transpose() * r;
 	}
+#ifdef DEBUG_SIL
+	cv::Mat packP;
+	packImgBlock(chamfers_vis, packP);
+	cv::Mat packD;
+	packImgBlock(chamfers_vis_det, packD);
+	std::stringstream ssp;
+	ssp << "G:/pig_results/" << 0 << "_rend_sdf_cpu.jpg";
+	cv::imwrite(ssp.str(), packP);
+	std::stringstream ssd;
+	ssd << "G:/pig_results/" << 0 << "_det_sdf_cpu.jpg";
+	cv::imwrite(ssd.str(), packD);
 
+	cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
+	std::stringstream ssdiff;
+	ssdiff << "G:/pig_results/diff_" << 0 << ".jpg";
+	cv::imwrite(ssdiff.str(), packdiff);
+
+#endif 
 	std::cout << "ATb deform: " << ATb.norm() << std::endl; 
 }
 
@@ -606,26 +650,9 @@ void ShapeSolver::solveNonrigidDeform(int maxIterTime, float updateThresh)
 			CalcDvDSe3();
 			m_rois = obs[obid].rois; 
 			m_source = obs[obid].source; 
-			normalizeSource();
 			usedviews = obs[obid].usedViews;
 
 			CalcDeformTerm_sil(ATA_sil, ATb_sil);
-			//Eigen::MatrixXf ATA_point; 
-			//Eigen::VectorXf ATb_point; 
-			//CalcPointTerm(ATA_point, ATb_point); 
-
-
-
-			//CalcEarTerm(ATA_ear, ATb_ear); 
-			//ATA += ATA_ear * w_ear; 
-			//ATb += ATb_ear * w_ear; 
-
-
-			//ATA += ATA_point * w_point; 
-			//ATb += ATb_point * w_point; 
-
-
-
 
 			ATA += ATA_sil * w_sil;
 			ATb += ATb_sil * w_sil;
@@ -677,6 +704,65 @@ void ShapeSolver::updateIterModel()
 		m_iterModel.normals.col(sIdx) = T.topLeftCorner(3, 3) * m_srcModel->normals.col(sIdx);
 	}
 }
+
+void ShapeSolver::solveNonrigidDeformVHull(int maxIterTime, float updateThresh)
+{
+	m_deltaTwist.resize(6, mp_nodeGraph->nodeIdx.size());
+
+	Eigen::MatrixXf ATA, ATAs, ATAsym;
+	Eigen::VectorXf ATb, ATbs, ATbsym;
+	Eigen::MatrixXf ATA_sil;
+	Eigen::VectorXf ATb_sil;
+	Eigen::MatrixXf ATA_ear;
+	Eigen::VectorXf ATb_ear;
+	int paramNum = 6 * mp_nodeGraph->nodeIdx.size();
+
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+
+	for (int iterTime = 0; iterTime < maxIterTime; iterTime++)
+	{
+		std::cout << "iterTime: " << iterTime << std::endl;
+
+		CalcDvDSe3();
+
+		CalcDeformTerm(ATA_sil, ATb_sil); 
+
+		ATA += ATA_sil; 
+		ATb += ATb_sil; 
+
+		CalcSymTerm(ATAsym, ATbsym);
+		ATA += ATAsym * m_wSym;
+		ATb += ATbsym * m_wSym;
+
+		CalcSmthTerm(ATAs, ATbs);
+		ATA += ATAs * m_wSmth;
+		ATb += ATbs * m_wSmth;
+
+		//Eigen::MatrixXf ATA_lap; 
+		//Eigen::VectorXf ATb_lap;
+		//CalcLaplacianTerm(ATA_lap, ATb_lap); 
+		//ATA += ATA_lap * w_lap; 
+		//ATb += ATb_lap * w_lap; 
+
+
+		Eigen::MatrixXf ATAr(paramNum, paramNum);
+		ATAr.setIdentity();
+
+		ATA += ATAr * m_wRegular;
+
+		Eigen::Map<Eigen::VectorXf>(m_deltaTwist.data(), m_deltaTwist.size()) = ATA.ldlt().solve(ATb);
+
+		if (m_deltaTwist.norm() < updateThresh)
+			break;
+
+		// debug 
+		std::cout << "delta twist: " << m_deltaTwist.norm() << std::endl;
+		updateWarpField();
+		updateIterModel();
+	}
+}
+
 
 void ShapeSolver::totalSolveProcedure()
 {

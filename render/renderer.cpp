@@ -613,7 +613,7 @@ void Renderer::createScene(std::string conf_projectFolder)
 	obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
 	//obj = ballMesh; 
 	RenderObjectTexture* p_scene = new RenderObjectTexture();
-	p_scene->SetTexture(conf_projectFolder + "/render/data/previous_board.png");
+	p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_gray.jpg");
 	p_scene->SetFaces(obj.faces_v_vec);
 	p_scene->SetVertices(obj.vertices_vec);
 	p_scene->SetNormal(obj.normals_vec, 2);

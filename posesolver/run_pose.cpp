@@ -18,6 +18,18 @@
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
 
+void save_joints(int pid, int fid, const std::vector<Eigen::Vector3f>& data)
+{
+	std::stringstream ss;
+	ss << "H:/pig_results_anchor/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt"; 
+	std::ofstream outputfile(ss.str()); 
+	for (int i = 0; i < data.size(); i++)
+	{
+		outputfile << data[i].transpose() << std::endl; 
+	}
+	outputfile.close(); 
+}
+
 int run_pose()
 {
 	show_gpu_param();
@@ -48,7 +60,7 @@ int run_pose()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "H:/pig_results_vis/";
+	frame.result_folder = "F:/pig_results_nosil/";
 	frame.is_smth = false;
 	int start = frame.get_start_id();
 	frame.init_parametric_solver(); 
@@ -59,15 +71,36 @@ int run_pose()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 
-		frame.load_clusters(); 
+		frame.DARKOV_Step0_topdownassoc(true); 
 
-	    frame.solve_parametric_model();
+		if (frameid == start)
+		{
+			frame.read_parametric_data();
+			frame.DARKOV_Step5_postprocess(); 
+		}
+		else 
+	        frame.solve_parametric_model();
 
-		cv::Mat assoc = frame.visualizeIdentity2D();
-		std::stringstream ss;
-		ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss.str(), assoc);
+		//if (frameid == start)
+		//{
+		//	frame.pureTracking(); 
+		//	frame.solve_parametric_model(); 
+		//}
 
+		frame.save_parametric_data(); 
+		//frame.read_parametric_data(); 
+		//continue; 
+		//auto solvers = frame.mp_bodysolverdevice; 
+		//for (int i = 0; i < 4; i++)
+		//{
+		//	save_joints(i, frameid, solvers[i]->getRegressedSkel_host()); 
+		//}
+		//continue; 
+
+		//cv::Mat assoc = frame.visualizeIdentity2D();
+		//std::stringstream ss;
+		//ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		//cv::imwrite(ss.str(), assoc);
 
 		m_renderer.clearAllObjs();
 		auto solvers = frame.mp_bodysolverdevice;
@@ -132,18 +165,18 @@ int run_pose()
 		cv::imwrite(all_render_file.str(), blend);
 
 
-		if (frameid == start + framenum- 1) {
-			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-			while (!glfwWindowShouldClose(windowPtr))
-			{
-				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//if (frameid == start + framenum- 1) {
+		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		//	while (!glfwWindowShouldClose(windowPtr))
+		//	{
+		//		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-				m_renderer.Draw();
+		//		m_renderer.Draw();
 
-				glfwSwapBuffers(windowPtr);
-				glfwPollEvents();
-			};
-		}
+		//		glfwSwapBuffers(windowPtr);
+		//		glfwPollEvents();
+		//	};
+		//}
 	}
 
 	return 0;

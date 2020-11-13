@@ -22,7 +22,6 @@ void FrameSolver::DARKOV_Step0_topdownassoc(bool isLoad)
 	}
 
 	save_clusters(); 
-	init_parametric_solver();
 }
 
 void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers 

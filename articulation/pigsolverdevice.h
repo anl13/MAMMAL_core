@@ -51,6 +51,8 @@ public:
 		m_source = _source; 
 	}
 
+	float computeScale(); 
+
 	void getTheta(Eigen::VectorXf& theta);
 	void setTheta(const Eigen::VectorXf& theta); 
 	void getThetaAnchor(Eigen::VectorXf& theta); 

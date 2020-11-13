@@ -283,55 +283,70 @@ std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost()
 	return skel; 
 }
 
+float PigSolverDevice::computeScale()
+{
+	m_skel3d = directTriangulationHost();
+	//if (m_initScale) return; 
+	int N = m_skelTopo.joint_num;
+
+	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
+
+	//m_host_scale = gt_scales[m_pig_id];
+	//m_initScale = true;
+
+	// step1: compute scale by averaging bone length. 
+	std::vector<float> regBoneLens;
+	std::vector<float> triBoneLens;
+	std::vector<int> bone_not_for_shape = { 16,17,18 };
+	for (int bid = 0; bid < m_skelTopo.bones.size(); bid++)
+	{
+		if (in_list(bid, bone_not_for_shape))continue;
+		int sid = m_skelTopo.bones[bid](0);
+		int eid = m_skelTopo.bones[bid](1);
+		if (m_skel3d[sid].norm() < 0.0001f || m_skel3d[eid].norm() < 0.0001f) continue;
+		float regLen = (skelReg[sid] - skelReg[eid]).norm();
+		float triLen = (m_skel3d[sid] - m_skel3d[eid]).norm();
+		regBoneLens.push_back(regLen);
+		triBoneLens.push_back(triLen);
+	}
+	float a = 0;
+	float b = 0;
+	for (int i = 0; i < regBoneLens.size(); i++)
+	{
+		a += triBoneLens[i] * regBoneLens[i];
+		b += regBoneLens[i] * regBoneLens[i];
+	}
+	float alpha;
+	if (a == 0 || b == 0) alpha = m_host_scale;
+	else alpha = a / b;
+
+	return alpha; 
+}
 // 1. compute scale 
 // 2. align T
 // 3. align R 
 void PigSolverDevice::globalAlign()
 {
 	m_skel3d = directTriangulationHost(); 
-	//if (m_initScale) return; 
+	if (m_initScale) return;
+
 	int N = m_skelTopo.joint_num;
 
 	std::vector<float> weights(N, 0); 
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
-	//m_host_scale = gt_scales[m_pig_id];
-	//m_initScale = true;
-	if (m_initScale) return;
+	m_host_scale = gt_scales[m_pig_id];
+	m_initScale = true;
 
-	// step1: compute scale by averaging bone length. 
-	std::vector<float> regBoneLens; 
-	std::vector<float> triBoneLens;
-	std::vector<int> bone_not_for_shape = {0,1,2,3,4,16,17,18,9,10,11};
-	for (int bid = 0; bid < m_skelTopo.bones.size(); bid++)
-	{
-		if (in_list(bid, bone_not_for_shape))continue; 
-		int sid = m_skelTopo.bones[bid](0); 
-		int eid = m_skelTopo.bones[bid](1); 
-		if (m_skel3d[sid].norm() < 0.0001f || m_skel3d[eid].norm() < 0.0001f) continue; 
-		float regLen = (skelReg[sid] - skelReg[eid]).norm(); 
-		float triLen = (m_skel3d[sid] - m_skel3d[eid]).norm(); 
-		regBoneLens.push_back(regLen);
-		triBoneLens.push_back(triLen);
-	}
-	float a = 0;
-	float b = 0; 
-	for (int i = 0; i < regBoneLens.size(); i++)
-	{
-		a += triBoneLens[i] * regBoneLens[i];
-		b += regBoneLens[i] * regBoneLens[i];
-	}
-	float alpha; 
-	if (a == 0 || b == 0) alpha = m_host_scale; 
-	else alpha = a / b;
-	std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
-	// running average
-	if (!m_initScale)
-	{
-		m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1);
-		m_initScale = true; 
-	}
-	m_scaleCount += 1.f; 
+	//float alpha = computeScale(); 
+	//std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
+	//// running average
+	//if (!m_initScale)
+	//{
+	//	m_host_scale = (m_host_scale * m_scaleCount + alpha) / (m_scaleCount + 1);
+	//	m_initScale = true; 
+	//}
+	//m_scaleCount += 1.f; 
 	UpdateVertices();
 
 	// step2: compute translation of root joint. (here, tail root is root joint) 

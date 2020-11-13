@@ -47,11 +47,11 @@ int run_inspect()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "H:/pig_results_anchor/";
+	frame.result_folder = "F:/pig_results_anchor_sil/";
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 
-	std::string test_result_folder = "H:/pig_results_anchor/";
+	std::string test_result_folder = "F:/pig_results_anchor_sil/";
 	frame.init_parametric_solver(); 
 
 
@@ -171,8 +171,8 @@ int run_inspect()
 			overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
 			std::stringstream all_render_file;
-			all_render_file << test_result_folder << "/render_all/optim_newanchor/" << std::setw(6) << std::setfill('0')
-				<< frameid << "_anchor_baseline.png";
+			all_render_file << test_result_folder << "/render_all/overlay/" << std::setw(6) << std::setfill('0')
+				<< frameid << "_anchor.png";
 			cv::imwrite(all_render_file.str(), blend);
 		}
 

@@ -53,6 +53,7 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_camNum = m_camids.size();
 
 	instream.close();
+	readCameras(); 
 	mp_sceneData = std::make_shared<SceneData>();
 
 	d_interDepth.resize(m_camNum); 
@@ -317,14 +318,7 @@ void FrameSolver::solve_parametric_model()
 		optimizeSil(m_solve_sil_iters); 
 	}
 
-	for(int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->postProcessing();
-		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
-	}
-
-	// postprocess
-	m_last_matched = m_matched; 
+	DARKOV_Step5_postprocess(); 
 }
 
 
@@ -339,31 +333,14 @@ void FrameSolver::pipeline2_searchanchor()
 // This pipeline only search for best anchor point
 void FrameSolver::solve_parametric_model_pipeline3()
 {
-	init_parametric_solver(); 
-
-	m_skels3d.resize(4);
 	for (int i = 0; i < 4; i++)
 	{
-		mp_bodysolverdevice[i]->setSource(m_matched[i]);
-		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
-		mp_bodysolverdevice[i]->globalAlign();
-		setConstDataToSolver(i);
-		// mask are necessary for measure anchor point
-		std::vector<ROIdescripter> rois;
-		getROI(rois, i);
-		mp_bodysolverdevice[i]->setROIs(rois);
-		mp_bodysolverdevice[i]->searchAnchorSpace();
-		mp_bodysolverdevice[i]->optimizeAnchor(mp_bodysolverdevice[i]->m_anchor_id);
+		mp_bodysolverdevice[i]->m_iou_thres = 0.0;
 	}
+	m_solve_sil_iters = 20;
+	DARKOV_Step4_fitrawsource(); 
 
-	// postprocess
-	m_last_matched = m_matched;
-
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->postProcessing();
-		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
-	}
+	DARKOV_Step5_postprocess();
 }
 
 //void FrameSolver::solve_parametric_model_cpu()
@@ -943,6 +920,7 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 
 	if (andsolve)
 	{
+		m_solve_sil_iters = 200;
 		DARKOV_Step2_optimanchor(); 
 		DARKOV_Step4_fitrawsource(); 
 		//DARKOV_Step3_reassoc_type2(); 
@@ -1148,11 +1126,11 @@ void FrameSolver::solve_parametric_model_optimonly()
 	{ 
 		mp_bodysolverdevice[i]->m_iou_thres = 0.0;	
 	}
-	m_solve_sil_iters = 10;
-	DARKOV_Step4_fitrawsource(); 
+	//m_solve_sil_iters = 10;
+	//DARKOV_Step4_fitrawsource(); 
 
 	DARKOV_Step3_reassoc_type2();
-	m_solve_sil_iters = 40;
+	m_solve_sil_iters = 20;
 	DARKOV_Step4_fitreassoc(); 
 
 	DARKOV_Step5_postprocess(); 
@@ -1669,6 +1647,12 @@ void FrameSolver::reAssocKeypointsWithoutTracked()
 
 void FrameSolver::reAssocWithoutTracked()
 {
+	m_keypoints_pool.clear(); 
+	m_keypoints_associated.clear(); 
+	m_skelVis.clear(); 
+	m_detTracked.clear(); 
+	m_modelTracked.clear(); 
+
 	determineTracked(); 
 	splitDetKeypointsWithoutTracked();
 	reAssocKeypointsWithoutTracked();
@@ -1678,4 +1662,23 @@ void FrameSolver::reAssocWithoutTracked()
 		mp_bodysolverdevice[i]->m_isReAssoc = true;
 		mp_bodysolverdevice[i]->m_keypoints_reassociated = m_keypoints_associated[i];
 	}
+}
+
+void FrameSolver::solve_scales()
+{
+	std::vector<float> scales(4, 0); 
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->setSource(m_matched[i]);
+		float scale = mp_bodysolverdevice[i]->computeScale();
+		scales[i] = scale; 
+	}
+	std::stringstream ss; 
+	ss << result_folder << "/scales/scale_" << std::setw(6) << std::setfill('0') << m_frameid << ".txt"; 
+	std::ofstream scalefile(ss.str());
+	for (int i = 0; i < 4; i++)
+	{
+		scalefile << scales[i] << " "; 
+	}
+	scalefile.close(); 
 }

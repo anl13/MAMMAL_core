@@ -104,10 +104,10 @@ int solve_shape()
 	readObs(solver.obs, "pig0.json", 0); 
 
 	solver.InitNodeAndWarpField(); 
-	//Mesh gthull_vec;
-	//gthull_vec.Load("H:/pig_results_shape/tmp.obj");
-	//std::shared_ptr<MeshEigen> p_gthull = std::make_shared<MeshEigen>(gthull_vec); 
-	//solver.setTargetModel(p_gthull); 
+	Mesh gthull_vec;
+	gthull_vec.Load("H:/pig_results_shape/tmp.obj");
+	std::shared_ptr<MeshEigen> p_gthull = std::make_shared<MeshEigen>(gthull_vec); 
+	solver.setTargetModel(p_gthull); 
 	solver.totalSolveProcedure(); 
 	solver.SaveWarpField("wrapfield0.txt"); 
 
@@ -331,10 +331,10 @@ void test_modify_head()
 
 int main()
 {
-	//solve_shape(); 
+	solve_shape(); 
 	//test_shapemodel(); 
 	//test_bone_var();
-	generate_nodegraph(); 
+	//generate_nodegraph(); 
 
 	return 0; 
 }

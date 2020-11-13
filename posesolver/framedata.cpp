@@ -43,7 +43,7 @@ void FrameData::configByJson(std::string filename)
 	m_camNum = m_camids.size(); 
 
 	instream.close();
-
+	readCameras();
 }
 
 void FrameData::fetchData()
@@ -53,10 +53,9 @@ void FrameData::fetchData()
         std::cout << "Error: wrong frame id " << std::endl;
         exit(-1); 
     }
-    readCameras(); 
-
-    readImages(); 
-    undistImgs(); 
+    //readImages(); 
+    //undistImgs(); 
+	readUndistImages(); 
 
     readKeypoints(); 
     undistKeypoints(); 
@@ -68,7 +67,6 @@ void FrameData::fetchData()
     undistMask(); 
 
     assembleDets(); 
-
 }
 
 void FrameData::readKeypoints() // load hrnet keypoints
@@ -232,8 +230,25 @@ void FrameData::readImages()
 		}
 		m_imgs.emplace_back(img);
     }
+}
 
-
+void FrameData::readUndistImages()
+{
+	m_imgs.clear();
+	m_imgsUndist.clear(); 
+	std::string undistImgDir = m_sequence + "/undistort_images/";
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		std::stringstream ss;
+		ss << undistImgDir << "/cam" << m_camids[camid] << "/" << std::setw(6) << std::setfill('0') << m_frameid << "." << m_imgExtension;
+		cv::Mat img = cv::imread(ss.str());
+		if (img.empty())
+		{
+			std::cout << "can not read image " << ss.str() << std::endl;
+			exit(-1);
+		}
+		m_imgsUndist.emplace_back(img);
+	}
 }
 
 void FrameData::readCameras()

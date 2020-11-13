@@ -83,9 +83,9 @@ public:
     void undistKeypoints(); 
     void undistImgs(); 
     void undistMask(); 
+	void readUndistImages(); 
 
 protected:
 	void assembleDets();
-
 };
 
