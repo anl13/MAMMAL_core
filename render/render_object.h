@@ -132,12 +132,20 @@ public:
 		const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 		float ballSize, float StickSize, const std::vector<Eigen::Vector3f>& color);
 
+	BallStickObject(
+		const MeshEigen& ballObj, const MeshEigen& stickObj,
+		const std::vector<Eigen::Vector3f>& balls,
+		const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
+		const std::vector<float>& ballSizes, const std::vector<float>& StickSize, const std::vector<Eigen::Vector3f>& colors,
+		const std::vector<Eigen::Vector3f>& bone_colors);
+
 	BallStickObject() = delete;
 	BallStickObject(const BallStickObject& _) = delete;
 	BallStickObject& operator=(const BallStickObject& _) = delete;
 	virtual ~BallStickObject();
 	void deleteObjects(); 
 	virtual void Draw(SimpleShader& shader);
+	bool isMultiLight = false;
 private:
 	std::vector<RenderObjectColor*> objectPtrs;
 };

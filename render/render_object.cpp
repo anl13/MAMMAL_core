@@ -326,14 +326,22 @@ BallStickObject::BallStickObject(
 
 		Eigen::Vector3f rotation = (Eigen::Vector3f(0.0f, 0.0f, 1.0f).cross(direction.normalized())).normalized()
 			* acosf(Eigen::Vector3f(0.0f, 0.0f, 1.0f).dot(direction.normalized()));
-
+		Eigen::Matrix3f R = GetRodrigues(rotation);
 		Eigen::Vector3f translation = (stick.first + stick.second) * 0.5f;
 
+		//stickObject->SetFaces(stickObjCopy.faces);
+		//stickObject->SetVertices(stickObjCopy.vertices);
+		//stickObject->SetNormal(stickObjCopy.normals); 
+		//stickObject->SetTransform(translation, rotation, 1.0f);
+		//stickObject->SetColor(color); 
+		//objectPtrs.push_back(stickObject);
 		stickObject->SetFaces(stickObjCopy.faces);
-		stickObject->SetVertices(stickObjCopy.vertices);
-		stickObject->SetNormal(stickObjCopy.normals); 
-		stickObject->SetTransform(translation, rotation, 1.0f);
-		stickObject->SetColor(color); 
+		Eigen::MatrixXf V = (R * stickObjCopy.vertices).colwise() + translation;
+		stickObject->SetVertices(V);
+		stickObject->SetNormal(R * stickObjCopy.normals);
+		//stickObject->SetTransform(translation, rotation, 1.0f);
+		stickObject->SetColor(color);
+		stickObject->isMultiLight = true;
 		objectPtrs.push_back(stickObject);
 	}
 }
@@ -350,8 +358,6 @@ BallStickObject::BallStickObject( // point clouds
 		// std::cout << balls[i].transpose() << std::endl; 
 		float ballSize = sizes[i]; 
 		Eigen::Vector3f color = colors[i]; 
-		//ObjData ballObjCopy(ballObj);
-		//ballObjCopy.Deform(Eigen::Vector3f(ballSize, ballSize, ballSize));
 
 		RenderObjectColor* ballObject = new RenderObjectColor();
 		ballObject->SetFaces(ballObj.faces);
@@ -372,10 +378,8 @@ BallStickObject::BallStickObject(
 	for (int i = 0; i < balls.size(); i++)
 	{
 		// std::cout << balls[i].transpose() << std::endl; 
-		//ObjData ballObjCopy(ballObj);
 		float current_size = ballSize; 
 		Eigen::Vector3f color = colors[i];
-		//ballObjCopy.Deform(Eigen::Vector3f(current_size, current_size, current_size));
 		RenderObjectColor* ballObject = new RenderObjectColor();
 		ballObject->SetFaces(ballObj.faces);
 		ballObject->SetVertices(ballObj.vertices);
@@ -410,6 +414,58 @@ BallStickObject::BallStickObject(
 		objectPtrs.push_back(stickObject);
 	}
 }
+
+
+BallStickObject::BallStickObject(
+	const MeshEigen& ballObj, const MeshEigen& stickObj,
+	const std::vector<Eigen::Vector3f>& balls,
+	const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
+	const std::vector<float>& ballSizes, const std::vector<float>& StickSize, const std::vector<Eigen::Vector3f>& colors,
+	const std::vector<Eigen::Vector3f>& bone_colors)
+{
+	for (int i = 0; i < balls.size(); i++)
+	{
+		// std::cout << balls[i].transpose() << std::endl; 
+		float current_size = ballSizes[i];
+		Eigen::Vector3f color = colors[i];
+		RenderObjectColor* ballObject = new RenderObjectColor();
+		ballObject->SetFaces(ballObj.faces);
+		Eigen::MatrixXf V = (ballObj.vertices * current_size).colwise() + balls[i];
+		ballObject->SetVertices(V);
+		ballObject->SetNormal(ballObj.normals);
+		ballObject->SetColor(colors[i]);
+		ballObject->isMultiLight = false;
+		objectPtrs.push_back(ballObject);
+	}
+
+	for (int i = 0;i < sticks.size(); i++)
+	{
+		auto stick = sticks[i];
+		MeshEigen stickObjCopy = stickObj;
+		Eigen::Vector3f direction = stick.first - stick.second;
+		float current_size = StickSize[i];
+		stickObjCopy.Deform(Eigen::Vector3f(current_size, current_size, 0.5f * direction.norm()));
+
+		RenderObjectColor* stickObject = new RenderObjectColor();
+
+		Eigen::Vector3f rotation = (Eigen::Vector3f(0.0f, 0.0f, 1.0f).cross(direction.normalized())).normalized()
+			* acosf(Eigen::Vector3f(0.0f, 0.0f, 1.0f).dot(direction.normalized()));
+
+		Eigen::Matrix3f R = GetRodrigues(rotation);
+
+		Eigen::Vector3f translation = (stick.first + stick.second) * 0.5f;
+
+		stickObject->SetFaces(stickObjCopy.faces);
+		Eigen::MatrixXf V = (R * stickObjCopy.vertices).colwise() + translation;
+		stickObject->SetVertices(V);
+		stickObject->SetNormal(R * stickObjCopy.normals);
+		//stickObject->SetTransform(translation, rotation, 1.0f);
+		stickObject->SetColor(bone_colors[i]);
+		stickObject->isMultiLight = false;
+		objectPtrs.push_back(stickObject);
+	}
+}
+
 
 BallStickObject::~BallStickObject()
 {

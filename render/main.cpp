@@ -284,7 +284,7 @@ void test_depth()
 void test_color_table()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
 
 	// init a camera 
 	Eigen::Matrix3f K;
@@ -312,15 +312,6 @@ void test_color_table()
 	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
 	MeshEigen ballMeshEigen(ballMesh);
 	MeshEigen stickMeshEigen(stickMesh);
-
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard.png");
-	chess_floor->SetFaces(squareMesh.faces_v_vec);
-	chess_floor->SetVertices(squareMesh.vertices_vec);
-	chess_floor->SetNormal(squareMesh.normals_vec, 2);
-	chess_floor->SetTexcoords(squareMesh.textures_vec, 1);
-	chess_floor->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor);
 	
 	int num = CM.size() > 20 ? 20 : CM.size();
 	for (int i = 0; i < num; i++)
@@ -355,7 +346,7 @@ void test_color_table()
 void test_discrete_scene()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_bgr");
 
 	// init a camera 
 	auto cameras = readCameras();
@@ -582,7 +573,8 @@ void test_mask()
 void test_trajectory()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
+	std::vector<Eigen::Vector3f> CM2 = getColorMapEigenF("anliang_render");
 
 	// init a camera 
 	Eigen::Matrix3f K;
@@ -591,9 +583,12 @@ void test_trajectory()
 		0.f, 0.f, 1.f;
 	std::cout << K << std::endl;
 
-	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
-	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
-	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+	//Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
+	//Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
+	//Eigen::Vector3f center = Eigen::Vector3f::Zero();
+	Eigen::Vector3f up; up << 0.260221, 0.36002, 0.895919;
+	Eigen::Vector3f pos; pos << -1.91923, -2.12171, 1.37056;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
 
 	// init renderer 
 	Renderer::s_Init();
@@ -619,29 +614,78 @@ void test_trajectory()
 			5,9,5,6,5,5 // ceneter and tail 
 	};
 
-	for (int frameid = 750; frameid < 1500; frameid++)
+	int num = 200;
+
+	for (int pid = 0; pid < 4; pid++)
 	{
-		std::stringstream ss;
-		ss << "G:/pig_middle_data/teaser/joints/pig_" << 0 << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
-		std::string point_file = ss.str();
-		std::vector<Eigen::Vector3f> points = read_points(point_file);
-		std::vector<float> sizes(points.size(), 0.005f);
-		std::vector<Eigen::Vector3f> balls, colors;
-		std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-		GetBallsAndSticks(points, topo.bones, balls, sticks);
-		colors.resize(points.size());
-		for (int i = 0; i < points.size(); i++)
+		for (int frameid = 750; frameid < 750 + num; frameid++)
 		{
-			colors[i] = CM[kpt_color_ids[i]];
+			float ratio = ((frameid - 750) / float(num)) * 0.5 + 0.5;
+			std::stringstream ss;
+			ss << "G:/pig_middle_data/teaser/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			std::string point_file = ss.str();
+			std::vector<Eigen::Vector3f> points = read_points(point_file);
+
+			std::vector<Eigen::Vector2i> bones = {
+			{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
+			 {5,7}, {7,9}, {6,8}, {8,10},
+			{20,18},
+			{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
+			{0,20},{5,20},{6,20}
+			};
+			std::vector<int> kpt_color_ids = {
+				0,1,1,2,2,
+				3,4,3,4,3,4,
+				5,6,5,6,5,6,
+				0,7, 0,7,0,0
+			};
+			std::vector<int> bone_color_ids = {
+				1,2,0,1,2,3,3,4,4,
+				7,5,6,5,5,6,6,
+				7,3,4
+			};
+
+			std::vector<Eigen::Vector3f> skels = points;
+			std::vector<Eigen::Vector3f> balls;
+			std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+			GetBallsAndSticks(skels, bones, balls, sticks);
+			int jointnum = skels.size();
+			std::vector<float> ball_sizes;
+			ball_sizes.resize(jointnum, 0.005);
+			std::vector<float> stick_sizes;
+			stick_sizes.resize(sticks.size(), 0.002);
+			std::vector<Eigen::Vector3f> ball_colors(jointnum);
+			std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+			for (int i = 0; i < jointnum; i++)
+			{
+				ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
+			}
+			for (int i = 0; i < sticks.size(); i++)
+			{
+				//stick_colors[i] = CM[bone_color_ids[i]] * ratio;
+				stick_colors[i] = CM2[pid] * ratio;
+			}
+
+			if (1)
+			{
+				BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+					balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+				m_renderer.skels.push_back(p_skel);
+			}
+			else
+			{
+				BallStickObject* p_skel = new BallStickObject(ballMeshEigen, balls, ball_sizes, ball_colors);
+				m_renderer.skels.push_back(p_skel);
+			}
 		}
-		BallStickObject* skelObject = new BallStickObject(ballMeshEigen,stickMeshEigen, balls,sticks, 0.005,0.001, colors);
-		//BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
-		m_renderer.skels.push_back(skelObject);
 	}
 
 	m_renderer.createScene(conf_projectFolder); 
 	//m_renderer.createPlane(conf_projectFolder);
 
+	m_renderer.Draw(); 
+	cv::Mat img = m_renderer.GetImage(); 
+	cv::imwrite("G:/pig_middle_data/teaser/trajectory.png", img); 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
 	while (!glfwWindowShouldClose(windowPtr))
@@ -657,4 +701,5 @@ void test_trajectory()
 void main()
 {
 	test_trajectory();
+	//test_color_table();
 }

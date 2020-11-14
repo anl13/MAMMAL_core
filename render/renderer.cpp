@@ -365,7 +365,7 @@ void Renderer::Draw(std::string type)
 	//glEnable(GL_POLYGON_SMOOTH);
 	//glEnable(GL_MULTISAMPLE);
 
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 	for(int i = 0; i < colorObjs.size(); i++)
 	{
@@ -412,7 +412,7 @@ void Renderer::Draw(std::string type)
 			colorObjs[i]->DrawWhole(positionShader);
 		}
 	}
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	for(int i = 0; i < texObjs.size(); i++)
 	{
@@ -456,20 +456,23 @@ void Renderer::Draw(std::string type)
 	{
 		if (type == "color")
 		{
-			//colorShader.Use();
-			//s_camViewer.ConfigShader(colorShader);
-
-			//colorShader.SetVec3("light_pos", lightPos);
-			//colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-
-			//skels[i]->Draw(colorShader);
-
-			colorShaderML.Use();
-			s_camViewer.ConfigShader(colorShaderML);
-			colorShaderML.SetVec3("spotLight.position", s_camViewer.GetPos());
-			colorShaderML.SetVec3("spotLight.direction", s_camViewer.GetFront());
-			colorShaderML.configMultiLight();
-			skels[i]->Draw(colorShaderML);
+			if (skels[i]->isMultiLight)
+			{
+				colorShaderML.Use();
+				s_camViewer.ConfigShader(colorShaderML);
+				colorShaderML.SetVec3("spotLight.position", s_camViewer.GetPos());
+				colorShaderML.SetVec3("spotLight.direction", s_camViewer.GetFront());
+				colorShaderML.configMultiLight();
+				skels[i]->Draw(colorShaderML);
+			}
+			else
+			{
+				colorShader.Use();
+				s_camViewer.ConfigShader(colorShader);
+				colorShader.SetVec3("light_pos", lightPos);
+				colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+				skels[i]->Draw(colorShader);
+			}
 		}
 	}
 }
@@ -623,7 +626,7 @@ void Renderer::createScene(std::string conf_projectFolder)
 	p_scene2->SetVertices(obj2.vertices_vec);
 	p_scene2->SetNormal(obj2.normals_vec);
 	p_scene2->SetFaces(obj2.faces_v_vec);
-	p_scene2->SetColor(Eigen::Vector3f(0.753, 0.753, 0.753));
+	p_scene2->SetColor(Eigen::Vector3f(0.9, 0.9, 0.85));
 	p_scene2->isMultiLight = true; 
 	colorObjs.push_back(p_scene2);
 
