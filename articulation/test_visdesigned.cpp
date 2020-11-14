@@ -447,11 +447,12 @@ int test_visanchors()
 	K.row(1) /= 1080;
 	std::cout << K << std::endl;
 
-	Eigen::Vector3f up; up << 0.182088, 0.260274, 0.94821;
-	Eigen::Vector3f pos; pos << -1.13278, -1.31876, 0.559579;
-	Eigen::Vector3f center; center << -0.223822, -0.243763, 0.0899532;
-
-
+	//Eigen::Vector3f up; up << 0.182088, 0.260274, 0.94821;
+	//Eigen::Vector3f pos; pos << -1.13278, -1.31876, 0.559579;
+	//Eigen::Vector3f center; center << -0.223822, -0.243763, 0.0899532;
+	Eigen::Vector3f up; up << -0.216926, 0.155709, 0.96369;
+	Eigen::Vector3f pos; pos << 1.11817, -0.661222, 0.480503;
+	Eigen::Vector3f center; center << 0.13508, 0.151749, 0.124741;
 	// init renderer 
 	Renderer::s_Init();
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
@@ -468,37 +469,80 @@ int test_visanchors()
 	MeshEigen stickMeshEigen(stickMesh);
 
 	// model data 
-	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
-	PigModelDevice smal(smal_config);
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config_sym.json";
 
 	PigSolverDevice solver(smal_config);
+	std::cout << solver.m_anchor_lib.anchors.size() << std::endl; 
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0, 1.0f, 1.0f, 1.0f));
 
 	for (int i = 0; i < solver.m_anchor_lib.anchors.size(); i++)
 	{
+		std::cout << "finish " << i << std::endl;
 		m_renderer.clearAllObjs();
 
-
+		Eigen::Vector3f trans = solver.m_anchor_lib.anchors[i].translation; 
+		trans(0) = 0;
+		trans(1) = 0; 
+		std::vector<Eigen::Vector3f> pose = solver.m_anchor_lib.anchors[i].pose; 
+		pose[0](0) = 0; 
 		
-		solver.SetTranslation(solver.m_anchor_lib.anchors[i].translation);
-		solver.SetPose(solver.m_anchor_lib.anchors[i].pose); 
+		solver.SetTranslation(trans);
+		solver.SetPose(pose); 
 		solver.UpdateVertices();
 		solver.UpdateNormalFinal(); 
+
+		std::vector<Eigen::Vector3f> joints = solver.GetJoints(); 
+		Eigen::Vector3f left_foot = joints[61];
+		Eigen::Vector3f right_foot = joints[45];
+		float dz = std::min(left_foot(2), right_foot(2));
+		trans(2) -= dz; 
+		std::cout << "dz: " << dz << std::endl;
+
+
+
+		solver.SetTranslation(trans);
+		solver.SetPose(pose);
+		solver.UpdateVertices();
+		solver.UpdateNormalFinal();
+
+		//std::stringstream ss;
+		//ss << "G:/pig_middle_data/pose_lib3_new/pose" << i << ".txt";
+		//solver.saveState(ss.str()); 
+
+		//std::stringstream ss_obj; 
+		//ss_obj << "G:/pig_middle_data/anchors_obj/" << i << ".obj"; 
+		//solver.saveObj(ss_obj.str()); 
 
 		RenderObjectColor* p_model = new RenderObjectColor();
 		p_model->SetVertices(solver.GetVertices());
 		p_model->SetNormal(solver.GetNormals()); 
 		p_model->SetFaces(solver.GetFacesVert());
+		//p_model->SetColor(Eigen::Vector3f(1, 0.98,233.0/255));
 		p_model->SetColor(CM[0]);
+		p_model->isMultiLight = true; 
 
 		m_renderer.colorObjs.push_back(p_model); 
 		
-		m_renderer.createScene(conf_projectFolder);
+		m_renderer.createPlane(conf_projectFolder);
 		m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 		m_renderer.Draw();
 		cv::Mat img = m_renderer.GetImage();
 		std::stringstream outss;
-		outss << "pose_libs_vis/anchor_" << i << ".png";
+		outss << "G:/pig_middle_data/pose_lib3_vis/anchor_" << i << ".png";
 		cv::imwrite(outss.str(), img);
+
+
+		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+		//while (!glfwWindowShouldClose(windowPtr))
+		//{
+		//	m_renderer.Draw();
+
+		//	glfwSwapBuffers(windowPtr);
+		//	glfwPollEvents();
+		//};
+		//exit(-1);
+
 	}
 
 

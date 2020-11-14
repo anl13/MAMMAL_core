@@ -54,7 +54,11 @@ public:
 	SimpleShader meshShader; 
 	SimpleShader positionShader; 
 	SimpleShader maskShader; 
-	SimpleShader lightingShader; 
+	SimpleShader textureShaderML; 
+	SimpleShader colorShaderML;
+
+	SimpleShader xrayShader; 
+	//SimpleShader meshShaderML;
 	
 	std::vector<RenderObjectColor*> colorObjs; 
 	std::vector<RenderObjectMesh*> meshObjs; 
@@ -75,6 +79,7 @@ public:
 	float* renderDepthDevice();
 
 	void createScene(std::string proectFolder);
+	void createPlane(std::string projectFolder); 
 private:
 	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;
 	void beginOffscreenRender();

@@ -19,6 +19,8 @@ SimpleRenderObject::SimpleRenderObject()
 	glGenBuffers(1, &VBO_vertex);
 	glGenBuffers(1, &EBO);
 	glGenBuffers(1, &VBO_normal); 
+
+	isMultiLight = false; 
 }
 
 

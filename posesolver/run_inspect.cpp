@@ -57,6 +57,8 @@ int run_inspect()
 
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
+
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
@@ -70,7 +72,7 @@ int run_inspect()
 		// pipeline 3 
 		if(true)
 		{
-#if 1
+#if 0
 			if (frameid == start)
 			{
 				frame.loadAnchors(test_result_folder + "", true);
@@ -105,9 +107,10 @@ int run_inspect()
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_rawassoc.str(), rawfit); 
 #endif 
-			//frame.pipeline2_searchanchor();
-			//frame.saveAnchors(test_result_folder + "/anchor_state_251");
+			frame.pipeline2_searchanchor();
+			frame.saveAnchors(test_result_folder + "/anchor_state_252");
 			
+			continue; 
 			m_renderer.clearAllObjs();
 
 			auto solvers = frame.mp_bodysolverdevice;
@@ -143,13 +146,17 @@ int run_inspect()
 
 				all_renders[camid] = img;
 			}
+
+			m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
+			for (int pid = 0; pid < 4; pid++)
+				m_renderer.colorObjs[pid]->isMultiLight = true; 
 			m_renderer.createScene(conf_projectFolder);
-			//Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
-			//Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
-			//Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
-			Eigen::Vector3f pos1(2.05239, 0.0712245, 0.013074);
-			Eigen::Vector3f up1(-0.0138006, 0.160204, 0.986988);
-			Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
+			Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
+			Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
+			Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
+			//Eigen::Vector3f pos1(2.05239, 0.0712245, 0.013074);
+			//Eigen::Vector3f up1(-0.0138006, 0.160204, 0.986988);
+			//Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
 
 			m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
 			m_renderer.Draw();
@@ -171,7 +178,7 @@ int run_inspect()
 			overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
 			std::stringstream all_render_file;
-			all_render_file << test_result_folder << "/render_all/overlay/" << std::setw(6) << std::setfill('0')
+			all_render_file << test_result_folder << "/render_all/anchor/" << std::setw(6) << std::setfill('0')
 				<< frameid << "_anchor.png";
 			cv::imwrite(all_render_file.str(), blend);
 		}

@@ -123,31 +123,36 @@ void test_shader()
 
 	obj.ReMapTexture(); 
 
-	//RenderObjectColor * p_model = new RenderObjectColor(); 
-	//p_model->SetVertices(obj.vertices_vec); 
-	//p_model->SetFaces(obj.faces_v_vec); 
-	//p_model->SetNormal(obj.normals_vec); 
-	//p_model->SetColor(CM[0]); 
-	//m_renderer.colorObjs.push_back(p_model); 
+	RenderObjectColor * p_model = new RenderObjectColor(); 
+	p_model->SetVertices(obj.vertices_vec); 
+	p_model->SetFaces(obj.faces_v_vec); 
+	p_model->SetNormal(obj.normals_vec); 
+	p_model->SetColor(CM[0]); 
+	p_model->isMultiLight = false;
+	m_renderer.colorObjs.push_back(p_model); 
 
-	RenderObjectTexture* p_model = new RenderObjectTexture();
-	p_model->SetTexture(conf_projectFolder + "/render/data/white_tex.png");
-	p_model->SetFaces(obj.faces_t_vec);
-	p_model->SetVertices(obj.vertices_vec_t);
-	p_model->SetNormal(obj.normals_vec_t, 2);
-	p_model->SetTexcoords(obj.textures_vec, 1);
-	p_model->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(p_model);
+	//RenderObjectTexture* p_model = new RenderObjectTexture();
+	//p_model->SetTexture(conf_projectFolder + "/render/data/white_tex.png");
+	//p_model->SetFaces(obj.faces_t_vec);
+	//p_model->SetVertices(obj.vertices_vec_t);
+	//p_model->SetNormal(obj.normals_vec_t, 2);
+	//p_model->SetTexcoords(obj.textures_vec, 1);
+	//p_model->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//p_model->isMultiLight = true; 
+	//m_renderer.texObjs.push_back(p_model);
 
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f)); 
 
-	m_renderer.createScene(conf_projectFolder); 
+
+	//m_renderer.createScene(conf_projectFolder); 
+	//m_renderer.createPlane(conf_projectFolder);
 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
 	while (!glfwWindowShouldClose(windowPtr))
 	{
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		m_renderer.Draw();
 
 		glfwSwapBuffers(windowPtr);

@@ -30,6 +30,7 @@ public:
 	void SetMat3(const std::string &name, const Eigen::Matrix3f& mat) { glUniformMatrix3fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, mat.data()); }
 	void SetMat4(const std::string &name, const Eigen::Matrix4f& mat) { glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, mat.data()); }
 
+	void configMultiLight(); 
 private:
 	unsigned int ID;
 	void CheckCompileErrors(GLuint shader, std::string type);

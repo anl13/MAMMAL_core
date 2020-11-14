@@ -63,20 +63,20 @@
   "use_gpu": true,
   "lambda": 0.05,
   "data_term": 1,
-  "sil_term": 0.00001,
+  "sil_term": 0.000005,
   "reg_term": 0.01,
   "temp_term": 1,
 
-  "floor_term": 0.1,
+  "floor_term": 10,
   "anchor_term": 0.03,
   "gmm_term": 0.0,
   "reg_weights": [ [ 2, 1, 1, 1 ] ],
   "kpt_track_dist": 400, // px  * depthweight
   //"scales": [ 1.367, 1.367, 1.301, 1.301 ],
-  //"scales": [ 1.406, 1.337, 1.300, 1.28056 ],
-  "scales" :  [1.337, 1.28056, 1.300, 1.406],
+  "scales": [ 1.406, 1.337, 1.300, 1.28056 ],
+  //"scales" :  [1.337, 1.28056, 1.300, 1.406],
   "iou_thres": 0,
-  "anchor_folder": "D:/Projects/animal_calib/articulation/pose_lib3/"
+  "anchor_folder": "G:/pig_middle_data/pose_lib3_new/"
 }
 
 

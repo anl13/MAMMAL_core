@@ -197,6 +197,7 @@ void PigSolverDevice::optimizeAnchor(int anchor_id)
 	m_host_translation = A.translation;
 	// manually define scale 
 	m_host_scale = gt_scales[m_pig_id];
+	m_host_translation *= m_host_scale;
 	m_host_poseParam = A.pose;
 
 	int M = m_poseToOptimize.size();
@@ -463,9 +464,9 @@ void PigSolverDevice::calcAnchorTerm_host(int anchorid,
 	}
 	//std::cout << "pig " << m_pig_id << "  " << all_conf << std::endl; 
 
-	float weight = 0.05;
+	float weight;
 	if (all_conf > 130) weight = 0.001; 
-	else weight = 1; 
+	else weight = 0.1; 
 	if (m_det_confs[0] >= 2 && m_det_confs[1] >= 2 && m_det_confs[2] >= 2
 		&& m_det_confs[3] >= 2 && m_det_confs[4] >= 2)
 	{
@@ -834,7 +835,7 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	float track_radius = m_kpt_track_dist - iter * 10;
 	track_radius = track_radius > 30 ? track_radius : 30;
 	bool is_converge_radius = false;
-	if (iter > 20) is_converge_radius = false;
+	if (iter > 20) is_converge_radius = true;
 	if (m_isReAssoc)
 	{
 		//std::cout << "pig: " << m_pig_id << "  iter: " << iter << std::endl; 

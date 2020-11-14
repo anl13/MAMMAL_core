@@ -7,6 +7,7 @@
 #include <opencv2/opencv.hpp>
 
 #include "cuda_utils_render.h"
+#include "render_utils.h"
 
 CamViewer               Renderer::s_camViewer;
 GLFWwindow*             Renderer::s_windowPtr;
@@ -15,7 +16,7 @@ Eigen::Vector2f         Renderer::s_beforePos;
 float                   Renderer::s_arcballRadius; 
 double                  Renderer::s_leftClickTimeSeconds; 
 
- //#define SHOW_CAM_POSE
+#define SHOW_CAM_POSE
 
 void Renderer::s_Init(bool isHideWindow)
 {
@@ -33,6 +34,8 @@ void Renderer::s_InitGLFW(bool isHideWindow)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
+
 	if(isHideWindow)
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 
@@ -321,8 +324,13 @@ void Renderer::InitShader()
 	maskShader = SimpleShader(m_shaderFolder + "/mask_v.shader", 
 		m_shaderFolder + "/mask_f.shader");
 
-	lightingShader = SimpleShader(m_shaderFolder + "/texture_v.shader",
+	textureShaderML = SimpleShader(m_shaderFolder + "/texture_v.shader",
 		m_shaderFolder + "/texture_f_multilight.shader");
+	colorShaderML = SimpleShader(m_shaderFolder + "/color_v.shader",
+		m_shaderFolder + "/color_f_multilight.shader"); 
+
+	xrayShader = SimpleShader(m_shaderFolder + "/xray_v.shader",
+		m_shaderFolder + "/xray_f.shader"); 
 
 	std::cout << "init depth shader" << std::endl; 
 
@@ -345,15 +353,46 @@ void Renderer::Draw(std::string type)
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//glEnable(GL_BLEND);
+	//glDisable(GL_DEPTH_TEST);
+	//2.指定混合因子
+	//注意:如果你修改了混合方程式,当你使用混合抗锯齿功能时,请一定要改为默认混合方程式
+	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	//3.开启对点\线\多边形的抗锯齿功能
+	//glEnable(GL_POINT_SMOOTH);
+	//glEnable(GL_LINE_SMOOTH);
+	//glEnable(GL_POLYGON_SMOOTH);
+	//glEnable(GL_MULTISAMPLE);
+
+
 	for(int i = 0; i < colorObjs.size(); i++)
 	{
 		if (type == "color")
 		{
-			colorShader.Use();
-			s_camViewer.ConfigShader(colorShader);
-			colorShader.SetVec3("light_pos", lightPos);
-			colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-			colorObjs[i]->DrawWhole(colorShader);
+			if (colorObjs[i]->isMultiLight)
+			{
+				colorShaderML.Use();
+				s_camViewer.ConfigShader(colorShaderML);
+				colorShaderML.SetVec3("spotLight.position", s_camViewer.GetPos());
+				colorShaderML.SetVec3("spotLight.direction", s_camViewer.GetFront());
+				colorShaderML.configMultiLight();
+				colorObjs[i]->DrawWhole(colorShaderML);
+			}
+			else
+			{
+				colorShader.Use();
+				s_camViewer.ConfigShader(colorShader);
+				colorShader.SetVec3("light_pos", lightPos);
+				colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+				colorObjs[i]->DrawWhole(colorShader);
+
+				//xrayShader.Use(); 
+				//s_camViewer.ConfigShader(xrayShader); 
+				//xrayShader.SetVec3("light_pos", lightPos); 
+				//xrayShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+				//colorObjs[i]->DrawWhole(xrayShader); 
+			}
 		}
 		else if (type == "mask")
 		{
@@ -375,107 +414,28 @@ void Renderer::Draw(std::string type)
 	
 	for(int i = 0; i < texObjs.size(); i++)
 	{
-#if 0
-		textureShader.Use();
-		s_camViewer.ConfigShader(textureShader);
-		textureShader.SetVec3("light_pos", lightPos);
-		textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-		textureShader.SetInt("object_texture", 0);
-		glActiveTexture(GL_TEXTURE0);
-		texObjs[i]->DrawWhole(textureShader);
-		
-#else
-		lightingShader.Use(); 
-		s_camViewer.ConfigShader(lightingShader); 
-		lightingShader.SetInt("object_texture", 0);
-		lightingShader.SetFloat("material.shininess", 1);
-		lightingShader.SetFloat("material.diffuse", 0.6f);
-		lightingShader.SetFloat("material.specular", 0.01f); 
-		lightingShader.SetFloat("material.ambient", 0.5); 
+		if (texObjs[i]->isMultiLight)
+		{
+			textureShaderML.Use();
+			s_camViewer.ConfigShader(textureShaderML);
+			textureShaderML.SetVec3("spotLight.position", s_camViewer.GetPos());
+			textureShaderML.SetVec3("spotLight.direction", s_camViewer.GetFront());
+			textureShaderML.configMultiLight();
+			textureShaderML.SetInt("object_texture", 0);
 
-		/*
-		   Here we set all the uniforms for the 5/6 types of lights we have. We have to set them manually and index
-		   the proper PointLight struct in the array to set each uniform variable. This can be done more code-friendly
-		   by defining light types as classes and set their values in there, or by using a more efficient uniform approach
-		   by using 'Uniform buffer objects', but that is something we'll discuss in the 'Advanced GLSL' tutorial.
-		*/
-		std::vector<Eigen::Vector3f> pointLightPositions = {
-			Eigen::Vector3f(0,0,4),
-			Eigen::Vector3f(3, 0, 1.2),
-			Eigen::Vector3f(-3, 0, 1.2),
-			Eigen::Vector3f(0,2, 1.2),
-			Eigen::Vector3f(0, -2, 1.2),
-			Eigen::Vector3f(0,0,-6)
-		};
-		// directional light
-		lightingShader.SetVec3("dirLight.direction", 0, 0, 3.f);
-		lightingShader.SetVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-		lightingShader.SetVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-		lightingShader.SetVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-		// point light 1
-		lightingShader.SetVec3("pointLights[0].position", pointLightPositions[0]);
-		lightingShader.SetVec3("pointLights[0].ambient", 0.05, 0.05, 0.05);
-		lightingShader.SetVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-		lightingShader.SetVec3("pointLights[0].specular", 1.f, 1.f, 1.f);
-		lightingShader.SetFloat("pointLights[0].constant", 1);
-		lightingShader.SetFloat("pointLights[0].linear", 0.09);
-		lightingShader.SetFloat("pointLights[0].quadratic", 0.032);
-		// point light 2
-		lightingShader.SetVec3("pointLights[1].position", pointLightPositions[1]);
-		lightingShader.SetVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-		lightingShader.SetVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-		lightingShader.SetVec3("pointLights[1].specular", 0.4f, 0.4f, 0.4f);
-		lightingShader.SetFloat("pointLights[1].constant", 1.0f);
-		lightingShader.SetFloat("pointLights[1].linear", 0.09);
-		lightingShader.SetFloat("pointLights[1].quadratic", 0.032);
-		// point light 3
-		lightingShader.SetVec3("pointLights[2].position", pointLightPositions[2]);
-		lightingShader.SetVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-		lightingShader.SetVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-		lightingShader.SetVec3("pointLights[2].specular", 0.4f, 0.4f, 0.4f);
-		lightingShader.SetFloat("pointLights[2].constant", 1.0f);
-		lightingShader.SetFloat("pointLights[2].linear", 0.09);
-		lightingShader.SetFloat("pointLights[2].quadratic", 0.032);
-		// point light 4
-		lightingShader.SetVec3("pointLights[3].position", pointLightPositions[3]);
-		lightingShader.SetVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-		lightingShader.SetVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-		lightingShader.SetVec3("pointLights[3].specular", 0.4f, 0.4f, 0.4f);
-		lightingShader.SetFloat("pointLights[3].constant", 1.0f);
-		lightingShader.SetFloat("pointLights[3].linear", 0.09);
-		lightingShader.SetFloat("pointLights[3].quadratic", 0.032);
-		// point light 5
-		lightingShader.SetVec3("pointLights[4].position", pointLightPositions[4]);
-		lightingShader.SetVec3("pointLights[4].ambient", 0.05f, 0.05f, 0.05f);
-		lightingShader.SetVec3("pointLights[4].diffuse", 0.8f, 0.8f, 0.8f);
-		lightingShader.SetVec3("pointLights[4].specular", 0.4f, 0.4f, 0.4f);
-		lightingShader.SetFloat("pointLights[4].constant", 1.0f);
-		lightingShader.SetFloat("pointLights[4].linear", 0.09);
-		lightingShader.SetFloat("pointLights[4].quadratic", 0.032);
-		// point light 6
-		lightingShader.SetVec3("pointLights[5].position", pointLightPositions[5]);
-		lightingShader.SetVec3("pointLights[5].ambient", 0.05f, 0.05f, 0.05f);
-		lightingShader.SetVec3("pointLights[5].diffuse", 0.8f, 0.8f, 0.8f);
-		lightingShader.SetVec3("pointLights[5].specular", 0.4f, 0.4f, 0.4f);
-		lightingShader.SetFloat("pointLights[5].constant", 1.0f);
-		lightingShader.SetFloat("pointLights[5].linear", 0.09);
-		lightingShader.SetFloat("pointLights[5].quadratic", 0.032);
-
-		// spotLight
-		lightingShader.SetVec3("spotLight.position", s_camViewer.GetPos());
-		lightingShader.SetVec3("spotLight.direction", s_camViewer.GetFront());
-		lightingShader.SetVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f);
-		lightingShader.SetVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f);
-		lightingShader.SetVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-		lightingShader.SetFloat("spotLight.constant", 1.0f);
-		lightingShader.SetFloat("spotLight.linear", 0.09);
-		lightingShader.SetFloat("spotLight.quadratic", 0.032);
-		lightingShader.SetFloat("spotLight.cutOff", cosf(12.5f/180*M_PI));
-		lightingShader.SetFloat("spotLight.outerCutOff", cosf(15.f / 180 * M_PI));
-		
-		glActiveTexture(GL_TEXTURE0);
-		texObjs[i]->DrawWhole(lightingShader);
-#endif
+			glActiveTexture(GL_TEXTURE0);
+			texObjs[i]->DrawWhole(textureShaderML);
+		}
+		else
+		{
+			textureShader.Use();
+			s_camViewer.ConfigShader(textureShader);
+			textureShader.SetVec3("light_pos", lightPos);
+			textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			textureShader.SetInt("object_texture", 0);
+			glActiveTexture(GL_TEXTURE0);
+			texObjs[i]->DrawWhole(textureShader);
+		}
 	}
 
 	for(int i = 0; i < meshObjs.size(); i++)
@@ -609,17 +569,33 @@ void Renderer::clearAllObjs()
 
 void Renderer::createScene(std::string conf_projectFolder)
 {
+	//Mesh obj;
+	//obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
+	////obj = ballMesh; 
+	//RenderObjectTexture* p_scene = new RenderObjectTexture();
+	//p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_black_large.png");
+	//p_scene->SetFaces(obj.faces_v_vec);
+	//p_scene->SetVertices(obj.vertices_vec);
+	//p_scene->SetNormal(obj.normals_vec, 2);
+	//p_scene->SetTexcoords(obj.textures_vec, 1);
+	//p_scene->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//p_scene->isMultiLight = false; 
+	//texObjs.push_back(p_scene);
+	std::vector<Eigen::Vector3f> vertices, colors;
+	std::vector<Eigen::Vector3u> faces;
+	readObjectWithColor(conf_projectFolder + "/render/data/obj_model/floor_z+_gray.obj", vertices, colors, faces);
 	Mesh obj;
-	obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
-	//obj = ballMesh; 
-	RenderObjectTexture* p_scene = new RenderObjectTexture();
-	p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_gray.jpg");
-	p_scene->SetFaces(obj.faces_v_vec);
-	p_scene->SetVertices(obj.vertices_vec);
-	p_scene->SetNormal(obj.normals_vec, 2);
-	p_scene->SetTexcoords(obj.textures_vec, 1);
-	p_scene->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	texObjs.push_back(p_scene);
+	obj.faces_v_vec = faces;
+	obj.vertices_vec = vertices;
+	obj.vertex_num = vertices.size();
+	obj.face_num = faces.size();
+	obj.CalcNormal();
+	RenderObjectMesh* p_floor = new RenderObjectMesh();
+	p_floor->SetVertices(vertices);
+	p_floor->SetColors(colors);
+	p_floor->SetFaces(faces);
+	p_floor->SetNormal(obj.normals_vec);
+	meshObjs.push_back(p_floor);
 
 	//Mesh obj2;
 	//obj2.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part1.obj");
@@ -638,7 +614,8 @@ void Renderer::createScene(std::string conf_projectFolder)
 	p_scene2->SetVertices(obj2.vertices_vec);
 	p_scene2->SetNormal(obj2.normals_vec);
 	p_scene2->SetFaces(obj2.faces_v_vec);
-	p_scene2->SetColor(Eigen::Vector3f(0.9, 0.9, 0.95));
+	p_scene2->SetColor(Eigen::Vector3f(0.753, 0.753, 0.753));
+	p_scene2->isMultiLight = true; 
 	colorObjs.push_back(p_scene2);
 
 	Mesh obj3;
@@ -647,6 +624,39 @@ void Renderer::createScene(std::string conf_projectFolder)
 	p_scene3->SetVertices(obj3.vertices_vec);
 	p_scene3->SetNormal(obj3.normals_vec);
 	p_scene3->SetFaces(obj3.faces_v_vec);
-	p_scene3->SetColor(Eigen::Vector3f(0.8, 0.8, 0.75));
+	p_scene3->SetColor(Eigen::Vector3f(0.753, 0.753, 0.753));
+	p_scene3->isMultiLight = true; 
 	colorObjs.push_back(p_scene3);
+}
+
+void Renderer::createPlane(std::string conf_projectFolder)
+{
+	//Mesh obj;
+	//obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
+	////obj = ballMesh; 
+	//RenderObjectTexture* p_scene = new RenderObjectTexture();
+	//p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_black_large.png");
+	//p_scene->SetFaces(obj.faces_v_vec);
+	//p_scene->SetVertices(obj.vertices_vec);
+	//p_scene->SetNormal(obj.normals_vec, 2);
+	//p_scene->SetTexcoords(obj.textures_vec, 1);
+	//p_scene->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//p_scene->isMultiLight = false;
+	//texObjs.push_back(p_scene);
+
+	std::vector<Eigen::Vector3f> vertices, colors;
+	std::vector<Eigen::Vector3u> faces;
+	readObjectWithColor(conf_projectFolder + "/render/data/obj_model/floor_z+_gray.obj", vertices, colors, faces);
+	Mesh obj;
+	obj.faces_v_vec = faces;
+	obj.vertices_vec = vertices;
+	obj.vertex_num = vertices.size();
+	obj.face_num = faces.size();
+	obj.CalcNormal();
+	RenderObjectMesh* p_floor = new RenderObjectMesh();
+	p_floor->SetVertices(vertices);
+	p_floor->SetColors(colors);
+	p_floor->SetFaces(faces);
+	p_floor->SetNormal(obj.normals_vec);
+	meshObjs.push_back(p_floor);
 }

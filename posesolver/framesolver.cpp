@@ -920,7 +920,7 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 
 	if (andsolve)
 	{
-		m_solve_sil_iters = 200;
+		m_solve_sil_iters = 300;
 		DARKOV_Step2_optimanchor(); 
 		DARKOV_Step4_fitrawsource(); 
 		//DARKOV_Step3_reassoc_type2(); 
@@ -1126,12 +1126,12 @@ void FrameSolver::solve_parametric_model_optimonly()
 	{ 
 		mp_bodysolverdevice[i]->m_iou_thres = 0.0;	
 	}
-	//m_solve_sil_iters = 10;
-	//DARKOV_Step4_fitrawsource(); 
-
-	DARKOV_Step3_reassoc_type2();
 	m_solve_sil_iters = 20;
-	DARKOV_Step4_fitreassoc(); 
+	DARKOV_Step4_fitrawsource(); 
+
+	//DARKOV_Step3_reassoc_type2();
+	//m_solve_sil_iters = 20;
+	//DARKOV_Step4_fitreassoc(); 
 
 	DARKOV_Step5_postprocess(); 
 }

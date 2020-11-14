@@ -17,5 +17,7 @@ void main()
 	//test_visdesigned();
 	//test_lay();
 
-	test_visanchors(); 
+	//test_visanchors(); 
+
+	test_texture(); 
 }

@@ -38,6 +38,7 @@ public:
 	virtual void SetNormal(const Eigen::Matrix<float, 3, -1, Eigen::ColMajor>& normals, int layout_location=1);
 	virtual void SetNormal(const std::vector<Eigen::Vector3f> &_normals, int layout_location=1);
 
+	bool isMultiLight; 
 protected:
 	GLuint VAO;
 	GLuint EBO;

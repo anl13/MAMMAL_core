@@ -10,7 +10,7 @@ using std::vector;
 
 // get balls and sticks with joints and bones 
 void GetBallsAndSticks(
-    const vector<Eigen::Vector3d>& joints, 
+    const vector<Eigen::Vector3f>& joints, 
     const std::vector<Eigen::Vector2i>& bones, 
     std::vector<Eigen::Vector3f>& balls, 
     std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks 
@@ -36,4 +36,11 @@ void GetBallsAndSticks(
 	const std::vector<Eigen::Vector2i>& bones,
 	std::vector<Eigen::Vector3f>& balls,
 	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks
+);
+
+void readObjectWithColor(
+	std::string filename, 
+	std::vector<Eigen::Vector3f>& vertices, 
+	std::vector<Eigen::Vector3f>& color, 
+	std::vector<Eigen::Vector3u>& faces
 );
