@@ -396,14 +396,17 @@ BallStickObject::BallStickObject(
 		Eigen::Vector3f rotation = (Eigen::Vector3f(0.0f, 0.0f, 1.0f).cross(direction.normalized())).normalized()
 			* acosf(Eigen::Vector3f(0.0f, 0.0f, 1.0f).dot(direction.normalized()));
 
+		Eigen::Matrix3f R = GetRodrigues(rotation); 
+
 		Eigen::Vector3f translation = (stick.first + stick.second) * 0.5f;
 
 		stickObject->SetFaces(stickObjCopy.faces);
-		stickObject->SetVertices(stickObjCopy.vertices);
-		stickObject->SetNormal(stickObjCopy.normals); 
-		stickObject->SetTransform(translation, rotation, 1.0f);
-		stickObject->SetColor(colors[0]);
-
+		Eigen::MatrixXf V = (R * stickObjCopy.vertices).colwise() + translation;
+		stickObject->SetVertices(V);
+		stickObject->SetNormal(R * stickObjCopy.normals); 
+		//stickObject->SetTransform(translation, rotation, 1.0f);
+		stickObject->SetColor(Eigen::Vector3f(0.75,0.75,0.75));
+		stickObject->isMultiLight = true;
 		objectPtrs.push_back(stickObject);
 	}
 }

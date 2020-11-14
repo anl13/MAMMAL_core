@@ -29,6 +29,8 @@
 
 #include "test_kernel.h"
 
+#include "../utils/skel.h"
+
 std::vector<Camera> readCameras()
 {
 	std::vector<Camera> cams;
@@ -577,8 +579,82 @@ void test_mask()
 	cv::waitKey(); 
 }
 
+void test_trajectory()
+{
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
+
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
+	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+
+	// init renderer 
+	Renderer::s_Init();
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+	SkelTopology topo = getSkelTopoByType("UNIV"); 
+	std::vector<int> kpt_color_ids = {
+			9,2,1,2,1, // face 
+			2,1,2,1,2,1, // front legs 
+			4,3,4,3,4,3, // back legs 
+			5,9,5,6,5,5 // ceneter and tail 
+	};
+
+	for (int frameid = 750; frameid < 1500; frameid++)
+	{
+		std::stringstream ss;
+		ss << "G:/pig_middle_data/teaser/joints/pig_" << 0 << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+		std::string point_file = ss.str();
+		std::vector<Eigen::Vector3f> points = read_points(point_file);
+		std::vector<float> sizes(points.size(), 0.005f);
+		std::vector<Eigen::Vector3f> balls, colors;
+		std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+		GetBallsAndSticks(points, topo.bones, balls, sticks);
+		colors.resize(points.size());
+		for (int i = 0; i < points.size(); i++)
+		{
+			colors[i] = CM[kpt_color_ids[i]];
+		}
+		BallStickObject* skelObject = new BallStickObject(ballMeshEigen,stickMeshEigen, balls,sticks, 0.005,0.001, colors);
+		//BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
+		m_renderer.skels.push_back(skelObject);
+	}
+
+	m_renderer.createScene(conf_projectFolder); 
+	//m_renderer.createPlane(conf_projectFolder);
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		//glPolygonMode(GL_FRONT, GL_FILL);
+		m_renderer.Draw();
+
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
+}
 
 void main()
 {
-	test_shader(); 
+	test_trajectory();
 }
