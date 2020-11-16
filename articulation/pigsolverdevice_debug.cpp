@@ -335,9 +335,9 @@ void PigSolverDevice::optimizePoseWithAnchor()
 
 		float track_radius = m_kpt_track_dist - iterTime * 10;
 		track_radius = track_radius > 30 ? track_radius : 30;
-		bool is_converge_radius = true;
+		bool is_converge_radius = false;
 	
-		//if (iterTime > 20) is_converge_radius = true;
+		if (iterTime > 20) is_converge_radius = true;
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
 		//Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, 80, false, false); 
 

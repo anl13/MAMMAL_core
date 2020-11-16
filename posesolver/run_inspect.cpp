@@ -39,7 +39,7 @@ int run_inspect()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(true);
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -62,22 +62,26 @@ int run_inspect()
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
-		frame.load_clusters(); 
-
-		//cv::Mat assoc = frame.visualizeIdentity2D();
-		//std::stringstream ss;
-		//ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		//cv::imwrite(ss.str(), assoc);
+		//frame.load_clusters(); 
+		
+		if (frameid == start)
+			frame.matching_by_tracking();
+		else
+			frame.pureTracking(); 
+		cv::Mat assoc = frame.visualizeIdentity2D();
+		std::stringstream ss;
+		ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss.str(), assoc);
 
 		// pipeline 3 
 		if(true)
 		{
-#if 0
+#if 1
 			if (frameid == start)
 			{
 				frame.loadAnchors(test_result_folder + "", true);
 				//frame.read_parametric_data();
-				frame.reAssocWithoutTracked();
+				//frame.reAssocWithoutTracked();
 				frame.save_parametric_data(); 
 			}
 			else
@@ -87,30 +91,29 @@ int run_inspect()
 				frame.save_parametric_data();
 			}
 
-			cv::Mat reassoc = frame.visualizeReassociation();
-			std::stringstream ss_reassoc;
-			ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_reassoc.str(), reassoc);
+			//cv::Mat reassoc = frame.visualizeReassociation();
+			//std::stringstream ss_reassoc;
+			//ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_reassoc.str(), reassoc);
 
-			cv::Mat reproj = frame.visualizeVisibility();
-			std::stringstream ss_proj;
-			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_proj.str(), reproj);
+			//cv::Mat reproj = frame.visualizeVisibility();
+			//std::stringstream ss_proj;
+			//ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_proj.str(), reproj);
 
-			cv::Mat beforeimg = frame.visualizeSwap();
-			std::stringstream ss_before;
-			ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_before.str(), beforeimg);
+			//cv::Mat beforeimg = frame.visualizeSwap();
+			//std::stringstream ss_before;
+			//ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_before.str(), beforeimg);
 			
 			cv::Mat rawfit = frame.visualizeRawAssoc();
 			std::stringstream ss_rawassoc; 
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_rawassoc.str(), rawfit); 
 #endif 
-			frame.pipeline2_searchanchor();
-			frame.saveAnchors(test_result_folder + "/anchor_state_252");
+			//frame.pipeline2_searchanchor();
+			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
 			
-			continue; 
 			m_renderer.clearAllObjs();
 
 			auto solvers = frame.mp_bodysolverdevice;

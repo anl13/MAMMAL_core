@@ -920,8 +920,8 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 
 	if (andsolve)
 	{
-		m_solve_sil_iters = 300;
-		DARKOV_Step2_optimanchor(); 
+		m_solve_sil_iters = 60;
+		//DARKOV_Step2_optimanchor(); 
 		DARKOV_Step4_fitrawsource(); 
 		//DARKOV_Step3_reassoc_type2(); 
 		//DARKOV_Step4_fitreassoc(); 

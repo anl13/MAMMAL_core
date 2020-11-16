@@ -297,15 +297,19 @@ float PigSolverDevice::computeScale()
 	// step1: compute scale by averaging bone length. 
 	std::vector<float> regBoneLens;
 	std::vector<float> triBoneLens;
-	std::vector<int> bone_not_for_shape = { 16,17,18 };
-	for (int bid = 0; bid < m_skelTopo.bones.size(); bid++)
+	std::vector<Eigen::Vector2i> bones = {
+		/*{0,1}, {0,2}, {1,2}, {1,3}, {2,4}, {3,4}, {1,4}, {2,3},*/
+		{0,3},{0,4},{3,4},
+	{11,13}, {13,15}, {12,14},{14,16},{18,11}, {18,12}
+	};
+	for (int bid = 0; bid < bones.size(); bid++)
 	{
-		if (in_list(bid, bone_not_for_shape))continue;
-		int sid = m_skelTopo.bones[bid](0);
-		int eid = m_skelTopo.bones[bid](1);
+		int sid = bones[bid](0);
+		int eid = bones[bid](1);
 		if (m_skel3d[sid].norm() < 0.0001f || m_skel3d[eid].norm() < 0.0001f) continue;
 		float regLen = (skelReg[sid] - skelReg[eid]).norm();
 		float triLen = (m_skel3d[sid] - m_skel3d[eid]).norm();
+		if (bid < 3) triLen *= 1;
 		regBoneLens.push_back(regLen);
 		triBoneLens.push_back(triLen);
 	}
@@ -313,6 +317,7 @@ float PigSolverDevice::computeScale()
 	float b = 0;
 	for (int i = 0; i < regBoneLens.size(); i++)
 	{
+		std::cout << " -- " << i <<  " -- " << triBoneLens[i] / regBoneLens[i] << std::endl; 
 		a += triBoneLens[i] * regBoneLens[i];
 		b += regBoneLens[i] * regBoneLens[i];
 	}
@@ -336,9 +341,10 @@ void PigSolverDevice::globalAlign()
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
 	m_host_scale = gt_scales[m_pig_id];
+	float alpha = computeScale(); 
+	std::cout << "m_pig: " << m_pig_id << "  alpha: " << alpha << std::endl; 
 	m_initScale = true;
 
-	//float alpha = computeScale(); 
 	//std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
 	//// running average
 	//if (!m_initScale)
@@ -1688,22 +1694,42 @@ void PigSolverDevice::CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& A
 	}
 }
 
+std::vector<float> PigSolverDevice::computeValidObservation()
+{
+	std::vector<float> obs(m_skelTopo.joint_num, 0);
+	for (int view = 0; view < m_source.view_ids.size(); view++)
+	{
+		for (int i = 0; i < m_skelTopo.joint_num; i++)
+		{
+			if (m_source.dets[view].keypoints[i](2) > m_skelTopo.kpt_conf_thresh[i])
+				obs[i] += 1; 
+		}
+	}
+	return obs; 
+}
+
 void PigSolverDevice::CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::MatrixXf& skelJ,
 	const std::vector<Eigen::Vector3f>& last_regressed_skel)
 {
 	int paramNum = 3 * m_poseToOptimize.size() + 3;
-	ATA = skelJ.transpose() * skelJ; 
 	int N = m_skelCorr.size(); 
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(3 * N, paramNum);
 	Eigen::VectorXf r = Eigen::VectorXf::Zero(3 * N);
+	A = skelJ; 
 	std::vector<Eigen::Vector3f> skel = getRegressedSkel_host(); 
+	std::vector<float> obs = computeValidObservation(); 
 	for (int i = 0; i < N; i++)
 	{
 		int t = m_skelCorr[i].target; 
 		float w = m_skelCorr[i].weight;
 		r.segment<3>(3 * i) = skel[t] - last_regressed_skel[t];
-
+		if (obs[i] >= 1) {
+			A.middleRows(3 * i, 3) *= 0.01;
+			r.segment<3>(3 * i, 3) *= 0.01; 
+		}
 	}
-	ATb = -skelJ.transpose() * r; 
+	ATb = -A.transpose() * r; 
+	ATA = A.transpose() * A; 
 }
 
 void PigSolverDevice::postProcessing()

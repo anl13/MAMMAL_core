@@ -140,6 +140,7 @@
     <ClCompile Include="..\posesolver\clusterclique.cpp" />
     <ClCompile Include="..\posesolver\framedata.cpp" />
     <ClCompile Include="..\posesolver\framesolver.cpp" />
+    <ClCompile Include="..\posesolver\framesolver_pipeline.cpp" />
     <ClCompile Include="..\posesolver\matching.cpp" />
     <ClCompile Include="..\posesolver\mce\AdjacencyListAlgorithm.cpp" />
     <ClCompile Include="..\posesolver\mce\Algorithm.cpp" />

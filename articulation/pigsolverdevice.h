@@ -77,7 +77,7 @@ public:
 		int maxIter);
 
 	cv::Mat debug_source_visualize(); 
-
+	std::vector<float> computeValidObservation(); 
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
 	void fitPoseToJointSameTopo(const std::vector<Eigen::Vector3f> &_joints);
