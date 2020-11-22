@@ -62,7 +62,6 @@ int run_inspect()
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
-		//frame.load_clusters(); 
 		
 		if (frameid == start)
 			frame.matching_by_tracking();
@@ -72,24 +71,40 @@ int run_inspect()
 		std::stringstream ss;
 		ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 		cv::imwrite(ss.str(), assoc);
+		frame.save_clusters(); 
 
+		//frame.read_parametric_data(); 
 		// pipeline 3 
 		if(true)
 		{
 #if 1
 			if (frameid == start)
 			{
-				frame.loadAnchors(test_result_folder + "", true);
-				//frame.read_parametric_data();
-				//frame.reAssocWithoutTracked();
-				frame.save_parametric_data(); 
+				frame.m_solve_sil_iters = 60; 
+				for (int i = 0; i < 4; i++)
+				{
+					frame.mp_bodysolverdevice[i]->m_iou_thres = 0; 
+				}
 			}
 			else
 			{
-				frame.loadAnchors(test_result_folder + "", false);
-				frame.solve_parametric_model_optimonly();
-				frame.save_parametric_data();
+				frame.m_solve_sil_iters = 60; 
+				for (int i = 0; i < 4; i++)
+				{
+					frame.mp_bodysolverdevice[i]->m_iou_thres = 0.5;
+				}
 			}
+			frame.DARKOV_Step1_setsource();
+			frame.DARKOV_Step2_loadanchor();
+
+			if(frameid == start)
+				frame.DARKOV_Step2_optimanchor(); 
+			frame.DARKOV_Step4_fitrawsource();
+			//frame.DARKOV_Step3_reassoc_type2(); 
+			//frame.DARKOV_Step4_fitreassoc(); 
+			frame.DARKOV_Step5_postprocess();
+			frame.save_parametric_data(); 
+			
 
 			//cv::Mat reassoc = frame.visualizeReassociation();
 			//std::stringstream ss_reassoc;
@@ -114,6 +129,7 @@ int run_inspect()
 			//frame.pipeline2_searchanchor();
 			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
 			
+			//continue;
 			m_renderer.clearAllObjs();
 
 			auto solvers = frame.mp_bodysolverdevice;
@@ -181,8 +197,8 @@ int run_inspect()
 			overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
 			std::stringstream all_render_file;
-			all_render_file << test_result_folder << "/render_all/anchor/" << std::setw(6) << std::setfill('0')
-				<< frameid << "_anchor.png";
+			all_render_file << test_result_folder << "/render_all/debug/" << std::setw(6) << std::setfill('0')
+				<< frameid << ".png";
 			cv::imwrite(all_render_file.str(), blend);
 		}
 

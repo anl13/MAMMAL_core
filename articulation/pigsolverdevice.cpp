@@ -998,14 +998,16 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	std::vector<cv::Mat> diff_xvis;
 	std::vector<cv::Mat> diff_yvis;
 #endif 
+	std::cout << "pig " << m_pig_id << "  used sil view: ";
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
 		//if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
-		//	//std::cout << "view " << view << " is invalid. " << m_valid_keypoint_ratio[view] << std::endl;
 		//	continue;
 		//}
 		int camid = m_viewids[view];
+		if (o_ious[camid] < m_iou_thres) continue; 
 		// compute detection image data 
+		std::cout << camid << ", "; 
 
 		convertDepthToMaskHalfSize_device(d_depth_renders[camid], d_middle_mask, 1920, 1080);
 		sdf2d_device(d_middle_mask, d_rend_sdf, 960, 540);
@@ -1033,6 +1035,8 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		std::vector<unsigned char> visibility(m_vertexNum, 0);
 		check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
 			K, R, T, visibility);
+
+#if 0
 		float total_overlay = 0;
 		float total_visible = 0;
 		//cv::Mat vis_test;
@@ -1058,10 +1062,12 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 			total_overlay += 1;
 		}
 		float iou = total_overlay / total_visible;
+		std::cout << "(" << camid << ")" << iou << " ";
 		if (iou < m_iou_thres)
 		{
 			continue;
 		}
+#endif 
 
 		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATA_sil.rows() << " " << d_ATA_sil.cols() << std::endl; 
 		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATb_sil.size() << std::endl;
@@ -1110,6 +1116,8 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		ATA += ATA_view * weight; 
 		ATb += ATb_view * weight; 
 	}
+
+	std::cout << std::endl; 
 
 #ifdef DEBUG_SIL
 	cv::Mat packP;
@@ -1184,6 +1192,7 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
 			K, R, T, visibility);
 
+#if 0
 		// approx IOU 
 		float total_overlay = 0;
 		float total_visible = 0; 
@@ -1213,10 +1222,12 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 		}
 
 		float iou = total_overlay / total_visible; 
+		std::cout << "(" << camid << ")" << iou << "  "; 
 		if (iou < m_iou_thres)
 		{
 			continue; 
 		}
+#endif 
 
 		int visible = 0; 
 		for (int i = 0; i < m_vertexNum; i++)

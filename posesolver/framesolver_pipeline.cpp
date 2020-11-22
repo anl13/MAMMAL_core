@@ -27,12 +27,13 @@ void FrameSolver::DARKOV_Step0_topdownassoc(bool isLoad)
 void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers 
 {
 	m_skels3d.resize(4); 
+	setConstDataToSolver();
+
 	for (int i = 0; i < 4; i++)
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]);
 		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
 		mp_bodysolverdevice[i]->globalAlign();
-		setConstDataToSolver(i);
 		std::cout << "pig " << i << "  scale: " << mp_bodysolverdevice[i]->GetScale() << std::endl;
 	}
 

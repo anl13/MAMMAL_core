@@ -78,8 +78,10 @@ int run_pose()
 			frame.read_parametric_data();
 			frame.DARKOV_Step5_postprocess(); 
 		}
-		else 
-	        frame.solve_parametric_model();
+		else
+		{
+			//frame.solve_parametric_model();
+		}
 
 		//if (frameid == start)
 		//{

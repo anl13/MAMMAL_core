@@ -88,7 +88,7 @@ int test_distance_transform()
 	return 0; 
 }
 
-int main()
+int visualize_sdf()
 {
 	show_gpu_param();
 
@@ -155,4 +155,53 @@ int main()
 
 	system("pause");
 	return 0;
+}
+
+void test_iou()
+{
+	cv::Mat img1;
+	img1.create(cv::Size(1920, 1080), CV_8UC3); 
+	cv::rectangle(img1, cv::Rect(10, 10, 1000, 400), cv::Scalar(255,0,0), -1);
+
+	cv::Mat img2; 
+	img2.create(cv::Size(1920, 1080), CV_8UC3); 
+	cv::rectangle(img2, cv::Rect(400, 400, 1200, 600), cv::Scalar(0, 255, 0), -1); 
+
+	float iou1;
+	TimerUtil::Timer<std::chrono::microseconds> tt;
+	tt.Start(); 
+	int I = 0; 
+	int U = 0; 
+	for (int i = 0; i < 1080; i++)
+	{
+		for (int j = 0; j < 1920; j++)
+		{
+			if (img1.at<cv::Vec3b>(i, j)[0] > 0 && img2.at<cv::Vec3b>(i, j)[1] > 0)
+			{
+				I += 1;
+			}
+			if (img1.at<cv::Vec3b>(i, j)[0] > 0 || img2.at<cv::Vec3b>(i, j)[1] > 0)
+			{
+				U += 1;
+			}
+		}
+	}
+	
+	iou1 = I / (float)U;
+	std::cout << "cpu iteration: " << tt.Elapsed() << " microseconds. " << std::endl;
+
+	std::cout << "iou: " << iou1 << "(" << I << "/" << U << ")" <<   std::endl; 
+
+	cv::imshow("iou", img1 + img2);
+	cv::waitKey(); 
+	cv::destroyAllWindows(); 
+}
+
+
+int main()
+{
+	test_iou(); 
+
+	system("pause"); 
+	return 0; 
 }

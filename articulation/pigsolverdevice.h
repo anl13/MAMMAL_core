@@ -237,6 +237,8 @@ public:
 	*/
 	std::vector<int> findBestViewsForLeg(int legid); 
 
+	std::vector<float> o_ious; 
+
 protected:
 
 	// state indicator 

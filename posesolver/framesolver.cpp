@@ -301,27 +301,6 @@ void FrameSolver::tracking() // naive 3d 2 3d tracking
 	m_skels3d_last = m_skels3d;
 }
 
-void FrameSolver::solve_parametric_model()
-{
-	m_skels3d.resize(4);
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->setSource(m_matched[i]);
-		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
-		mp_bodysolverdevice[i]->globalAlign();
-		setConstDataToSolver(i);
-		mp_bodysolverdevice[i]->optimizePose();
-	}
-
-	if (m_solve_sil_iters > 0)
-	{
-		optimizeSil(m_solve_sil_iters); 
-	}
-
-	DARKOV_Step5_postprocess(); 
-}
-
-
 void FrameSolver::pipeline2_searchanchor()
 {
 	DARKOV_Step1_setsource();
@@ -329,55 +308,6 @@ void FrameSolver::pipeline2_searchanchor()
 	DARKOV_Step2_optimanchor();
 	DARKOV_Step5_postprocess(); 
 }
-
-// This pipeline only search for best anchor point
-void FrameSolver::solve_parametric_model_pipeline3()
-{
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->m_iou_thres = 0.0;
-	}
-	m_solve_sil_iters = 20;
-	DARKOV_Step4_fitrawsource(); 
-
-	DARKOV_Step5_postprocess();
-}
-
-//void FrameSolver::solve_parametric_model_cpu()
-//{
-//	if (mp_bodysolver.empty()) mp_bodysolver.resize(4);
-//	for (int i = 0; i < 4; i++)
-//	{
-//		if (mp_bodysolver[i] == nullptr)
-//		{
-//			mp_bodysolver[i] = std::make_shared<PigSolver>(m_pigConfig);
-//			mp_bodysolver[i]->setCameras(m_camsUndist);
-//			mp_bodysolver[i]->normalizeCamera();
-//			mp_bodysolver[i]->mp_renderEngine = (mp_renderEngine);
-//			std::cout << "init model " << i << std::endl;
-//		}
-//	}
-//
-//	m_skels3d.resize(4);
-//	for (int i = 0; i < 1; i++)
-//	{
-//		mp_bodysolver[i]->setSource(m_matched[i]);
-//		mp_bodysolver[i]->normalizeSource();
-//		mp_bodysolver[i]->globalAlign();
-//		mp_bodysolver[i]->optimizePose();
-//
-//		if (i < 1) {
-//			std::vector<ROIdescripter> rois;
-//			getROI(rois, 0);
-//			mp_bodysolver[i]->m_rois = rois;
-//			mp_bodysolver[i]->optimizePoseSilhouette(1);
-//		}
-//
-//		Eigen::MatrixXf skel_eigen = mp_bodysolver[i]->getRegressedSkel();
-//		std::vector<Eigen::Vector3f> skels = convertMatToVec(skel_eigen);
-//		m_skels3d[i] = skels;
-//	}
-//}
 
 void FrameSolver::save_parametric_data()
 {
@@ -561,14 +491,14 @@ void FrameSolver::load_clusters()
 }
 
 // draw masks according to 
-vector<cv::Mat> FrameSolver::drawMask()
+void FrameSolver::drawMaskMatched()
 {
-	vector<cv::Mat> m_imgsMask;
-	m_imgsMask.resize(m_camNum);
+	m_masksMatched.resize(m_camNum);
 	for (int i = 0; i < m_camNum; i++)
 	{
-		m_imgsMask[i].create(cv::Size(m_imw, m_imh), CV_8UC1);
-	}
+		m_masksMatched[i].create(cv::Size(m_imw, m_imh), CV_8UC1);
+		m_masksMatched[i].setTo(0); 
+	} 
 	for (int pid = 0; pid < 4; pid++)
 	{
 		for (int k = 0; k < m_matched[pid].view_ids.size(); k++)
@@ -577,10 +507,9 @@ vector<cv::Mat> FrameSolver::drawMask()
 
 			int viewid = m_matched[pid].view_ids[k];
 			my_draw_mask_gray(temp, m_matched[pid].dets[k].mask, 1 << pid);
-			m_imgsMask[viewid] = temp + m_imgsMask[viewid];
+			m_masksMatched[viewid] = temp + m_masksMatched[viewid];
 		}
 	}
-	return m_imgsMask;
 }
 
 void FrameSolver::drawRawMaskImgs()
@@ -603,7 +532,6 @@ void FrameSolver::drawRawMaskImgs()
 
 void FrameSolver::getROI(std::vector<ROIdescripter>& rois, int id)
 {
-	std::vector<cv::Mat> masks = drawMask();
 	rois.resize(m_matched[id].view_ids.size());
 	for (int view = 0; view < m_matched[id].view_ids.size(); view++)
 	{
@@ -624,7 +552,7 @@ void FrameSolver::getROI(std::vector<ROIdescripter>& rois, int id)
 
 		rois[view].chamfer = computeSDF2d(mask);
 
-		rois[view].mask = masks[camid];
+		rois[view].mask = m_masksMatched[camid];
 		rois[view].box = m_matched[id].dets[view].box;
 		rois[view].undist_mask = mp_sceneData->m_undist_mask; // valid area for image distortion 
 		rois[view].scene_mask = mp_sceneData->m_scene_masks[camid];
@@ -635,47 +563,50 @@ void FrameSolver::getROI(std::vector<ROIdescripter>& rois, int id)
 	}
 }
 
-void FrameSolver::setConstDataToSolver(int id)
+void FrameSolver::setConstDataToSolver()
 {
-	assert((id >= 0 && id <= 3));
-
-	if (mp_bodysolverdevice[id] == nullptr)
+	drawMaskMatched();
+	for (int id = 0; id < 4; id++)
 	{
-		std::cout << "solver is empty! " << std::endl;
-		exit(-1);
-	}
 
-	if (m_use_gpu)
-	{
-		if (!mp_bodysolverdevice[id]->init_backgrounds)
+		if (mp_bodysolverdevice[id] == nullptr)
 		{
-			for (int i = 0; i < m_camNum; i++)
-				cudaMemcpy(mp_bodysolverdevice[id]->d_const_scene_mask[i],
-					mp_sceneData->m_scene_masks[i].data,
+			std::cout << "solver is empty! " << std::endl;
+			exit(-1);
+		}
+
+		if (m_use_gpu)
+		{
+			if (!mp_bodysolverdevice[id]->init_backgrounds)
+			{
+				for (int i = 0; i < m_camNum; i++)
+					cudaMemcpy(mp_bodysolverdevice[id]->d_const_scene_mask[i],
+						mp_sceneData->m_scene_masks[i].data,
+						1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
+				cudaMemcpy(mp_bodysolverdevice[id]->d_const_distort_mask,
+					mp_sceneData->m_undist_mask.data,
 					1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
-			cudaMemcpy(mp_bodysolverdevice[id]->d_const_distort_mask,
-				mp_sceneData->m_undist_mask.data,
-				1920 * 1080 * sizeof(uchar), cudaMemcpyHostToDevice);
-			mp_bodysolverdevice[id]->init_backgrounds = true;
-			mp_bodysolverdevice[id]->c_const_scene_mask = mp_sceneData->m_scene_masks;
-			mp_bodysolverdevice[id]->c_const_distort_mask = mp_sceneData->m_undist_mask;
+				mp_bodysolverdevice[id]->init_backgrounds = true;
+				mp_bodysolverdevice[id]->c_const_scene_mask = mp_sceneData->m_scene_masks;
+				mp_bodysolverdevice[id]->c_const_distort_mask = mp_sceneData->m_undist_mask;
+			}
 		}
-	}
-	else {
-		if (!mp_bodysolverdevice[id]->init_backgrounds)
-		{
-			mp_bodysolverdevice[id]->c_const_scene_mask = mp_sceneData->m_scene_masks;
-			mp_bodysolverdevice[id]->c_const_distort_mask = mp_sceneData->m_undist_mask; 
-			mp_bodysolverdevice[id]->init_backgrounds = true; 
+		else {
+			if (!mp_bodysolverdevice[id]->init_backgrounds)
+			{
+				mp_bodysolverdevice[id]->c_const_scene_mask = mp_sceneData->m_scene_masks;
+				mp_bodysolverdevice[id]->c_const_distort_mask = mp_sceneData->m_undist_mask;
+				mp_bodysolverdevice[id]->init_backgrounds = true;
+			}
 		}
-	}
-	mp_bodysolverdevice[id]->m_pig_id = id;
-	mp_bodysolverdevice[id]->m_det_masks = drawMask();
+		mp_bodysolverdevice[id]->m_pig_id = id;
+		mp_bodysolverdevice[id]->m_det_masks = m_masksMatched;
 
-	// mask necessary for measure anchor point
-	std::vector<ROIdescripter> rois;
-	getROI(rois, id);
-	mp_bodysolverdevice[id]->setROIs(rois);
+		// mask necessary for measure anchor point
+		std::vector<ROIdescripter> rois;
+		getROI(rois, id);
+		mp_bodysolverdevice[id]->setROIs(rois);
+	}
 }
 
 
@@ -860,30 +791,6 @@ void FrameSolver::renderInteractDepth(bool withmask)
 	}
 }
 
-void FrameSolver::optimizeSil(int maxIterTime)
-{
-	for (int pid = 0; pid < 4; pid++)
-	{
-		mp_bodysolverdevice[pid]->generateDataForSilSolver(); 
-		if (!m_use_gpu)
-		{
-			std::vector<ROIdescripter> rois;
-			getROI(rois, pid);
-			mp_bodysolverdevice[pid]->setROIs(rois);
-		}
-	}
-
-	int iter = 0; 
-	for (; iter < maxIterTime; iter++)
-	{
-		renderInteractDepth(); 
-		for (int pid = 0; pid < 4; pid++)
-		{
-			mp_bodysolverdevice[pid]->optimizePoseSilOneStep(iter); 
-		}
-	}
-}
-
 void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 {
 	for (int pid = 0; pid < 4; pid++)
@@ -894,12 +801,43 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 	int iter = 0;
 	for (; iter < maxIterTime; iter++)
 	{
-		renderInteractDepth();
+		//std::cout << "iter: " << iter << " ..... " << std::endl; 
+		if (iter == 0)
+		{
+			renderInteractDepth(true);
+			computeIOUs();
+		}
+		else {
+			renderInteractDepth(false); 
+		}
+
+		//for (int pid = 0; pid < 4; pid++)
+		//{
+		//	std::cout << pid << " :: ";
+		//	for (int i = 0; i < m_camNum; i++)
+		//	{
+		//		std::cout << m_ious[pid][i] << ", ";
+		//	}
+		//	std::cout << std::endl; 
+		//}
+
 		for (int pid = 0; pid < 4; pid++)
 		{
+			mp_bodysolverdevice[pid]->o_ious = m_ious[pid];
 			mp_bodysolverdevice[pid]->optimizePoseSilWithAnchorOneStep(iter);
 		}
 	}
+	//cv::Mat output; 
+	//packImgBlock(m_interMask, output); 
+	//std::stringstream ss; 
+	//ss << "F:/pig_results_anchor_sil/debug/mask_" << m_frameid << ".png";
+	//cv::imwrite(ss.str(), output); 
+	//cv::Mat output2; 
+	//packImgBlock(m_masksMatched, output2); 
+	//output2 = output2 * 10;
+	//std::stringstream ss1; 
+	//ss1 << "F:/pig_results_anchor_sil/debug/maskdet_" << m_frameid << ".png"; 
+	//cv::imwrite(ss1.str(), output2); 
 }
 
 void FrameSolver::saveAnchors(std::string folder)
@@ -920,7 +858,6 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 
 	if (andsolve)
 	{
-		m_solve_sil_iters = 60;
 		//DARKOV_Step2_optimanchor(); 
 		DARKOV_Step4_fitrawsource(); 
 		//DARKOV_Step3_reassoc_type2(); 
@@ -1116,24 +1053,6 @@ void FrameSolver::reAssociateKeypoints()
 			}
 		}
 	}
-}
-
-
-
-void FrameSolver::solve_parametric_model_optimonly()
-{
-	for (int i = 0; i < 4; i++)
-	{ 
-		mp_bodysolverdevice[i]->m_iou_thres = 0.0;	
-	}
-	m_solve_sil_iters = 20;
-	DARKOV_Step4_fitrawsource(); 
-
-	//DARKOV_Step3_reassoc_type2();
-	//m_solve_sil_iters = 20;
-	//DARKOV_Step4_fitreassoc(); 
-
-	DARKOV_Step5_postprocess(); 
 }
 
 cv::Mat FrameSolver::visualizeReassociation()
@@ -1681,4 +1600,62 @@ void FrameSolver::solve_scales()
 		scalefile << scales[i] << " "; 
 	}
 	scalefile.close(); 
+}
+
+void FrameSolver::computeIOUs()
+{
+	std::vector<Eigen::Vector3f> id_colors = {
+	{1.0f, 0.0f,0.0f},
+{0.0f, 1.0f, 0.0f},
+{0.0f, 0.0f, 1.0f},
+{1.0f, 1.0f, 0.0f}
+	};
+	std::vector<Eigen::Vector3i> id_colors_cv = {
+		{0,0,255}, 
+	{0,255,0},
+	{255,0,0},
+	{0,255,255}
+	};
+
+	std::vector<std::vector<float >  > ious; 
+	ious.resize(4); 
+	
+	for (int pid = 0; pid < 4; pid++)
+	{
+		ious[pid].resize(m_camNum, 0); 
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			float I = 0; 
+			float U = 0; 
+			for (int x = 0; x < 1920; x++)
+			{
+				for (int y = 0; y < 1080; y++)
+				{
+					if (mp_sceneData->m_undist_mask.at<uchar>(y, x) == 0) continue; 
+					if (mp_sceneData->m_scene_masks[camid].at<uchar>(y, x) > 0) continue; 
+					if ( (m_interMask[camid].at<cv::Vec3b>(y, x)[0] == id_colors_cv[pid](0)
+						&& m_interMask[camid].at<cv::Vec3b>(y, x)[1] == id_colors_cv[pid](1)
+						&& m_interMask[camid].at<cv::Vec3b>(y, x)[2] == id_colors_cv[pid](2)
+						) && m_masksMatched[camid].at<uchar>(y,x) == (1 << pid)
+						)
+					{
+						I += 1;
+					}
+					if ((m_interMask[camid].at<cv::Vec3b>(y, x)[0] == id_colors_cv[pid](0)
+						&& m_interMask[camid].at<cv::Vec3b>(y, x)[1] == id_colors_cv[pid](1)
+						&& m_interMask[camid].at<cv::Vec3b>(y, x)[2] == id_colors_cv[pid](2)
+						) || m_masksMatched[camid].at<uchar>(y, x) == (1 << pid)
+						)
+					{
+						U += 1; 
+					}
+				}
+			}
+			if (I < 1) ious[pid][camid] = 0;
+			else 
+			ious[pid][camid] = I / U; 
+		}
+	}
+
+	m_ious = ious; 
 }

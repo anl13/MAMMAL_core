@@ -38,6 +38,7 @@ public:
 
 	vector<MatchedInstance>                   m_matched; // matched raw data after matching()
 	vector<vector<DetInstance> >              m_unmatched; // [camnum, candnum]
+	std::vector<cv::Mat> m_masksMatched; 
 
 	vector<MatchedInstance> m_last_matched; // used for tracking
 		// matching & 3d data 
@@ -54,8 +55,8 @@ public:
 
 		// shape solver 
 	void getROI(vector<ROIdescripter>& rois, int id = 0);
-	void setConstDataToSolver(int id); // direct set some data to solver
-	vector<cv::Mat> drawMask();  // can only be used after association 
+	void setConstDataToSolver(); // direct set some data to solver
+	void drawMaskMatched();  // can only be used after association 
 	std::string m_pigConfig;
 	std::string m_match_alg;
 
@@ -63,14 +64,11 @@ public:
 		// top-down matching
 	void tracking();
 	void matching_by_tracking();
+
 	void reproject_skels();
-	void solve_parametric_model();
 	void pipeline2_searchanchor();
-	void solve_parametric_model_pipeline3(); 
-	void solve_parametric_model_optimonly();
 	void read_parametric_data();
 	void save_parametric_data();
-	void solve_parametric_model_cpu(); 
 	void solve_scales(); 
 
 	//void load_labeled_data();
@@ -125,7 +123,9 @@ public:
 	// each value means tracked candid in m_detUndist
 	vector<vector<vector<int> > > m_modelTracked; 
 
-	void optimizeSil(int maxIterTime); 
+	vector<vector<float> > m_ious; // [id, camid]
+	void computeIOUs(); // return: [id, camid]
+
 	void optimizeSilWithAnchor(int maxIterTime); 
 	void saveAnchors(std::string folder);
 	void loadAnchors(std::string folder, bool andsolve=false); 
