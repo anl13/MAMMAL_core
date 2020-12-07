@@ -64,13 +64,14 @@ int run_inspect()
 		frame.fetchData();
 		
 		if (frameid == start)
-			frame.matching_by_tracking();
+			//frame.matching_by_tracking();
+			frame.load_clusters(); 
 		else
 			frame.pureTracking(); 
-		cv::Mat assoc = frame.visualizeIdentity2D();
-		std::stringstream ss;
-		ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss.str(), assoc);
+		//cv::Mat assoc = frame.visualizeIdentity2D();
+		//std::stringstream ss;
+		//ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		//cv::imwrite(ss.str(), assoc);
 		frame.save_clusters(); 
 
 		//frame.read_parametric_data(); 
@@ -88,7 +89,7 @@ int run_inspect()
 			}
 			else
 			{
-				frame.m_solve_sil_iters = 60; 
+				frame.m_solve_sil_iters = 5; 
 				for (int i = 0; i < 4; i++)
 				{
 					frame.mp_bodysolverdevice[i]->m_iou_thres = 0.5;
@@ -97,11 +98,20 @@ int run_inspect()
 			frame.DARKOV_Step1_setsource();
 			frame.DARKOV_Step2_loadanchor();
 
-			if(frameid == start)
-				frame.DARKOV_Step2_optimanchor(); 
-			frame.DARKOV_Step4_fitrawsource();
-			//frame.DARKOV_Step3_reassoc_type2(); 
-			//frame.DARKOV_Step4_fitreassoc(); 
+			//if(frameid == start)
+			//	frame.DARKOV_Step2_optimanchor(); 
+
+			if (frameid == start)
+			{
+				frame.read_parametric_data();
+			}
+			else
+			{
+				frame.DARKOV_Step4_fitrawsource();
+			}
+			frame.DARKOV_Step3_reassoc_type2(); 
+			frame.m_solve_sil_iters = 20;
+			frame.DARKOV_Step4_fitreassoc(); 
 			frame.DARKOV_Step5_postprocess();
 			frame.save_parametric_data(); 
 			
@@ -121,15 +131,15 @@ int run_inspect()
 			//ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			//cv::imwrite(ss_before.str(), beforeimg);
 			
-			cv::Mat rawfit = frame.visualizeRawAssoc();
-			std::stringstream ss_rawassoc; 
-			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_rawassoc.str(), rawfit); 
+			//cv::Mat rawfit = frame.visualizeRawAssoc();
+			//std::stringstream ss_rawassoc; 
+			//ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_rawassoc.str(), rawfit); 
 #endif 
 			//frame.pipeline2_searchanchor();
 			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
 			
-			//continue;
+			continue;
 			m_renderer.clearAllObjs();
 
 			auto solvers = frame.mp_bodysolverdevice;

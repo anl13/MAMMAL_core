@@ -68,8 +68,8 @@
   "temp_term": 1,
 
   "floor_term": 0.1,
-  "anchor_term": 0.05,
-  "gmm_term": 0.0,
+  "anchor_term": 0.01,
+  "gmm_term": 0.05,
   "reg_weights": [ [ 2, 1, 1, 1 ] ],
   "kpt_track_dist": 400, // px  * depthweight
   //"scales": [ 1.337, 1.280, 1.406, 1.300 ], 

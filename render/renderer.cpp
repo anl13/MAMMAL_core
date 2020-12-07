@@ -567,6 +567,20 @@ float * Renderer::renderDepthDevice()
 	return m_device_depth;
 }
 
+cv::Mat Renderer::GetImageOffscreen()
+{
+	beginOffscreenRender();
+	Draw();
+	mapRenderingResults();
+	cudaMemcpy2DFromArray(m_device_renderData, WINDOW_WIDTH * sizeof(float4),
+		m_colorArray, 0, 0, WINDOW_WIDTH * sizeof(float4), WINDOW_HEIGHT, cudaMemcpyDeviceToDevice);
+	cv::Mat img = extract_bgr_mat(m_device_renderData, WINDOW_WIDTH, WINDOW_HEIGHT); 
+	unmapRenderingResults();
+	endOffscreenRender();
+
+	return img;
+}
+
 void Renderer::clearAllObjs()
 {
 	for (int i = 0; i < meshObjs.size(); i++) delete meshObjs[i];

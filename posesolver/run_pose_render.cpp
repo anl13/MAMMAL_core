@@ -26,7 +26,7 @@ int run_pose_render()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/config.json");
+	frame.configByJson(conf_projectFolder + "/posesolver/confignew.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -48,7 +48,7 @@ int run_pose_render()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "E:/pig_results_lowsil/";
+	frame.result_folder = "F:/pig_results_anchor_sil/";
 	frame.is_smth = true;
 	int start = frame.get_start_id();
 
@@ -61,23 +61,16 @@ int run_pose_render()
 		frame.load_clusters();
 		frame.read_parametric_data();
 
-		//cv::Mat proj_skel = frame.visualizeProj(); 
-		//std::stringstream ss_proj; 
-		//ss_proj << frame.result_folder << "fitting/proj_" << std::setw(6) << std::setfill('0') << frameid << ".jpg"; 
-		//cv::imwrite(ss_proj.str(), proj_skel); 
-		//cv::Mat assoc = frame.visualizeIdentity2D();
-		//std::stringstream ss;
-		//ss << frame.result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		//cv::imwrite(ss.str(), assoc);
+		frame.save_joints(); 
+		continue; 
 		
-
 		m_renderer.clearAllObjs();
 		auto solvers = frame.mp_bodysolverdevice;
 
-		for (int pid = 0; pid < 2; pid++)
-		{
-			//solvers[pid]->debug_source_visualize(frame.result_folder,frameid);
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
 
+		for (int pid = 0; pid < 4; pid++)
+		{
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();
 
@@ -96,51 +89,41 @@ int run_pose_render()
 		for (int camid = 0; camid < cams.size(); camid++)
 		{
 			m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
-			m_renderer.Draw();
-			cv::Mat img = m_renderer.GetImage();
-
+			//m_renderer.Draw();
+			//cv::Mat img = m_renderer.GetImage();
+			cv::Mat img = m_renderer.GetImageOffscreen();
 			all_renders[camid] = img;
 		}
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
 		m_renderer.createScene(conf_projectFolder);
-		Eigen::Vector3f pos1(0.904806 ,- 1.57754,  0.58256);
-		Eigen::Vector3f up1(-0.157887 , 0.333177 , 0.929551);
-		Eigen::Vector3f center1(0.0915295 ,- 0.128604, - 0.0713566);
+		Eigen::Vector3f up1; up1 << 0.260221, 0.36002, 0.895919;
+		Eigen::Vector3f pos1; pos1 << -1.91923, -2.12171, 1.37056;
+		Eigen::Vector3f center1 = Eigen::Vector3f::Zero();
 		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
-		m_renderer.Draw();
-		cv::Mat img = m_renderer.GetImage();
+		cv::Mat img = m_renderer.GetImageOffscreen();
 		all_renders.push_back(img);
 
 		Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
 		Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
 		Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
 		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
-		m_renderer.Draw();
-		img = m_renderer.GetImage();
+		img = m_renderer.GetImageOffscreen(); 
 		all_renders.push_back(img);
 
 		cv::Mat packed_render;
 		packImgBlock(all_renders, packed_render);
-		//std::stringstream file2;
-		//file2 << frame.result_folder << "/render_all/render/" << std::setw(6) << std::setfill('0')
-		//	<< frameid << ".png";
-		//cv::imwrite(file2.str(), packed_render);
+
+		//cv::namedWindow("packed_render", cv::WINDOW_NORMAL);
+		//cv::imshow("packed_render", packed_render); 
+		//cv::waitKey(); 
+		//exit(-1);
 
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 		std::stringstream all_render_file;
-		all_render_file << frame.result_folder << "/render_all/smth/" << std::setw(6) << std::setfill('0')
+		all_render_file << frame.result_folder << "/render_all/debug3/" << std::setw(6) << std::setfill('0')
 			<< frameid << "_overlay.png";
 		cv::imwrite(all_render_file.str(), blend);
-
-		//while (!glfwWindowShouldClose(windowPtr))
-		//{
-		//	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-		//	m_renderer.Draw();
-
-		//	glfwSwapBuffers(windowPtr);
-		//	glfwPollEvents();
-		//};
 
 	}
 

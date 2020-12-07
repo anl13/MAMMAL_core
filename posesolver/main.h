@@ -8,7 +8,7 @@ int run_on_sequence();
 
 // run_shape.cpp
 int run_shape();
-int run_pose(); 
+int run_pose_smooth(); 
 int run_inspect(); 
 // saml_fitting.cpp
 int removeSmalTail();

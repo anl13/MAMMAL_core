@@ -329,8 +329,11 @@ void FrameSolver::read_parametric_data()
 
 	for (int i = 0; i < 4; i++)
 	{
-		mp_bodysolverdevice[i]->setSource(m_matched[i]);
-		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
+		if (m_matched.size() > 0)
+		{
+			mp_bodysolverdevice[i]->setSource(m_matched[i]);
+			mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
+		}
 		std::string savefolder = result_folder + "/state";
 		if (is_smth) savefolder = savefolder + "_smth";
 		std::stringstream ss;
@@ -339,7 +342,8 @@ void FrameSolver::read_parametric_data()
 			<< ".txt";
 		mp_bodysolverdevice[i]->readState(ss.str());
 		mp_bodysolverdevice[i]->UpdateVertices();
-		mp_bodysolverdevice[i]->postProcessing();
+		if(m_matched.size() > 0) 
+			mp_bodysolverdevice[i]->postProcessing();
 		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
 	}
 }
@@ -1658,4 +1662,20 @@ void FrameSolver::computeIOUs()
 	}
 
 	m_ious = ious; 
+}
+
+void FrameSolver::save_joints()
+{
+	for (int pid = 0; pid < 4; pid++)
+	{
+		std::stringstream ss;
+		ss << result_folder << "/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+		std::ofstream outputfile(ss.str());
+		auto data = mp_bodysolverdevice[pid]->getRegressedSkel_host(); 
+		for (int i = 0; i < data.size(); i++)
+		{
+			outputfile << data[i].transpose() << std::endl;
+		}
+		outputfile.close();
+	}
 }

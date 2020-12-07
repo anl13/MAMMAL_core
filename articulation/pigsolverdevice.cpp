@@ -434,7 +434,6 @@ void PigSolverDevice::fitPoseToJointSameTopo(
 	float loss = 0;
 	int iterTime = 0;
 
-	TT.Start();
 	for (; iterTime < maxIterTime; iterTime++)
 	{
 		UpdateVertices();
@@ -444,8 +443,6 @@ void PigSolverDevice::fitPoseToJointSameTopo(
 
 		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, true);
 		d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float));
-
-		
 
 		Eigen::MatrixXf ATA_eigen = Eigen::MatrixXf::Zero(3 + 3 * M, 3 + 3 * M);
 		Eigen::VectorXf ATb_eigen = Eigen::VectorXf::Zero(3 + 3 * M);
@@ -470,8 +467,6 @@ void PigSolverDevice::fitPoseToJointSameTopo(
 		float grad_norm = delta.norm();
 		if (grad_norm < terminal) break;
 	}
-
-	float time = TT.Elapsed();
 
 	//std::cout << "iter : " << iterTime << "  ATb: " << loss << "  tpi: " << time / iterTime << std::endl;
 	return;
@@ -998,7 +993,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	std::vector<cv::Mat> diff_xvis;
 	std::vector<cv::Mat> diff_yvis;
 #endif 
-	std::cout << "pig " << m_pig_id << "  used sil view: ";
+	//std::cout << "pig " << m_pig_id << "  used sil view: ";
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
 		//if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
@@ -1007,7 +1002,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		int camid = m_viewids[view];
 		if (o_ious[camid] < m_iou_thres) continue; 
 		// compute detection image data 
-		std::cout << camid << ", "; 
+		//std::cout << camid << ", "; 
 
 		convertDepthToMaskHalfSize_device(d_depth_renders[camid], d_middle_mask, 1920, 1080);
 		sdf2d_device(d_middle_mask, d_rend_sdf, 960, 540);
@@ -1117,7 +1112,7 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		ATb += ATb_view * weight; 
 	}
 
-	std::cout << std::endl; 
+	//std::cout << std::endl; 
 
 #ifdef DEBUG_SIL
 	cv::Mat packP;

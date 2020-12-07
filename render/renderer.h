@@ -70,6 +70,7 @@ public:
 	void Draw(std::string type="color"); 
 	cv::Mat GetImage(); 
 	cv::Mat GetFloatImage();
+	cv::Mat GetImageOffscreen(); 
 
 	void SetBackgroundColor(const Eigen::Vector4f& _color) {
 		m_backgroundColor = _color;

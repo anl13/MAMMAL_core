@@ -193,7 +193,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties __JSONSchema="http://json.schemastore.org/apibuilder.json" />
+      <UserProperties />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

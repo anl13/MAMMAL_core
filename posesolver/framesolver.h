@@ -75,6 +75,8 @@ public:
 	void save_clusters();
 	void load_clusters();
 
+	void save_joints(); 
+
 	// overall depth rendering. 
 	void init_parametric_solver(); 
 	void renderInteractDepth(bool withMask=false);

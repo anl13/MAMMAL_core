@@ -30,6 +30,8 @@
 #include "test_kernel.h"
 
 #include "../utils/skel.h"
+#include <queue>
+#include <deque>
 
 std::vector<Camera> readCameras()
 {
@@ -607,95 +609,196 @@ void test_trajectory()
 
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
 	SkelTopology topo = getSkelTopoByType("UNIV"); 
+	//std::vector<int> kpt_color_ids = {
+	//		9,2,1,2,1, // face 
+	//		2,1,2,1,2,1, // front legs 
+	//		4,3,4,3,4,3, // back legs 
+	//		5,9,5,6,5,5 // ceneter and tail 
+	//};
+
+	int start = 750; 
+	int num = 2000;
+	int window = 50; 
+
+	cv::VideoWriter writer("G:/pig_middle_data/teaser/video/trajectory1.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 25.0, cv::Size(1920, 1080));
+	if (!writer.isOpened())
+	{
+		std::cout << "not open" << std::endl;
+		return; 
+	}
+
+	std::vector<Eigen::Vector2i> bones = {
+	{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
+	 {5,7}, {7,9}, {6,8}, {8,10},
+	{20,18},
+	{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
+	{0,20},{5,20},{6,20}
+	};
 	std::vector<int> kpt_color_ids = {
-			9,2,1,2,1, // face 
-			2,1,2,1,2,1, // front legs 
-			4,3,4,3,4,3, // back legs 
-			5,9,5,6,5,5 // ceneter and tail 
+		0,1,1,2,2,
+		3,4,3,4,3,4,
+		5,6,5,6,5,6,
+		0,7, 0,7,0,0
+	};
+	std::vector<int> bone_color_ids = {
+		1,2,0,1,2,3,3,4,4,
+		7,5,6,5,5,6,6,
+		7,3,4
 	};
 
-	int num = 200;
-
-	for (int pid = 0; pid < 4; pid++)
+	std::vector<std::deque<std::vector<Eigen::Vector3f> > > joints_queues;
+	joints_queues.resize(4); 
+	for (int frameid = start; frameid < start + num; frameid++)
 	{
-		for (int frameid = 750; frameid < 750 + num; frameid++)
+		std::cout << frameid << std::endl; 
+		// push to queue 
+		for (int pid = 0; pid < 4; pid++)
 		{
-			float ratio = ((frameid - 750) / float(num)) * 0.5 + 0.5;
 			std::stringstream ss;
-			ss << "G:/pig_middle_data/teaser/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			ss << "F:/pig_results_anchor_sil/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
 			std::string point_file = ss.str();
 			std::vector<Eigen::Vector3f> points = read_points(point_file);
+			joints_queues[pid].push_back(points);
+			if (joints_queues[pid].size() > window) joints_queues[pid].pop_front(); 
+		}
 
-			std::vector<Eigen::Vector2i> bones = {
-			{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
-			 {5,7}, {7,9}, {6,8}, {8,10},
-			{20,18},
-			{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
-			{0,20},{5,20},{6,20}
-			};
-			std::vector<int> kpt_color_ids = {
-				0,1,1,2,2,
-				3,4,3,4,3,4,
-				5,6,5,6,5,6,
-				0,7, 0,7,0,0
-			};
-			std::vector<int> bone_color_ids = {
-				1,2,0,1,2,3,3,4,4,
-				7,5,6,5,5,6,6,
-				7,3,4
-			};
+		m_renderer.clearAllObjs(); 
 
-			std::vector<Eigen::Vector3f> skels = points;
-			std::vector<Eigen::Vector3f> balls;
-			std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-			GetBallsAndSticks(skels, bones, balls, sticks);
-			int jointnum = skels.size();
-			std::vector<float> ball_sizes;
-			ball_sizes.resize(jointnum, 0.005);
-			std::vector<float> stick_sizes;
-			stick_sizes.resize(sticks.size(), 0.002);
-			std::vector<Eigen::Vector3f> ball_colors(jointnum);
-			std::vector<Eigen::Vector3f> stick_colors(sticks.size());
-			for (int i = 0; i < jointnum; i++)
+#if 1 // trajectory type1 
+		for (int index = 0; index < joints_queues[0].size(); index++)
+		{
+			for (int pid = 0; pid < 4; pid++)
 			{
-				ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
-			}
-			for (int i = 0; i < sticks.size(); i++)
-			{
-				//stick_colors[i] = CM[bone_color_ids[i]] * ratio;
-				stick_colors[i] = CM2[pid] * ratio;
-			}
+				int ratio_index = window - joints_queues[0].size() + index;
+				float ratio = (2 - (ratio_index / float(window)));
 
-			if (1)
-			{
+				std::vector<Eigen::Vector3f> skels = joints_queues[pid][index];
+				std::vector<Eigen::Vector3f> balls;
+				std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+				GetBallsAndSticks(skels, bones, balls, sticks);
+				int jointnum = skels.size();
+				std::vector<float> ball_sizes;
+				ball_sizes.resize(jointnum, 0.005/ratio);
+				std::vector<float> stick_sizes;
+				stick_sizes.resize(sticks.size(), 0.002/ratio);
+				std::vector<Eigen::Vector3f> ball_colors(jointnum);
+				std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+				for (int i = 0; i < jointnum; i++)
+				{
+					ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
+				}
+				for (int i = 0; i < sticks.size(); i++)
+				{
+					//stick_colors[i] = CM[bone_color_ids[i]] * ratio;
+					stick_colors[i] = CM2[pid] * ratio;
+				}
+
 				BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
 					balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+				p_skel->isMultiLight = false; 
 				m_renderer.skels.push_back(p_skel);
+
+			}
+		}
+#else 
+		for (int index = 0; index < joints_queues[0].size(); index++)
+		{
+			if (index == joints_queues[0].size() - 1)
+			{
+				for (int pid = 0; pid < 4; pid++)
+				{
+					int ratio_index = window - joints_queues[0].size() + index; 
+					float ratio = (2 - (ratio_index / float(window)));
+
+					std::vector<Eigen::Vector3f> skels = joints_queues[pid][index];
+					std::vector<Eigen::Vector3f> balls;
+					std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+					GetBallsAndSticks(skels, bones, balls, sticks);
+					int jointnum = skels.size();
+					std::vector<float> ball_sizes;
+					ball_sizes.resize(jointnum, 0.015);
+					std::vector<float> stick_sizes;
+					stick_sizes.resize(sticks.size(), 0.009);
+					std::vector<Eigen::Vector3f> ball_colors(jointnum);
+					std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+					for (int i = 0; i < jointnum; i++)
+					{
+						ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
+					}
+					for (int i = 0; i < sticks.size(); i++)
+					{
+						//stick_colors[i] = CM[bone_color_ids[i]] * ratio;
+						stick_colors[i] = CM2[pid] * ratio;
+					}
+
+					BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+						balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+					p_skel->isMultiLight = false; 
+					m_renderer.skels.push_back(p_skel);
+				}
 			}
 			else
 			{
-				BallStickObject* p_skel = new BallStickObject(ballMeshEigen, balls, ball_sizes, ball_colors);
-				m_renderer.skels.push_back(p_skel);
+				for (int pid = 0; pid < 4; pid++)
+				{
+					float ratio = (2 - (index / float(window)));
+
+					std::vector<Eigen::Vector3f> skels = joints_queues[pid][index];
+					std::vector<Eigen::Vector3f> balls;
+					std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+					GetBallsAndSticks(skels, bones, balls, sticks);
+					int jointnum = skels.size();
+					std::vector<float> ball_sizes;
+					ball_sizes.resize(jointnum, 0.002);
+
+					// sticks: connect last to current
+					sticks.clear(); 
+					sticks.resize(jointnum); 
+					std::vector<float> stick_sizes;
+					for (int k = 0; k < jointnum; k++)
+					{
+						sticks[k].first = joints_queues[pid][index][k];
+						sticks[k].second = joints_queues[pid][index + 1][k];
+					}
+					stick_sizes.resize(sticks.size(), 0.001);
+					std::vector<Eigen::Vector3f> ball_colors(jointnum);
+					std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+					for (int i = 0; i < jointnum; i++)
+					{
+						ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
+					}
+					for (int i = 0; i < sticks.size(); i++)
+					{
+						stick_colors[i] = CM[kpt_color_ids[i]] * ratio;
+					}
+
+					BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+						balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+					m_renderer.skels.push_back(p_skel);
+				}
 			}
 		}
+#endif 
+		m_renderer.createScene(conf_projectFolder);
+
+		cv::Mat img = m_renderer.GetImageOffscreen();
+		writer.write(img);
+
+		//std::stringstream output_ss; 
+		//output_ss << "G:/pig_middle_data/teaser/video/trajectory_" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
+		//cv::imwrite(output_ss.str(), img);
+		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		//while (!glfwWindowShouldClose(windowPtr))
+		//{
+		//	//glPolygonMode(GL_FRONT, GL_FILL);
+		//	m_renderer.Draw();
+
+		//	glfwSwapBuffers(windowPtr);
+		//	glfwPollEvents();
+		//};
 	}
+	writer.release(); 
 
-	m_renderer.createScene(conf_projectFolder); 
-	//m_renderer.createPlane(conf_projectFolder);
-
-	m_renderer.Draw(); 
-	cv::Mat img = m_renderer.GetImage(); 
-	cv::imwrite("G:/pig_middle_data/teaser/trajectory.png", img); 
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-
-	while (!glfwWindowShouldClose(windowPtr))
-	{
-		//glPolygonMode(GL_FRONT, GL_FILL);
-		m_renderer.Draw();
-
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
-	};
 }
 
 void main()
