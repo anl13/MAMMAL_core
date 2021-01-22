@@ -861,8 +861,6 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 			CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter);
 	}
 
-	
-
 	float lambda = m_lambda;
 	float w_data = m_w_data_term;
 	float w_sil; 
@@ -884,10 +882,14 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	Eigen::VectorXf ATb_anchor = Eigen::VectorXf::Zero(paramNum);
 	Eigen::MatrixXf ATA_anchor_h = Eigen::MatrixXf::Zero(paramNum, paramNum);
 	Eigen::VectorXf ATb_anchor_h = Eigen::VectorXf::Zero(paramNum); 
-	calcAnchorTerm_host(m_anchor_id, theta, ATA_anchor, ATb_anchor);
-	calcAnchorTermHeight_host(m_anchor_id, h_J_skel, ATA_anchor_h, ATb_anchor_h);
-	ATA_anchor += ATA_anchor_h; 
-	ATb_anchor += ATb_anchor_h; 
+
+	if (w_anchor > 0)
+	{
+		calcAnchorTerm_host(m_anchor_id, theta, ATA_anchor, ATb_anchor);
+		calcAnchorTermHeight_host(m_anchor_id, h_J_skel, ATA_anchor_h, ATb_anchor_h);
+		ATA_anchor += ATA_anchor_h;
+		ATb_anchor += ATb_anchor_h;
+	}
 
 	Eigen::MatrixXf DTD;
 	CalcLambdaTerm(DTD);

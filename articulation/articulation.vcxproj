@@ -174,6 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="artist_config.json" />
+    <None Include="artist_config_sym.json" />
     <None Include="pigmodel_config.json" />
     <None Include="smal2_config.json" />
     <None Include="smal_config.json" />

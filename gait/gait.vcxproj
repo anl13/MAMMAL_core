@@ -20,8 +20,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
-    <ProjectGuid>{77596E1D-A0D3-4E18-AECF-85D6938E20CA}</ProjectGuid>
-    <RootNamespace>posesolver</RootNamespace>
+    <ProjectGuid>{064E9564-5EDE-4687-ABE7-C1B91AFE5DA5}</ProjectGuid>
+    <RootNamespace>gait</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -53,7 +53,6 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.props" />
   </ImportGroup>
   <ImportGroup Label="Shared">
   </ImportGroup>
@@ -68,12 +67,12 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="..\props\eigen.props" />
-    <Import Project="..\props\ceres.props" />
-    <Import Project="..\props\boost1.65.props" />
-    <Import Project="..\props\json.props" />
-    <Import Project="..\props\gl-pcl.props" />
     <Import Project="..\props\opencv450.props" />
+    <Import Project="..\props\boost1.65.props" />
+    <Import Project="..\props\eigen.props" />
+    <Import Project="..\props\json.props" />
+    <Import Project="..\props\ceres.props" />
+    <Import Project="..\props\nanorenderer.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -91,10 +90,6 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
-    <CudaCompile>
-      <CodeGeneration>compute_52,sm_52</CodeGeneration>
-      <TargetMachinePlatform>64</TargetMachinePlatform>
-    </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -134,81 +129,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
-    <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
-    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp" />
-    <ClCompile Include="..\GMM\gmm.cpp" />
-    <ClCompile Include="..\render\camviewer.cpp" />
-    <ClCompile Include="..\render\renderer.cpp" />
-    <ClCompile Include="..\render\render_object.cpp" />
-    <ClCompile Include="..\render\render_utils.cpp" />
-    <ClCompile Include="..\render\shader.cpp" />
-    <ClCompile Include="..\utils\camera.cpp" />
-    <ClCompile Include="..\utils\geometry.cpp" />
-    <ClCompile Include="..\utils\Hungarian.cpp" />
-    <ClCompile Include="..\utils\image_utils.cpp" />
-    <ClCompile Include="..\utils\image_utils_gpu.cpp" />
-    <ClCompile Include="..\utils\math_utils.cpp" />
-    <ClCompile Include="..\utils\mesh.cpp" />
-    <ClCompile Include="..\utils\skel.cpp" />
-    <ClCompile Include="clusterclique.cpp" />
-    <ClCompile Include="framedata.cpp" />
-    <ClCompile Include="framesolver.cpp" />
-    <ClCompile Include="framesolver_pipeline.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="matching.cpp" />
-    <ClCompile Include="mce\AdjacencyListAlgorithm.cpp" />
-    <ClCompile Include="mce\Algorithm.cpp" />
-    <ClCompile Include="mce\MemoryManager.cpp" />
-    <ClCompile Include="mce\Tools.cpp" />
-    <ClCompile Include="run_inspect.cpp" />
-    <ClCompile Include="run_pose.cpp" />
-    <ClCompile Include="run_pose_render.cpp" />
-    <ClCompile Include="scenedata.cpp" />
-    <ClCompile Include="tracking.cpp" />
-    <ClCompile Include="visualize_seq.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="..\articulation\gpuutils.cu" />
-    <CudaCompile Include="..\articulation\pigmodeldevice.cu" />
-    <CudaCompile Include="..\articulation\pigsolverdevice.cu" />
-    <CudaCompile Include="..\render\cuda_utils_render.cu">
-      <FileType>Document</FileType>
-    </CudaCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <CudaCompile Include="..\utils\image_utils_gpu.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\articulation\gpuutils.h" />
-    <ClInclude Include="..\articulation\pigmodeldevice.h" />
-    <ClInclude Include="..\articulation\pigsolverdevice.h" />
-    <ClInclude Include="..\articulation\vector_operations.hpp" />
-    <ClInclude Include="clusterclique.h" />
-    <ClInclude Include="framedata.h" />
-    <ClInclude Include="framesolver.h" />
-    <ClInclude Include="main.h" />
-    <ClInclude Include="matching.h" />
-    <ClInclude Include="mce\AdjacencyListAlgorithm.h" />
-    <ClInclude Include="mce\Algorithm.h" />
-    <ClInclude Include="mce\MemoryManager.h" />
-    <ClInclude Include="mce\Tools.h" />
-    <ClInclude Include="scenedata.h" />
-    <ClInclude Include="tracking.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\articulation\artist_config.json" />
-    <None Include="config.json" />
-    <None Include="confignew.json" />
-    <None Include="config_seq2.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
-    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 10.2.targets" />
   </ImportGroup>
-  <ProjectExtensions>
-    <VisualStudio>
-      <UserProperties confignew_1json__JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" />
-    </VisualStudio>
-  </ProjectExtensions>
 </Project>

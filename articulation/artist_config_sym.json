@@ -68,15 +68,16 @@
   "temp_term": 1,
 
   "floor_term": 0.1,
-  "anchor_term": 0.01,
+  "anchor_term": 0.0,
   "gmm_term": 0.05,
   "reg_weights": [ [ 2, 1, 1, 1 ] ],
   "kpt_track_dist": 400, // px  * depthweight
-  //"scales": [ 1.337, 1.280, 1.406, 1.300 ], 
+  //"scales": [ 1.337, 1.280, 1.406, 1.300 ],
   //"scales": [ 1.406, 1.337, 1.300, 1.28056 ],
-  "scales" :  [1.337, 1.28056, 1.300, 1.406],// order of match_by_tracking in 750 frame
+  "scales": [ 1.337, 1.28056, 1.300, 1.406 ], // order of match_by_tracking in 750 frame
   "iou_thres": 0.8,
-  "anchor_folder": "G:/pig_middle_data/pose_lib3_new/"
+  //"anchor_folder": "G:/pig_middle_data/pose_lib3_new/"
+  "anchor_folder":  "G:/pig_middle_data/pose_lib2_new/"
 }
 
 

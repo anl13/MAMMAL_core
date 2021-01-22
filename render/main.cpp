@@ -286,7 +286,7 @@ void test_depth()
 void test_color_table()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 
 	// init a camera 
 	Eigen::Matrix3f K;
@@ -803,6 +803,6 @@ void test_trajectory()
 
 void main()
 {
-	test_trajectory();
-	//test_color_table();
+	//test_trajectory();
+	test_color_table();
 }

@@ -167,6 +167,7 @@
     <None Include="smal_config.json" />
     <None Include="smal2_config.json" />
     <None Include="artist_config.json" />
+    <None Include="artist_config_sym.json" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="pigmodeldevice.cu">

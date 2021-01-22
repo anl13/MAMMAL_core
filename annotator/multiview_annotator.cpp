@@ -37,33 +37,36 @@ void readStateFile(std::string state_file, Eigen::Vector3f& translation, float& 
 
 int multiview_annotator()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/render";
-
+	std::string projectParentDir = "D:/Projects/";
+	std::string projectDir = projectParentDir + "animal_calib/"; 
 	std::vector<float4> colormap = getColorMapFloat4("anliang_render");
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_render");
     /// read frame data 
 	FrameSolver data_loader; 
-	std::string data_config = "D:/Projects/animal_calib/posesolver/confignew.json"; 
+	std::string data_config = projectDir + "posesolver/confignew.json"; 
 	data_loader.configByJson(data_config); 
-	data_loader.set_frame_id(0); 
+	data_loader.set_frame_id(750); 
 	data_loader.fetchData(); 
-	data_loader.result_folder = "H:/pig_results_debug/"; 
+	data_loader.is_smth = true;
+	data_loader.result_folder = "H:/pig_results_anchor_sil/"; 
 	data_loader.load_clusters();
 	data_loader.read_parametric_data(); 
+
 
 	auto solvers = data_loader.mp_bodysolverdevice;
 
 	/// read smal model 
 	Mesh obj;
-	obj.Load("D:/Projects/animal_calib/shapesolver/data/model.obj");
+	obj.Load(projectDir + "shapesolver/data/model.obj");
 	MeshFloat4 objfloat4(obj);
 
 	std::vector<Camera> cams = readCameras();
 	Camera cam = cams[0];
 
 	NanoRenderer renderer;
-	renderer.Init(1920, 1080, cam.K(0, 0), cam.K(1, 1), cam.K(0, 2), cam.K(1, 2), 0);
+	renderer.Init(1920, 1080, cam.K(0, 0), cam.K(1, 1), cam.K(0, 2), cam.K(1, 2), 0, false, "G:/pig_middle_data/annotate/");
 	std::cout << "renderer init. " << std::endl; 
+	renderer.out_frameid = 750; 
 
 	//Eigen::Matrix4f view_eigen = calcRenderExt(cam.R, cam.T);
 	//nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
@@ -81,7 +84,7 @@ int multiview_annotator()
 	smal_model->SetBuffer("normals", objfloat4.normals);
 	smal_model->SetBuffer("incolor", colors_float4);
 
-	std::string pig_conf = "D:/Projects/animal_calib/articulation/artist_config_sym.json";
+	std::string pig_conf = projectDir + "articulation/artist_config_sym.json";
 	PigModelDevice pigmodel(pig_conf);
 	pigmodel.SetPose(solvers[0]->GetPose());
 	pigmodel.SetScale(solvers[0]->GetScale());
@@ -112,7 +115,7 @@ int multiview_annotator()
 	// scene
 	// -- part1
 	Mesh planeobj;
-	planeobj.Load("D:/Projects/animal_calib/data/calibdata/scene_model/manual_scene_part0.obj");
+	planeobj.Load( projectDir + "data/calibdata/scene_model/manual_scene_part0.obj");
 	MeshFloat4 boxfloat4(planeobj);
 	// create a renderObject, you need to specify which shader you want to use, and set corresponding buffers in the shader
 	// by using the straightforward interfaces provided. 
@@ -120,7 +123,7 @@ int multiview_annotator()
 	box1->SetIndices(boxfloat4.indices);
 	box1->SetBuffer("positions", boxfloat4.vertices);
 	box1->SetTexCoords(boxfloat4.textures);
-	cv::Mat tex0Image = cv::imread("D:/Projects/animal_calib/render/data/chessboard_black.png", cv::IMREAD_UNCHANGED);
+	cv::Mat tex0Image = cv::imread(projectDir + "render/data/chessboard_black.png", cv::IMREAD_UNCHANGED);
 	cv::cvtColor(tex0Image, tex0Image, cv::COLOR_BGRA2RGBA);
 	box1->SetTexture(
 		"tex0",
@@ -129,7 +132,7 @@ int multiview_annotator()
 		nanogui::Vector2i(tex0Image.cols, tex0Image.rows), tex0Image.data);
 	// -- part2
 	Mesh obj2;
-	obj2.Load("D:/Projects/animal_calib/data/calibdata/scene_model/manual_scene_part1.obj");
+	obj2.Load(projectDir + "data/calibdata/scene_model/manual_scene_part1.obj");
 	MeshFloat4 obj2float4(obj2);
 	auto part1_model = renderer.CreateRenderObject("part1", vs_phong_vertex_color, fs_phong_vertex_color);
 	part1_model->SetIndices(obj2float4.indices);
@@ -140,7 +143,7 @@ int multiview_annotator()
 	part1_model->SetBuffer("incolor", part1_colors);
 	// -- part3
 	Mesh obj3;
-	obj3.Load("D:/Projects/animal_calib/data/calibdata/scene_model/manual_scene_part2.obj");
+	obj3.Load(projectDir + "data/calibdata/scene_model/manual_scene_part2.obj");
 	MeshFloat4 obj3float4(obj3);
 	auto part2_model = renderer.CreateRenderObject("part1", vs_phong_vertex_color, fs_phong_vertex_color);
 	part2_model->SetIndices(obj3float4.indices);

@@ -16,8 +16,9 @@ NanoRenderer::~NanoRenderer()
 }
 
 void NanoRenderer::Init(const int& window_width, const int& window_height,
-	float fx, float fy, float cx, float cy, float arcball_depth /*= 2.0f*/, bool is_pinhole)
+	float fx, float fy, float cx, float cy, float arcball_depth /*= 2.0f*/, bool is_pinhole, std::string result_dir)
 {
+	m_results_folder = result_dir;
 	m_window_width = window_width;
 	m_window_height = window_height;
 	std::cout << "Is pinhole: " << is_pinhole << std::endl;

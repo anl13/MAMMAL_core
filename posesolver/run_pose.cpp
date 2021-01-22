@@ -21,7 +21,7 @@
 void save_joints(int pid, int fid, const std::vector<Eigen::Vector3f>& data)
 {
 	std::stringstream ss;
-	ss << "F:/pig_results_anchor_sil/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt"; 
+	ss << "H:/pig_results_anchor_sil/joints_62/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt"; 
 	std::ofstream outputfile(ss.str()); 
 	for (int i = 0; i < data.size(); i++)
 	{
@@ -49,7 +49,7 @@ int run_pose_smooth()
 	auto cam = cams[0];
 
 	// init renderer
-	frame.result_folder = "F:/pig_results_anchor_sil/";
+	frame.result_folder = "H:/pig_results_anchor_sil/";
 	frame.is_smth = false;
 	int start = frame.get_start_id();
 	frame.init_parametric_solver(); 
@@ -73,12 +73,12 @@ int run_pose_smooth()
 		for (int pid = 0; pid < 4; pid++)
 		{
 			std::stringstream ss; 
-			ss << "F:/pig_results_anchor_sil/joints_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			ss << "H:/pig_results_anchor_sil/joints_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
 			std::vector<Eigen::Vector3f> points62 = read_points(ss.str()); 
 			solvers[pid]->fitPoseToJointSameTopo(points62);
 
 			std::stringstream ss_state; 
-			ss_state << "F:/pig_results_anchor_sil/state_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			ss_state << "H:/pig_results_anchor_sil/state_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
 			solvers[pid]->saveState(ss_state.str()); 
 		}
 	}

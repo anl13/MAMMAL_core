@@ -284,7 +284,7 @@ public:
 	~NanoRenderer();
 
 	void Init(const int& window_width, const int& window_height, 
-		float fx = 400.f, float fy = 400.f, float cx = -1.f, float cy = -1.f, float arcball_depth = 2.0f, bool is_pinhole=false);
+		float fx = 400.f, float fy = 400.f, float cx = -1.f, float cy = -1.f, float arcball_depth = 2.0f, bool is_pinhole=false, std::string result_dir="");
 	void Draw();
 	bool Pause() { return m_pause; }
 	void Stop();
@@ -353,7 +353,7 @@ public:
 
 	bool m_save_screen = false;
 	bool m_pause = false;
-	std::string m_results_folder = "H:/annotated_state/";
+	std::string m_results_folder = "";
 	int out_frameid = 0; 
 	test_enum enumval = PIG_0;
 	bool m_control_panel_visible = false;

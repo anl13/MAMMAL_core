@@ -47,11 +47,11 @@ int run_inspect()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "F:/pig_results_anchor_sil/";
+	frame.result_folder = "H:/pig_results_anchor_sil/";
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 
-	std::string test_result_folder = "F:/pig_results_anchor_sil/";
+	std::string test_result_folder = "H:/pig_results_anchor_sil/";
 	frame.init_parametric_solver(); 
 
 
@@ -96,8 +96,10 @@ int run_inspect()
 				}
 			}
 			frame.DARKOV_Step1_setsource();
-			frame.DARKOV_Step2_loadanchor();
-
+			//frame.DARKOV_Step2_loadanchor();
+			//frame.DARKOV_Step2_searchanchor(); 
+			//frame.saveAnchors("H:/pig_results_anchor_sil/anchor_state_20/"); 
+			//continue; 
 			//if(frameid == start)
 			//	frame.DARKOV_Step2_optimanchor(); 
 
@@ -108,13 +110,12 @@ int run_inspect()
 			else
 			{
 				frame.DARKOV_Step4_fitrawsource();
+				frame.DARKOV_Step3_reassoc_type2();
+				frame.m_solve_sil_iters = 20;
+				frame.DARKOV_Step4_fitreassoc();
 			}
-			frame.DARKOV_Step3_reassoc_type2(); 
-			frame.m_solve_sil_iters = 20;
-			frame.DARKOV_Step4_fitreassoc(); 
 			frame.DARKOV_Step5_postprocess();
-			frame.save_parametric_data(); 
-			
+			frame.save_parametric_data();
 
 			//cv::Mat reassoc = frame.visualizeReassociation();
 			//std::stringstream ss_reassoc;

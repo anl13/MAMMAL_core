@@ -7,9 +7,9 @@
   "imgExtension": "jpg",
   //"camfolder": "/home/al17/animal/animal_calib/results/",
   "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust_new/",
-  "startid": 2749,
+  "startid": 750,
   "epipolartype": "p2l", // "p2l" or "l2l"
-  "framenum": 7300,
+  "framenum": 9250,
   "epipolar_threshold": 25,
   "box_expand_ratio": 0.01,
   "skel_type": "UNIV",
@@ -19,5 +19,5 @@
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
   "use_gpu": true,
   "solve_sil_iters": 60,
-  "anchor_folder":  "F:/pig_results_anchor_sil/anchor_state_252_smth_swap"
+  "anchor_folder":  "H:/pig_results_anchor_sil/anchor_state_20"
 }

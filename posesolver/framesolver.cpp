@@ -106,6 +106,7 @@ cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 		if (vid >= 0 && id != vid)continue;
 		for (int i = 0; i < m_matched[id].view_ids.size(); i++)
 		{
+			if (viewid >= 0 && m_matched[id].view_ids[i] != viewid) continue;
 			Eigen::Vector3i color;
 			color(0) = m_CM[id](2);
 			color(1) = m_CM[id](1);
@@ -1669,7 +1670,7 @@ void FrameSolver::save_joints()
 	for (int pid = 0; pid < 4; pid++)
 	{
 		std::stringstream ss;
-		ss << result_folder << "/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+		ss << result_folder << "/joints_23_smth_center/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
 		std::ofstream outputfile(ss.str());
 		auto data = mp_bodysolverdevice[pid]->getRegressedSkel_host(); 
 		for (int i = 0; i < data.size(); i++)
