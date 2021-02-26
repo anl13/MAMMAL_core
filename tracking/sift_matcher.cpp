@@ -109,7 +109,7 @@ void clean_bfmatches(
 		float dist = (key1[a].pt.x - key2[b].pt.x) * (key1[a].pt.x - key2[b].pt.x) +
 			(key1[a].pt.y - key2[b].pt.y)*(key1[a].pt.y - key2[b].pt.y);
 		dist = sqrtf(dist); 
-		if (dist < 50) output.push_back(matches[i]); 
+		if (dist < 60) output.push_back(matches[i]); 
 	}
 }
 

@@ -454,8 +454,8 @@ void my_draw_mask(cv::Mat& img,
         for(int j = 0; j < contour_list[i].size(); j++)
         {
             cv::Point2i p;
-            p.x = int(contour_list[i][j](0)); 
-            p.y = int(contour_list[i][j](1)); 
+            p.x = round(contour_list[i][j](0)); 
+            p.y = round(contour_list[i][j](1)); 
             contour_part.push_back(p); 
         }
         contours.push_back(contour_part); 
@@ -486,6 +486,23 @@ void my_draw_mask_gray(cv::Mat& grey,
 	}
 	cv::fillPoly(grey, contours, c);
 	//img = grey;
+}
+
+void my_draw_box_fill_gray(cv::Mat& img, const Eigen::Vector4f& box, unsigned int c)
+{
+	vector < vector < cv::Point2i > > contour_list;
+	cv::Point2i P1;
+	P1.x = int(box(0)); 
+	P1.y = int(box(1)); 
+	cv::Point2i P2(int(box(2)), int(box(1)));
+	cv::Point2i P3(int(box(2)), int(box(3))); 
+	cv::Point2i P4(int(box(0)), int(box(3))); 
+	contour_list.resize(1); 
+	contour_list[0].push_back(P1); 
+	contour_list[0].push_back(P2); 
+	contour_list[0].push_back(P3); 
+	contour_list[0].push_back(P4);
+	cv::fillPoly(img, contour_list, c); 
 }
 
 cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha)

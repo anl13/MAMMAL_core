@@ -239,6 +239,12 @@ public:
 
 	std::vector<float> o_ious; 
 
+
+	// 2021/2/20 add: fitting for clicked points  
+	std::vector<std::vector<Eigen::Vector3f> > clicked_points; 
+	void optimizePoseWithClickedPoints();
+
+
 protected:
 
 	// state indicator 

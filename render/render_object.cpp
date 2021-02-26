@@ -146,7 +146,7 @@ RenderObjectTexture::RenderObjectTexture()
 {
 	glGenBuffers(1, &VBO_texcoord);
 	glGenTextures(1, &textureID);
-
+	isFaceIndex = false; 
 }
 
 
@@ -220,6 +220,34 @@ void RenderObjectTexture::SetTexture(const std::string& texturePath)
 		// throw std::string("Texture failed to load at path: " + texturePath);
 		std::cout << "[RenderObjectTexture] Texture failed to load at path " << texturePath << std::endl; 
 		exit(-1); 
+	}
+}
+
+void RenderObjectTexture::SetTexture(cv::Mat& teximg)
+{
+	int width, height, nrComponents;
+	cv::Mat a; 
+	cv::cvtColor(teximg, a, cv::COLOR_BGR2RGB);
+
+	if (1)
+	{
+		GLenum format;
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		format = GL_RGB;
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, a.cols, a.rows, 0, format, GL_UNSIGNED_BYTE, a.data);
+
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		// throw std::string("Texture failed to load at path: " + texturePath);
+		exit(-1);
 	}
 }
 

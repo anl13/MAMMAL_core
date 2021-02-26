@@ -332,6 +332,9 @@ void Renderer::InitShader()
 	xrayShader = SimpleShader(m_shaderFolder + "/xray_v.shader",
 		m_shaderFolder + "/xray_f.shader"); 
 
+	faceindexShader = SimpleShader(m_shaderFolder + "/faceindex_v.shader",
+		m_shaderFolder + "/faceindex_f.shader"); 
+
 	std::cout << "init depth shader" << std::endl; 
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -416,7 +419,15 @@ void Renderer::Draw(std::string type)
 
 	for(int i = 0; i < texObjs.size(); i++)
 	{
-		if (texObjs[i]->isMultiLight)
+		if (texObjs[i]->isFaceIndex)
+		{
+			faceindexShader.Use(); 
+			s_camViewer.ConfigShader(faceindexShader); 
+			faceindexShader.SetInt("object_texture", 0);
+			glActiveTexture(GL_TEXTURE0);
+			texObjs[i]->DrawWhole(faceindexShader); 
+		}
+		else if (texObjs[i]->isMultiLight)
 		{
 			textureShaderML.Use();
 			s_camViewer.ConfigShader(textureShaderML);

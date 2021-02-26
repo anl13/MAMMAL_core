@@ -172,6 +172,9 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_anchor_lib.load(m_anchor_folder);
 
 	m_isReAssoc = false;
+
+	// 2021/2/20 add: init clicked points 
+
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -1983,4 +1986,9 @@ void PigSolverDevice::computeAllSkelVisibility()
 	{
 		m_skel_vis[camid] = regressSkelVisibility(camid); 
 	}
+}
+
+void PigSolverDevice::optimizePoseWithClickedPoints()
+{
+
 }

@@ -64,14 +64,14 @@
   "lambda": 0.05,
   "data_term": 1,
   "sil_term": 0.00001,
-  "reg_term": 0.01,
+  "reg_term": 0.05,
   "temp_term": 0.1,
   "floor_term": 0,
   "anchor_term": 0.0,
   "gmm_term": 0.0,
   "reg_weights": [ [ 2, 1, 1, 1 ] ],
   "kpt_track_dist": 80, // px  * depthweight
-  "scales": [1.08, 1.135, 1.135, 1.08]
+  "scales": [1.28056, 1.406, 1.337, 1.300]
 }
 
 

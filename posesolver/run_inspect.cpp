@@ -5,6 +5,7 @@
 #include <fstream> 
 #include <Eigen/Eigen> 
 #include <opencv2/opencv.hpp>
+#include <boost/filesystem.hpp>
 
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
@@ -25,7 +26,7 @@ int run_inspect()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/confignew.json");
+	frame.configByJson(conf_projectFolder + "/posesolver/config_seq2.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -47,11 +48,22 @@ int run_inspect()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "H:/pig_results_anchor_sil/";
+	frame.result_folder = "D:/results/seq_noon/";
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 
-	std::string test_result_folder = "H:/pig_results_anchor_sil/";
+	std::string test_result_folder = "D:/results/seq_noon/";
+	{
+		if (!boost::filesystem::is_directory(test_result_folder + "assoc"))
+			boost::filesystem::create_directory(test_result_folder + "assoc");
+		if (!boost::filesystem::is_directory(test_result_folder + "render_all"))
+			boost::filesystem::create_directory(test_result_folder + "render_all");
+		if (!boost::filesystem::is_directory(test_result_folder + "clusters"))
+			boost::filesystem::create_directory(test_result_folder + "clusters");
+		if (!boost::filesystem::is_directory(test_result_folder + "state"))
+			boost::filesystem::create_directory(test_result_folder + "state");
+
+	}
 	frame.init_parametric_solver(); 
 
 
@@ -65,16 +77,22 @@ int run_inspect()
 		
 		if (frameid == start)
 			//frame.matching_by_tracking();
-			frame.load_clusters(); 
+			frame.load_clusters();
 		else
 			frame.pureTracking(); 
-		//cv::Mat assoc = frame.visualizeIdentity2D();
-		//std::stringstream ss;
-		//ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		//cv::imwrite(ss.str(), assoc);
+		cv::Mat assoc = frame.visualizeIdentity2D();
+
+		std::stringstream ss;
+		ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss.str(), assoc);
 		frame.save_clusters(); 
 
-		//frame.read_parametric_data(); 
+		if (frameid == start)
+		{
+			frame.read_parametric_data(); 
+			frame.DARKOV_Step5_postprocess();
+			continue; 
+		}
 		// pipeline 3 
 		if(true)
 		{
@@ -103,17 +121,12 @@ int run_inspect()
 			//if(frameid == start)
 			//	frame.DARKOV_Step2_optimanchor(); 
 
-			if (frameid == start)
-			{
-				frame.read_parametric_data();
-			}
-			else
-			{
-				frame.DARKOV_Step4_fitrawsource();
-				frame.DARKOV_Step3_reassoc_type2();
-				frame.m_solve_sil_iters = 20;
-				frame.DARKOV_Step4_fitreassoc();
-			}
+
+			frame.DARKOV_Step4_fitrawsource();
+			frame.DARKOV_Step3_reassoc_type2();
+			frame.m_solve_sil_iters = 20;
+			frame.DARKOV_Step4_fitreassoc();
+			
 			frame.DARKOV_Step5_postprocess();
 			frame.save_parametric_data();
 
@@ -140,7 +153,6 @@ int run_inspect()
 			//frame.pipeline2_searchanchor();
 			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
 			
-			continue;
 			m_renderer.clearAllObjs();
 
 			auto solvers = frame.mp_bodysolverdevice;
@@ -208,7 +220,7 @@ int run_inspect()
 			overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
 			std::stringstream all_render_file;
-			all_render_file << test_result_folder << "/render_all/debug/" << std::setw(6) << std::setfill('0')
+			all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
 				<< frameid << ".png";
 			cv::imwrite(all_render_file.str(), blend);
 		}

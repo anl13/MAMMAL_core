@@ -798,11 +798,127 @@ void test_trajectory()
 		//};
 	}
 	writer.release(); 
+}
 
+void generateFaceIndexMap()
+{
+	Mesh obj;
+	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	obj.ReMapTexture(); 
+	
+	std::cout << "face v: " << obj.faces_v_vec.size() << std::endl; 
+	std::cout << "face t: " << obj.faces_t_vec.size() << std::endl;
+
+	cv::Mat img;
+	img.create(cv::Size(2048, 2048), CV_8UC3); 
+	img = img * 0;
+	for (int findex = 0; findex < obj.faces_v_vec.size(); findex++)
+	{
+		int t1 = obj.faces_t_vec[findex](0);
+		int t2 = obj.faces_t_vec[findex](1);
+		int t3 = obj.faces_t_vec[findex](2);
+		Eigen::Vector2f p1 = obj.textures_vec[t1] * 2048;
+		Eigen::Vector2f p2 = obj.textures_vec[t2] * 2048;
+		Eigen::Vector2f p3 = obj.textures_vec[t3] * 2048;
+		cv::Point2i cvp1(round(p1(0)), round(p1(1)));
+		cv::Point2i cvp2(round(p2(0)), round(p2(1)));
+		cv::Point2i cvp3(round(p3(0)), round(p3(1)));
+		std::vector<std::vector<cv::Point2i> > contour; 
+		contour.resize(1); 
+		contour[0].push_back(cvp1);
+		contour[0].push_back(cvp2); 
+		contour[0].push_back(cvp3);
+		int g = findex / 256;
+		int r = findex % 256; 
+		cv::Scalar color(0, g, r);
+		cv::fillPoly(img, contour, color, 1, 0);
+	}
+	cv::imwrite("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png", img); 
+	//for (int x = 0; x < 2048; x++)
+	//{
+	//	for (int y = 0; y < 2048; y++)
+	//	{
+	//		float xf = x / 2048;
+	//		float yf = y / 2048; 
+
+	//	}
+	//}
+	
+}
+
+void test_indexrender()
+{
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
+	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
+	Eigen::Vector3f center = Eigen::Vector3f::Zero();
+
+	// init renderer 
+	Renderer::s_Init();
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	Mesh obj;
+	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	for (int i = 0; i < obj.vertices_vec.size(); i++)
+	{
+		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0.21);
+	}
+
+	obj.ReMapTexture();
+
+	RenderObjectTexture* p_model = new RenderObjectTexture();
+	p_model->SetTexture("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png");
+	p_model->SetFaces(obj.faces_t_vec);
+	p_model->SetVertices(obj.vertices_vec_t);
+	p_model->SetNormal(obj.normals_vec_t, 2);
+	p_model->SetTexcoords(obj.textures_vec, 1);
+	p_model->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	p_model->isMultiLight = false;
+	p_model->isFaceIndex = true; 
+	m_renderer.texObjs.push_back(p_model);
+
+	//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+
+	//m_renderer.createScene(conf_projectFolder); 
+	//m_renderer.createPlane(conf_projectFolder);
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		m_renderer.Draw();
+
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
 }
 
 void main()
 {
 	//test_trajectory();
-	test_color_table();
+	//test_color_table();
+	test_indexrender(); 
+	//generateFaceIndexMap();
+
 }

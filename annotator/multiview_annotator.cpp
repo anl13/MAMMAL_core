@@ -18,6 +18,63 @@
 #include "../posesolver/framesolver.h"
 #include "../utils/image_utils_gpu.h"
 
+Eigen::Vector2f pack_backward(Eigen::Vector2f p, int& camid, int W = 256, int H = 256)
+{
+	int row = (int)p(1) / H; 
+	int col = (int)p(0) / W; 
+	Eigen::Vector2f out; 
+	out(0) = p(0) - col * W; 
+	out(1) = p(1) - row * H; 
+	camid = row * 4 + col; 
+	return out; 
+}
+
+Eigen::Vector2f padding_back(cv::Rect roi, Eigen::Vector2f p, int W = 256, int H = 256)
+{
+	int x = roi.x;
+	int y = roi.y;
+	int w = roi.width; 
+	int h = roi.height; 
+	float x_f = p(0) / W - 0.5; 
+	float y_f = p(1) / H - 0.5;
+	float centerx = x + (float)w / 2; 
+	float centery = y + (float)h / 2; 
+	float scale = my_max(w, h);
+	Eigen::Vector2f out; 
+	out(0) = centerx + scale * x_f; 
+	out(1) = centery + scale * y_f; 
+	return out; 
+}
+
+Eigen::Vector3f clicked_point; 
+
+void CallBackFunc(int event, int x, int y, int flags, void* userdata)
+{
+	Eigen::Vector3f empty = { -1,-1 };
+	Eigen::Vector3f* data = (Eigen::Vector3f*) userdata;
+	int length = data->size();
+	int cols = sqrt(length);
+	if (cols * cols < length) cols += 1;
+	if (event == cv::EVENT_LBUTTONDOWN)
+	{
+		data->x() = x; 
+		data->y() = y;
+		data->z() = 1;  // left button 
+		std::cout << "click on point (" << x << " , " << y << ")" << std::endl;
+	}
+	else if (event == cv::EVENT_RBUTTONDOWN)
+	{
+		data->x() = x; 
+		data->y() = y; 
+		data->z() = 2; // right button 
+		std::cout << "cancel on point (" << x << " , " << y << ")" << std::endl;
+	}
+	else if (event == cv::EVENT_MBUTTONDOWN)
+	{
+		std::cout << "Middle button of the mouse is clicked - position (" << x << ", " << y << ")" << std::endl;
+	}
+}
+
 void readStateFile(std::string state_file, Eigen::Vector3f& translation, float& scale, std::vector<Eigen::Vector3f>& pose)
 {
 	pose.resize(62, Eigen::Vector3f::Zero());
@@ -43,12 +100,12 @@ int multiview_annotator()
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_render");
     /// read frame data 
 	FrameSolver data_loader; 
-	std::string data_config = projectDir + "posesolver/confignew.json"; 
+	std::string data_config = projectDir + "posesolver/config_seq2.json"; 
 	data_loader.configByJson(data_config); 
-	data_loader.set_frame_id(750); 
+	data_loader.set_frame_id(0); 
 	data_loader.fetchData(); 
-	data_loader.is_smth = true;
-	data_loader.result_folder = "H:/pig_results_anchor_sil/"; 
+	data_loader.is_smth = false;
+	data_loader.result_folder = "D:/results/seq_noon/"; 
 	data_loader.load_clusters();
 	data_loader.read_parametric_data(); 
 
@@ -64,9 +121,9 @@ int multiview_annotator()
 	Camera cam = cams[0];
 
 	NanoRenderer renderer;
-	renderer.Init(1920, 1080, cam.K(0, 0), cam.K(1, 1), cam.K(0, 2), cam.K(1, 2), 0, false, "G:/pig_middle_data/annotate/");
+	renderer.Init(1920, 1080, cam.K(0, 0), cam.K(1, 1), cam.K(0, 2), cam.K(1, 2), 0, false, "D:/annotate_folder/");
 	std::cout << "renderer init. " << std::endl; 
-	renderer.out_frameid = 750; 
+	renderer.out_frameid = 0; 
 
 	//Eigen::Matrix4f view_eigen = calcRenderExt(cam.R, cam.T);
 	//nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
@@ -163,6 +220,8 @@ int multiview_annotator()
 	int current_pig_id = 0; 
 	std::cout << "start annotator. " << std::endl; 
 	cv::namedWindow("Overlay", cv::WINDOW_NORMAL);
+	cv::setMouseCallback("Overlay", CallBackFunc, &clicked_point);
+
 	while (!renderer.ShouldClose())
 	{
 		pigmodel.SetPose(renderer.m_joint_pose);
@@ -174,6 +233,9 @@ int multiview_annotator()
 		bool m_state_save_obj = renderer.m_state_save_obj; 
 		bool m_state_save_state = renderer.m_state_save_state; 
 		bool m_state_load_last = renderer.m_state_load_last; 
+
+
+
 		if (m_state_read)
 		{
 			current_pig_id = renderer.enumval;
@@ -184,6 +246,8 @@ int multiview_annotator()
 				data_loader.fetchData();
 				data_loader.load_clusters();
 				data_loader.read_parametric_data();
+				rawImgs = data_loader.get_imgs_undist();
+
 			}
 			pigmodel.SetPose(solvers[current_pig_id]->GetPose());
 			pigmodel.SetScale(solvers[current_pig_id]->GetScale());
@@ -262,6 +326,10 @@ int multiview_annotator()
 		if (alpha < 0) alpha = 0; 
 		if (alpha > 100) alpha = 100;
 		alpha = alpha / 100;
+
+		std::vector<cv::Rect> all_rois;
+		all_rois.clear(); 
+		all_rois.resize(10); 
 		for (int i = 0; i < data_loader.m_matched[current_pig_id].view_ids.size(); i++)
 		{
 			
@@ -272,6 +340,8 @@ int multiview_annotator()
 			box3_offscreen->SetBuffer("normals", objfloat4.normals);
 			box3_offscreen->DrawOffscreen();
 			box3_offscreen->DownloadRenderingResults(rendered_imgs);
+
+			all_rois[camid] = roi;
 
 			//cv::Mat raw_img_small;
 			//cv::resize(rawImgs[camid], raw_img_small, cv::Size(1920, 1080));

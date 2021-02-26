@@ -56,6 +56,7 @@ public:
 	SimpleShader maskShader; 
 	SimpleShader textureShaderML; 
 	SimpleShader colorShaderML;
+	SimpleShader faceindexShader;
 
 	SimpleShader xrayShader; 
 	//SimpleShader meshShaderML;

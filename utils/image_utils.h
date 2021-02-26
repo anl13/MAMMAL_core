@@ -52,6 +52,7 @@ void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4f>& boxes);
 void my_draw_box(cv::Mat& img, const Eigen::Vector4f& box, Eigen::Vector3i c);
 void my_draw_mask(cv::Mat& img, vector<vector<Eigen::Vector2f> > contour_list, Eigen::Vector3i c, float alpha=0);
 void my_draw_mask_gray(cv::Mat& img, vector<vector<Eigen::Vector2f> > contour_list, int c);
+void my_draw_box_fill_gray(cv::Mat& img, const Eigen::Vector4f& box, unsigned int c); 
 
 // outimg = img1 * alpha + img2 * (1-alpha)
 cv::Mat blend_images(cv::Mat img1, cv::Mat img2, float alpha);

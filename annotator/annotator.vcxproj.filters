@@ -192,5 +192,6 @@
     <None Include="..\articulation\artist_config.json" />
     <None Include="..\articulation\artist_config_sym.json" />
     <None Include="..\posesolver\confignew.json" />
+    <None Include="seq_noon.json" />
   </ItemGroup>
 </Project>

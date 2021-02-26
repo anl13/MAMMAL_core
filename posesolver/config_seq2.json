@@ -1,13 +1,13 @@
 {
   "camids": [ 0, 1, 2, 5, 6, 7, 8, 9, 10, 11 ],
   //"camids": [ 0 ],
-  "sequence":  "E:/sequences/20190704_noon",
+  "sequence":  "Z:/sequences/20190704_noon",
   "imgExtension": "jpg",
   //"camfolder": "/home/al17/animal/animal_calib/results/",
   "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust_new/",
   "startid": 0,
   "epipolartype": "p2l", // "p2l" or "l2l"
-  "framenum": 9000,
+  "framenum": 10000,
   "epipolar_threshold": 25,
   "box_expand_ratio": 0.01,
   "skel_type": "UNIV",
@@ -16,5 +16,5 @@
   //"pig_config": "D:/Projects/animal_calib/articulation/pigmodel_config.json",
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config.json",
   "use_gpu": false,
-  "solve_sil_iters": 0
+  "solve_sil_iters": 60
 }

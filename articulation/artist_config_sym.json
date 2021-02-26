@@ -76,8 +76,7 @@
   //"scales": [ 1.406, 1.337, 1.300, 1.28056 ],
   "scales": [ 1.337, 1.28056, 1.300, 1.406 ], // order of match_by_tracking in 750 frame
   "iou_thres": 0.8,
-  //"anchor_folder": "G:/pig_middle_data/pose_lib3_new/"
-  "anchor_folder":  "G:/pig_middle_data/pose_lib2_new/"
+  "anchor_folder":  "E:/pig_middle_data/pose_lib4/"
 }
 
 

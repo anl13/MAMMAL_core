@@ -506,7 +506,7 @@ int test_visanchors()
 		solver.UpdateNormalFinal();
 
 		std::stringstream ss;
-		ss << "G:/pig_middle_data/pose_lib2_new/pose" << i << ".txt";
+		ss << "E:/pig_middle_data/pose_lib4/pose" << i << ".txt";
 		solver.saveState(ss.str()); 
 
 		//std::stringstream ss_obj; 
@@ -528,7 +528,7 @@ int test_visanchors()
 		m_renderer.Draw();
 		cv::Mat img = m_renderer.GetImage();
 		std::stringstream outss;
-		outss << "G:/pig_middle_data/pose_lib2_vis/anchor_" << i << ".png";
+		outss << "E:/pig_middle_data/pose_lib4_vis/anchor_" << i << ".png";
 		cv::imwrite(outss.str(), img);
 
 
