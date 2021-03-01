@@ -1939,8 +1939,11 @@ int color2faceid(const cv::Vec3b& c)
 
 void FrameSolver::buildSIFTMapToSurface()
 {
+	TimerUtil::Timer < std::chrono::microseconds> tt;
+	tt.Start();
 	renderMaskColor();
 	renderFaceIndex(); 
+	std::cout << "render mask and faceid: " << tt.Elapsed() / 1000.0 << " ms" << std::endl;
 
 	m_siftToFaceIds.clear();
 	m_siftToFaceIds.resize(m_camNum); 

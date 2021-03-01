@@ -410,12 +410,12 @@ void PigSolverDevice::optimizePoseWithAnchor()
 		loss_floor = ATb_floor.norm(); 
 		if (delta.norm() < terminal) break;
 	}
-	std::cout << "--iter: " << iterTime << std::endl;
-	std::cout << "--loss ATb_data: " << loss_2d << std::endl;
-	std::cout << "--loss ATb_reg : " << loss_reg << std::endl;
-	std::cout << "--loss ATb_temp: " << loss_temp << std::endl;
-	std::cout << "--loss ATb_anchor: " << loss_anchor << std::endl; 
-	std::cout << "--loss ATb_floor: " << loss_floor << std::endl; 
+	//std::cout << "--iter: " << iterTime << std::endl;
+	//std::cout << "--loss ATb_data: " << loss_2d << std::endl;
+	//std::cout << "--loss ATb_reg : " << loss_reg << std::endl;
+	//std::cout << "--loss ATb_temp: " << loss_temp << std::endl;
+	//std::cout << "--loss ATb_anchor: " << loss_anchor << std::endl; 
+	//std::cout << "--loss ATb_floor: " << loss_floor << std::endl; 
 }
 
 void PigSolverDevice::CalcLambdaTerm(Eigen::MatrixXf& ATA)
@@ -944,14 +944,14 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	}
 
 	
-	std::cout << "iter: " << iter << std::endl; 
-	std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
-	std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
-	std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
-	std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
-	std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
-	std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
-	std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
+	//std::cout << "iter: " << iter << std::endl; 
+	//std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
+	//std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
+	//std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
+	//std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
+	//std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
+	//std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
+	//std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
 
 }
 
