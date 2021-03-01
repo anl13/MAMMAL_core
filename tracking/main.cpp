@@ -35,8 +35,7 @@ int detect_sift()
 		std::vector<cv::KeyPoint> key2;
 		cv::Mat des2;
 		cv::Mat img2 = frame2.m_imgsUndist[0];
-		cv::Ptr<cv::SIFT> siftPtr2 = cv::SIFT::create();
-		siftPtr2->detectAndCompute(img2, mask2, key2, des2);
+		siftPtr->detectAndCompute(img2, mask2, key2, des2);
 		std::cout << "frame " << index << " des2.rows: " << des2.rows << " des2.cols: " << des2.cols << std::endl;
 
 

@@ -3,48 +3,60 @@
 #include "framedata.h"
 #include "scenedata.h"
 #include "../articulation/pigsolverdevice.h"
+#include "../tracking/sift_matcher.h" 
 
 class FrameSolver : public FrameData
 {
 public: 
-	FrameSolver() {
-		m_epi_thres = -1;
-		m_epi_type = "p2l";
-	}
+	FrameSolver();
 
 	~FrameSolver(); 
 
 	void configByJson(std::string jsonfile) override;
-
-	std::shared_ptr<SceneData> mp_sceneData;
-
-	SkelTopology get_topo() { return m_topo; }
-	vector<vector<Eigen::Vector3f> >  get_skels3d() { return m_skels3d; }
-	vector<MatchedInstance> get_matched() { return m_matched; }
-	vector<std::shared_ptr<PigSolverDevice> > get_solvers() { return mp_bodysolverdevice; }
-	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
-
 	void pureTracking();
 
+	// last frame data 
+	vector<vector<cv::KeyPoint> > m_siftKeypointsLast; // [camid, index]
+	vector<cv::Mat> m_siftDescriptionLast; //[camid]
+	vector<MatchedInstance> m_last_matched; // used for tracking
+	vector<vector<Eigen::Vector3f> > m_skels3d_last;
+
+	
+    // sift flows 
+	cv::Ptr<cv::SIFT> p_sift;
+	vector<vector<cv::KeyPoint> > m_siftKeypointsCurrent; // [camid, idnex]
+	vector<cv::Mat> m_siftDescriptionCurrent; // [camid]
+	cv::FlannBasedMatcher m_siftMatcher; 
+	vector<vector<cv::DMatch> > m_siftMatches; 
+	vector<vector<cv::DMatch> > m_siftMatchesCleaned; 
+	void buildSIFTMapToSurface(); 
+	vector<vector<SurfaceCorr> > m_siftToFaceIds; //[camid, index]
+	vector<vector<vector<SIFTCorr> > > m_siftCorrs; // [pid, camid, index]
+	void renderFaceIndex();
+	void renderMaskColor(); 
+	void detectSIFTandTrack();
+	cv::Mat m_faceIndexTexImg; 
+	Mesh m_objForTex; 
+	vector<cv::Mat> m_faceIndexImg; 
+
+	// scene rendering
+	std::shared_ptr<SceneData> mp_sceneData;
 	Renderer* mp_renderEngine;
 	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolverdevice;
 	std::vector<cv::Mat> m_rawMaskImgs;
 	void drawRawMaskImgs();
 	std::string result_folder;
 	bool is_smth;
-
-	int _compareSkel(const vector<Eigen::Vector3f>& skel1, const vector<Eigen::Vector3f>& skel2);
-	int _countValid(const vector<Eigen::Vector3f>& skel);
+	int m_startid;
+	int m_framenum;
 
 	vector<MatchedInstance>                   m_matched; // matched raw data after matching()
 	vector<vector<DetInstance> >              m_unmatched; // [camnum, candnum]
 	std::vector<cv::Mat> m_masksMatched; 
 
-	vector<MatchedInstance> m_last_matched; // used for tracking
 		// matching & 3d data 
 	vector<vector<int> > m_clusters; // pigid, camid [candid]
 	vector<vector<Eigen::Vector3f> > m_skels3d; // pigid, kptid
-	vector<vector<Eigen::Vector3f> > m_skels3d_last;
 	bool m_use_gpu;
 	int m_solve_sil_iters;
 	float       m_epi_thres;
@@ -139,10 +151,18 @@ public:
 	void writeSkel3DtoJson(std::string savepath);
 	void readSkel3DfromJson(std::string jsonfile);
 
-	int m_startid;
-	int m_framenum;
+
 	void set_start_id(int _startid) { m_startid = _startid; }
 	void set_frame_num(int _framenum) { m_framenum = _framenum; }
 	int get_start_id() { return m_startid; }
 	int get_frame_num() { return m_framenum; }
+
+	SkelTopology get_topo() { return m_topo; }
+	vector<vector<Eigen::Vector3f> >  get_skels3d() { return m_skels3d; }
+	vector<MatchedInstance> get_matched() { return m_matched; }
+	vector<std::shared_ptr<PigSolverDevice> > get_solvers() { return mp_bodysolverdevice; }
+	vector<vector<DetInstance> > get_unmatched() { return m_unmatched; }
+
+	int _compareSkel(const vector<Eigen::Vector3f>& skel1, const vector<Eigen::Vector3f>& skel2);
+	int _countValid(const vector<Eigen::Vector3f>& skel);
 };

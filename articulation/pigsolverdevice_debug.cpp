@@ -346,6 +346,7 @@ void PigSolverDevice::optimizePoseWithAnchor()
 		float w_temp = m_w_temp_term;
 		float w_anchor = m_w_anchor_term;
 		float w_floor = m_w_floor_term;
+		float w_lambda = m_lambda;
 
 		Eigen::MatrixXf ATA_anchor = Eigen::MatrixXf::Zero(paramNum, paramNum);
 		Eigen::VectorXf ATb_anchor = Eigen::VectorXf::Zero(paramNum);
@@ -373,9 +374,9 @@ void PigSolverDevice::optimizePoseWithAnchor()
 
 		Eigen::MatrixXf ATA_reg;
 		Eigen::VectorXf ATb_reg;
-		CalcRegTerm(theta, ATA_reg, ATb_reg, false);
+		CalcRegTermBodyOnly(theta, ATA_reg, ATb_reg);
 
-		Eigen::MatrixXf ATA = ATA_data * w_data + DTD
+		Eigen::MatrixXf ATA = ATA_data * w_data + DTD * w_lambda 
 			+ ATA_temp * w_temp + ATA_reg * w_reg
 			+ ATA_anchor * w_anchor + ATA_floor * w_floor
 			;
@@ -384,6 +385,14 @@ void PigSolverDevice::optimizePoseWithAnchor()
 			+ ATb_anchor * w_anchor + ATb_floor * w_floor
 			;
 
+		Eigen::MatrixXf W = Eigen::MatrixXf::Zero(paramNum, paramNum); 
+		for (int i = 0; i < m_poseToOptimize.size(); i++)
+		{
+			if(m_optimMask(i) > 0)
+				W.block<3, 3>(3 + 3 * i, 3 + 3 * i) = Eigen::Matrix3f::Identity();
+		}
+		ATA = W * ATA * W;
+		ATb = W * ATb; 
 		Eigen::VectorXf delta = ATA.ldlt().solve(ATb);
 
 		// update 
@@ -415,22 +424,22 @@ void PigSolverDevice::CalcLambdaTerm(Eigen::MatrixXf& ATA)
 	int paramNum = 3 + 3 * M; 
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum); 
 	// "pose_to_solve": [ 0, 2, 4, 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57, 21, 22, 23],
-	std::vector<float> rot_weights = { // size same to M 
-		//0.0001, 0.01, 0.01,
-		0.0001, 0.0001, 0.0001,
-		0.0001, 0.0001, 0.0001, 0.0001,
-		0.0001, 0.0001, 0.0001, 0.0001,
-		0.0001, 0.0001, 0.0001, 0.0001,
-		0.0001, 0.0001, 0.0001, 0.0001,
-		0.0001, 0.0001,0.0001
-		//2,2,2
-	};
-	for (int i = 0; i < rot_weights.size(); i++)
-	{
-		ATA(3 + 3 * i, 3 + 3 * i) = rot_weights[i];
-		ATA(3 + 3 * i + 1, 3 + 3 * i + 1) = rot_weights[i];
-		ATA(3 + 3 * i + 2, 3 + 3 * i + 2) = rot_weights[i];
-	}
+	//std::vector<float> rot_weights = { // size same to M 
+	//	//0.0001, 0.01, 0.01,
+	//	0.0001, 0.0001, 0.0001,
+	//	0.0001, 0.0001, 0.0001, 0.0001,
+	//	0.0001, 0.0001, 0.0001, 0.0001,
+	//	0.0001, 0.0001, 0.0001, 0.0001,
+	//	0.0001, 0.0001, 0.0001, 0.0001,
+	//	0.0001, 0.0001,0.0001
+	//	//2,2,2
+	//};
+	//for (int i = 0; i < rot_weights.size(); i++)
+	//{
+	//	ATA(3 + 3 * i, 3 + 3 * i) = rot_weights[i];
+	//	ATA(3 + 3 * i + 1, 3 + 3 * i + 1) = rot_weights[i];
+	//	ATA(3 + 3 * i + 2, 3 + 3 * i + 2) = rot_weights[i];
+	//}
 }
 
 
@@ -873,6 +882,7 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	else  w_floor = m_w_floor_term;
 
 	float w_anchor = m_w_anchor_term; 
+	float w_sift = m_w_sift_term; 
 
 	Eigen::MatrixXf ATA_floor;
 	Eigen::VectorXf ATb_floor;
@@ -905,16 +915,22 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	Eigen::VectorXf ATb_reg;
 	CalcRegTerm(theta, ATA_reg, ATb_reg, false);
 
+	Eigen::MatrixXf ATA_sift; 
+	Eigen::VectorXf ATb_sift; 
+	CalcSIFTTerm(m_siftCorrs, ATA_sift, ATb_sift); 
+
 	Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
 		+ DTD * lambda
 		+ ATA_data * w_data + ATA_anchor * w_anchor 
 		+ ATA_floor * w_floor 
 		+ ATA_temp * w_temp
+		+ ATA_sift * w_sift
 		; 
 	Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
 		+ ATb_data * w_data + ATb_anchor * w_anchor
 		+ ATb_floor * w_floor
 		+ ATb_temp * w_temp
+		+ ATb_sift * w_sift
 		; 
 
 	Eigen::VectorXf delta = H.ldlt().solve(b);
@@ -928,13 +944,14 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	}
 
 	
-	//std::cout << "iter: " << iter << std::endl; 
-	//std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
-	//std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
-	//std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
-	//std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
-	//std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
-	//std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
+	std::cout << "iter: " << iter << std::endl; 
+	std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
+	std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
+	std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
+	std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
+	std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
+	std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
+	std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
 
 }
 

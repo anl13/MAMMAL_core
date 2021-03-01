@@ -385,7 +385,14 @@ void FrameData::assembleDets()
             m_detUndist[camid][candid].box = m_boxes_processed[camid][candid]; 
             m_detUndist[camid][candid].mask = m_masksUndist[camid][candid]; 
 			//m_detUndist[camid][candid].mask_norm = computeContourNormalsAll(m_detUndist[camid][candid].mask);
-        }
+			for (int i = 0; i < m_detUndist[camid][candid].keypoints.size(); i++)
+			{
+				if (m_detUndist[camid][candid].keypoints[i](2) == 0) continue; 
+				Eigen::Vector2f keypoint = m_detUndist[camid][candid].keypoints[i].segment<2>(0);
+				if (!in_box_test(keypoint, m_detUndist[camid][candid].box))
+					m_detUndist[camid][candid].keypoints[i] = Eigen::Vector3f::Zero(); 
+			}
+		}
     }
 }
 

@@ -6,6 +6,13 @@
 
 //#define VIS_ASSOC_STEP 
 
+FrameSolver::FrameSolver()
+{
+	m_epi_thres = -1;
+	m_epi_type = "p2l";
+
+}
+
 void FrameSolver::configByJson(std::string jsonfile)
 {
 	Json::Value root;
@@ -63,7 +70,18 @@ void FrameSolver::configByJson(std::string jsonfile)
 	{
 		cudaMalloc((void**)&d_interDepth[i], H * W * sizeof(float));
 	}
+
+	p_sift = cv::SIFT::create();
+	m_siftKeypointsCurrent.resize(m_camNum); 
+	m_siftMatches.resize(m_camNum); 
+	m_siftMatchesCleaned.resize(m_camNum); 
+	m_siftDescriptionCurrent.resize(m_camNum); 
+
+	m_faceIndexTexImg = cv::imread("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png");
+	m_objForTex.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	m_faceIndexImg.resize(m_camNum); 
 }
+
 FrameSolver::~FrameSolver()
 {
 	for (int i = 0; i < m_camNum; i++)
@@ -648,6 +666,8 @@ void FrameSolver::pureTracking()
 				if (viewid < 0) dist2 = dist; 
 				else
 				{
+					int candid = m_last_matched[i].candids[viewid];
+
 					dist2 = distSkel2DTo2D(m_last_matched[i].dets[viewid].keypoints,
 						m_detUndist[camid][j].keypoints,
 						m_topo); // calc last 2D detection to current detection
@@ -794,6 +814,93 @@ void FrameSolver::renderInteractDepth(bool withmask)
 				cudaMemcpyDeviceToDevice);
 		}
 	}
+}
+
+void FrameSolver::renderMaskColor()
+{
+	if (m_interMask.size() != m_camNum) m_interMask.resize(m_camNum);
+	std::vector<Eigen::Vector3f> id_colors = {
+		{1.0f, 0.0f,0.0f},
+	{0.0f, 1.0f, 0.0f},
+	{0.0f, 0.0f, 1.0f},
+	{1.0f, 1.0f, 0.0f}
+	};
+	mp_renderEngine->clearAllObjs();
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->UpdateNormalFinal();
+		RenderObjectColor* p_model = new RenderObjectColor();
+		p_model->SetVertices(mp_bodysolverdevice[i]->GetVertices());
+		p_model->SetFaces(mp_bodysolverdevice[i]->GetFacesVert());
+		p_model->SetNormal(mp_bodysolverdevice[i]->GetNormals());
+		p_model->SetColor(id_colors[i]);
+		mp_renderEngine->colorObjs.push_back(p_model);
+	}
+
+	for (int view = 0; view < m_camNum; view++)
+	{
+		int camid = view;
+		Camera cam = m_camsUndist[camid];
+		mp_renderEngine->s_camViewer.SetExtrinsic(cam.R, cam.T);
+
+		//mp_renderEngine->SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1));
+		mp_renderEngine->Draw("mask");
+		m_interMask[view] = mp_renderEngine->GetImage();
+
+		//std::stringstream name;
+		//name << "D:/results/tmp/" << view << ".jpg"; 
+		//cv::imwrite(name.str(), m_interMask[view]); 
+	}
+
+	//cv::namedWindow("mask", cv::WINDOW_NORMAL); 
+	//cv::imshow("mask", m_interMask[1]);
+	//cv::waitKey(); 
+	//cv::destroyAllWindows(); 
+	//exit(-1); 
+	
+	//exit(-1);
+
+	mp_renderEngine->clearAllObjs();
+}
+
+void FrameSolver::renderFaceIndex()
+{
+	mp_renderEngine->clearAllObjs(); 
+	for (int i = 0; i < 4; i++)
+	{
+		mp_bodysolverdevice[i]->UpdateNormalFinal(); 
+		RenderObjectTexture* p_model = new RenderObjectTexture(); 
+		p_model->SetTextureNoMipmap(m_faceIndexTexImg); 
+		Mesh obj = m_objForTex; 
+		obj.vertices_vec = mp_bodysolverdevice[i]->GetVertices();
+		obj.normals_vec = mp_bodysolverdevice[i]->GetNormals(); 
+		obj.ReMapTexture(); 
+		p_model->SetFaces(obj.faces_t_vec);
+		p_model->SetVertices(obj.vertices_vec_t);
+		p_model->SetNormal(obj.normals_vec_t, 2);
+		p_model->SetTexcoords(obj.textures_vec, 1);
+		p_model->isMultiLight = false; 
+		p_model->isFaceIndex = true; 
+		mp_renderEngine->texObjs.push_back(p_model);
+	}
+	for (int view = 0; view < m_camNum; view++)
+	{
+		int camid = view;
+		Camera cam = m_camsUndist[camid];
+		mp_renderEngine->s_camViewer.SetExtrinsic(cam.R, cam.T);
+
+		//mp_renderEngine->SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 0));
+		mp_renderEngine->Draw();
+		m_faceIndexImg[view] = mp_renderEngine->GetImage();
+		//cv::rectangle(m_faceIndexImg[view], cv::Rect(0, 0, 10, 10), cv::Scalar(0, 255, 0), -1);
+		//cv::rectangle(m_faceIndexImg[view], cv::Rect(1910, 0, 10, 10), cv::Scalar(0, 255, 0), -1);
+		//std::stringstream name;
+		//name << "D:/results/tmp/" << view << ".jpg"; 
+		//cv::imwrite(name.str(), m_faceIndexImg[view]); 
+	}
+	//exit(-1);
+
+	mp_renderEngine->clearAllObjs(); 
 }
 
 void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
@@ -1679,4 +1786,192 @@ void FrameSolver::save_joints()
 		}
 		outputfile.close();
 	}
+}
+
+void FrameSolver::detectSIFTandTrack()
+{
+	m_siftKeypointsCurrent.clear(); 
+	m_siftKeypointsCurrent.resize(m_camNum); 
+	m_siftDescriptionCurrent.clear(); 
+	m_siftDescriptionCurrent.resize(m_camNum); 
+
+	TimerUtil::Timer<std::chrono::microseconds> tt;
+	tt.Start();
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		cv::Mat mask(cv::Size(1920, 1080), CV_8UC1);
+		for (int i = 0; i < m_detUndist[camid].size(); i++)
+		{
+			my_draw_mask_gray(mask, m_detUndist[camid][i].mask, 255); 
+		}
+		std::vector<cv::KeyPoint> key; 
+		cv::Mat des; 
+		p_sift->detectAndCompute(m_imgsUndist[camid], mask, key, des);
+		m_siftKeypointsCurrent[camid] = key;
+		m_siftDescriptionCurrent[camid] = des; 
+	}
+
+	if (m_siftKeypointsLast.size() == 0) return; 
+	
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		m_siftMatcher.match(m_siftDescriptionLast[camid], m_siftDescriptionCurrent[camid],
+			m_siftMatches[camid]);
+		clean_bfmatches(m_siftKeypointsLast[camid], m_siftKeypointsCurrent[camid],
+			m_siftMatches[camid], m_siftMatchesCleaned[camid],20);
+	}
+	std::cout << "Detect sift and match: " << tt.Elapsed() / 1000.0 << " ms" << std::endl;
+
+	tt.Start(); 
+	m_siftCorrs.clear(); 
+	m_siftCorrs.resize(4); 
+	for (int pid = 0; pid < 4; pid++)
+	{
+		m_siftCorrs[pid].resize(m_camNum);
+	}
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int i = 0; i < m_siftMatchesCleaned[camid].size(); i++)
+		{
+			int lastid = m_siftMatchesCleaned[camid][i].queryIdx; 
+			int pid = m_siftToFaceIds[camid][lastid].id;
+			if (pid < 0) continue; 
+			int faceid = m_siftToFaceIds[camid][lastid].faceid;
+			SIFTCorr corr;
+			corr.track = m_siftMatchesCleaned[camid][i];
+			int currentid = corr.track.trainIdx;
+			corr.pixel(0) = m_siftKeypointsCurrent[camid][currentid].pt.x;
+			corr.pixel(1) = m_siftKeypointsCurrent[camid][currentid].pt.y;
+			corr.faceid = faceid; 
+			m_siftCorrs[pid][camid].push_back(corr); 
+		}
+	}
+	std::cout << "build sift corr: " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
+
+#if 0
+	// draw sift 
+	auto faces = mp_bodysolverdevice[0]->GetFacesVert();
+	auto vertices = mp_bodysolverdevice[0]->GetVertices(); 
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		cv::Mat output = m_imgsUndist[camid].clone(); 
+		std::vector<Eigen::Vector3i> CM = getColorMapEigen("anliang_rgb");
+		for (int i = 0; i < m_siftCorrs[0][camid].size(); i++)
+		{
+			int faceid = m_siftCorrs[0][camid][i].faceid;
+			if (faceid < 0)
+			{
+				std::cout << "error: " << faceid << std::endl;
+				continue; 
+			}
+			std::vector<std::vector<cv::Point2i> > triangle;
+			triangle.resize(1);
+			Eigen::Vector3u face = faces[faceid];
+			for (int f = 0; f < 3; f++)
+			{
+				Eigen::Vector3f point2d = project(m_camsUndist[camid], vertices[face(f)]);
+				cv::Point2i p;
+				p.x = round(point2d(0));
+				p.y = round(point2d(1));
+				triangle[0].push_back(p);
+			}
+			cv::fillPoly(output, triangle, cv::Scalar(0, 255, 0), 1, 0);
+
+			cv::DMatch track = m_siftCorrs[0][camid][i].track;
+			int a = track.queryIdx;
+			int b = track.trainIdx;
+			cv::Point2f p1 = m_siftKeypointsLast[camid][a].pt;
+			cv::Point2f p2 = m_siftKeypointsCurrent[camid][b].pt;
+			int colorid = 0;
+			cv::Scalar color(CM[colorid](2), CM[colorid](1), CM[colorid](0));
+			cv::circle(output, p1, 2, color, -1);
+			cv::circle(output, p2, 4, color, 1);
+			cv::line(output, p1, p2, color, 1);
+
+		}
+		std::stringstream name; 
+		name << "D:/results/tmp/sift_cam" << camid << "_pig" << 0 << ".jpg";
+		cv::imwrite(name.str(), output); 
+	}
+	exit(-1); 
+#endif 
+}
+
+/* 
+20210227: An Liang
+This function must run at the postprocessing step of the whole 
+pipeline. And all correspnodences could be used to optimize.
+Before this function, these functions should be run: 
+renderMaskColor
+renderFaceIndex
+*/
+int determineColorid(const cv::Vec3b& pixel)
+{
+	std::vector<Eigen::Vector3i> id_colors_cv = {
+		{0,0,255},
+		{0,255,0},
+		{255,0,0},
+		{0,255,255}
+	};
+	for (int i = 0; i < 4; i++)
+	{
+		if (id_colors_cv[i](0) == pixel[0] &&
+			id_colors_cv[i](1) == pixel[1] &&
+			id_colors_cv[i](2) == pixel[2])
+			return i; 
+	}
+	return -1; 
+}
+
+int color2faceid(const cv::Vec3b& c)
+{
+	int b = int(c[0]) / 8;
+	int g = int(c[1]) / 8; 
+	int r = int(c[2]) / 8;
+	int faceid = (b * 32 + g) *32 + r;
+	if (faceid == 0) return -1; 
+	if (faceid > 22445)
+	{
+		std::cout << "wrong face id " << faceid << ": (" << int(c[0]) << "," << int(c[1]) << "," << int(c[2]) << ")" << std::endl;
+	}
+	return faceid; 
+}
+
+void FrameSolver::buildSIFTMapToSurface()
+{
+	renderMaskColor();
+	renderFaceIndex(); 
+
+	m_siftToFaceIds.clear();
+	m_siftToFaceIds.resize(m_camNum); 
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		m_siftToFaceIds[camid].resize(m_siftKeypointsCurrent[camid].size()); 
+		for (int index = 0; index < m_siftKeypointsCurrent[camid].size(); index++)
+		{
+			cv::Point2f p1 = m_siftKeypointsCurrent[camid][index].pt;
+			int x = round(p1.x);
+			int y = round(p1.y); 
+			cv::Vec3b pixel = m_interMask[camid].at<cv::Vec3b>(y, x);
+			int pid = determineColorid(pixel); 
+			if (pid < 0) {
+				m_siftToFaceIds[camid][index].id = -1; 
+				m_siftToFaceIds[camid][index].faceid = -1; 
+				continue;
+			}
+			else
+			{
+				m_siftToFaceIds[camid][index].id = pid; 
+				cv::Vec3b color = m_faceIndexImg[camid].at<cv::Vec3b>(y, x); 
+				int faceid = color2faceid(color); 
+				if (faceid < 0) continue; 
+				m_siftToFaceIds[camid][index].faceid = faceid; 
+			}
+		}
+	}
+
+	m_siftKeypointsLast   = m_siftKeypointsCurrent;
+	m_siftDescriptionLast = m_siftDescriptionCurrent;
+
+
 }

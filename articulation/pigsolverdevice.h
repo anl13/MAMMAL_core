@@ -38,6 +38,27 @@ typedef struct {
 
 }AnchorPoseLib;
 
+/*
+20210225
+Surface sift point flow are built based on the rendering
+of estimated model. 
+By first track all correspondences, we find each point's 
+corresponding surface face index. Then constrain the surface 
+motion. This is largely rely on the motion accuracy of last 
+frame. So we may label first frame at the onset of whole 
+optimization and tracking. 
+*/
+typedef struct {
+	cv::DMatch track; // sift corr between this frame and lsst frame
+	Eigen::Vector2f pixel; 
+	int faceid; // surface id 
+}SIFTCorr;
+
+typedef struct {
+	int id;
+	int faceid;
+}SurfaceCorr;
+
 class PigSolverDevice : public PigModelDevice
 {
 public: 
@@ -107,6 +128,11 @@ public:
 		float track_radius = 80,
 		bool with_depth_weight=false, bool is_converge_detect=false);
 
+	void CalcSIFTTerm(
+		const std::vector<std::vector<SIFTCorr> > & siftcorrs,
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+	);
+
 	void Calc2dSkelProjectionTermReassoc(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight = false);
 	void Calc2DSkelTermReassoc_host(const std::vector<Eigen::Vector3f>& skel_det, const std::vector<Eigen::Vector3f>& skel3d, int camid,
@@ -119,6 +145,7 @@ public:
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, std::vector<bool> foot_contact
 	);
 	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool adaptive_weight=false); 
+	void CalcRegTermBodyOnly(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
 	void CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta);
 	void CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::MatrixXf& skelJ,
@@ -196,6 +223,8 @@ public:
 	float evaluate_mask_error(); 
 	void CalcLambdaTerm(Eigen::MatrixXf& ATA); 
 	void CalcAnchorRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int anchor_id, bool adaptive_weight = false);
+	void CalcSurfaceFloorTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+	
 	void computeDepthWeight(); 
 	bool m_use_gpu = false; 
 	std::vector<float* > d_depth_renders_interact; 
@@ -213,6 +242,7 @@ public:
 	float m_kpt_track_dist;
 	float m_w_anchor_term;
 	float m_iou_thres; 
+	float m_w_sift_term; 
 	std::string m_anchor_folder; 
 
 	std::vector<float> gt_scales; 
@@ -244,6 +274,10 @@ public:
 	std::vector<std::vector<Eigen::Vector3f> > clicked_points; 
 	void optimizePoseWithClickedPoints();
 
+	// 2021/02/27: fit sift track 
+	std::vector<std::vector<SIFTCorr> > m_siftCorrs; 
+	Eigen::VectorXf m_optimMask; 
+	std::vector<int> m_currentHierarchy; 
 
 protected:
 

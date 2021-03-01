@@ -28,6 +28,7 @@ void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers
 {
 	m_skels3d.resize(4); 
 	setConstDataToSolver();
+	detectSIFTandTrack();
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -35,8 +36,8 @@ void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers
 		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
 		mp_bodysolverdevice[i]->globalAlign();
 		std::cout << "pig " << i << "  scale: " << mp_bodysolverdevice[i]->GetScale() << std::endl;
+		mp_bodysolverdevice[i]->m_siftCorrs = m_siftCorrs[i];
 	}
-
 }
 
 void FrameSolver::DARKOV_Step2_loadanchor() // only load and set anchor id, without any fitting or align 
@@ -86,9 +87,27 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 	{
 		mp_bodysolverdevice[i]->m_isReAssoc = false; 
 	}
-	if (m_solve_sil_iters > 0)
+
+	std::vector<std::vector<int> > hierarachy = 
 	{
-		optimizeSilWithAnchor(m_solve_sil_iters); 
+		{0,1,2,3,4,21,22,23},    // main body
+		//{21,22,23},     // neck
+		{13,14,15,16},  // left front leg
+		{5,6,7,8},      // right front leg
+		{54,55,56,57},  // left back leg
+		{38,39,40,41}   // right back leg
+	};
+
+	for (int k = 0; k < hierarachy.size(); k++)
+	{
+		for (int pid = 0; pid < 4; pid++)
+		{
+			mp_bodysolverdevice[pid]->m_currentHierarchy = hierarachy[k];
+		}
+		if (m_solve_sil_iters > 0)
+		{
+			optimizeSilWithAnchor(m_solve_sil_iters);
+		}
 	}
 }
 
@@ -98,9 +117,26 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 	{
 		mp_bodysolverdevice[i]->m_isReAssoc = true; 
 	}
-	if (m_solve_sil_iters > 0)
+	std::vector<std::vector<int> > hierarachy =
 	{
-		optimizeSilWithAnchor(m_solve_sil_iters); 
+		{0,1,2,3,4, 21,22,23},    // main body
+		//{21,22,23},     // neck
+		{13,14,15,16},  // left front leg
+		{5,6,7,8},      // right front leg
+		{54,55,56,57},  // left back leg
+		{38,39,40,41}   // right back leg
+	};
+
+	for (int k = 0; k < hierarachy.size(); k++)
+	{
+		for (int pid = 0; pid < 4; pid++)
+		{
+			mp_bodysolverdevice[pid]->m_currentHierarchy = hierarachy[k];
+		}
+		if (m_solve_sil_iters > 0)
+		{
+			optimizeSilWithAnchor(m_solve_sil_iters);
+		}
 	}
 }
 
@@ -112,4 +148,9 @@ void FrameSolver::DARKOV_Step5_postprocess()  // some postprocessing step
 		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host(); 
 	}
 	m_last_matched = m_matched; 
+
+	TimerUtil::Timer<std::chrono::microseconds> tt;
+	tt.Start();
+	buildSIFTMapToSurface(); 
+	std::cout << "buildSIFTMapToSurface(): " << tt.Elapsed() / 1000.0 << " ms" << std::endl; 
 }

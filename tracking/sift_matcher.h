@@ -15,7 +15,8 @@ void draw_sift_matches(
 
 void clean_bfmatches(
 	const std::vector<cv::KeyPoint>& key1, const std::vector<cv::KeyPoint>& key2,
-	const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& output
+	const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& output,
+	float thresh = 50
 );
 
 void draw_sift_matches_same_color(

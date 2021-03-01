@@ -120,6 +120,9 @@
     <ClCompile Include="framesolver_pipeline.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\tracking\sift_matcher.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="config.json" />
@@ -188,6 +191,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\gpuutils.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tracking\sift_matcher.h">
       <Filter>other</Filter>
     </ClInclude>
   </ItemGroup>

@@ -82,6 +82,8 @@ public:
 
 	virtual void SetTexture(const std::string& texturePath);
 	virtual void SetTexture(cv::Mat& teximg); 
+	virtual void SetTextureNoMipmap(cv::Mat& teximg); 
+
 	virtual void SetTexcoords(const Eigen::Matrix<float, 2, -1, Eigen::ColMajor>& texcoords, int layout_location=1);
 	virtual void SetTexcoords(const std::vector<Eigen::Vector2f>& texcoords, int layout_location = 1); 
 

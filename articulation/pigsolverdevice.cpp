@@ -42,6 +42,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_use_gpu = root["use_gpu"].asBool(); 
 	m_iou_thres = root["iou_thres"].asFloat(); 
 	m_anchor_folder = root["anchor_folder"].asString();
+	m_w_sift_term = root["sift_term"].asFloat(); 
 
 	gt_scales.resize(4); 
 	for (int i = 0; i < 4; i++)
@@ -648,8 +649,6 @@ void PigSolverDevice::calcPose2DTerm_host(
 		m_det_confs[t] += 1; 
 
 		Eigen::Vector3f x_local = K * (R * skel3d[t] + T);
-		x_local(0);
-		x_local(1);
 		Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 		D(0, 0) = 1 / x_local(2);
 		D(1, 1) = 1 / x_local(2);
@@ -669,6 +668,63 @@ void PigSolverDevice::calcPose2DTerm_host(
 
 	ATb = -J.transpose() * r;
 	ATA = J.transpose() * J;
+}
+
+void PigSolverDevice::CalcSIFTTerm(const std::vector<std::vector<SIFTCorr> > & siftcorrs,
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
+	d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float));
+
+	for (int camid = 0; camid < m_cameras.size(); camid++)
+	{
+		int N = siftcorrs[camid].size(); 
+		//std::cout << "camid: " << camid << ", " << N << std::endl; 
+		Eigen::VectorXf r = Eigen::VectorXf::Zero(6 * N);
+		Eigen::MatrixXf J;
+		J = Eigen::MatrixXf::Zero(6 * N, paramNum);
+		Camera& cam = m_cameras[camid];
+		Eigen::Matrix3f R = cam.R;
+		Eigen::Matrix3f K = cam.K;
+		Eigen::Vector3f T = cam.T;
+		K.row(0) /= 1920;
+		K.row(1) /= 1080;
+
+		for (int i = 0; i < N; i++)
+		{
+			int faceid = siftcorrs[camid][i].faceid;
+			Eigen::Vector2f target = siftcorrs[camid][i].pixel;
+			Eigen::Vector3u face = m_host_facesVert[faceid];
+			for (int f = 0; f < 3; f++)
+			{
+				int vertexid = face(f);
+
+				Eigen::Vector3f x_local = K * (R * m_host_verticesPosed[vertexid]+ T);
+				Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
+				D(0, 0) = 1 / x_local(2);
+				D(1, 1) = 1 / x_local(2);
+				D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
+				D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
+
+				J.middleRows(6 * i + 2 * f, 2) = D * K * R * h_J_vert.middleRows(3 * vertexid, 3);
+
+				Eigen::Vector2f u;
+				u(0) = x_local(0) / x_local(2);
+				u(1) = x_local(1) / x_local(2);
+				Eigen::Vector2f det_u;
+				det_u(0) = target(0) / 1920;
+				det_u(1) = target(1) / 1080;
+				r.segment<2>(6 * i + 2 * f) = (u - det_u);
+			}
+		}
+
+		ATA += J.transpose() * J; 
+		ATb += -J.transpose() * r; 
+	}
 }
 
 void PigSolverDevice::optimizePose()
@@ -1592,6 +1648,19 @@ void PigSolverDevice::generateDataForSilSolver()
 		}
 	}
 	
+	// 20210301: add hierarchical optimization of bodies 
+	m_optimMask = Eigen::VectorXf::Zero(m_poseToOptimize.size()); 
+	for (int i = 0; i < m_poseToOptimize.size(); i++)
+	{
+		if (in_list(m_poseToOptimize[i], m_currentHierarchy))
+		{
+			m_optimMask(i) = 1;
+		}
+		else
+		{
+			m_optimMask(i) = 0;
+		}
+	}
 }
 
 
@@ -1609,8 +1678,6 @@ void PigSolverDevice::CalcJointFloorTerm(
 )
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
-	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
-	ATb = Eigen::VectorXf::Zero(paramNum); 
 
 	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_jointNum, paramNum); 
 	Eigen::VectorXf b = Eigen::VectorXf::Zero(m_jointNum); 
@@ -1620,23 +1687,25 @@ void PigSolverDevice::CalcJointFloorTerm(
 	for (int jid = 0; jid < m_jointNum; jid++)
 	{
 		Eigen::Vector3f joint = m_host_jointsPosed[jid];
-		//if (jid == 2 && joint(2) < 0.13)
-		//{
-		//	A.row(jid) = h_J_joint.row(3 * jid + 2);
-		//	b(jid) = joint(2) - 0.1;
-		//	continue;
-		//}
-		if (joint(2) > 0) continue; 
+		if (joint(2) > 0.05) continue; 
 		else
 		{
 			A.row(jid) = h_J_joint.row(3 * jid + 2);
 			b(jid) = joint(2);
 		}
 	}
-	//A.middleCols(0, 6).setZero();
-	//b.segment<6>(0).setZero();
+	A.middleCols(0, 6).setZero();
+	b.segment<6>(0).setZero();
 	ATA = A.transpose() * A; 
 	ATb = -A.transpose() * b; 
+}
+
+void PigSolverDevice::CalcSurfaceFloorTerm(
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
+
 }
 
 void PigSolverDevice::CalcJointBidirectFloorTerm(
@@ -1834,7 +1903,6 @@ void PigSolverDevice::CalcRegTerm(
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size(); 
 	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
-	ATb = Eigen::VectorXf::Zero(paramNum);
 	ATb = -theta; 
 	ATb.segment<6>(0).setZero(); 
 
@@ -1850,7 +1918,7 @@ void PigSolverDevice::CalcRegTerm(
 		}
 	}
 
-	float w = 1;
+	float w = 0;
 
 	if (m_det_confs[5] >= 1 && m_det_confs[7] >= 1 && m_det_confs[9] >= 1)
 	{
@@ -1894,6 +1962,25 @@ void PigSolverDevice::CalcRegTerm(
 		{
 			ATA.middleRows(3 + 3 * k, 3) *= (w / sqrtf(sum));
 			ATb.segment<3>(3 + 3 * k) *= (w / sqrtf(sum));
+		}
+	}
+}
+
+void PigSolverDevice::CalcRegTermBodyOnly(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Identity(paramNum, paramNum);
+	ATb = -theta;
+	ATb.segment<3>(0).setZero();
+	ATA.middleRows(0, 3) *= 0;
+
+	std::vector<int> body_list = { 1,3,21,22,23 };
+	for (int i = 0; i < m_poseToOptimize.size(); i++)
+	{
+
+		if (!in_list(m_poseToOptimize[i], body_list))
+		{
+			ATA.middleRows(3 + 3 * i, 3) *= 0;
 		}
 	}
 }

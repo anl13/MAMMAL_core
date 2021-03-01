@@ -210,7 +210,7 @@ void RenderObjectTexture::SetTexture(const std::string& texturePath)
 		format = GL_RGB; 
 		glBindTexture(GL_TEXTURE_2D, textureID);
 		glTexImage2D(GL_TEXTURE_2D, 0, format, a.cols, a.rows, 0, format, GL_UNSIGNED_BYTE, a.data);
-
+ 
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		//stbi_image_free(data);
@@ -249,6 +249,21 @@ void RenderObjectTexture::SetTexture(cv::Mat& teximg)
 		// throw std::string("Texture failed to load at path: " + texturePath);
 		exit(-1);
 	}
+}
+
+void RenderObjectTexture::SetTextureNoMipmap(cv::Mat& img)
+{
+	int width, height, nrComponents;
+	cv::Mat a;
+	cv::cvtColor(img, a, cv::COLOR_BGR2RGB);
+
+	GLenum format;
+	format = GL_RGB;
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, format, a.cols, a.rows, 0, format, GL_UNSIGNED_BYTE, a.data);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 }
 
 

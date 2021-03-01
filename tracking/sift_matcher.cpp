@@ -98,7 +98,8 @@ void draw_sift_matches(
 
 void clean_bfmatches(
 	const std::vector<cv::KeyPoint>& key1, const std::vector<cv::KeyPoint>& key2,
-	const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& output
+	const std::vector<cv::DMatch>& matches, std::vector<cv::DMatch>& output,
+	float thresh
 )
 {
 	output.clear(); 
@@ -109,7 +110,7 @@ void clean_bfmatches(
 		float dist = (key1[a].pt.x - key2[b].pt.x) * (key1[a].pt.x - key2[b].pt.x) +
 			(key1[a].pt.y - key2[b].pt.y)*(key1[a].pt.y - key2[b].pt.y);
 		dist = sqrtf(dist); 
-		if (dist < 60) output.push_back(matches[i]); 
+		if (dist < thresh) output.push_back(matches[i]); 
 	}
 }
 

@@ -828,9 +828,15 @@ void generateFaceIndexMap()
 		contour[0].push_back(cvp1);
 		contour[0].push_back(cvp2); 
 		contour[0].push_back(cvp3);
-		int g = findex / 256;
-		int r = findex % 256; 
-		cv::Scalar color(0, g, r);
+		int b = findex / (32 * 32);
+		int remain = findex - b * 32 * 32; 
+		int g = remain / 32;
+		int r = remain % 32;
+		b = b * 8;
+		g = g * 8;
+		r = r * 8;
+
+		cv::Scalar color(b, g, r);
 		cv::fillPoly(img, contour, color, 1, 0);
 	}
 	cv::imwrite("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png", img); 
@@ -844,6 +850,15 @@ void generateFaceIndexMap()
 	//	}
 	//}
 	
+}
+
+int color2faceid(const cv::Vec3b& c)
+{
+	int b = round(float(c[2]) / 8);
+	int g = round(float(c[1]) / 8);
+	int r = round(float(c[0]) / 8);
+	int faceid = (b << 5 + g) << 5 + r;
+	return faceid;
 }
 
 void test_indexrender()
@@ -901,6 +916,32 @@ void test_indexrender()
 
 	//m_renderer.createScene(conf_projectFolder); 
 	//m_renderer.createPlane(conf_projectFolder);
+
+	m_renderer.Draw(); 
+	cv::Mat img = m_renderer.GetImage(); 
+	int totalcount = 0;
+	int correct = 0;
+	for (int x = 0; x < 1920; x++)
+	{
+		for (int y = 0; y < 1080; y++)
+		{
+			cv::Vec3b pixel= img.at<cv::Vec3b>(y, x);
+			int b = pixel[0];
+			int g = pixel[1];
+			int r = pixel[2];
+			if (b > 0 || g > 0 || r > 0)
+			{
+				totalcount++;
+				if (b % 8 != 0 || g % 8 != 0 || r % 8 != 0)
+				{
+					std::cout << "(b,g,r)=(" << b << "," << g << "," << r << ")" << std::endl;
+				}
+				else correct++;
+			}
+		}
+	}
+	std::cout << "total  : " << totalcount << std::endl; 
+	std::cout << "correct: " << correct << std::endl;
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 

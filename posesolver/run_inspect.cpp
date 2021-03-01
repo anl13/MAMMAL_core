@@ -90,29 +90,29 @@ int run_inspect()
 		if (frameid == start)
 		{
 			frame.read_parametric_data(); 
+			frame.detectSIFTandTrack(); 
 			frame.DARKOV_Step5_postprocess();
-			continue; 
 		}
 		// pipeline 3 
-		if(true)
+		else if (true)
 		{
-#if 1
 			if (frameid == start)
 			{
-				frame.m_solve_sil_iters = 60; 
+				frame.m_solve_sil_iters = 60;
 				for (int i = 0; i < 4; i++)
 				{
-					frame.mp_bodysolverdevice[i]->m_iou_thres = 0; 
+					frame.mp_bodysolverdevice[i]->m_iou_thres = 0;
 				}
 			}
 			else
 			{
-				frame.m_solve_sil_iters = 5; 
+				frame.m_solve_sil_iters = 5;
 				for (int i = 0; i < 4; i++)
 				{
 					frame.mp_bodysolverdevice[i]->m_iou_thres = 0.5;
 				}
 			}
+
 			frame.DARKOV_Step1_setsource();
 			//frame.DARKOV_Step2_loadanchor();
 			//frame.DARKOV_Step2_searchanchor(); 
@@ -124,35 +124,35 @@ int run_inspect()
 
 			frame.DARKOV_Step4_fitrawsource();
 			frame.DARKOV_Step3_reassoc_type2();
-			frame.m_solve_sil_iters = 20;
 			frame.DARKOV_Step4_fitreassoc();
-			
+
 			frame.DARKOV_Step5_postprocess();
 			frame.save_parametric_data();
 
-			//cv::Mat reassoc = frame.visualizeReassociation();
-			//std::stringstream ss_reassoc;
-			//ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_reassoc.str(), reassoc);
+			cv::Mat reassoc = frame.visualizeReassociation();
+			std::stringstream ss_reassoc;
+			ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_reassoc.str(), reassoc);
 
-			//cv::Mat reproj = frame.visualizeVisibility();
-			//std::stringstream ss_proj;
-			//ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_proj.str(), reproj);
+			cv::Mat reproj = frame.visualizeVisibility();
+			std::stringstream ss_proj;
+			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_proj.str(), reproj);
 
-			//cv::Mat beforeimg = frame.visualizeSwap();
-			//std::stringstream ss_before;
-			//ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_before.str(), beforeimg);
-			
-			//cv::Mat rawfit = frame.visualizeRawAssoc();
-			//std::stringstream ss_rawassoc; 
-			//ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_rawassoc.str(), rawfit); 
-#endif 
+			cv::Mat beforeimg = frame.visualizeSwap();
+			std::stringstream ss_before;
+			ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_before.str(), beforeimg);
+
+			cv::Mat rawfit = frame.visualizeRawAssoc();
+			std::stringstream ss_rawassoc; 
+			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_rawassoc.str(), rawfit); 
+
 			//frame.pipeline2_searchanchor();
 			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
-			
+
+		}
 			m_renderer.clearAllObjs();
 
 			auto solvers = frame.mp_bodysolverdevice;
@@ -223,7 +223,7 @@ int run_inspect()
 			all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
 				<< frameid << ".png";
 			cv::imwrite(all_render_file.str(), blend);
-		}
+		
 
 		//if (frameid == start ) {
 		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
