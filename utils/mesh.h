@@ -68,3 +68,5 @@ public:
 	std::vector<unsigned int> indices;
 	std::vector<float2> textures; 
 };
+
+void composeMesh(Mesh& mesh1, const Mesh& mesh2);

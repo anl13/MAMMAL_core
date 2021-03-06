@@ -153,6 +153,7 @@
     <ClCompile Include="..\render\render_object.cpp" />
     <ClCompile Include="..\render\render_utils.cpp" />
     <ClCompile Include="..\render\shader.cpp" />
+    <ClCompile Include="..\tracking\sift_matcher.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />

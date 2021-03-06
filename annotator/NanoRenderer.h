@@ -385,7 +385,7 @@ public:
 	void set_pig_translation(const Eigen::Vector3f& trans); 
 	void set_pig_scale(const float& scale); 
 
-	Window* basic_widgets; 
+	Widget* basic_widgets; 
 	Widget* tools; 
 	Window* nanogui_window; 
 	Window* image_window;

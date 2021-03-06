@@ -618,21 +618,8 @@ void Renderer::createScene(std::string conf_projectFolder)
 	//p_scene->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
 	//p_scene->isMultiLight = false; 
 	//texObjs.push_back(p_scene);
-	std::vector<Eigen::Vector3f> vertices, colors;
-	std::vector<Eigen::Vector3u> faces;
-	readObjectWithColor(conf_projectFolder + "/render/data/obj_model/floor_z+_gray.obj", vertices, colors, faces);
-	Mesh obj;
-	obj.faces_v_vec = faces;
-	obj.vertices_vec = vertices;
-	obj.vertex_num = vertices.size();
-	obj.face_num = faces.size();
-	obj.CalcNormal();
-	RenderObjectMesh* p_floor = new RenderObjectMesh();
-	p_floor->SetVertices(vertices);
-	p_floor->SetColors(colors);
-	p_floor->SetFaces(faces);
-	p_floor->SetNormal(obj.normals_vec);
-	meshObjs.push_back(p_floor);
+	
+	createPlane(conf_projectFolder); 
 
 	//Mesh obj2;
 	//obj2.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part1.obj");
@@ -696,4 +683,22 @@ void Renderer::createPlane(std::string conf_projectFolder)
 	p_floor->SetFaces(faces);
 	p_floor->SetNormal(obj.normals_vec);
 	meshObjs.push_back(p_floor);
+}
+
+void Renderer::createSceneDetailed(std::string conf_projectFolder)
+{
+	createPlane(conf_projectFolder); 
+	for (int k = 2; k < 7; k++)
+	{
+		std::stringstream ss;
+		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_big_part" << k << ".obj";
+		Mesh obj(ss.str());
+		RenderObjectColor *p_model = new RenderObjectColor();
+		p_model->SetVertices(obj.vertices_vec);
+		p_model->SetNormal(obj.normals_vec);
+		p_model->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+		p_model->isMultiLight = false;
+		p_model->SetFaces(obj.faces_v_vec);
+		colorObjs.push_back(p_model);
+	}
 }

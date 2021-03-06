@@ -67,14 +67,14 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
-	glViewport(0, 0, width, height);
+	glViewport(0,0, width, height);
 	glfwSwapInterval(0);
 	glfwSwapBuffers(window);
 
 	//////////////////////////////////////////////////////////////////
 	// Create a nanogui screen and pass the glfw pointer to initialize
 	screen = new Screen();
-
+	
 	//return; 
 
 	screen->initialize(window, true);
@@ -126,26 +126,26 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	//////////////////////////////////////
 	// create canvas for rendering results
 	//m_canvas = new ArcballCanvas(screen, window_width, window_height, fx, fy);
-	m_canvas = new ArcballCanvas(screen, width, height, fx, fy, cx, cy, is_pinhole);
+	m_canvas = new ArcballCanvas(screen, width/3, height/3, fx, fy, cx/3, cy/3, is_pinhole);
 	m_canvas->SetRotCenter(Eigen::Vector3f(0, 0, arcball_depth));
 	m_canvas->set_background_color({ 100, 100, 100, 255 });
 	m_canvas->set_draw_border(true);
 	m_canvas->set_cursor(Cursor::Crosshair);
 
 	// some fixed widgets 
-	tools = new Widget(screen);
-	tools->set_layout(new BoxLayout(Orientation::Vertical, Alignment::Minimum, 5, 5));
+	//tools = new Widget(screen);
+	//tools->set_layout(new BoxLayout(Orientation::Vertical, Alignment::Minimum, 5, 5));
 
-	Button *b0 = new Button(tools, "Random Background");
-	b0->set_callback([this]() {
-		m_canvas->set_background_color(
-			Vector4i(rand() % 256, rand() % 256, rand() % 256, 255));
-		});
+	//Button *b0 = new Button(tools, "Random Background");
+	//b0->set_callback([this]() {
+	//	m_canvas->set_background_color(
+	//		Vector4i(rand() % 256, rand() % 256, rand() % 256, 255));
+	//	});
 
-	Button *b1 = new Button(tools, "Pause");
-	b1->set_callback([this]() {
-		m_pause = !m_pause;
-		});
+	//Button *b1 = new Button(tools, "Pause");
+	//b1->set_callback([this]() {
+	//	m_pause = !m_pause;
+	//	});
 
 	// ------!!!!! important
 	// 1. init embedded parameters 
@@ -227,12 +227,15 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	m_widget_reset_buttons.resize(N + 2); 
 	// new widgets, for controling pose parameters
 
-	basic_widgets = new Window(screen, "Parameter Tuning"); 
-	basic_widgets->set_position(Vector2i(100, 50)); 
+	//basic_widgets = new Window(screen, "Parameter Tuning"); 
+	basic_widgets = new Widget(screen); 
+	basic_widgets->set_position(Vector2i(0, 360)); 
+	basic_widgets->set_height(720);
+	basic_widgets->set_width(1400);
+	
 	basic_widgets->set_layout(new BoxLayout(Orientation::Vertical, Alignment::Minimum, 1, 1));
 
 	int box_height = 20;
-
 	
 	// -- scale 
 	{
@@ -460,7 +463,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 
 	nanogui_window->set_visible(m_control_panel_visible);
 	basic_widgets->set_visible(m_control_panel_visible);
-	tools->set_visible(m_control_panel_visible);
+	//tools->set_visible(m_control_panel_visible);
 }
 
 void NanoRenderer::set_joint_pose(const std::vector<Eigen::Vector3f>& _pose)
@@ -576,7 +579,7 @@ void NanoRenderer::Draw()
 	else m_control_panel_visible = false;
 	nanogui_window->set_visible(m_control_panel_visible);
 	basic_widgets->set_visible(m_control_panel_visible);
-	tools->set_visible(m_control_panel_visible);
+	//tools->set_visible(m_control_panel_visible);
 	//image_window->set_visible(false); 
 
 

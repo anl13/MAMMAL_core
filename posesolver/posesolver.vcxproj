@@ -210,7 +210,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties config_3seq2_1json__JSONSchema="https://json.schemastore.org/ansible-collection-galaxy" confignew_1json__JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" />
+      <UserProperties confignew_1json__JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" config_1json__JSONSchema="http://json.schemastore.org/netlify.json" __JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

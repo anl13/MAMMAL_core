@@ -28,7 +28,7 @@ void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers
 {
 	m_skels3d.resize(4); 
 	setConstDataToSolver();
-	detectSIFTandTrack();
+	readSIFTandTrack(); 
 
 	for (int i = 0; i < 4; i++)
 	{
@@ -86,18 +86,28 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 	for (int i = 0; i < 4; i++)
 	{
 		mp_bodysolverdevice[i]->m_isReAssoc = false; 
+		mp_bodysolverdevice[i]->generateDataForSilSolver();
+
 	}
 
-	std::vector<std::vector<int> > hierarachy = 
+	//std::vector<std::vector<int> > hierarachy = 
+	//{
+	//	{0,1,2,3,4,21,22,23},    // main body
+	//	//{21,22,23},     // neck
+	//	{13,14,15,16},  // left front leg
+	//	{5,6,7,8},      // right front leg
+	//	{54,55,56,57},  // left back leg
+	//	{38,39,40,41}   // right back leg
+	//};
+
+	std::vector<std::vector<int> > hierarachy =
 	{
-		{0,1,2,3,4,21,22,23},    // main body
-		//{21,22,23},     // neck
-		{13,14,15,16},  // left front leg
-		{5,6,7,8},      // right front leg
-		{54,55,56,57},  // left back leg
-		{38,39,40,41}   // right back leg
+		{0,1,2,3,4, 21,22,23},    // main body
+		{13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
 	};
 
+	TimerUtil::Timer<std::chrono::microseconds> tt;
+	tt.Start();
 	for (int k = 0; k < hierarachy.size(); k++)
 	{
 		for (int pid = 0; pid < 4; pid++)
@@ -109,6 +119,10 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 			optimizeSilWithAnchor(m_solve_sil_iters);
 		}
 	}
+	float micro = tt.Elapsed();	
+	std::cout << "raw fit: " << micro / 1000.0 << " ms; " 
+		<< micro / 1000. / (hierarachy.size()) << " ms per hierarchy" 
+		<< std::endl; 
 }
 
 void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoints and silhouettes
@@ -117,15 +131,25 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 	{
 		mp_bodysolverdevice[i]->m_isReAssoc = true; 
 	}
+
+	//std::vector<std::vector<int> > hierarachy =
+	//{
+	//	{0,1,2,3,4, 21,22,23},    // main body
+	//	//{21,22,23},     // neck
+	//	{13,14,15,16},  // left front leg
+	//	{5,6,7,8},      // right front leg
+	//	{54,55,56,57},  // left back leg
+	//	{38,39,40,41}   // right back leg
+	//};
+
 	std::vector<std::vector<int> > hierarachy =
 	{
 		{0,1,2,3,4, 21,22,23},    // main body
-		//{21,22,23},     // neck
-		{13,14,15,16},  // left front leg
-		{5,6,7,8},      // right front leg
-		{54,55,56,57},  // left back leg
-		{38,39,40,41}   // right back leg
+		{13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41} 
 	};
+
+	TimerUtil::Timer<std::chrono::microseconds> tt;
+	tt.Start();
 
 	for (int k = 0; k < hierarachy.size(); k++)
 	{
@@ -138,6 +162,11 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 			optimizeSilWithAnchor(m_solve_sil_iters);
 		}
 	}
+
+	float micro = tt.Elapsed();
+	std::cout << "rea fit: " << micro / 1000.0 << " ms; "
+		<< micro / 1000. / (hierarachy.size()) << " ms per hierarchy"
+		<< std::endl;
 }
 
 void FrameSolver::DARKOV_Step5_postprocess()  // some postprocessing step 
@@ -149,8 +178,9 @@ void FrameSolver::DARKOV_Step5_postprocess()  // some postprocessing step
 	}
 	m_last_matched = m_matched; 
 
-	TimerUtil::Timer<std::chrono::microseconds> tt;
-	tt.Start();
+	//TimerUtil::Timer<std::chrono::microseconds> tt;
+	//tt.Start();
 	buildSIFTMapToSurface(); 
-	std::cout << "buildSIFTMapToSurface(): " << tt.Elapsed() / 1000.0 << " ms" << std::endl; 
+	//std::cout << "buildSIFTMapToSurface(): " << tt.Elapsed() / 1000.0 << " ms" << std::endl; 
+
 }

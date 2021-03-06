@@ -81,6 +81,8 @@ public:
 	float* renderDepthDevice();
 
 	void createScene(std::string proectFolder);
+	void createSceneDetailed(std::string projectFolder); 
+
 	void createPlane(std::string projectFolder); 
 private:
 	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;

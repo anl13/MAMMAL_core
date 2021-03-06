@@ -106,20 +106,11 @@ void show_scene()
 	const Mesh cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
 	const MeshEigen ballObjEigen(ballObj); 
 
-	RenderObjectTexture* chess_floor = new RenderObjectTexture();
-	chess_floor->SetTexture(conf_projectFolder + "/render/data/chessboard_black.png");
-	chess_floor->SetFaces(squareObj.faces_v_vec);
-	chess_floor->SetVertices(squareObj.vertices_vec);
-	chess_floor->SetTexcoords(squareObj.textures_vec, 1);
-	chess_floor->SetNormal(squareObj.normals_vec, 2); 
-	chess_floor->SetTransform({ kFloorDx, kFloorDy, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	m_renderer.texObjs.push_back(chess_floor);
-
-	std::string point_file = conf_projectFolder + "/data/calibdata/tmp/points3d.txt";
+	std::string point_file = conf_projectFolder + "/data/calibdata/adjust_new/points3d.txt";
 	std::vector<Eigen::Vector3f> points = read_points(point_file);
 	std::vector<Eigen::Vector3f> selected_points = points;
 
-	std::vector<float> sizes(selected_points.size(), 0.05f);
+	std::vector<float> sizes(selected_points.size(), 0.005f);
 	std::vector<Eigen::Vector3f> balls, colors;
 	balls.resize(selected_points.size());
 	colors.resize(selected_points.size());
@@ -130,6 +121,68 @@ void show_scene()
 	}
 	BallStickObject* skelObject = new BallStickObject(ballObjEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(skelObject);
+
+
+	//Mesh output;
+	//for (int k = 0; k < balls.size(); k++)
+	//{
+	//	Mesh tmp = ballObj;
+	//	for (int i = 0; i < tmp.vertices_vec.size(); i++)
+	//	{
+	//		tmp.vertices_vec[i] = tmp.vertices_vec[i] * sizes[k] + balls[k];
+	//	}
+	//	composeMesh(output, tmp); 
+	//}
+	//output.Save("D:/results/points.obj"); 
+
+	m_renderer.createSceneDetailed("D:/Projects/animal_calib"); 
+
+	//Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_modify_big_tri.obj");
+	//Mesh camObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/camera_big.obj");
+
+	//RenderObjectColor *p_scene = new RenderObjectColor();
+	//Eigen::Matrix3f R = EulerToRotDegree(-90, 0, 90);
+	//for (int i = 0; i < sceneObj.vertices_vec.size(); i++)
+	//{
+	//	sceneObj.vertices_vec[i] = R * sceneObj.vertices_vec[i];
+	//}
+	//sceneObj.CalcNormal();
+	//sceneObj.Save("D:/Projects/animal_calib/render/data/obj_model/zhujuan_modify_big_tri.obj");
+	//p_scene->SetVertices(sceneObj.vertices_vec);
+	//p_scene->SetNormal(sceneObj.normals_vec);
+	//p_scene->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+	//p_scene->isMultiLight = false;
+	//p_scene->SetFaces(sceneObj.faces_v_vec);
+
+	//RenderObjectColor *p_cam = new RenderObjectColor();
+	//p_cam->SetVertices(camObj.vertices_vec);
+	//p_cam->SetNormal(camObj.normals_vec);
+	//p_cam->SetFaces(camObj.faces_v_vec);
+	//p_cam->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+	//p_cam->isMultiLight = false;
+
+	//m_renderer.colorObjs.push_back(p_scene);
+
+	//for (int k = 6; k < 7; k++)
+	//{
+	//	std::stringstream ss;
+	//	ss << "D:/Projects/animal_calib/render/data/obj_model/zhujuan_big_part" << k << ".obj";
+	//	Mesh obj(ss.str());
+	//	//for (int i = 0; i < obj.vertices_vec.size(); i++)
+	//	//{
+	//	//	obj.vertices_vec[i] = R * obj.vertices_vec[i];
+	//	//}
+	//	//obj.CalcNormal();
+	//	//obj.Save(ss.str()); 
+	//	RenderObjectColor *p_scene = new RenderObjectColor();
+
+	//	p_scene->SetVertices(obj.vertices_vec);
+	//	p_scene->SetNormal(obj.normals_vec);
+	//	p_scene->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+	//	p_scene->isMultiLight = false;
+	//	p_scene->SetFaces(obj.faces_v_vec);
+	//}
+
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
@@ -435,8 +488,8 @@ void adjust_calibration()
 
 int main()
 {
-	adjust_calibration(); 
-	//show_scene();
+	//adjust_calibration(); 
+	show_scene();
 
 	//std::string folder = "D:/Projects/animal_calib/"; 
 	//Calibrator calib(folder); 

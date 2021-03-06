@@ -200,3 +200,101 @@ void draw_sift_matches_overlay(
 	}
 }
 
+
+void saveSIFTKeypoints(std::string name, const vector<vector<cv::KeyPoint> >& keys,
+	const vector<cv::Mat>& des)
+{
+	std::ofstream os(name);
+	if (!os.is_open())
+	{
+		std::cout << name << "  isnot open" << std::endl;
+		exit(-1);
+	}
+	int camnum = keys.size(); 
+	for (int camid = 0; camid < camnum; camid++)
+	{
+		os << keys[camid].size() << std::endl;
+		for (int i = 0; i < keys[camid].size(); i++)
+		{
+			os << keys[camid][i].pt.x << " " << keys[camid][i].pt.y << std::endl;
+		}
+		for (int i = 0; i < des[camid].rows; i++)
+		{
+			for (int j = 0; j < 128; j++)
+			{
+				os << des[camid].at<float>(i, j) << " ";
+			}
+			os << std::endl;
+		}
+	}
+	os.close();
+}
+
+void readSIFTKeypoints(std::string name, vector<vector<cv::KeyPoint> >& keys, vector<cv::Mat>& des, int camnum)
+{
+	std::ifstream is(name);
+	if (!is.is_open())
+	{
+		std::cout << name << " isnot open" << std::endl;
+		exit(-1);
+	}
+	keys.resize(camnum);
+	des.resize(camnum);
+
+	for (int camid = 0; camid < camnum; camid++)
+	{
+		int size;
+		is >> size;
+		keys[camid].resize(size);
+		for (int i = 0; i < size; i++)
+		{
+			float x, y;
+			is >> x >> y;
+			keys[camid][i].pt.x = x;
+			keys[camid][i].pt.y = y;
+		}
+		des[camid].create(cv::Size(128, size), CV_32F);
+		for (int i = 0; i < size; i++)
+		{
+			for (int j = 0; j < 128; j++)
+			{
+				is >> des[camid].at<float>(i, j);
+			}
+		}
+	}
+	is.close();
+}
+
+void saveSIFTMatches(std::string name, const vector<vector<cv::DMatch> >& matches)
+{
+	std::ofstream os(name);
+	int camnum = matches.size(); 
+	for (int camid = 0; camid < camnum; camid++)
+	{
+		os << matches[camid].size() << std::endl;
+		for (int i = 0; i < matches[camid].size(); i++)
+		{
+			os << matches[camid][i].queryIdx << " ";
+			os << matches[camid][i].trainIdx;
+			os << std::endl;
+		}
+	}
+	os.close();
+}
+
+void readSIFTMatches(std::string name, vector<vector<cv::DMatch> >& matches, int camnum)
+{
+	std::ifstream is(name);
+	matches.resize(camnum);
+	for (int camid = 0; camid < camnum; camid++)
+	{
+		int size;
+		is >> size;
+		matches[camid].resize(size);
+		for (int i = 0; i < size; i++)
+		{
+			is >> matches[camid][i].queryIdx >> matches[camid][i].trainIdx;
+		}
+	}
+	is.close();
+}

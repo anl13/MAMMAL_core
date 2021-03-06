@@ -170,6 +170,9 @@
     <ClCompile Include="..\posesolver\framesolver_pipeline.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="..\tracking\sift_matcher.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\gpuutils.cu">

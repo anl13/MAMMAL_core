@@ -958,8 +958,8 @@ void test_indexrender()
 void main()
 {
 	//test_trajectory();
-	//test_color_table();
-	test_indexrender(); 
+	test_color_table();
+	//test_indexrender(); 
 	//generateFaceIndexMap();
 
 }

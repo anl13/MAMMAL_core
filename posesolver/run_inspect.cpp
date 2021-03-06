@@ -40,7 +40,7 @@ int run_inspect()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(false);
+	Renderer::s_Init(true);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -72,6 +72,9 @@ int run_inspect()
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
 
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
+		TimerUtil::Timer<std::chrono::microseconds> tt;
+		tt.Start();
+
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		
@@ -80,17 +83,12 @@ int run_inspect()
 			frame.load_clusters();
 		else
 			frame.pureTracking(); 
-		cv::Mat assoc = frame.visualizeIdentity2D();
 
-		std::stringstream ss;
-		ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss.str(), assoc);
 		frame.save_clusters(); 
 
 		if (frameid == start)
 		{
 			frame.read_parametric_data(); 
-			frame.detectSIFTandTrack(); 
 			frame.DARKOV_Step5_postprocess();
 		}
 		// pipeline 3 
@@ -126,8 +124,20 @@ int run_inspect()
 			frame.DARKOV_Step3_reassoc_type2();
 			frame.DARKOV_Step4_fitreassoc();
 
+			cv::Mat sift = frame.visualizeSIFT();
+			std::stringstream ss_sift;
+			ss_sift << test_result_folder << "/sift/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_sift.str(), sift);
+
 			frame.DARKOV_Step5_postprocess();
 			frame.save_parametric_data();
+
+			std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
+
+			cv::Mat assoc = frame.visualizeIdentity2D();
+			std::stringstream ss;
+			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss.str(), assoc);
 
 			cv::Mat reassoc = frame.visualizeReassociation();
 			std::stringstream ss_reassoc;
@@ -149,10 +159,14 @@ int run_inspect()
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_rawassoc.str(), rawfit); 
 
+
+
 			//frame.pipeline2_searchanchor();
 			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
 
 		}
+
+
 			m_renderer.clearAllObjs();
 
 			auto solvers = frame.mp_bodysolverdevice;
@@ -169,7 +183,6 @@ int run_inspect()
 				m_renderer.colorObjs.push_back(p_model);
 
 				std::vector<Eigen::Vector3f> joints = solvers[pid]->GetJoints();
-				std::cout << "center of " << pid << "  " << joints[2].transpose() << std::endl;
 			}
 
 			std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
@@ -224,7 +237,7 @@ int run_inspect()
 				<< frameid << ".png";
 			cv::imwrite(all_render_file.str(), blend);
 		
-
+			std::cout << "total:       " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
 		//if (frameid == start ) {
 		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 		//	while (!glfwWindowShouldClose(windowPtr))

@@ -1686,8 +1686,9 @@ void PigSolverDevice::CalcJointFloorTerm(
 	d_J_joint.download(h_J_joint.data(), m_jointNum * 3 * sizeof(float));
 	for (int jid = 0; jid < m_jointNum; jid++)
 	{
+		if (jid < 5 || (jid >= 46 && jid <= 53) || (jid >= 21 && jid <= 37)) continue; 
 		Eigen::Vector3f joint = m_host_jointsPosed[jid];
-		if (joint(2) > 0.05) continue; 
+		if (joint(2) > -0.05) continue; 
 		else
 		{
 			A.row(jid) = h_J_joint.row(3 * jid + 2);
@@ -1974,13 +1975,13 @@ void PigSolverDevice::CalcRegTermBodyOnly(const Eigen::VectorXf& theta, Eigen::M
 	ATb.segment<3>(0).setZero();
 	ATA.middleRows(0, 3) *= 0;
 
-	std::vector<int> body_list = { 1,3,21,22,23 };
+	std::vector<int> body_list = { 1,2,3,4,21,22,23 };
 	for (int i = 0; i < m_poseToOptimize.size(); i++)
 	{
-
 		if (!in_list(m_poseToOptimize[i], body_list))
 		{
-			ATA.middleRows(3 + 3 * i, 3) *= 0;
+			ATA.middleRows(3 + 3 * i, 3) *= 0.05;
+			ATb.segment<3>(3 + 3 * i) *= 0.05;
 		}
 	}
 }

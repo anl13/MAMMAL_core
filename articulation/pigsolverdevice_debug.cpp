@@ -913,7 +913,8 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 
 	Eigen::MatrixXf ATA_reg;
 	Eigen::VectorXf ATb_reg;
-	CalcRegTerm(theta, ATA_reg, ATb_reg, false);
+	//CalcRegTerm(theta, ATA_reg, ATb_reg, false);
+	CalcRegTermBodyOnly(theta, ATA_reg, ATb_reg); 
 
 	Eigen::MatrixXf ATA_sift; 
 	Eigen::VectorXf ATb_sift; 

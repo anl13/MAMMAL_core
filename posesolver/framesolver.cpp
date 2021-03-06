@@ -365,6 +365,7 @@ void FrameSolver::read_parametric_data()
 			mp_bodysolverdevice[i]->postProcessing();
 		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
 	}
+	readSIFTandTrack(); 
 }
 
 void FrameSolver::matching_by_tracking()
@@ -905,11 +906,6 @@ void FrameSolver::renderFaceIndex()
 
 void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 {
-	for (int pid = 0; pid < 4; pid++)
-	{
-		mp_bodysolverdevice[pid]->generateDataForSilSolver();
-	}
-
 	int iter = 0;
 	for (; iter < maxIterTime; iter++)
 	{
@@ -1788,6 +1784,57 @@ void FrameSolver::save_joints()
 	}
 }
 
+void FrameSolver::readSIFTandTrack()
+{
+	// read sift data 
+	m_siftKeypointsCurrent.clear();
+	m_siftDescriptionCurrent.clear();
+	std::stringstream ss;
+	ss << m_sequence << "/sift/sift" << std::setw(10) << std::setfill('0') << m_frameid << ".txt"; 
+	readSIFTKeypoints(ss.str(), m_siftKeypointsCurrent, m_siftDescriptionCurrent, m_camNum); 
+	m_siftMatches.clear(); 
+	m_siftMatchesCleaned.clear(); 
+	m_siftMatches.resize(m_camNum); 
+	m_siftMatchesCleaned.resize(m_camNum); 
+	if (m_frameid > m_startid)
+	{
+		//std::stringstream ss_match;
+		//ss_match << m_sequence << "/sift/match" << std::setw(10) << std::setfill('0') << m_frameid << ".txt";
+		//readSIFTMatches(ss_match.str(), m_siftMatchesCleaned, m_camNum);
+
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			m_siftMatcher.match(m_siftDescriptionLast[camid], m_siftDescriptionCurrent[camid], m_siftMatches[camid]);
+			clean_bfmatches(m_siftKeypointsLast[camid], m_siftKeypointsCurrent[camid], m_siftMatches[camid], m_siftMatchesCleaned[camid], 40);
+		}
+
+		// build sift corrs 
+		m_siftCorrs.clear();
+		m_siftCorrs.resize(4);
+		for (int pid = 0; pid < 4; pid++)
+		{
+			m_siftCorrs[pid].resize(m_camNum);
+		}
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			for (int i = 0; i < m_siftMatchesCleaned[camid].size(); i++)
+			{
+				int lastid = m_siftMatchesCleaned[camid][i].queryIdx;
+				int pid = m_siftToFaceIds[camid][lastid].id;
+				if (pid < 0) continue;
+				int faceid = m_siftToFaceIds[camid][lastid].faceid;
+				SIFTCorr corr;
+				corr.track = m_siftMatchesCleaned[camid][i];
+				int currentid = corr.track.trainIdx;
+				corr.pixel(0) = m_siftKeypointsCurrent[camid][currentid].pt.x;
+				corr.pixel(1) = m_siftKeypointsCurrent[camid][currentid].pt.y;
+				corr.faceid = faceid;
+				m_siftCorrs[pid][camid].push_back(corr);
+			}
+		}
+	}
+}
+
 void FrameSolver::detectSIFTandTrack()
 {
 	m_siftKeypointsCurrent.clear(); 
@@ -1977,4 +2024,62 @@ void FrameSolver::buildSIFTMapToSurface()
 	m_siftDescriptionLast = m_siftDescriptionCurrent;
 
 
+}
+
+cv::Mat FrameSolver::visualizeSIFT()
+{
+	// draw sift 
+
+	std::vector<cv::Mat> packsift; 
+	packsift.resize(m_camNum); 
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		cv::Mat output = m_imgsUndist[camid].clone();
+		std::vector<Eigen::Vector3i> CM = getColorMapEigen("anliang_rgb");
+		for (int pid = 0; pid < 4; pid++)
+		{
+			auto faces = mp_bodysolverdevice[pid]->GetFacesVert();
+			auto vertices = mp_bodysolverdevice[pid]->GetVertices();
+			for (int i = 0; i < m_siftCorrs[pid][camid].size(); i++)
+			{
+				int faceid = m_siftCorrs[pid][camid][i].faceid;
+				if (faceid < 0)
+				{
+					std::cout << "error: " << faceid << std::endl;
+					continue;
+				}
+				std::vector<std::vector<cv::Point2i> > triangle;
+				triangle.resize(1);
+				Eigen::Vector3u face = faces[faceid];
+				for (int f = 0; f < 3; f++)
+				{
+					Eigen::Vector3f point2d = project(m_camsUndist[camid], vertices[face(f)]);
+					cv::Point2i p;
+					p.x = round(point2d(0));
+					p.y = round(point2d(1));
+					triangle[0].push_back(p);
+				}
+
+				int colorid = pid;
+				cv::Scalar color(CM[colorid](2), CM[colorid](1), CM[colorid](0));
+				cv::Scalar invcolor(255 - CM[colorid](2), 255 - CM[colorid](1), 255 - CM[colorid](0));
+				//cv::fillPoly(output, triangle, invcolor, 1, 0);
+
+				cv::DMatch track = m_siftCorrs[pid][camid][i].track;
+				int a = track.queryIdx;
+				int b = track.trainIdx;
+				cv::Point2f p1 = m_siftKeypointsLast[camid][a].pt;
+				cv::Point2f p2 = m_siftKeypointsCurrent[camid][b].pt;
+
+				cv::circle(output, p1, 2, color, -1);
+				cv::circle(output, p2, 4, color, 1);
+				cv::line(output, p1, p2, color, 1);
+
+			}
+		}
+		packsift[camid] = output; 
+	}
+	cv::Mat packed; 
+	packImgBlock(packsift, packed); 
+	return packed; 
 }

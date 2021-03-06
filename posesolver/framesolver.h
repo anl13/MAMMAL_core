@@ -35,6 +35,7 @@ public:
 	void renderFaceIndex();
 	void renderMaskColor(); 
 	void detectSIFTandTrack();
+	void readSIFTandTrack(); 
 	cv::Mat m_faceIndexTexImg; 
 	Mesh m_objForTex; 
 	vector<cv::Mat> m_faceIndexImg; 
@@ -106,6 +107,7 @@ public:
 	cv::Mat visualizeVisibility(); 
 	cv::Mat visualizeSwap(); 
 	cv::Mat visualizeRawAssoc();
+	cv::Mat visualizeSIFT(); 
 
 	// 20201108: assoc with 
 	void reAssocProcessStep1();

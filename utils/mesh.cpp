@@ -278,3 +278,24 @@ void MeshEigen::CalcNormal()
 	}
 	for (int i = 0; i < normals.cols(); i++) normals.col(i).normalize();
 }
+
+
+void composeMesh(Mesh& mesh1, const Mesh& mesh2)
+{
+	int vertexnum1 = mesh1.vertex_num;
+	int vertexnum2 = mesh2.vertex_num;
+	int facenum1 = mesh1.face_num;
+	int facenum2 = mesh2.face_num;
+	mesh1.vertices_vec.insert(mesh1.vertices_vec.end(), mesh2.vertices_vec.begin(), mesh2.vertices_vec.end());
+	mesh1.normals_vec.insert(mesh1.normals_vec.end(), mesh2.normals_vec.begin(), mesh2.normals_vec.end());
+	mesh1.faces_v_vec.insert(mesh1.faces_v_vec.end(), mesh2.faces_v_vec.begin(), mesh2.faces_v_vec.end());
+	for (int i = facenum1; i < facenum1 + facenum2; i++)
+	{
+		mesh1.faces_v_vec[i](0) += vertexnum1;
+		mesh1.faces_v_vec[i](1) += vertexnum1;
+		mesh1.faces_v_vec[i](2) += vertexnum1;
+	}
+
+	mesh1.vertex_num = mesh1.vertices_vec.size(); 
+	mesh1.face_num = mesh1.faces_v_vec.size(); 
+}
