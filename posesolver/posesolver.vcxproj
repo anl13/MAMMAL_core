@@ -156,6 +156,7 @@
     <ClCompile Include="framedata.cpp" />
     <ClCompile Include="framesolver.cpp" />
     <ClCompile Include="framesolver_pipeline.cpp" />
+    <ClCompile Include="global_config.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="matching.cpp" />
     <ClCompile Include="mce\AdjacencyListAlgorithm.cpp" />
@@ -189,6 +190,7 @@
     <ClInclude Include="clusterclique.h" />
     <ClInclude Include="framedata.h" />
     <ClInclude Include="framesolver.h" />
+    <ClInclude Include="global_config.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="matching.h" />
     <ClInclude Include="mce\AdjacencyListAlgorithm.h" />
@@ -201,7 +203,7 @@
   <ItemGroup>
     <None Include="..\articulation\artist_config.json" />
     <None Include="config.json" />
-    <None Include="confignew.json" />
+    <None Include="config_7.json" />
     <None Include="config_seq2.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

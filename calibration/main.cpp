@@ -47,6 +47,46 @@ std::vector<Camera> readCameras()
 	return cams; 
 }
 
+std::vector<Camera> readCameras7()
+{
+	std::vector<Camera> cams;
+	std::vector<int> m_camids = {
+		4,6,9,10,12
+	};
+	int m_camNum = m_camids.size();
+	std::string m_camDir = "D:/Projects/animal_calibration/calibother/result/";
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		std::stringstream ss;
+		ss << m_camDir << std::setw(2) << std::setfill('0') << m_camids[camid] << ".txt";
+		std::ifstream camfile;
+		camfile.open(ss.str());
+		if (!camfile.is_open())
+		{
+			std::cout << "can not open file " << ss.str() << std::endl;
+			exit(-1);
+		}
+		Eigen::Vector3f rvec, tvec;
+		for (int i = 0; i < 3; i++) {
+			float a;
+			camfile >> a;
+			rvec(i) = a;
+		}
+		for (int i = 0; i < 3; i++)
+		{
+			double a;
+			camfile >> a;
+			tvec(i) = a;
+		}
+
+		Camera camUndist = Camera::getDefaultCameraUndist();
+		camUndist.SetRT(rvec, tvec);
+		cams.push_back(camUndist);
+		camfile.close();
+	}
+	return cams;
+}
+
 std::vector<cv::Mat> readImgs()
 {
 	std::string folder = "D:/Projects/animal_calib/";
@@ -71,6 +111,30 @@ std::vector<cv::Mat> readImgs()
 	return m_imgs; 
 }
 
+std::vector<cv::Mat> readImgs7()
+{
+	std::string folder = "D:/Projects/animal_calibration/";
+	std::string m_imgDir = folder + "/calibother/undist/bg";
+	std::vector<int> m_camids = {
+		4,6,9,10,12
+	};
+	int m_camNum = m_camids.size();
+	std::vector<cv::Mat> m_imgs;
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		std::stringstream ss;
+		ss << m_imgDir << m_camids[camid] << "_undist.jpg";
+		cv::Mat img = cv::imread(ss.str());
+		if (img.empty())
+		{
+			std::cout << "img is empty! " << ss.str() << std::endl;
+			exit(-1);
+		}
+		m_imgs.push_back(img);
+	}
+	return m_imgs;
+}
+
 
 void show_scene()
 {
@@ -82,13 +146,10 @@ void show_scene()
 	std::vector<cv::Mat> bgs = readImgs();
 
 	// init a camera 
-	Eigen::Matrix3f K;
-	K << 0.698, 0, 0.502,
-		0, 1.243, 0.483,
-		0, 0, 1;
+	Eigen::Matrix3f K = cams[0].K;
+	K.row(0) /= 1920;
+	K.row(1) /= 1080;
 	std::cout << K << std::endl;
-
-
 
 	// init renderer 
 	Renderer::s_Init(false);
@@ -109,8 +170,7 @@ void show_scene()
 	std::string point_file = conf_projectFolder + "/data/calibdata/adjust_new/points3d.txt";
 	std::vector<Eigen::Vector3f> points = read_points(point_file);
 	std::vector<Eigen::Vector3f> selected_points = points;
-
-	std::vector<float> sizes(selected_points.size(), 0.005f);
+	std::vector<float> sizes(selected_points.size(), 0.03f);
 	std::vector<Eigen::Vector3f> balls, colors;
 	balls.resize(selected_points.size());
 	colors.resize(selected_points.size());
@@ -118,6 +178,7 @@ void show_scene()
 	{
 		balls[i] = selected_points[i].cast<float>();
 		colors[i] = CM[0];
+		if (i == 2) colors[i] = CM[1];
 	}
 	BallStickObject* skelObject = new BallStickObject(ballObjEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(skelObject);
@@ -135,24 +196,43 @@ void show_scene()
 	//}
 	//output.Save("D:/results/points.obj"); 
 
-	m_renderer.createSceneDetailed("D:/Projects/animal_calib"); 
 
-	//Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_modify_big_tri.obj");
-	//Mesh camObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/camera_big.obj");
+	Mesh camObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/camera_big.obj");
+#if 0  // re-build scene model
+	for (int i = 1; i < 7; i++)
+	{
+		Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_new_part" + std::to_string(i) + ".obj", false);
+		Eigen::Matrix3f R = EulerToRotDegree(-90, 0, 90);
+		for (int i = 0; i < sceneObj.vertices_vec.size(); i++)
+		{
+			sceneObj.vertices_vec[i] = R * sceneObj.vertices_vec[i];
+		}
+		sceneObj.CalcNormal();
+		sceneObj.Save("D:/Projects/animal_calib/render/data/obj_model/zhujuan_new_part" + std::to_string(i) +".obj");
+	}
+#endif 
 
-	//RenderObjectColor *p_scene = new RenderObjectColor();
-	//Eigen::Matrix3f R = EulerToRotDegree(-90, 0, 90);
-	//for (int i = 0; i < sceneObj.vertices_vec.size(); i++)
-	//{
-	//	sceneObj.vertices_vec[i] = R * sceneObj.vertices_vec[i];
-	//}
-	//sceneObj.CalcNormal();
-	//sceneObj.Save("D:/Projects/animal_calib/render/data/obj_model/zhujuan_modify_big_tri.obj");
-	//p_scene->SetVertices(sceneObj.vertices_vec);
-	//p_scene->SetNormal(sceneObj.normals_vec);
-	//p_scene->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
-	//p_scene->isMultiLight = false;
-	//p_scene->SetFaces(sceneObj.faces_v_vec);
+#if 1
+	Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_new.obj", false);
+	Eigen::Matrix3f R = EulerToRotDegree(-90, 0, 90);
+	for (int i = 0; i < sceneObj.vertices_vec.size(); i++)
+	{
+		sceneObj.vertices_vec[i] = R * sceneObj.vertices_vec[i];
+	}
+	sceneObj.CalcNormal();
+	RenderObjectColor *p_scene = new RenderObjectColor();
+	p_scene->SetVertices(sceneObj.vertices_vec);
+	p_scene->SetNormal(sceneObj.normals_vec);
+	p_scene->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+	p_scene->isMultiLight = false;
+	p_scene->SetFaces(sceneObj.faces_v_vec);
+	m_renderer.colorObjs.push_back(p_scene);
+
+#endif
+
+	//m_renderer.createSceneDetailed("D:/Projects/animal_calib");
+
+
 
 	//RenderObjectColor *p_cam = new RenderObjectColor();
 	//p_cam->SetVertices(camObj.vertices_vec);
@@ -161,45 +241,34 @@ void show_scene()
 	//p_cam->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
 	//p_cam->isMultiLight = false;
 
-	//m_renderer.colorObjs.push_back(p_scene);
 
-	//for (int k = 6; k < 7; k++)
+	//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+	//while (!glfwWindowShouldClose(windowPtr))
 	//{
-	//	std::stringstream ss;
-	//	ss << "D:/Projects/animal_calib/render/data/obj_model/zhujuan_big_part" << k << ".obj";
-	//	Mesh obj(ss.str());
-	//	//for (int i = 0; i < obj.vertices_vec.size(); i++)
-	//	//{
-	//	//	obj.vertices_vec[i] = R * obj.vertices_vec[i];
-	//	//}
-	//	//obj.CalcNormal();
-	//	//obj.Save(ss.str()); 
-	//	RenderObjectColor *p_scene = new RenderObjectColor();
+	//	glDisable(GL_CULL_FACE);
+	//	m_renderer.Draw();
+	//	glfwSwapBuffers(windowPtr);
+	//	glfwPollEvents();
+	//};
 
-	//	p_scene->SetVertices(obj.vertices_vec);
-	//	p_scene->SetNormal(obj.normals_vec);
-	//	p_scene->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
-	//	p_scene->isMultiLight = false;
-	//	p_scene->SetFaces(obj.faces_v_vec);
-	//}
-
-
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-
-	while (!glfwWindowShouldClose(windowPtr))
+	//std::vector<int> camids = { 4,6,9,10,12 };
+	std::vector<int> camids = { 0,1,2,5,6,7,8,9,10,11 };
+	for (int i = 0; i < cams.size(); i++)
 	{
+		m_renderer.s_camViewer.SetExtrinsic(cams[i].R.cast<float>(), cams[i].T.cast<float>());
+		glDisable(GL_CULL_FACE);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		m_renderer.Draw();
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
-	};
-	//m_renderer.Draw(); 
-	//cv::Mat render = m_renderer.GetImage();
-	//cv::Mat overlay = overlay_renders(bgs[0], render);
-	//cv::namedWindow("show", cv::WINDOW_NORMAL); 
-	//cv::imshow("show", overlay);
-	//cv::waitKey(); 
-	//cv::destroyAllWindows(); 
-
+		cv::Mat render = m_renderer.GetImage();
+		cv::Mat overlay = overlay_renders(bgs[i], render,0);
+		std::stringstream ss_out; 
+		ss_out << "D:/Projects/animal_calibration/calib10/undist/bg" << camids[i] << "_overlay.png"; 
+		cv::imwrite(ss_out.str(), overlay);
+		//cv::namedWindow("show", cv::WINDOW_NORMAL);
+		//cv::imshow("show", overlay);
+		//cv::waitKey();
+		//cv::destroyAllWindows();
+	}
 }
 
 // map between artist designed scene mesh to 

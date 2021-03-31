@@ -196,7 +196,7 @@ void PigSolverDevice::optimizeAnchor(int anchor_id)
 	AnchorPoseType A = m_anchor_lib.anchors[anchor_id];
 	m_host_translation = A.translation;
 	// manually define scale 
-	m_host_scale = gt_scales[m_pig_id];
+	m_host_scale = m_gtscale;
 	m_host_translation *= m_host_scale;
 	m_host_poseParam = A.pose;
 
@@ -240,8 +240,8 @@ int PigSolverDevice::searchAnchorSpace()
 		anchor_errors[anchor_id] = evaluate_error(); 
 		anchor_mask_errors[anchor_id] = evaluate_mask_error(); 
 
-		//std::cout << "anchor " << std::setw(2) << anchor_id << " : " << anchor_errors[anchor_id] 
-		//	<< " , " << anchor_mask_errors[anchor_id] << std::endl; 
+		std::cout << "anchor " << std::setw(2) << anchor_id << " : " << anchor_errors[anchor_id] 
+			<< " , " << anchor_mask_errors[anchor_id] << std::endl; 
 	}
 
 	int min_id = -1; 
@@ -303,7 +303,7 @@ void PigSolverDevice::optimizePoseWithAnchor()
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M;
 
-	m_host_scale = gt_scales[m_pig_id];
+	m_host_scale = m_gtscale;
 
 	float loss_2d, loss_reg, loss_temp, loss_anchor, loss_floor; 
 
@@ -820,8 +820,17 @@ float PigSolverDevice::approxIOU(int viewid)
 	return total_overlay / total_visible;
 }
 
+float ComputeTempWeight(float height)
+{
+	float a = 0.15 - height;
+	if (a < 0) return 0;
+	if (a > 0.1) a = 0.1;
+	a = a / 0.1; 
+	a = pow(a, 8);
+	return a * 10;
+}
 
-void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
+float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size();
 	int M = m_poseToOptimize.size();
@@ -911,27 +920,47 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		CalcJointTempTerm2(ATA_temp, ATb_temp, h_J_skel, m_last_regressed_skel3d);
 	}
 
+	float height = getAvgHeight(); 
+	if (m_use_height_enhanced_temp)
+	{
+		w_temp = m_w_temp_term * (1 + ComputeTempWeight(height));
+	}
+	else
+	{
+		w_temp = m_w_temp_term; 
+	}
+
 	Eigen::MatrixXf ATA_reg;
 	Eigen::VectorXf ATb_reg;
-	//CalcRegTerm(theta, ATA_reg, ATb_reg, false);
-	CalcRegTermBodyOnly(theta, ATA_reg, ATb_reg); 
 
+	if(m_use_bodyonly_reg)
+		CalcRegTermBodyOnly(theta, ATA_reg, ATb_reg); 
+	else {
+		CalcRegTerm(theta, ATA_reg, ATb_reg, false);
+	}
+
+#ifdef USE_SIFT
 	Eigen::MatrixXf ATA_sift; 
 	Eigen::VectorXf ATb_sift; 
 	CalcSIFTTerm(m_siftCorrs, ATA_sift, ATb_sift); 
+#endif 
 
 	Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
 		+ DTD * lambda
 		+ ATA_data * w_data + ATA_anchor * w_anchor 
 		+ ATA_floor * w_floor 
 		+ ATA_temp * w_temp
+#ifdef USE_SIFT
 		+ ATA_sift * w_sift
+#endif 
 		; 
 	Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
 		+ ATb_data * w_data + ATb_anchor * w_anchor
 		+ ATb_floor * w_floor
 		+ ATb_temp * w_temp
+#ifdef USE_SIFT
 		+ ATb_sift * w_sift
+#endif 
 		; 
 
 	Eigen::VectorXf delta = H.ldlt().solve(b);
@@ -945,15 +974,20 @@ void PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	}
 
 	
-	//std::cout << "iter: " << iter << std::endl; 
+	//std::cout << "pig " << m_pig_id << " iter: " << iter << std::endl; 
+	//std::cout << "w_temp: " << w_temp << std::endl;
 	//std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
 	//std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
 	//std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
 	//std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
 	//std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
 	//std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
-	//std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
-
+	//std::cout << "delta : " << delta.norm() << std::endl; 
+	//std::cout << "b.norm: " << b.norm() << std::endl;
+#ifdef USE_SIFT
+	std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
+#endif 
+	return delta.norm(); 
 }
 
 void PigSolverDevice::Calc2dSkelProjectionTermReassoc(

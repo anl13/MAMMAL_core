@@ -105,7 +105,7 @@ int multiview_annotator()
 	data_loader.set_frame_id(0); 
 	data_loader.fetchData(); 
 	data_loader.is_smth = false;
-	data_loader.result_folder = "D:/results/seq_noon/"; 
+	data_loader.m_result_folder = "D:/results/seq_noon/"; 
 	data_loader.load_clusters();
 	data_loader.read_parametric_data(); 
 

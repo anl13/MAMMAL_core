@@ -26,17 +26,21 @@ void FrameSolver::DARKOV_Step0_topdownassoc(bool isLoad)
 
 void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers 
 {
-	m_skels3d.resize(4); 
+	m_skels3d.resize(m_pignum); 
 	setConstDataToSolver();
-	readSIFTandTrack(); 
 
-	for (int i = 0; i < 4; i++)
+#ifdef USE_SIFT
+	readSIFTandTrack(); 
+#endif
+
+	for (int i = 0; i < m_pignum; i++)
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]);
 		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
 		mp_bodysolverdevice[i]->globalAlign();
-		std::cout << "pig " << i << "  scale: " << mp_bodysolverdevice[i]->GetScale() << std::endl;
+#ifdef USE_SIFT
 		mp_bodysolverdevice[i]->m_siftCorrs = m_siftCorrs[i];
+#endif
 	}
 }
 
@@ -47,28 +51,22 @@ void FrameSolver::DARKOV_Step2_loadanchor() // only load and set anchor id, with
 	ss << anchor_folder << "/anchor_" << std::setw(6) << std::setfill('0') << m_frameid <<
 		".txt";
 	std::ifstream infile(ss.str());
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < m_pignum; i++)
 	{
 		infile >> mp_bodysolverdevice[i]->m_anchor_id;
 	}
 	infile.close();
 }
 
-void FrameSolver::DARKOV_Step2_searchanchor()
+void FrameSolver::DARKOV_Step2_searchanchor(int pid)
 {
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->searchAnchorSpace(); 
-	}
+	mp_bodysolverdevice[pid]->searchAnchorSpace(); 
 }
 
-void FrameSolver::DARKOV_Step2_optimanchor()
+void FrameSolver::DARKOV_Step2_optimanchor(int pid)
 {
 	// align given anchor Rotation and Translation 
-	for (int i = 0; i < 4; i++)
-	{
-		mp_bodysolverdevice[i]->optimizeAnchor(mp_bodysolverdevice[i]->m_anchor_id); 
-	}
+	mp_bodysolverdevice[pid]->optimizeAnchor(mp_bodysolverdevice[pid]->m_anchor_id); 
 }
 
 void FrameSolver::DARKOV_Step3_reassoc_type2() // type2 contains three small steps: find tracked, assign untracked, solve mix-up
@@ -83,11 +81,10 @@ void FrameSolver::DARKOV_Step3_reassoc_type1()
 
 void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 {
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < m_pignum; i++)
 	{
 		mp_bodysolverdevice[i]->m_isReAssoc = false; 
 		mp_bodysolverdevice[i]->generateDataForSilSolver();
-
 	}
 
 	//std::vector<std::vector<int> > hierarachy = 
@@ -100,17 +97,22 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 	//	{38,39,40,41}   // right back leg
 	//};
 
+	//std::vector<std::vector<int> > hierarachy =
+	//{
+	//	{0,1,2,3,4, 21,22,23},    // main body
+	//	{13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
+	//};
+
 	std::vector<std::vector<int> > hierarachy =
 	{
-		{0,1,2,3,4, 21,22,23},    // main body
-		{13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
+		{0,1,2,3,4, 21,22,23,13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
 	};
 
 	TimerUtil::Timer<std::chrono::microseconds> tt;
 	tt.Start();
 	for (int k = 0; k < hierarachy.size(); k++)
 	{
-		for (int pid = 0; pid < 4; pid++)
+		for (int pid = 0; pid < m_pignum; pid++)
 		{
 			mp_bodysolverdevice[pid]->m_currentHierarchy = hierarachy[k];
 		}
@@ -127,25 +129,14 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 
 void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoints and silhouettes
 {
-	for (int i = 0; i < 4; i++)
+	if (!m_use_reassoc) return; 
+	for (int i = 0; i < m_pignum; i++)
 	{
 		mp_bodysolverdevice[i]->m_isReAssoc = true; 
 	}
-
-	//std::vector<std::vector<int> > hierarachy =
-	//{
-	//	{0,1,2,3,4, 21,22,23},    // main body
-	//	//{21,22,23},     // neck
-	//	{13,14,15,16},  // left front leg
-	//	{5,6,7,8},      // right front leg
-	//	{54,55,56,57},  // left back leg
-	//	{38,39,40,41}   // right back leg
-	//};
-
 	std::vector<std::vector<int> > hierarachy =
 	{
-		{0,1,2,3,4, 21,22,23},    // main body
-		{13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41} 
+		{0,1,2,3,4, 21,22,23,13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
 	};
 
 	TimerUtil::Timer<std::chrono::microseconds> tt;
@@ -153,13 +144,13 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 
 	for (int k = 0; k < hierarachy.size(); k++)
 	{
-		for (int pid = 0; pid < 4; pid++)
+		for (int pid = 0; pid < m_pignum; pid++)
 		{
 			mp_bodysolverdevice[pid]->m_currentHierarchy = hierarachy[k];
 		}
 		if (m_solve_sil_iters > 0)
 		{
-			optimizeSilWithAnchor(m_solve_sil_iters);
+			optimizeSilWithAnchor(m_solve_sil_iters_2nd_phase);
 		}
 	}
 
@@ -171,16 +162,17 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 
 void FrameSolver::DARKOV_Step5_postprocess()  // some postprocessing step 
 {
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < m_pignum; i++)
 	{
 		mp_bodysolverdevice[i]->postProcessing();
 		m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host(); 
 	}
 	m_last_matched = m_matched; 
 
+#ifdef USE_SIFT
 	//TimerUtil::Timer<std::chrono::microseconds> tt;
 	//tt.Start();
 	buildSIFTMapToSurface(); 
 	//std::cout << "buildSIFTMapToSurface(): " << tt.Elapsed() / 1000.0 << " ms" << std::endl; 
-
+#endif 
 }

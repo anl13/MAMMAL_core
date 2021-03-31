@@ -451,9 +451,9 @@ void EpipolarMatching::truncate(int _clusternum)
 void EpipolarMatching::match_by_tracking()
 {
 	// init clusters 
-    int cluster_num = 4; 
+    int cluster_num = m_pignum; 
     int camNum = m_cams.size(); 
-    assert(m_skels_t_1.size() == 4); 
+    assert(m_skels_t_1.size() == cluster_num); 
 	project_all();
 
     // create similarity matrix m_G
@@ -469,8 +469,8 @@ void EpipolarMatching::project_all()
 	m_skels_proj_t_1.resize(camNum);
 	for (int camid = 0; camid < camNum; camid++)
 	{
-		m_skels_proj_t_1[camid].resize(4); 
-		for (int j = 0; j < 4; j++)
+		m_skels_proj_t_1[camid].resize(m_pignum); 
+		for (int j = 0; j < m_pignum; j++)
 		{
 			m_skels_proj_t_1[camid][j].resize(pointNum);
 			for (int jid = 0; jid < pointNum; jid++)
@@ -524,7 +524,6 @@ void EpipolarMatching::projectLoss(
 
 void EpipolarMatching::trackingSimilarity()
 {
-
     // build table and invtable 
     m_total_detection_num = 0; 
     m_table.clear(); 
@@ -545,17 +544,14 @@ void EpipolarMatching::trackingSimilarity()
             m_total_detection_num++; 
         }
     }
-	m_inv_table[cam_num] = { m_total_detection_num,
-		m_total_detection_num+1,
-		m_total_detection_num+2,
-		m_total_detection_num+3 };
-	m_table.push_back({ cam_num,0 });
-	m_table.push_back({ cam_num,1 });
-	m_table.push_back({ cam_num,2 });
-	m_table.push_back({ cam_num,3 });
+	for (int i = 0; i < m_pignum; i++)
+	{
+		m_inv_table[cam_num].push_back(m_total_detection_num + i);
+		m_table.push_back({ cam_num, i });
+	}
 
     // construct graph 
-	int graph_size = m_total_detection_num + 4; // 4 is cluster num 
+	int graph_size = m_total_detection_num + m_pignum; // m_pignum is cluster num 
     m_G.resize(graph_size, graph_size); 
     m_G.setZero(); 
     
@@ -590,7 +586,7 @@ void EpipolarMatching::trackingSimilarity()
     }
 
 	// tracking block 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < m_pignum; i++)
 	{
 		for (int index_i = 0; index_i < m_total_detection_num; index_i++)
 		{
@@ -605,9 +601,9 @@ void EpipolarMatching::trackingSimilarity()
 	}
 	//std::cout << "threshold: " << m_epi_thres << std::endl; 
 
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < m_pignum; i++)
 	{
-		for (int j = 0; j < 4; j++)
+		for (int j = 0; j < m_pignum; j++)
 		{
 			m_G(i + m_total_detection_num, j + m_total_detection_num) = -1; 
 			m_G(j + m_total_detection_num, i + m_total_detection_num) = -1;
@@ -621,19 +617,19 @@ void EpipolarMatching::trackingClustering()
 	CC.G = m_G.cast<double>();
 	CC.table = m_table;
 	CC.invTable = m_inv_table;
-	CC.vertexNum = m_total_detection_num + 4;
+	CC.vertexNum = m_total_detection_num + m_pignum;
 	CC.threshold = m_epi_thres;
 	CC.constructAdjacentGraph();
 	CC.enumerateBestCliques();
-	 CC.printGraph();  
+	CC.printGraph();  
 	// CC.printAllMC();
 	// CC.printCliques(); 
 	m_cliques = CC.cliques;
-	int cluster_num = 4; 
+	int cluster_num = m_pignum; 
 	std::vector<std::vector<int> > m_cliques_resort;
-	m_cliques_resort.resize(4); 
+	m_cliques_resort.resize(m_pignum); 
 
-	for (int cluster_id = 0; cluster_id < 4; cluster_id++)
+	for (int cluster_id = 0; cluster_id < m_pignum; cluster_id++)
 	{
 		for (int i = 0; i < m_cliques.size(); i++)
 		{
@@ -643,8 +639,8 @@ void EpipolarMatching::trackingClustering()
 			}
 		}
 	}
-	m_clusters.resize(4);
-	for (int i = 0; i < 4; i++)
+	m_clusters.resize(m_pignum);
+	for (int i = 0; i < m_pignum; i++)
 	{
 		m_clusters[i].resize(m_cams.size(), -1);
 		for (int j = 0; j < m_cliques_resort[i].size(); j++)

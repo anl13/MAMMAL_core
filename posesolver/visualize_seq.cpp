@@ -94,7 +94,7 @@ void visualize_seq()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "G:/pig_results_newtrack/";
+	frame.m_result_folder = "G:/pig_results_newtrack/";
 	frame.is_smth = false;
 
 
@@ -104,7 +104,7 @@ void visualize_seq()
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 
 
-	std::vector<Eigen::Vector3f> seq0 = extract_pose_centers(0, startid, framenum, frame.result_folder);
+	std::vector<Eigen::Vector3f> seq0 = extract_pose_centers(0, startid, framenum, frame.m_result_folder);
 	save_points("../result_data/traj/seq0.txt", seq0); 
 
 	std::vector<float> sizes(seq0.size(), 0.01);

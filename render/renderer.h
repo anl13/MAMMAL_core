@@ -120,5 +120,7 @@ private:
 	std::string m_shaderFolder;
 
 	Eigen::Vector4f m_backgroundColor; 
+	//TimerUtil::Timer<std::chrono::milliseconds> tt;
+	
 };
 

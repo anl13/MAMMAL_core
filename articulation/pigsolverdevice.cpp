@@ -43,12 +43,10 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_iou_thres = root["iou_thres"].asFloat(); 
 	m_anchor_folder = root["anchor_folder"].asString();
 	m_w_sift_term = root["sift_term"].asFloat(); 
+	m_use_bodyonly_reg = root["use_bodyonly_reg"].asBool(); 
+	m_use_height_enhanced_temp = root["use_height_enhanced_temp"].asBool(); 
 
-	gt_scales.resize(4); 
-	for (int i = 0; i < 4; i++)
-	{
-		gt_scales[i] = root["scales"][i].asFloat();
-	}
+	m_gtscale = 1;
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -173,7 +171,8 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_anchor_lib.load(m_anchor_folder);
 
 	m_isReAssoc = false;
-
+	m_isUpdated = false; 
+	m_isPostprocessed = false; 
 	// 2021/2/20 add: init clicked points 
 
 }
@@ -321,7 +320,6 @@ float PigSolverDevice::computeScale()
 	float b = 0;
 	for (int i = 0; i < regBoneLens.size(); i++)
 	{
-		std::cout << " -- " << i <<  " -- " << triBoneLens[i] / regBoneLens[i] << std::endl; 
 		a += triBoneLens[i] * regBoneLens[i];
 		b += regBoneLens[i] * regBoneLens[i];
 	}
@@ -344,12 +342,11 @@ void PigSolverDevice::globalAlign()
 	std::vector<float> weights(N, 0); 
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
-	m_host_scale = gt_scales[m_pig_id];
+	m_host_scale = m_gtscale;
 	float alpha = computeScale(); 
-	std::cout << "m_pig: " << m_pig_id << "  alpha: " << alpha << std::endl; 
 	m_initScale = true;
 
-	//std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
+	std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
 	//// running average
 	//if (!m_initScale)
 	//{
@@ -699,6 +696,8 @@ void PigSolverDevice::CalcSIFTTerm(const std::vector<std::vector<SIFTCorr> > & s
 			int faceid = siftcorrs[camid][i].faceid;
 			Eigen::Vector2f target = siftcorrs[camid][i].pixel;
 			Eigen::Vector3u face = m_host_facesVert[faceid];
+			int onevertexid = face(0); 
+			if (m_host_bodyParts[onevertexid] == MAIN_BODY || m_host_bodyParts[onevertexid] == TAIL) continue; 
 			for (int f = 0; f < 3; f++)
 			{
 				int vertexid = face(f);
@@ -739,7 +738,7 @@ void PigSolverDevice::optimizePose()
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M;
 
-	m_host_scale = gt_scales[m_pig_id];
+	m_host_scale = m_gtscale;
 
 	float loss_2d, loss_reg, loss_temp;
 
@@ -904,7 +903,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M; 
 
-	m_host_scale = gt_scales[m_pig_id];
+	m_host_scale = m_gtscale;
 
 	generateDataForSilSolver(); // generate mask opencv 
 
@@ -1055,11 +1054,16 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	//std::cout << "pig " << m_pig_id << "  used sil view: ";
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
-		//if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
-		//	continue;
-		//}
+		if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
+			//std::cout << "(" << m_viewids[view] << ":" << m_valid_keypoint_ratio[view] << "),";
+			continue;
+		}
 		int camid = m_viewids[view];
-		if (o_ious[camid] < m_iou_thres) continue; 
+		if (o_ious[camid] < m_iou_thres)
+		{
+			//std::cout << "[" << camid << ":" << o_ious[camid] << "],";
+			continue;
+		}
 		// compute detection image data 
 		//std::cout << camid << ", "; 
 
@@ -1692,11 +1696,9 @@ void PigSolverDevice::CalcJointFloorTerm(
 		else
 		{
 			A.row(jid) = h_J_joint.row(3 * jid + 2);
-			b(jid) = joint(2);
+			b(jid) = joint(2) + 0.05;
 		}
 	}
-	A.middleCols(0, 6).setZero();
-	b.segment<6>(0).setZero();
 	ATA = A.transpose() * A; 
 	ATb = -A.transpose() * b; 
 }
@@ -1813,6 +1815,7 @@ void PigSolverDevice::CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& 
 
 void PigSolverDevice::postProcessing()
 {
+	if (m_isPostprocessed) return; 
 	m_skel3d = getRegressedSkel_host(); 
 	m_last_regressed_skel3d = m_skel3d;
 	if (m_skelProjs.size() == 0)
@@ -1851,6 +1854,8 @@ void PigSolverDevice::postProcessing()
 			m_depth_weight[camid] = 2 / (depth + 0.1);
 		}
 	}
+
+	m_isPostprocessed = true; 
 }
 
 void PigSolverDevice::calcSkel3DTerm_host(
@@ -1980,8 +1985,8 @@ void PigSolverDevice::CalcRegTermBodyOnly(const Eigen::VectorXf& theta, Eigen::M
 	{
 		if (!in_list(m_poseToOptimize[i], body_list))
 		{
-			ATA.middleRows(3 + 3 * i, 3) *= 0.05;
-			ATb.segment<3>(3 + 3 * i) *= 0.05;
+			ATA.middleRows(3 + 3 * i, 3) *= 0.1;
+			ATb.segment<3>(3 + 3 * i) *= 0.1;
 		}
 	}
 }
@@ -2079,4 +2084,22 @@ void PigSolverDevice::computeAllSkelVisibility()
 void PigSolverDevice::optimizePoseWithClickedPoints()
 {
 
+}
+
+float PigSolverDevice::getAvgHeight()
+{
+	float height = 0;
+	height += m_skel3d[6](2);
+	height += m_skel3d[5](2);
+	height += m_skel3d[20](2); 
+	height += m_skel3d[18](2);
+	height += m_skel3d[12](2); 
+	height += m_skel3d[11](2); 
+	return height / 6;
+}
+
+void PigSolverDevice::resetStateMarker()
+{
+	m_isUpdated = false; 
+	m_isPostprocessed = false; 
 }

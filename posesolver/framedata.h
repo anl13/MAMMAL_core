@@ -19,24 +19,21 @@ using std::vector;
 class FrameData{
 public: 
     FrameData(){
-        m_camids = {0,1,2,5,6,7,8,9,10,11};
-        m_camNum = 10; 
         m_imw = 1920; 
         m_imh = 1080; 
         getColorMap("anliang_render", m_CM); 
-
     }
     ~FrameData(){} 
 
     // attributes 
-    void set_frame_id(int _frameid){m_frameid = _frameid;}
+	void set_frame_id(int _frameid);
     int get_frame_id() {return m_frameid;}
 
 	vector<cv::Mat> get_imgs_undist() { return m_imgsUndist; }
     vector<Camera> get_cameras(){return m_camsUndist; }
 
     virtual void configByJson(std::string jsonfile); 
-    void fetchData();
+    void         fetchData();
 	cv::Mat visualizeSkels2D();
     // io functions 
     
@@ -68,12 +65,16 @@ public:
     vector<vector<vector<Eigen::Vector3f> > > m_keypoints_undist; 
     vector<vector<Eigen::Vector4f> >          m_boxes_processed; // camid, candid
     vector<vector<vector<vector<Eigen::Vector2f> > > > m_masksUndist; 
+	std::vector<cv::VideoCapture>             m_caps;
+
     std::string m_boxDir; 
     std::string m_maskDir;  
     std::string m_keypointsDir; 
     std::string m_imgExtension; 
     std::string m_camDir; 
     std::string m_imgDir; 
+	int         m_hourid;
+	int         m_pignum; 
     void readImages(); 
     void readCameras(); 
     void readKeypoints(); 
@@ -84,8 +85,15 @@ public:
     void undistImgs(); 
     void undistMask(); 
 	void readUndistImages(); 
-
+	void readImagesFromVideo();
+	
 protected:
 	void assembleDets();
+	cv::Mat m_map1; 
+	cv::Mat m_map2;
+	void initRectifyMap();
+	bool m_is_video; 
+	bool m_is_read_image;
+	bool m_video_frameid;
 };
 

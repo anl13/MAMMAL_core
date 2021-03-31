@@ -347,11 +347,11 @@ void printSkel(const std::vector<Eigen::Vector3f>& skel)
 	}
 }
 
-float distSkel2DTo2D(const std::vector<Eigen::Vector3f>& skel1, const std::vector<Eigen::Vector3f>& skel2, const SkelTopology& topo)
+float distSkel2DTo2D(const std::vector<Eigen::Vector3f>& skel1, const std::vector<Eigen::Vector3f>& skel2, const SkelTopology& topo, float& valid)
 {
 	if (skel1.size() < topo.joint_num || skel2.size() < topo.joint_num) return 1000000l;
 	float dist = 0; 
-	float valid = 0;
+	valid = 0;
 	for (int i = 0; i < topo.joint_num; i++)
 	{
 		if (skel1[i](2) < topo.kpt_conf_thresh[i] || skel2[i](2) < topo.kpt_conf_thresh[i])continue; 

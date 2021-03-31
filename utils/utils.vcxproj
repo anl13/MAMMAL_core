@@ -137,6 +137,7 @@
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="colorterminal.h" />
+    <ClInclude Include="definitions.h" />
     <ClInclude Include="geometry.h" />
     <ClInclude Include="hungarian.h" />
     <ClInclude Include="image_utils.h" />

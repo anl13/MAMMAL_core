@@ -33,8 +33,12 @@ void Renderer::s_InitGLFW(bool isHideWindow)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	//glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	//glfwWindowHint(GLFW_SAMPLES, 4);
+
+	// NOTE: 
+	// if you want to render faceindex, please comment following 2 lines
+	// to close anti-alise and smoothing. 
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_SAMPLES, 4);
 
 	if(isHideWindow)
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
@@ -356,7 +360,7 @@ void Renderer::Draw(std::string type)
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//glEnable(GL_BLEND);
+	glEnable(GL_BLEND);
 	//glDisable(GL_DEPTH_TEST);
 	//2.指定混合因子
 	//注意:如果你修改了混合方程式,当你使用混合抗锯齿功能时,请一定要改为默认混合方程式
@@ -691,7 +695,7 @@ void Renderer::createSceneDetailed(std::string conf_projectFolder)
 	for (int k = 2; k < 7; k++)
 	{
 		std::stringstream ss;
-		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_big_part" << k << ".obj";
+		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_new_part" << k << ".obj";
 		Mesh obj(ss.str());
 		RenderObjectColor *p_model = new RenderObjectColor();
 		p_model->SetVertices(obj.vertices_vec);

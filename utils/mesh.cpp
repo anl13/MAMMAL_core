@@ -90,7 +90,7 @@ void Mesh::SplitFaceStr(std::string &str, int &i1, int &i2, int &i3)
 	}
 }
 
-void Mesh::Load(const std::string& filename, bool isCalcNormal)
+void Mesh::Load(const std::string& filename, bool isReadTex, bool isCalcNormal)
 {
 	std::vector<std::string> strs;
 	boost::split(strs, filename, boost::is_any_of("."));
@@ -141,6 +141,7 @@ void Mesh::Load(const std::string& filename, bool isCalcNormal)
 		}
 		else if (tempstr == "vt")
 		{
+			if (!isReadTex) continue;
 			reader >> t1 >> t2;
 			Eigen::Vector2f temp_vt(t1, t2);
 			textures_vec.push_back(temp_vt);
@@ -157,6 +158,7 @@ void Mesh::Load(const std::string& filename, bool isCalcNormal)
 				std::cout << "v_str: " << v_str_1 << "  " << v_str_2 << "  " << v_str_3 << std::endl; 
 			}
 			faces_v_vec.push_back(Eigen::Vector3u(v1_index - 1, v2_index - 1, v3_index - 1));
+			if (!isReadTex) continue; 
 			if (t1_index > 0 && t2_index > 0 && t3_index > 0)
 			{
 				faces_t_vec.push_back(Eigen::Vector3u(t1_index - 1, t2_index - 1, t3_index - 1));
@@ -176,7 +178,7 @@ void Mesh::Load(const std::string& filename, bool isCalcNormal)
 		CalcNormal(); 
 
 	// map texture 
-	if (texture_num > 0)
+	if (isReadTex && texture_num > 0)
 	{
 		vertices_vec_t.resize(texture_num);
 		tex2vert.resize(texture_num, -1);

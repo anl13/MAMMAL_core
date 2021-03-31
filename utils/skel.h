@@ -47,7 +47,7 @@ void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int
 
 void printSkel(const std::vector<Eigen::Vector3f>& skel); 
 
-float distSkel2DTo2D(const std::vector<Eigen::Vector3f>& skel1, const std::vector<Eigen::Vector3f>& skel2, const SkelTopology& topo);
+float distSkel2DTo2D(const std::vector<Eigen::Vector3f>& skel1, const std::vector<Eigen::Vector3f>& skel2, const SkelTopology& topo, float& valid);
 
 float distBetween3DSkelAnd2DDet(const vector<Eigen::Vector3f>& skel3d,
 	const MatchedInstance& det, const vector<Camera>& cams, const SkelTopology& topo

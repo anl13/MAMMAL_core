@@ -16,7 +16,7 @@ int detect_sift()
 	vector<cv::Mat> dess; 
 	keys.resize(10); 
 	dess.resize(10); 
-	for (int index = 0; index < 10000; index++)
+	for (int index = 0; index < 4000; index++)
 	{
 		frame.set_frame_id(index);
 		frame.fetchData();
@@ -26,6 +26,11 @@ int detect_sift()
 			cv::Mat mask(cv::Size(1920, 1080), CV_8UC1);
 			for (int i = 0; i < frame.m_detUndist[camid].size(); i++)
 				my_draw_mask_gray(mask, frame.m_detUndist[camid][i].mask, 255);
+			cv::dilate(mask, mask, cv::Mat(), cv::Point(-1, -1), 2, 1, 1);
+			cv::dilate(mask, mask, cv::Mat());
+			cv::dilate(mask, mask, cv::Mat());
+			cv::dilate(mask, mask, cv::Mat());
+
 
 			cv::Ptr<cv::SIFT> siftPtr = cv::SIFT::create();
 			std::vector<cv::KeyPoint> key1;
@@ -56,7 +61,7 @@ int track_sift()
 	dess.resize(10);
 	cv::FlannBasedMatcher matcher;
 
-	for (int frameid = 0; frameid < 10000; frameid++)
+	for (int frameid = 0; frameid < 4000; frameid++)
 	{
 		std::stringstream ss;
 		ss << "Z:/sequences/20190704_noon/sift/sift" << std::setw(10) << std::setfill('0')
@@ -92,10 +97,11 @@ int track_sift()
 
 int main()
 {
-	//detect_sift(); 
-	//track_sift(); 
-	//return 0; 
+	detect_sift(); 
+	track_sift(); 
+	return 0; 
 
+#if 0
 	FrameData frame; 
 	frame.configByJson("track.json");
 	FrameData frame2;
@@ -142,6 +148,6 @@ int main()
 		//ss << "D:/results/seq_noon/flow/sift" << std::setw(6) << std::setfill('0') << index << ".jpg"; 
 		//cv::imwrite(ss.str(), img_match_overlay); 
 	}
-
+#endif 
 	return 0; 
 }

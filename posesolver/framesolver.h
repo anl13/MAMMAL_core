@@ -12,17 +12,22 @@ public:
 
 	~FrameSolver(); 
 
+
 	void configByJson(std::string jsonfile) override;
 	void pureTracking();
 
+	// load manual annotation 
+	std::string m_annotation_folder; 
+	void try_load_anno(); 
+	void resetSolverStateMarker(); 
+
 	// last frame data 
-	vector<vector<cv::KeyPoint> > m_siftKeypointsLast; // [camid, index]
-	vector<cv::Mat> m_siftDescriptionLast; //[camid]
 	vector<MatchedInstance> m_last_matched; // used for tracking
 	vector<vector<Eigen::Vector3f> > m_skels3d_last;
 
-	
     // sift flows 
+	vector<vector<cv::KeyPoint> > m_siftKeypointsLast; // [camid, index]
+	vector<cv::Mat> m_siftDescriptionLast; //[camid]
 	cv::Ptr<cv::SIFT> p_sift;
 	vector<vector<cv::KeyPoint> > m_siftKeypointsCurrent; // [camid, idnex]
 	vector<cv::Mat> m_siftDescriptionCurrent; // [camid]
@@ -46,7 +51,7 @@ public:
 	vector<std::shared_ptr<PigSolverDevice> >       mp_bodysolverdevice;
 	std::vector<cv::Mat> m_rawMaskImgs;
 	void drawRawMaskImgs();
-	std::string result_folder;
+	std::string m_result_folder;
 	bool is_smth;
 	int m_startid;
 	int m_framenum;
@@ -60,9 +65,12 @@ public:
 	vector<vector<Eigen::Vector3f> > m_skels3d; // pigid, kptid
 	bool m_use_gpu;
 	int m_solve_sil_iters;
+	int m_solve_sil_iters_2nd_phase; 
 	float       m_epi_thres;
 	std::string m_epi_type;
 	std::string m_anchor_folder; 
+	bool m_use_reassoc; 
+	float m_terminal_thresh;
 
 	vector<vector<vector<Eigen::Vector3f> > > m_projs; // [viewid, pigid, kptid]
 
@@ -72,14 +80,13 @@ public:
 	void drawMaskMatched();  // can only be used after association 
 	std::string m_pigConfig;
 	std::string m_match_alg;
-
+	
 
 		// top-down matching
 	void tracking();
 	void matching_by_tracking();
 
 	void reproject_skels();
-	void pipeline2_searchanchor();
 	void read_parametric_data();
 	void save_parametric_data();
 	void solve_scales(); 
@@ -123,8 +130,8 @@ public:
 	void DARKOV_Step0_topdownassoc(bool isLoad); // matching by tracking / puretracking 
 	void DARKOV_Step1_setsource();  // set source data to solvers 
 	void DARKOV_Step2_loadanchor(); // only load and set anchor id, without any fitting or align 
-	void DARKOV_Step2_searchanchor(); 
-	void DARKOV_Step2_optimanchor(); 
+	void DARKOV_Step2_searchanchor(int pid); 
+	void DARKOV_Step2_optimanchor(int pid); 
 	void DARKOV_Step3_reassoc_type2(); // type2 contains three small steps: find tracked, assign untracked, solve mix-up
 	void DARKOV_Step3_reassoc_type1(); 
 	void DARKOV_Step4_fitrawsource();  // fit model to raw source 
@@ -167,4 +174,8 @@ public:
 
 	int _compareSkel(const vector<Eigen::Vector3f>& skel1, const vector<Eigen::Vector3f>& skel2);
 	int _countValid(const vector<Eigen::Vector3f>& skel);
+
+	// anliang 2021/03/30
+	std::vector<float> m_given_scales;
+	bool m_use_given_scale;
 };

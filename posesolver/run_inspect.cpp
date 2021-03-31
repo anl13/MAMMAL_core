@@ -26,7 +26,7 @@ int run_inspect()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/config_seq2.json");
+	frame.configByJson(conf_projectFolder + "/posesolver/config_7.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -35,6 +35,7 @@ int run_inspect()
 	frame.fetchData();
 	auto cams = frame.get_cameras();
 	auto cam = cams[0];
+	int pignum = frame.m_pignum;
 
 	// init renderer
 	Eigen::Matrix3f K = cam.K;
@@ -48,22 +49,24 @@ int run_inspect()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "D:/results/seq_noon/";
 	frame.is_smth = false;
 	int start = frame.get_start_id(); 
 
-	std::string test_result_folder = "D:/results/seq_noon/";
+	std::string test_result_folder = frame.m_result_folder;
+	if (!boost::filesystem::is_directory(test_result_folder))
 	{
-		if (!boost::filesystem::is_directory(test_result_folder + "assoc"))
-			boost::filesystem::create_directory(test_result_folder + "assoc");
-		if (!boost::filesystem::is_directory(test_result_folder + "render_all"))
-			boost::filesystem::create_directory(test_result_folder + "render_all");
-		if (!boost::filesystem::is_directory(test_result_folder + "clusters"))
-			boost::filesystem::create_directory(test_result_folder + "clusters");
-		if (!boost::filesystem::is_directory(test_result_folder + "state"))
-			boost::filesystem::create_directory(test_result_folder + "state");
-
+		boost::filesystem::create_directory(test_result_folder); 
 	}
+	std::vector<std::string> subfolders = {
+		"assoc", "render_all", "clusters", "state", "reassoc2", "proj2", "before_swap2",
+		"fitting"
+	};
+	for (int i = 0; i < subfolders.size(); i++)
+	{
+		if (!boost::filesystem::is_directory(test_result_folder + subfolders[i]))
+			boost::filesystem::create_directory(test_result_folder + subfolders[i]);
+	}
+
 	frame.init_parametric_solver(); 
 
 
@@ -79,66 +82,49 @@ int run_inspect()
 		frame.fetchData();
 		
 		if (frameid == start)
-			//frame.matching_by_tracking();
-			frame.load_clusters();
+			frame.matching_by_tracking();
+			//frame.load_clusters();
 		else
 			frame.pureTracking(); 
 
 		frame.save_clusters(); 
 
-		if (frameid == start)
+		frame.resetSolverStateMarker(); 
+
+		if (false)
 		{
 			frame.read_parametric_data(); 
 			frame.DARKOV_Step5_postprocess();
 		}
 		// pipeline 3 
-		else if (true)
+		else
 		{
-			if (frameid == start)
-			{
-				frame.m_solve_sil_iters = 60;
-				for (int i = 0; i < 4; i++)
-				{
-					frame.mp_bodysolverdevice[i]->m_iou_thres = 0;
-				}
-			}
-			else
-			{
-				frame.m_solve_sil_iters = 5;
-				for (int i = 0; i < 4; i++)
-				{
-					frame.mp_bodysolverdevice[i]->m_iou_thres = 0.5;
-				}
-			}
+			frame.try_load_anno(); 
 
 			frame.DARKOV_Step1_setsource();
 			//frame.DARKOV_Step2_loadanchor();
-			//frame.DARKOV_Step2_searchanchor(); 
-			//frame.saveAnchors("H:/pig_results_anchor_sil/anchor_state_20/"); 
-			//continue; 
-			//if(frameid == start)
-			//	frame.DARKOV_Step2_optimanchor(); 
-
+			//frame.DARKOV_Step2_searchanchor(2); 
+			//frame.saveAnchors(frame.m_result_folder +	"/anchor_state/"); 
+			//frame.DARKOV_Step2_optimanchor(2);
 
 			frame.DARKOV_Step4_fitrawsource();
 			frame.DARKOV_Step3_reassoc_type2();
 			frame.DARKOV_Step4_fitreassoc();
 
-			cv::Mat sift = frame.visualizeSIFT();
-			std::stringstream ss_sift;
-			ss_sift << test_result_folder << "/sift/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_sift.str(), sift);
+			//cv::Mat sift = frame.visualizeSIFT();
+			//std::stringstream ss_sift;
+			//ss_sift << test_result_folder << "/sift/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_sift.str(), sift);
 
 			frame.DARKOV_Step5_postprocess();
 			frame.save_parametric_data();
 
 			std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
-
 			cv::Mat assoc = frame.visualizeIdentity2D();
 			std::stringstream ss;
 			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss.str(), assoc);
-
+#if 1
 			cv::Mat reassoc = frame.visualizeReassociation();
 			std::stringstream ss_reassoc;
 			ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
@@ -159,85 +145,83 @@ int run_inspect()
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_rawassoc.str(), rawfit); 
 
-
-
 			//frame.pipeline2_searchanchor();
 			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
-
+#endif 
 		}
 
+#if 1 // render all view 
+		m_renderer.clearAllObjs();
 
-			m_renderer.clearAllObjs();
+		auto solvers = frame.mp_bodysolverdevice;
 
-			auto solvers = frame.mp_bodysolverdevice;
+		for (int pid = 0; pid < pignum; pid++)
+		{
+			RenderObjectColor* p_model = new RenderObjectColor();
+			solvers[pid]->UpdateNormalFinal();
 
-			for (int pid = 0; pid < 4; pid++)
-			{
-				RenderObjectColor* p_model = new RenderObjectColor();
-				solvers[pid]->UpdateNormalFinal();
+			p_model->SetVertices(solvers[pid]->GetVertices());
+			p_model->SetNormal(solvers[pid]->GetNormals());
+			p_model->SetFaces(solvers[pid]->GetFacesVert());
+			p_model->SetColor(m_CM[pid]);
+			m_renderer.colorObjs.push_back(p_model);
 
-				p_model->SetVertices(solvers[pid]->GetVertices());
-				p_model->SetNormal(solvers[pid]->GetNormals());
-				p_model->SetFaces(solvers[pid]->GetFacesVert());
-				p_model->SetColor(m_CM[pid]);
-				m_renderer.colorObjs.push_back(p_model);
+			std::vector<Eigen::Vector3f> joints = solvers[pid]->GetJoints();
+		}
 
-				std::vector<Eigen::Vector3f> joints = solvers[pid]->GetJoints();
-			}
+		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
+		cv::Mat a(cv::Size(1920, 1080), CV_8UC3);
+		cv::Mat pack_raw;
+		rawImgs.push_back(a);
+		rawImgs.push_back(a);
+		packImgBlock(rawImgs, pack_raw);
 
-			std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
-			cv::Mat a(cv::Size(1920, 1080), CV_8UC3);
-			cv::Mat pack_raw;
-			rawImgs.push_back(a);
-			rawImgs.push_back(a);
-			packImgBlock(rawImgs, pack_raw);
-
-			std::vector<cv::Mat> all_renders(cams.size());
-			for (int camid = 0; camid < cams.size(); camid++)
-			{
-				m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
-				m_renderer.Draw();
-				cv::Mat img = m_renderer.GetImage();
-
-				all_renders[camid] = img;
-			}
-
-			m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
-			for (int pid = 0; pid < 4; pid++)
-				m_renderer.colorObjs[pid]->isMultiLight = true; 
-			m_renderer.createScene(conf_projectFolder);
-			Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
-			Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
-			Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
-			//Eigen::Vector3f pos1(2.05239, 0.0712245, 0.013074);
-			//Eigen::Vector3f up1(-0.0138006, 0.160204, 0.986988);
-			//Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
-
-			m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+		std::vector<cv::Mat> all_renders(cams.size());
+		for (int camid = 0; camid < cams.size(); camid++)
+		{
+			m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
 			m_renderer.Draw();
 			cv::Mat img = m_renderer.GetImage();
-			all_renders.push_back(img);
 
-			Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
-			Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
-			Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
-			m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
-			m_renderer.Draw();
-			img = m_renderer.GetImage();
-			all_renders.push_back(img);
+			all_renders[camid] = img;
+		}
 
-			cv::Mat packed_render;
-			packImgBlock(all_renders, packed_render);
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
+		for (int pid = 0; pid < pignum; pid++)
+			m_renderer.colorObjs[pid]->isMultiLight = true; 
+		m_renderer.createSceneDetailed(conf_projectFolder);
+		Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
+		Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
+		Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
+		//Eigen::Vector3f pos1(2.05239, 0.0712245, 0.013074);
+		//Eigen::Vector3f up1(-0.0138006, 0.160204, 0.986988);
+		//Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
 
-			cv::Mat blend;
-			overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+		m_renderer.Draw();
+		cv::Mat img = m_renderer.GetImage();
+		all_renders.push_back(img);
 
-			std::stringstream all_render_file;
-			all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
-				<< frameid << ".png";
-			cv::imwrite(all_render_file.str(), blend);
+		Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
+		Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
+		Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
+		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
+		m_renderer.Draw();
+		img = m_renderer.GetImage();
+		all_renders.push_back(img);
+
+		cv::Mat packed_render;
+		packImgBlock(all_renders, packed_render);
+
+		cv::Mat blend;
+		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+
+		std::stringstream all_render_file;
+		all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
+			<< frameid << ".png";
+		cv::imwrite(all_render_file.str(), blend);
 		
-			std::cout << "total:       " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
+		std::cout << "total:       " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
 		//if (frameid == start ) {
 		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 		//	while (!glfwWindowShouldClose(windowPtr))
@@ -250,6 +234,73 @@ int run_inspect()
 		//		glfwPollEvents();
 		//	};
 		//}
+#else
+		m_renderer.clearAllObjs();
+		auto solvers = frame.mp_bodysolverdevice;
+
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+
+		for (int pid = 0; pid < pignum; pid++)
+		{
+			RenderObjectColor* p_model = new RenderObjectColor();
+			solvers[pid]->UpdateNormalFinal();
+
+			p_model->SetVertices(solvers[pid]->GetVertices());
+			p_model->SetNormal(solvers[pid]->GetNormals());
+			p_model->SetFaces(solvers[pid]->GetFacesVert());
+			p_model->SetColor(m_CM[pid]);
+			m_renderer.colorObjs.push_back(p_model);
+		}
+
+		std::vector<int> render_views = { 0,7 };
+
+		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
+		std::vector<cv::Mat> rawImgsSelect;
+		for (int k = 0; k < render_views.size(); k++) rawImgsSelect.push_back(rawImgs[render_views[k]]);
+
+		std::vector<cv::Mat> all_renders(render_views.size());
+		for (int k = 0; k < render_views.size(); k++)
+		{
+			int camid = render_views[k];
+			m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
+			//m_renderer.Draw();
+			//cv::Mat img = m_renderer.GetImage();
+			cv::Mat img = m_renderer.GetImageOffscreen();
+			all_renders[k] = img;
+		}
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+		m_renderer.createSceneDetailed(conf_projectFolder);
+		Eigen::Vector3f up1; up1 << 0.260221, 0.36002, 0.895919;
+		Eigen::Vector3f pos1; pos1 << -1.91923, -2.12171, 1.37056;
+		Eigen::Vector3f center1 = Eigen::Vector3f::Zero();
+		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+		cv::Mat img = m_renderer.GetImageOffscreen();
+		all_renders.push_back(img);
+		rawImgsSelect.push_back(img);
+
+		Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
+		Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
+		Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
+		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
+		img = m_renderer.GetImageOffscreen();
+		all_renders.push_back(img);
+		rawImgsSelect.push_back(img);
+
+		cv::Mat pack_raw;
+		packImgBlock(rawImgsSelect, pack_raw);
+
+		cv::Mat packed_render;
+		packImgBlock(all_renders, packed_render);
+
+		cv::Mat blend;
+		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+
+		std::stringstream all_render_file;
+		all_render_file << frame.m_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
+			<< frameid << "_overlay.png";
+		cv::imwrite(all_render_file.str(), blend);
+		std::cout << "total:       " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
+#endif 
 	}
 
  	return 0;

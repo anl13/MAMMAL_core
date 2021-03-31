@@ -20,6 +20,7 @@
 
 //#define USE_GPU_SOLVER 
 #define SHOW_FITTING_INFO
+//#define USE_SIFT
 
 typedef struct
 {
@@ -71,6 +72,14 @@ public:
 	void setSource(const MatchedInstance& _source) { 
 		m_source = _source; 
 	}
+
+
+	// state marker
+	bool m_isUpdated;
+	bool m_isPostprocessed; 
+	void resetStateMarker(); 
+
+	float getAvgHeight(); 
 
 	float computeScale(); 
 
@@ -229,7 +238,7 @@ public:
 	bool m_use_gpu = false; 
 	std::vector<float* > d_depth_renders_interact; 
 	void optimizePoseSilOneStep(int iter); 
-	void optimizePoseSilWithAnchorOneStep(int iter); 
+	float optimizePoseSilWithAnchorOneStep(int iter); 
 
 
 	float m_valid_threshold;
@@ -244,8 +253,10 @@ public:
 	float m_iou_thres; 
 	float m_w_sift_term; 
 	std::string m_anchor_folder; 
+	bool m_use_bodyonly_reg;
+	bool m_use_height_enhanced_temp; 
 
-	std::vector<float> gt_scales; 
+	float m_gtscale;  // This gt scale is given from outside
 	float approxIOU(int view); 
 
 	std::vector < std::vector<Eigen::Vector3f> > m_skelProjs; // [viewid, jointid] (u,v,visibility)

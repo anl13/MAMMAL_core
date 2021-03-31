@@ -22,17 +22,19 @@ void FrameData::configByJson(std::string filename)
 		exit(-1);
 	}
 	m_sequence = root["sequence"].asString();
-	m_keypointsDir = m_sequence + "/keypoints_hrnet_pr/";
-	m_imgDir = m_sequence + "/images/";
-	m_boxDir = m_sequence + "/boxes_pr/";
-	m_maskDir = m_sequence + "/masks_pr/";
+	m_keypointsDir = m_sequence + "/"+ root["keypointsdir"].asString() + "/";
+	m_imgDir = m_sequence + "/"+ root["imgdir"].asString() +"/";
+	m_boxDir = m_sequence + "/"+ root["boxdir"].asString() + "/";
+	m_maskDir = m_sequence + "/" + root["maskdir"].asString() + "/";
 	m_camDir = root["camfolder"].asString();
 	m_imgExtension = root["imgExtension"].asString();
+	m_pignum = root["pignum"].asInt(); 
 
 	m_boxExpandRatio = root["box_expand_ratio"].asDouble();
 	m_skelType = root["skel_type"].asString();
 	m_topo = getSkelTopoByType(m_skelType);
-
+	m_is_read_image = root["is_read_image"].asBool();
+	m_is_video = root["is_video"].asBool(); 
 	std::vector<int> camids;
 	for (auto const &c : root["camids"])
 	{
@@ -42,8 +44,47 @@ void FrameData::configByJson(std::string filename)
 	m_camids = camids;
 	m_camNum = m_camids.size(); 
 
-	instream.close();
 	readCameras();
+
+	if (m_is_video)
+	{
+		m_hourid = root["hourid"].asInt();
+		m_caps.clear();
+		m_caps.resize(m_camNum); 
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			std::stringstream name;
+			name << m_sequence << "videos/cam" << m_camids[camid] << "/hour" <<
+				std::setw(6) << std::setfill('0') << ".mp4"; 
+			
+			m_caps[camid] = cv::VideoCapture(name.str()); 
+
+			if (m_caps[camid].isOpened())
+			{
+				std::cout << "cannot open video " << name.str() << std::endl; 
+				system("pause"); 
+				exit(-1); 
+			}
+		}
+	}
+
+	instream.close();
+
+	m_video_frameid = 0;
+	initRectifyMap(); 
+}
+
+void FrameData::set_frame_id(int _frameid)
+{
+	m_frameid = _frameid;
+	if (m_is_video)
+	{
+		if (m_frameid == m_video_frameid) return;
+		for (int i = 0; i < m_camNum; i++)
+		{
+			m_caps[i].set(cv::CAP_PROP_POS_FRAMES, m_frameid); 
+		}
+	}
 }
 
 void FrameData::fetchData()
@@ -53,9 +94,20 @@ void FrameData::fetchData()
         std::cout << "Error: wrong frame id " << std::endl;
         exit(-1); 
     }
-    //readImages(); 
-    //undistImgs(); 
-	readUndistImages(); 
+
+	if (m_is_read_image)
+	{
+		if (m_is_video)
+		{
+			readImagesFromVideo(); 
+			undistImgs(); 
+		}
+		else {
+			//readImages(); 
+			//undistImgs(); 
+			readUndistImages();
+		}
+	}
 
     readKeypoints(); 
     undistKeypoints(); 
@@ -73,7 +125,12 @@ void FrameData::readKeypoints() // load hrnet keypoints
 {
     std::string jsonDir = m_keypointsDir;
     std::stringstream ss; 
-    ss << jsonDir << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	if (m_is_video)
+	{
+		ss << jsonDir << "/hour" << m_hourid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	}
+	else
+		ss << jsonDir << std::setw(6) << std::setfill('0') << m_frameid << ".json";
     std::string jsonfile = ss.str(); 
 
     Json::Value root; 
@@ -101,7 +158,7 @@ void FrameData::readKeypoints() // load hrnet keypoints
         int cand_num = c.size(); 
         for(int candid = 0; candid < cand_num; candid++)
         {
-            if(candid >=4) break; 
+            if(candid >=m_pignum) break; 
             vector<Eigen::Vector3f> pig; 
             pig.resize(m_topo.joint_num); 
             for(int pid = 0; pid < m_topo.joint_num; pid++)
@@ -129,7 +186,8 @@ void FrameData::readBoxes()
 {
     std::string jsonDir = m_boxDir;
     std::stringstream ss; 
-    ss << jsonDir << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	if(m_is_video) ss << jsonDir << "/hour" <<m_hourid <<  "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+    else ss << jsonDir << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
     std::string jsonfile = ss.str(); 
     // parse
     Json::Value root; 
@@ -158,7 +216,7 @@ void FrameData::readBoxes()
         std::vector<Eigen::Vector4f> bb; 
         for(int bid = 0; bid < boxnum; bid++)
         {
-            if(bid >= 4) break; // remain only 4 top boxes 
+            if(bid >= m_pignum) break; // remain only 4 top boxes 
             Json::Value box_jv = c[bid]; 
             Eigen::Vector4f B; 
             for(int k = 0; k < 4; k++)
@@ -167,6 +225,7 @@ void FrameData::readBoxes()
                 B(k) = x; 
             }
             bb.push_back(B); 
+			//std::cout << "(" << i << "," << bid << "):" << B << std::endl;
         }
         m_boxes_raw[i] = bb; 
     }
@@ -206,12 +265,35 @@ void FrameData::undistKeypoints()
     }
 }
 
+void FrameData::initRectifyMap()
+{
+	auto camera = m_cams[0];
+	auto newcam = m_camsUndist[0];
+	cv::Vec<float, 5> distCoef;
+	distCoef[0] = camera.k(0);
+	distCoef[1] = camera.k(1);
+	distCoef[2] = camera.p(0);
+	distCoef[3] = camera.p(1);
+	distCoef[4] = camera.k(2);
+
+	cv::Mat K(3, 3, CV_32FC1, 0.0f);
+	cv::eigen2cv(camera.K, K);
+	cv::Mat K2(3, 3, CV_32FC1, 0.0f);
+	cv::eigen2cv(newcam.K, K2);
+
+	cv::Mat R;
+
+	cv::initUndistortRectifyMap(
+		K, distCoef, R, K2, cv::Size(1920,1080), CV_32FC1, m_map1, m_map2
+	);
+}
+
 void FrameData::undistImgs()
 {
     m_imgsUndist.resize(m_camNum); 
     for(int i = 0; i < m_camNum; i++)
     {
-        my_undistort(m_imgs[i], m_imgsUndist[i], m_cams[i], m_camsUndist[i]); 
+		cv::remap(m_imgs[i], m_imgsUndist[i], m_map1, m_map2, cv::INTER_LINEAR);
     }
 }
 
@@ -230,6 +312,23 @@ void FrameData::readImages()
 		}
 		m_imgs.emplace_back(img);
     }
+}
+
+void FrameData::readImagesFromVideo()
+{
+	m_imgs.clear(); 
+	m_imgs.resize(m_camNum); 
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		m_caps[camid].read(m_imgs[camid]);
+		if (m_imgs[camid].empty())
+		{
+			std::cout << "can not fetch image " << std::endl;
+			system("pause"); 
+			exit(-1);
+		}
+	}
+	m_video_frameid++;
 }
 
 void FrameData::readUndistImages()
@@ -293,7 +392,8 @@ void FrameData::readMask()
 {
     std::string jsonDir = m_maskDir;
     std::stringstream ss; 
-    ss << jsonDir << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	if (m_is_video) ss << jsonDir << "/hour" << m_hourid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	else ss << jsonDir << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
     std::string jsonfile = ss.str(); 
     // parse
     Json::Value root; 
@@ -383,6 +483,7 @@ void FrameData::assembleDets()
 			if (m_detUndist[camid][candid].keypoints.size() == 0)
 				m_detUndist[camid][candid].keypoints.resize(m_topo.joint_num, Eigen::Vector3f::Zero()); 
             m_detUndist[camid][candid].box = m_boxes_processed[camid][candid]; 
+
             m_detUndist[camid][candid].mask = m_masksUndist[camid][candid]; 
 			//m_detUndist[camid][candid].mask_norm = computeContourNormalsAll(m_detUndist[camid][candid].mask);
 			for (int i = 0; i < m_detUndist[camid][candid].keypoints.size(); i++)

@@ -48,7 +48,7 @@ int run_pose_render()
 
 	frame.mp_renderEngine = &m_renderer;
 
-	frame.result_folder = "D:/results/seq_noon/";
+	frame.m_result_folder = "D:/results/seq_noon/";
 	frame.is_smth = true;
 	int start = frame.get_start_id();
 
@@ -150,7 +150,7 @@ int run_pose_render()
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 		
 		std::stringstream all_render_file;
-		all_render_file << frame.result_folder << "/render_all2/" << std::setw(6) << std::setfill('0')
+		all_render_file << frame.m_result_folder << "/render_all2/" << std::setw(6) << std::setfill('0')
 			<< frameid << "_overlay.png";
 		cv::imwrite(all_render_file.str(), blend);
 

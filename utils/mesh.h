@@ -18,7 +18,7 @@ struct Mesh
 {
 public: 
 	Mesh() {}
-	Mesh(const std::string& filename, bool isCalcNormal=true) { Load(filename, isCalcNormal); }
+	Mesh(const std::string& filename, bool isReadTex = true, bool isCalcNormal=true) { Load(filename, isReadTex, isCalcNormal); }
 
 	int vertex_num; 
 	int texture_num; 
@@ -35,7 +35,7 @@ public:
 	
 	void ReMapTexture(); 
 	void CalcNormal();
-	void Load(const std::string& filename, bool isCalcNormal=true);
+	void Load(const std::string& filename, bool isReadTex=true, bool isCalcNormal=true);
 	void Save(const std::string& filename) const; 
 
 

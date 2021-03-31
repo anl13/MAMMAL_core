@@ -44,6 +44,7 @@ class EpipolarMatching
 {
 public: 
     void set_topo(const SkelTopology& _topo){m_topo = _topo;}
+	void set_pignum(const int&pig_num) { m_pignum = pig_num; }
     void set_dets(const vector<vector<DetInstance > >& _dets){m_dets = _dets;}
     void set_cams(const vector<Camera>& _cams){m_cams = _cams;}
     void set_epi_type(std::string _epi_type){m_epi_type = _epi_type;}
@@ -69,6 +70,7 @@ private:
         const vector<Eigen::Vector3f>& pig1, const vector<Eigen::Vector3f>& pig2,
         double &avg_loss, int &matched_num);
     // input data 
+	int                                       m_pignum;
     SkelTopology                              m_topo;
     vector<vector<DetInstance> >              m_dets; //[camid, candid]
     vector<Camera>                            m_cams; 

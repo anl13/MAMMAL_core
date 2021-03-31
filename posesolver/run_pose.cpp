@@ -49,7 +49,7 @@ int run_pose_smooth()
 	auto cam = cams[0];
 
 	// init renderer
-	frame.result_folder = "D:/results/seq_noon/";
+	frame.m_result_folder = "D:/results/seq_noon/";
 	frame.is_smth = false;
 	int start = frame.get_start_id();
 	frame.init_parametric_solver(); 
@@ -73,12 +73,12 @@ int run_pose_smooth()
 		for (int pid = 0; pid < 4; pid++)
 		{
 			std::stringstream ss; 
-			ss << frame.result_folder << "/joints_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			ss << frame.m_result_folder << "/joints_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
 			std::vector<Eigen::Vector3f> points62 = read_points(ss.str()); 
 			solvers[pid]->fitPoseToJointSameTopo(points62);
 
 			std::stringstream ss_state; 
-			ss_state << frame.result_folder << "/state_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			ss_state << frame.m_result_folder << "/state_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
 			solvers[pid]->saveState(ss_state.str()); 
 		}
 	}

@@ -32,6 +32,7 @@
 #include "../utils/skel.h"
 #include <queue>
 #include <deque>
+#include <ctime> 
 
 std::vector<Camera> readCameras()
 {
@@ -902,7 +903,8 @@ void test_indexrender()
 	obj.ReMapTexture();
 
 	RenderObjectTexture* p_model = new RenderObjectTexture();
-	p_model->SetTexture("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png");
+	cv::Mat texture = cv::imread("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png");
+	p_model->SetTextureNoMipmap(texture);
 	p_model->SetFaces(obj.faces_t_vec);
 	p_model->SetVertices(obj.vertices_vec_t);
 	p_model->SetNormal(obj.normals_vec_t, 2);
@@ -955,11 +957,91 @@ void test_indexrender()
 	};
 }
 
+void test_render_texture()
+{
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f pos(0, 0, 5);
+	Eigen::Vector3f up(0, 1, 0);
+	Eigen::Vector3f center(0, 0, 0);
+	// init renderer 
+	Renderer::s_Init();
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	Mesh obj;
+	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	//obj.Load("C:/Users/BBNC/Documents/maya/projects/default/scenes/hand_cage/ground2.obj");
+	for (int i = 0; i < obj.vertices_vec.size(); i++)
+	{
+		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0.21);
+	}
+
+	obj.ReMapTexture();
+
+	//RenderObjectTexture* p_model = new RenderObjectTexture();
+	//p_model->SetTexture(conf_projectFolder + "/render/data/chessboard_black_large.png");
+	//p_model->SetFaces(obj.faces_t_vec);
+	//p_model->SetVertices(obj.vertices_vec_t);
+	//p_model->SetNormal(obj.normals_vec_t, 2);
+	//p_model->SetTexcoords(obj.textures_vec, 1);
+	//p_model->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
+	//p_model->isMultiLight = true; 
+	//p_model->isFaceIndex = false; 
+	//m_renderer.texObjs.push_back(p_model);
+
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+
+	RenderObjectColor * p_model2 = new RenderObjectColor();
+	p_model2->SetVertices(obj.vertices_vec);
+	p_model2->SetFaces(obj.faces_v_vec);
+	p_model2->SetNormal(obj.normals_vec);
+	p_model2->SetColor(Eigen::Vector3f(1.0f, 0.0f, 0.0f));
+	m_renderer.colorObjs.push_back(p_model2); 
+	m_renderer.createSceneDetailed(conf_projectFolder); 
+	//m_renderer.createPlane(conf_projectFolder);
+
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	//m_renderer.Draw(); 
+	//cv::Mat img = m_renderer.GetImage(); 
+	//cv::imshow("test", img); 
+	//cv::waitKey(); 
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		m_renderer.Draw();
+
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
+}
+
+
 void main()
 {
 	//test_trajectory();
-	test_color_table();
+	//test_color_table();
 	//test_indexrender(); 
 	//generateFaceIndexMap();
-
+	//test_render_texture();
 }
