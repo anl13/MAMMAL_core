@@ -126,6 +126,9 @@
     <ClCompile Include="global_config.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils\fileoperation.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="config.json" />

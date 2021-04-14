@@ -60,7 +60,10 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_terminal_thresh = root["terminal_thresh"].asFloat(); 
 	m_result_folder = root["result_folder"].asString(); 
 	m_use_given_scale = root["use_given_scale"].asBool(); 
-
+	m_use_init_cluster = root["use_init_cluster"].asBool(); 
+	m_scenedata_path = root["scenedata"].asString(); 
+	m_background_folder = root["background_folder"].asString(); 
+	m_try_load_anno = root["try_load_anno"].asBool(); 
 	std::vector<int> camids;
 	for (auto const &c : root["camids"])
 	{
@@ -102,7 +105,9 @@ void FrameSolver::configByJson(std::string jsonfile)
 
 	m_video_frameid = 0;
 
-	mp_sceneData = std::make_shared<SceneData>();
+	mp_sceneData = std::make_shared<SceneData>(
+		m_camDir, m_background_folder, m_scenedata_path, m_camids
+		);
 
 	d_interDepth.resize(m_camNum); 
 	int H = WINDOW_HEIGHT;
@@ -403,8 +408,9 @@ void FrameSolver::read_parametric_data()
 #endif 
 }
 
-void FrameSolver::try_load_anno()
+bool FrameSolver::try_load_anno()
 {
+	bool loaded = false;
 	init_parametric_solver(); 
 	for (int i = 0; i < m_pignum; i++)
 	{
@@ -423,8 +429,11 @@ void FrameSolver::try_load_anno()
 			mp_bodysolverdevice[i]->readState(ss.str()); 
 			mp_bodysolverdevice[i]->UpdateVertices(); 
 			mp_bodysolverdevice[i]->m_isUpdated = true; 
+			loaded = true; 
+			std::cout << "load " << ss.str() << std::endl; 
 		}
 	}
+	return loaded; 
 }
 
 void FrameSolver::matching_by_tracking()
@@ -593,7 +602,16 @@ void FrameSolver::drawMaskMatched()
 			my_draw_mask_gray(temp, m_matched[pid].dets[k].mask, 1 << pid);
 			m_masksMatched[viewid] = temp + m_masksMatched[viewid];
 		}
+
+
 	}
+
+	//for (int i = 0; i < m_camNum; i++)
+	//{
+	//	std::stringstream ss;
+	//	ss << "G:/pig_results/maskmatched" << i << ".png";
+	//	cv::imwrite(ss.str(), m_masksMatched[i] * 63);
+	//}
 }
 
 void FrameSolver::drawRawMaskImgs()
@@ -817,6 +835,7 @@ void FrameSolver::init_parametric_solver()
 		{
 			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
 			mp_bodysolverdevice[i]->m_gtscale = m_given_scales[i];
+			mp_bodysolverdevice[i]->m_use_given_scale = m_use_given_scale; 
 			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
 			//mp_bodysolver[i]->InitNodeAndWarpField();
 			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
@@ -1846,10 +1865,21 @@ void FrameSolver::computeIOUs()
 				}
 			}
 			if (I < 1) ious[pid][camid] = 0;
-			else 
-			ious[pid][camid] = I / U; 
+			else
+			{
+				ious[pid][camid] = float(I) / float(U);
+				//std::cout << "cam " << camid << " pig " << pid <<  " I: " << I << " U: " << U << 
+				//	" iou: " << ious[pid][camid] << std::endl;
+			}
 		}
 	}
+
+	//for (int camid = 0; camid < m_camNum; camid++)
+	//{
+	//	std::stringstream ss; 
+	//	ss << "G:/pig_results/intermask" << camid << ".png"; 
+	//	cv::imwrite(ss.str(), m_interMask[camid]);
+	//}
 
 	m_ious = ious; 
 }

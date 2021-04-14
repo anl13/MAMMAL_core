@@ -48,6 +48,9 @@
     <ClCompile Include="image_utils_gpu.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="fileoperation.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h">
@@ -102,6 +105,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="definitions.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="fileoperation.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

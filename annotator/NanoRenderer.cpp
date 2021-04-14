@@ -433,7 +433,13 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 	gui->add_variable("Save Folder", m_results_folder);
 
 	gui->add_group("Choose Target");
-	gui->add_variable("Enumeration", enumval, enabled)->set_items({ "Pig0", "Pig1", "Pig2", "Pig3"});
+	std::vector<std::string> items; 
+	for (int i = 0; i < m_pig_num; i++)
+	{
+		std::string name = "pig" + std::to_string(i);
+		items.push_back(name); 
+	}
+	gui->add_variable("Enumeration", enumval, enabled)->set_items(items);
 	//gui->add_variable("Color", colval);
 	gui->add_variable("Frame ID", out_frameid);
 	

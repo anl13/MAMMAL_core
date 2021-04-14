@@ -41,7 +41,7 @@ int run_inspect()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(true);
+	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -81,17 +81,26 @@ int run_inspect()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		
+
 		if (frameid == start)
-			frame.matching_by_tracking();
-			//frame.load_clusters();
+		{
+			if (frame.m_use_init_cluster)
+				frame.load_clusters(); 
+			else
+				frame.matching_by_tracking();
+		}
 		else
 			frame.pureTracking(); 
 
 		frame.save_clusters(); 
-
 		frame.resetSolverStateMarker(); 
 
-		if (false)
+	
+		if (frame.m_try_load_anno && frame.try_load_anno())
+		{
+			frame.DARKOV_Step5_postprocess();
+		}
+		else if (frameid == start && frame.m_use_init_cluster)
 		{
 			frame.read_parametric_data(); 
 			frame.DARKOV_Step5_postprocess();
@@ -99,7 +108,6 @@ int run_inspect()
 		// pipeline 3 
 		else
 		{
-			frame.try_load_anno(); 
 
 			frame.DARKOV_Step1_setsource();
 			//frame.DARKOV_Step2_loadanchor();
@@ -118,13 +126,16 @@ int run_inspect()
 
 			frame.DARKOV_Step5_postprocess();
 			frame.save_parametric_data();
-
-			std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
+		}
+		std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
+		continue;
+		{
+			
 			cv::Mat assoc = frame.visualizeIdentity2D();
 			std::stringstream ss;
 			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss.str(), assoc);
-#if 1
+#if 0
 			cv::Mat reassoc = frame.visualizeReassociation();
 			std::stringstream ss_reassoc;
 			ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
@@ -189,7 +200,7 @@ int run_inspect()
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
 		for (int pid = 0; pid < pignum; pid++)
 			m_renderer.colorObjs[pid]->isMultiLight = true; 
-		m_renderer.createSceneDetailed(conf_projectFolder);
+		m_renderer.createScene(conf_projectFolder);
 		Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
 		Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
 		Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);

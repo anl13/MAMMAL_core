@@ -94,6 +94,6 @@ protected:
 	void initRectifyMap();
 	bool m_is_video; 
 	bool m_is_read_image;
-	bool m_video_frameid;
+	int m_video_frameid;
 };
 

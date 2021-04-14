@@ -169,6 +169,7 @@ void FrameData::readKeypoints() // load hrnet keypoints
                     v(idx) = c[candid][pid*3+idx].asDouble(); 
                 }
 				if(v(2) > m_topo.kpt_conf_thresh[pid])
+				//if (v(2) > 0)
 					pig[pid] = v; 
 				else pig[pid] = Eigen::Vector3f::Zero(); 
 				if (v(0) < 10 || v(0) > 1910 || v(1) < 10 || v(1) > 1070)

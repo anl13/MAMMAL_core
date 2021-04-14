@@ -60,13 +60,13 @@
     [ 20, 0, 2, 1 ] // cneter
   ],
   "valid_threshold": 0.8,
-  "use_gpu": true,
+  "use_gpu": false,
   "lambda": 0.5,
   "data_term": 1,
-  "sil_term": 0.0,
+  "sil_term": 0.00002,
   "reg_term": 0.05,
-  "temp_term": 1,
-  "floor_term": 0.0,
+  "temp_term": 0.5,
+  "floor_term": 1,
   "anchor_term": 0,
   "gmm_term": 0.0,
   "sift_term": 0.0,
@@ -76,7 +76,7 @@
   //"scales": [ 1.406, 1.337, 1.300, 1.28056 ],
   //"scales": [ 1.337, 1.28056, 1.300, 1.406 ], // order of match_by_tracking in 750 frame
   //"scales": [ 1.28056, 1.406, 1.337, 1.300 ], // seq_noon
-  "iou_thres": 0.8,
+  "iou_thres": 0.5,
   "anchor_folder": "E:/pig_middle_data/pose_lib4/",
   "use_bodyonly_reg": false,
   "use_height_enhanced_temp": false

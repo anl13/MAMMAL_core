@@ -173,6 +173,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_isReAssoc = false;
 	m_isUpdated = false; 
 	m_isPostprocessed = false; 
+	m_use_given_scale = false; 
 	// 2021/2/20 add: init clicked points 
 
 }
@@ -342,11 +343,19 @@ void PigSolverDevice::globalAlign()
 	std::vector<float> weights(N, 0); 
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
-	m_host_scale = m_gtscale;
-	float alpha = computeScale(); 
+	if (m_use_given_scale)
+	{
+		m_host_scale = m_gtscale;
+		std::cout << "pig: " << m_pig_id << " scale: " << m_host_scale << " (given) " << std::endl;
+	}
+	else
+	{
+		float alpha = computeScale();
+		m_host_scale = alpha; 
+		std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
+	}
 	m_initScale = true;
 
-	std::cout << "pig: " << m_pig_id << " scale: " << alpha << std::endl;
 	//// running average
 	//if (!m_initScale)
 	//{
@@ -963,7 +972,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		Eigen::VectorXf ATb_sil;
 
 		if(m_use_gpu)
-		    CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
+		    CalcSilhouettePoseTerm(ATA_sil, ATb_sil, iter);
 		else 
 		    CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter); 
 
@@ -1034,9 +1043,8 @@ void PigSolverDevice::optimizePoseSilhouette(
 }
 
 //#define DEBUG_SIL
-
 void PigSolverDevice::CalcSilhouettePoseTerm(
-	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter)
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size();
 	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
@@ -1051,21 +1059,26 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	std::vector<cv::Mat> diff_xvis;
 	std::vector<cv::Mat> diff_yvis;
 #endif 
-	//std::cout << "pig " << m_pig_id << "  used sil view: ";
+
+#ifdef DEBUG_SIL
+	std::cout << "pig " << m_pig_id << "  used sil view: ";
+#endif 
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
 		if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
-			//std::cout << "(" << m_viewids[view] << ":" << m_valid_keypoint_ratio[view] << "),";
+#ifdef DEBUG_SIL
+			std::cout << "(" << m_viewids[view] << ":" << m_valid_keypoint_ratio[view] << "),";
+#endif
 			continue;
 		}
 		int camid = m_viewids[view];
 		if (o_ious[camid] < m_iou_thres)
 		{
-			//std::cout << "[" << camid << ":" << o_ious[camid] << "],";
+#ifdef DEBUG_SIL
+			std::cout << "[" << camid << ":" << o_ious[camid] << "],";
+#endif
 			continue;
 		}
-		// compute detection image data 
-		//std::cout << camid << ", "; 
 
 		convertDepthToMaskHalfSize_device(d_depth_renders[camid], d_middle_mask, 1920, 1080);
 		sdf2d_device(d_middle_mask, d_rend_sdf, 960, 540);
@@ -1089,73 +1102,14 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		Eigen::Matrix3f K = cam.K;
 		Eigen::Vector3f T = cam.T;
 
-		// approx IOU 
 		std::vector<unsigned char> visibility(m_vertexNum, 0);
 		check_visibility(d_depth_renders_interact[camid], 1920, 1080, m_device_verticesPosed,
 			K, R, T, visibility);
-
-#if 0
-		float total_overlay = 0;
-		float total_visible = 0;
-		//cv::Mat vis_test;
-		//vis_test.create(cv::Size(1920, 1080), CV_8UC3); 
-		//vis_test = m_rois[roiIdx].mask * 24;
-		for (int i = 0; i < m_vertexNum; i++)
-		{
-			if (m_host_bodyParts[i] == TAIL) continue; // ignore tail and ear
-			if (visibility[i] == 0) continue; //only consider visible parts 
-			Eigen::Vector3f xlocal = m_host_verticesPosed[i];
-			Eigen::Vector3f x_proj = K * (R * xlocal + T);
-			int x = round(x_proj(0) / x_proj(2));
-			int y = round(x_proj(1) / x_proj(2));
-			if (x < 0 || x >= 1920 || y < 0 || y >= 1080)continue;
-			if (c_const_distort_mask.at<uchar>(y, x) == 0) continue;
-			if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue;
-			int m = m_rois[view].queryMask(xlocal);
-			total_visible += 1;
-			if (m != 1)
-			{
-				continue;
-			}
-			total_overlay += 1;
-		}
-		float iou = total_overlay / total_visible;
-		std::cout << "(" << camid << ")" << iou << " ";
-		if (iou < m_iou_thres)
-		{
-			continue;
-		}
-#endif 
-
-		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATA_sil.rows() << " " << d_ATA_sil.cols() << std::endl; 
-		//std::cout << "IN pigsolverdevice d_ATA_sil " << d_ATb_sil.size() << std::endl;
 		setConstant2D_device(d_ATA_sil, 0);
 		setConstant1D_device(d_ATb_sil, 0);
-
-#ifdef DEBUG_SOLVER
-		setConstant2D_device(d_AT_sil, 0); 
-		setConstant1D_device(d_b_sil, 0); 
-#endif 
 		calcSilhouetteJacobi_device(K, R, T, d_depth_renders[camid],
 			d_depth_renders_interact[camid],
 			1 << m_pig_id, paramNum, view);
-
-#ifdef DEBUG_SOLVER
-		//// TODO: delete
-		computeATA_device(d_AT_sil, d_ATA_sil); 
-		computeATb_device(d_AT_sil, d_b_sil, d_ATb_sil); 
-		Eigen::MatrixXf AT = Eigen::MatrixXf::Zero(m_vertexNum, paramNum);
-		Eigen::VectorXf b = Eigen::VectorXf::Zero(m_vertexNum); 
-		d_AT_sil.download(AT.data(), m_vertexNum * sizeof(float)); 
-		d_b_sil.download(b.data()); 
-
-		int visible = 0;
-		for (int k = 0; k < b.rows(); k++)if (fabs(b(k)) > 0.00001)visible++;
-		std::cout << "visible gpu: " << visible << std::endl; 
-		//std::ofstream stream_cpu("G:/pig_results/debug/AT_gpu.txt");
-		//stream_cpu << AT << std::endl;
-		//stream_cpu.close();
-#endif 
 
 		Eigen::MatrixXf ATA_view = Eigen::MatrixXf::Zero(paramNum, paramNum);
 		Eigen::VectorXf ATb_view = Eigen::VectorXf::Zero(paramNum);
@@ -1178,16 +1132,27 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 	//std::cout << std::endl; 
 
 #ifdef DEBUG_SIL
-	cv::Mat packP;
-	packImgBlock(chamfers_vis, packP);
-	cv::Mat packD;
-	packImgBlock(chamfers_vis_det, packD);
-	std::stringstream ssp;
-	ssp << "G:/pig_results/debug/" << 0 << "_rend_sdf_gpu.jpg";
-	cv::imwrite(ssp.str(), packP);
-	std::stringstream ssd;
-	ssd << "G:/pig_results/debug/" << 0 << "_det_sdf_gpu.jpg";
-	cv::imwrite(ssd.str(), packD);
+	if (chamfers_vis.size() > 0)
+	{
+		cv::Mat packP;
+		packImgBlock(chamfers_vis, packP);
+		cv::Mat packD;
+		packImgBlock(chamfers_vis_det, packD);
+		std::stringstream ssp;
+		ssp << "G:/pig_results/debug/" << iter << "_rend_sdf_cpu.jpg";
+		cv::imwrite(ssp.str(), packP);
+		std::stringstream ssd;
+		ssd << "G:/pig_results/debug/" << iter << "_det_sdf_cpu.jpg";
+		cv::imwrite(ssd.str(), packD);
+
+		//cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
+		//std::stringstream ssdiff;
+		//ssdiff << "G:/pig_results/debug/diff_" << iter << ".jpg";
+		//cv::imwrite(ssdiff.str(), packdiff);
+	}
+	else {
+		std::cout << "no useful views. " << std::endl; 
+	}
 
 #endif 
 }

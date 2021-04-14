@@ -17,6 +17,7 @@
 #include "../articulation/pigmodeldevice.h"
 #include "../posesolver/framesolver.h"
 #include "../utils/image_utils_gpu.h"
+#include "anno_utils.h"
 
 Eigen::Vector2f pack_backward(Eigen::Vector2f p, int& camid, int W = 256, int H = 256)
 {
@@ -94,21 +95,20 @@ void readStateFile(std::string state_file, Eigen::Vector3f& translation, float& 
 
 int multiview_annotator()
 {
+	AnnoConfig config;
 	std::string projectParentDir = "D:/Projects/";
 	std::string projectDir = projectParentDir + "animal_calib/"; 
 	std::vector<float4> colormap = getColorMapFloat4("anliang_render");
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_render");
     /// read frame data 
 	FrameSolver data_loader; 
-	std::string data_config = projectDir + "posesolver/config_seq2.json"; 
+	std::string data_config = projectDir + config.posesolver_config; 
 	data_loader.configByJson(data_config); 
-	data_loader.set_frame_id(0); 
+	data_loader.set_frame_id(config.current_frame_id); 
 	data_loader.fetchData(); 
 	data_loader.is_smth = false;
-	data_loader.m_result_folder = "D:/results/seq_noon/"; 
 	data_loader.load_clusters();
 	data_loader.read_parametric_data(); 
-
 
 	auto solvers = data_loader.mp_bodysolverdevice;
 
@@ -117,13 +117,15 @@ int multiview_annotator()
 	obj.Load(projectDir + "shapesolver/data/model.obj");
 	MeshFloat4 objfloat4(obj);
 
-	std::vector<Camera> cams = readCameras();
+	std::vector<Camera> cams = data_loader.get_cameras();
 	Camera cam = cams[0];
+	int camNum = cams.size();
 
 	NanoRenderer renderer;
-	renderer.Init(1920, 1080, cam.K(0, 0), cam.K(1, 1), cam.K(0, 2), cam.K(1, 2), 0, false, "D:/annotate_folder/");
+	renderer.out_frameid = config.current_frame_id;
+	renderer.m_pig_num = data_loader.m_pignum;
+	renderer.Init(1920, 1080, cam.K(0, 0), cam.K(1, 1), cam.K(0, 2), cam.K(1, 2), 0, false, data_loader.m_annotation_folder);
 	std::cout << "renderer init. " << std::endl; 
-	renderer.out_frameid = 0; 
 
 	//Eigen::Matrix4f view_eigen = calcRenderExt(cam.R, cam.T);
 	//nanogui::Matrix4f view_nano = eigen2nanoM4f(view_eigen);
@@ -216,8 +218,8 @@ int multiview_annotator()
 
 	//renderer.CreateRenderImage("Overlay", Vector2i(1024, 768), Vector2i(0, 0));
 
-	int current_frame_id = 0;
-	int current_pig_id = 0; 
+	int current_frame_id = config.current_frame_id;
+	int current_pig_id = config.current_pig_id; 
 	std::cout << "start annotator. " << std::endl; 
 	cv::namedWindow("Overlay", cv::WINDOW_NORMAL);
 	cv::setMouseCallback("Overlay", CallBackFunc, &clicked_point);
@@ -233,8 +235,6 @@ int multiview_annotator()
 		bool m_state_save_obj = renderer.m_state_save_obj; 
 		bool m_state_save_state = renderer.m_state_save_state; 
 		bool m_state_load_last = renderer.m_state_load_last; 
-
-
 
 		if (m_state_read)
 		{
@@ -329,7 +329,7 @@ int multiview_annotator()
 
 		std::vector<cv::Rect> all_rois;
 		all_rois.clear(); 
-		all_rois.resize(10); 
+		all_rois.resize(camNum); 
 		for (int i = 0; i < data_loader.m_matched[current_pig_id].view_ids.size(); i++)
 		{
 			

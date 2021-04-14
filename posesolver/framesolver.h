@@ -18,7 +18,7 @@ public:
 
 	// load manual annotation 
 	std::string m_annotation_folder; 
-	void try_load_anno(); 
+	bool try_load_anno(); 
 	void resetSolverStateMarker(); 
 
 	// last frame data 
@@ -178,4 +178,9 @@ public:
 	// anliang 2021/03/30
 	std::vector<float> m_given_scales;
 	bool m_use_given_scale;
+	bool m_use_init_cluster; 
+	bool m_try_load_anno;
+
+	std::string m_scenedata_path; 
+	std::string m_background_folder; 
 };

@@ -155,6 +155,7 @@
     <ClCompile Include="..\render\shader.cpp" />
     <ClCompile Include="..\tracking\sift_matcher.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
+    <ClCompile Include="..\utils\fileoperation.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
@@ -187,7 +188,7 @@
     <None Include="..\articulation\artist_config.json" />
     <None Include="..\articulation\artist_config_sym.json" />
     <None Include="..\posesolver\confignew.json" />
-    <None Include="seq_noon.json" />
+    <None Include="anno_config.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

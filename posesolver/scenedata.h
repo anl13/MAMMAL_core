@@ -10,7 +10,10 @@
 
 class SceneData {
 public: 
-	SceneData();
+	SceneData(std::string camfolder, 
+		std::string backgroundfolder, 
+		std::string scenemaskpath,
+		std::vector<int> camids);
 
 
 	std::string m_camDir; 
@@ -25,6 +28,6 @@ public:
 	std::vector<cv::Mat> m_scene_mask_chamfer;
 
 private:
-	void readBackground();
-	void readSceneMask();
+	void readBackground(std::string backgroundfolder);
+	void readSceneMask(std::string scenemaskpath);
 };

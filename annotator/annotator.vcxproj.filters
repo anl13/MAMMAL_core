@@ -173,6 +173,9 @@
     <ClCompile Include="..\tracking\sift_matcher.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils\fileoperation.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\gpuutils.cu">
@@ -195,6 +198,8 @@
     <None Include="..\articulation\artist_config.json" />
     <None Include="..\articulation\artist_config_sym.json" />
     <None Include="..\posesolver\confignew.json" />
-    <None Include="seq_noon.json" />
+    <None Include="anno_config.json">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

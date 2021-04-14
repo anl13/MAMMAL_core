@@ -882,12 +882,12 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	float lambda = m_lambda;
 	float w_data = m_w_data_term;
 	float w_sil; 
-	if (iter < 10) w_sil = m_w_sil_term * 0.01; 
+	if (iter < 10) w_sil = m_w_sil_term * 0.1; 
 	else w_sil = m_w_sil_term;
 	float w_reg = m_w_reg_term;
 	float w_temp = m_w_temp_term;
 	float w_floor; 
-	if (iter > 10) w_floor = m_w_floor_term * 100; 
+	if (iter > 10) w_floor = m_w_floor_term * 10; 
 	else  w_floor = m_w_floor_term;
 
 	float w_anchor = m_w_anchor_term; 

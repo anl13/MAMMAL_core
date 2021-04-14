@@ -1,37 +1,48 @@
 #include "scenedata.h"
 #include <json/json.h>
+#include "../utils/fileoperation.h"
 
-SceneData::SceneData()
+SceneData::SceneData(std::string camfolder,
+	std::string backgroundfolder,
+	std::string scenemaskpath,
+	std::vector<int> camids)
 {
-	m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust/";
-	m_camids = { 0,1,2,5,6,7,8,9,10,11 };
+	m_camDir = camfolder;
+	m_camids = camids;
 	m_camNum = m_camids.size(); 
-	readBackground(); 
-	readSceneMask(); 
+	readBackground(backgroundfolder); 
+	readSceneMask(scenemaskpath); 
 }
 
-void SceneData::readBackground()
+void SceneData::readBackground(std::string backgroundfolder)
 {
 	m_backgrounds.clear();
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss_bg;
-		ss_bg << m_camDir << "../backgrounds/bg" << m_camids[camid] << "_undist.png";
-		cv::Mat img2 = cv::imread(ss_bg.str());
+		ss_bg << backgroundfolder << "/bg" << m_camids[camid] << "_undist";
+		std::string bg = ss_bg.str();
+		cv::Mat img2;
+		if (IsFileExistent(bg + ".png"))
+			img2 = cv::imread(bg + ".png");
+		else if (IsFileExistent(bg + ".jpg"))
+			img2 = cv::imread(bg + ".jpg"); 
 		if (img2.empty())
 		{
 			std::cout << "can not open background image" << ss_bg.str() << std::endl;
+			system("pause");
 			exit(-1);
 		}
 		m_backgrounds.push_back(img2);
 	}
 
 	std::stringstream ss;
-	ss << m_camDir << "../backgrounds/undist_mask.png";
+	ss << backgroundfolder << "undist_mask.png";
 	m_undist_mask = cv::imread(ss.str());
 	if (m_undist_mask.empty())
 	{
 		std::cout << "can not open undist mask " << ss.str() << std::endl;
+		system("pause");
 		exit(-1);
 	}
 	cv::cvtColor(m_undist_mask, m_undist_mask, cv::COLOR_BGR2GRAY);
@@ -40,24 +51,25 @@ void SceneData::readBackground()
 }
 
 
-void SceneData::readSceneMask()
+void SceneData::readSceneMask(std::string scenemaskpath)
 {
 	m_scene_masks.resize(m_camNum);
-	std::string scenejson = "D:/Projects/animal_calib/data/scenemask.json";
 
 	Json::Value root;
 	Json::CharReaderBuilder rbuilder;
 	std::string errs;
-	std::ifstream instream(scenejson);
+	std::ifstream instream(scenemaskpath);
 	if (!instream.is_open())
 	{
-		std::cout << "can not open " << scenejson << std::endl;
+		std::cout << "can not open " << scenemaskpath << std::endl;
+		system("pause"); 
 		exit(-1);
 	}
 	bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs);
 	if (!parsingSuccessful)
 	{
 		std::cout << "Fail to parse \n" << errs << std::endl;
+		system("pause");
 		exit(-1);
 	}
 
@@ -84,6 +96,7 @@ void SceneData::readSceneMask()
 		cv::Mat sceneimage(cv::Size(1920, 1080), CV_8UC1);
 		sceneimage.setTo(0);
 		my_draw_mask_gray(sceneimage, masks, 255);
+		//cv::imwrite("G:/pig_results/scenemask" + std::to_string(camid) + ".png", sceneimage); 
 		m_scene_masks[i] = sceneimage;
 	}
 

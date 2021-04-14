@@ -123,6 +123,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
+    <ClCompile Include="fileoperation.cpp" />
     <ClCompile Include="geometry.cpp" />
     <ClCompile Include="hungarian.cpp" />
     <ClCompile Include="image_utils.cpp" />
@@ -138,6 +139,7 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="colorterminal.h" />
     <ClInclude Include="definitions.h" />
+    <ClInclude Include="fileoperation.h" />
     <ClInclude Include="geometry.h" />
     <ClInclude Include="hungarian.h" />
     <ClInclude Include="image_utils.h" />

@@ -365,6 +365,7 @@ public:
 	bool m_state_load_last = false; 
 	bool m_state_load_this = false; 
 	bool m_state_load_next = false;
+	int  m_pig_num = 4;
 
 	/// variables and widgets for parameter maniplation 
 	Eigen::Vector3f m_pig_translation; 

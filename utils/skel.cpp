@@ -146,56 +146,56 @@ SkelTopology getSkelTopoByType(std::string type)
             4,3,4,3,4,3, // back legs 
             5,9,5,6,5,5 // ceneter and tail 
         }; 
-        A.kpt_conf_thresh = {
-            0.8, // nose 0
-            0.8, // eye left  1
-            0.8, // eye right   2 
-            0.8, // ear root left 3
-            0.8, // ear root right 4
-            0.8, // left shoulder 5
-            0.8, // right shoulder 6
-            0.8, // left elbow 7
-            0.8, // right elbow 8
-            0.9, // left paw 9
-            0.9, // right paw 10
-            0.8, // hip left 11
-            0.8, // hip right  12
-            0.8, // knee left  13
-            0.8, // knee right  14
-            0.85, // foot left 15
-            0.85, // foot right 16
-            0.5, // neck 17
-            0.8, // tail root 18
-            0.8, // withers    19
-            0.8, // center 20
-            0.5, // tail middle  21
-            0.5  // tail end 22
-        }; 
-		//A.kpt_conf_thresh = {
-		//	0.5, // nose 0
-		//	0.5, // eye left  1
-		//	0.5, // eye right   2 
-		//	0.5, // ear root left 3
-		//	0.5, // ear root right 4
-		//	0.5, // left shoulder 5
-		//	0.5, // right shoulder 6
-		//	0.5, // left elbow 7
-		//	0.5, // right elbow 8
-		//	0.5, // left paw 9
-		//	0.5, // right paw 10
-		//	0.5, // hip left 11
-		//	0.5, // hip right  12
-		//	0.5, // knee left  13
-		//	0.5, // knee right  14
-		//	0.5, // foot left 15
-		//	0.5, // foot right 16
-		//	0.5, // neck 17
-		//	0.5, // tail root 18
-		//	0.5, // withers    19
-		//	0.5, // center 20
-		//	0.5, // tail middle  21
-		//	0.5  // tail end 22
-		//};
+        //A.kpt_conf_thresh = {
+        //    0.8, // nose 0
+        //    0.8, // eye left  1
+        //    0.8, // eye right   2 
+        //    0.8, // ear root left 3
+        //    0.8, // ear root right 4
+        //    0.8, // left shoulder 5
+        //    0.8, // right shoulder 6
+        //    0.8, // left elbow 7
+        //    0.8, // right elbow 8
+        //    0.9, // left paw 9
+        //    0.9, // right paw 10
+        //    0.8, // hip left 11
+        //    0.8, // hip right  12
+        //    0.8, // knee left  13
+        //    0.8, // knee right  14
+        //    0.85, // foot left 15
+        //    0.85, // foot right 16
+        //    0.5, // neck 17
+        //    0.5, // tail root 18
+        //    0.8, // withers    19
+        //    0.5, // center 20
+        //    0.5, // tail middle  21
+        //    0.5  // tail end 22
+        //}; 
+		A.kpt_conf_thresh = {
+			0.6, // nose 0
+			0.6, // eye left  1
+			0.6, // eye right   2 
+			0.6, // ear root left 3
+			0.6, // ear root right 4
+			0.6, // left shoulder 5
+			0.6, // right shoulder 6
+			0.6, // left elbow 7
+			0.6, // right elbow 8
+			0.6, // left paw 9
+			0.6, // right paw 10
+			0.6, // hip left 11
+			0.6, // hip right  12
+			0.6, // knee left  13
+			0.6, // knee right  14
+			0.6, // foot left 15
+			0.6, // foot right 16
+			0.6, // neck 17
+			0.5, // tail root 18
+			0.5, // withers    19
+			0.5, // center 20
+			0.5, // tail middle  21
+			0.5  // tail end 22
+		};
     }
     else 
     {

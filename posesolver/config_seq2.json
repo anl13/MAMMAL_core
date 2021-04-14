@@ -2,11 +2,13 @@
   "camids": [ 0, 1, 2, 5, 6, 7, 8, 9, 10, 11 ],
   "sequence": "Z:/sequences/20190704_noon",
   "hourid": 7,
-  "pignum":  4,
+  "pignum": 4,
   "is_read_image": true,
   "is_video": false,
   "imgExtension": "jpg",
   "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust_new/",
+  "scenedata": "D:/Projects/animal_calib/data/scenemask.json",
+  "background_folder": "D:/Projects/animal_calib/data/calibdata/backgrounds/",
   "imgdir": "images",
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
@@ -26,5 +28,7 @@
   "annotation_folder": "D:/annotation_folder/",
   "result_folder": "D:/results/seq_test/",
   "terminal_thresh": 0.005,
-  "scales": [ 1.28056, 1.406, 1.337, 1.300 ] // seq_noon
+  "scales": [ 1.28056, 1.406, 1.337, 1.300 ], // seq_noon
+  "use_given_scale": false,
+  "use_init_cluster": true
 }

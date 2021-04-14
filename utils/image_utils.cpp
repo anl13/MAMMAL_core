@@ -484,7 +484,8 @@ void my_draw_mask_gray(cv::Mat& grey,
 		}
 		contours.push_back(contour_part);
 	}
-	cv::fillPoly(grey, contours, c);
+	if(contours.size() > 0 && contours[0].size() > 0)
+		cv::fillPoly(grey, contours, c);
 	//img = grey;
 }
 

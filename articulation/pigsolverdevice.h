@@ -168,7 +168,7 @@ public:
 
 	// sil term constructor 
 	void CalcSilhouettePoseTerm(
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter=0);
 	void calcSilhouetteJacobi_device(
 		Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
 		float* d_depth, float* d_depth_interact, int idcode, int paramNum, int view
@@ -255,6 +255,7 @@ public:
 	std::string m_anchor_folder; 
 	bool m_use_bodyonly_reg;
 	bool m_use_height_enhanced_temp; 
+	bool m_use_given_scale; 
 
 	float m_gtscale;  // This gt scale is given from outside
 	float approxIOU(int view); 
