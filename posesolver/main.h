@@ -10,6 +10,7 @@ int run_on_sequence();
 int run_shape();
 int run_pose_smooth(); 
 int run_inspect(); 
+int run_tri();
 // saml_fitting.cpp
 int removeSmalTail();
 int ComputeSymmetry();

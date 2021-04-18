@@ -64,6 +64,8 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_scenedata_path = root["scenedata"].asString(); 
 	m_background_folder = root["background_folder"].asString(); 
 	m_try_load_anno = root["try_load_anno"].asBool(); 
+	m_use_triangulation_only = root["use_triangulation_only"].asBool();
+
 	std::vector<int> camids;
 	for (auto const &c : root["camids"])
 	{
@@ -781,8 +783,10 @@ void FrameSolver::pureTracking()
 			if (mm[i] >= 0)
 			{
 				int candid = mm[i];
-				if (sim(i, candid) >= threshold)continue;
-				else m_clusters[i][camid] = candid;
+	/*			if (sim(i, candid) >= threshold)continue;
+				else m_clusters[i][camid] = candid;*/
+				// 20210418: adapt to 1003 data. 
+				m_clusters[i][camid] = candid; 
 			}
 		}
 	}
@@ -2207,5 +2211,26 @@ void FrameSolver::resetSolverStateMarker()
 	for (int i = 0; i < m_pignum; i++)
 	{
 		mp_bodysolverdevice[i]->resetStateMarker(); 
+	}
+}
+
+void FrameSolver::save_skels()
+{
+	for (int pid = 0; pid < m_pignum; pid++)
+	{
+		std::stringstream ss;
+		ss << m_result_folder << "/skels/" << "pig_" << pid << "_" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+
+		std::ofstream os(ss.str());
+		if (!os.is_open())
+		{
+			std::cout << "cant not open " << ss.str() << std::endl;
+			return;
+		}
+		for (int k = 0; k < m_skels3d[pid].size(); k++)
+		{
+			os << m_skels3d[pid][k].transpose() << std::endl;
+		}
+		os.close();
 	}
 }

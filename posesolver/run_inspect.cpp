@@ -59,7 +59,7 @@ int run_inspect()
 	}
 	std::vector<std::string> subfolders = {
 		"assoc", "render_all", "clusters", "state", "reassoc2", "proj2", "before_swap2",
-		"fitting"
+		"fitting", "annotation", "skels"
 	};
 	for (int i = 0; i < subfolders.size(); i++)
 	{
@@ -95,7 +95,34 @@ int run_inspect()
 		frame.save_clusters(); 
 		frame.resetSolverStateMarker(); 
 
-	
+		if (frame.m_use_triangulation_only)
+		{
+			frame.DARKOV_Step1_setsource();
+			frame.DirectTriangulation();
+			frame.save_skels(); 
+			std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
+
+			cv::Mat assoc = frame.visualizeIdentity2D();
+			cv::Mat assoc_small = my_resize(assoc, 0.25); 
+			std::stringstream ss;
+			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss.str(),assoc_small);
+
+			//cv::Mat rawfit = frame.visualizeRawAssoc();
+			//cv::Mat rawfit_small = my_resize(rawfit, 0.25); 
+			//std::stringstream ss_rawassoc;
+			//ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_rawassoc.str(), rawfit_small);
+
+			cv::Mat reproj = frame.visualizeProj();
+			cv::Mat reproj_small = my_resize(reproj, 0.25); 
+			std::stringstream ss_proj;
+			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_proj.str(), reproj_small);
+
+			continue; 
+		}
+
 		if (frame.m_try_load_anno && frame.try_load_anno())
 		{
 			frame.DARKOV_Step5_postprocess();
@@ -128,7 +155,7 @@ int run_inspect()
 			frame.save_parametric_data();
 		}
 		std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
-		continue;
+		//continue;
 		{
 			
 			cv::Mat assoc = frame.visualizeIdentity2D();
@@ -161,7 +188,7 @@ int run_inspect()
 #endif 
 		}
 
-#if 1 // render all view 
+
 		m_renderer.clearAllObjs();
 
 		auto solvers = frame.mp_bodysolverdevice;
@@ -227,6 +254,8 @@ int run_inspect()
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
+		cv::resize(blend, blend, cv::Size(1920,1080));
+
 		std::stringstream all_render_file;
 		all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
@@ -245,73 +274,6 @@ int run_inspect()
 		//		glfwPollEvents();
 		//	};
 		//}
-#else
-		m_renderer.clearAllObjs();
-		auto solvers = frame.mp_bodysolverdevice;
-
-		m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
-
-		for (int pid = 0; pid < pignum; pid++)
-		{
-			RenderObjectColor* p_model = new RenderObjectColor();
-			solvers[pid]->UpdateNormalFinal();
-
-			p_model->SetVertices(solvers[pid]->GetVertices());
-			p_model->SetNormal(solvers[pid]->GetNormals());
-			p_model->SetFaces(solvers[pid]->GetFacesVert());
-			p_model->SetColor(m_CM[pid]);
-			m_renderer.colorObjs.push_back(p_model);
-		}
-
-		std::vector<int> render_views = { 0,7 };
-
-		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
-		std::vector<cv::Mat> rawImgsSelect;
-		for (int k = 0; k < render_views.size(); k++) rawImgsSelect.push_back(rawImgs[render_views[k]]);
-
-		std::vector<cv::Mat> all_renders(render_views.size());
-		for (int k = 0; k < render_views.size(); k++)
-		{
-			int camid = render_views[k];
-			m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
-			//m_renderer.Draw();
-			//cv::Mat img = m_renderer.GetImage();
-			cv::Mat img = m_renderer.GetImageOffscreen();
-			all_renders[k] = img;
-		}
-		m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-		m_renderer.createSceneDetailed(conf_projectFolder);
-		Eigen::Vector3f up1; up1 << 0.260221, 0.36002, 0.895919;
-		Eigen::Vector3f pos1; pos1 << -1.91923, -2.12171, 1.37056;
-		Eigen::Vector3f center1 = Eigen::Vector3f::Zero();
-		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
-		cv::Mat img = m_renderer.GetImageOffscreen();
-		all_renders.push_back(img);
-		rawImgsSelect.push_back(img);
-
-		Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
-		Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
-		Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
-		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
-		img = m_renderer.GetImageOffscreen();
-		all_renders.push_back(img);
-		rawImgsSelect.push_back(img);
-
-		cv::Mat pack_raw;
-		packImgBlock(rawImgsSelect, pack_raw);
-
-		cv::Mat packed_render;
-		packImgBlock(all_renders, packed_render);
-
-		cv::Mat blend;
-		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
-
-		std::stringstream all_render_file;
-		all_render_file << frame.m_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
-			<< frameid << "_overlay.png";
-		cv::imwrite(all_render_file.str(), blend);
-		std::cout << "total:       " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
-#endif 
 	}
 
  	return 0;

@@ -47,6 +47,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_use_height_enhanced_temp = root["use_height_enhanced_temp"].asBool(); 
 
 	m_gtscale = 1;
+	m_use_triangulation_only = false; 
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -2067,4 +2068,25 @@ void PigSolverDevice::resetStateMarker()
 {
 	m_isUpdated = false; 
 	m_isPostprocessed = false; 
+}
+
+void PigSolverDevice::optimizeTri()
+{
+	m_skel3d = directTriangulationHost();
+	m_last_regressed_skel3d = m_skel3d;
+	if (m_skelProjs.size() == 0)
+	{
+		m_skelProjs.resize(m_cameras.size());
+		for (int i = 0; i < m_cameras.size(); i++)
+		{
+			m_skelProjs[i].resize(m_skelTopo.joint_num, Eigen::Vector3f::Zero());
+		}
+	}
+
+	for (int view = 0; view < m_cameras.size(); view++)
+	{
+		project(m_cameras[view], m_skel3d, m_skelProjs[view]);
+	}
+
+	m_isPostprocessed = true; 
 }

@@ -101,6 +101,8 @@ public:
 
 	std::vector<Eigen::Vector3f>  directTriangulationHost(); // calc m_skel3d using direct triangulation
 	void globalAlign(); // compute scale and global R,T
+	void optimizeTri(); 
+
 
 	void optimizePose(); 
 	void optimizePoseSilhouette(
@@ -256,6 +258,7 @@ public:
 	bool m_use_bodyonly_reg;
 	bool m_use_height_enhanced_temp; 
 	bool m_use_given_scale; 
+	bool m_use_triangulation_only; 
 
 	float m_gtscale;  // This gt scale is given from outside
 	float approxIOU(int view); 

@@ -60,7 +60,7 @@
     [ 20, 0, 2, 1 ] // cneter
   ],
   "valid_threshold": 0.8,
-  "use_gpu": false,
+  "use_gpu": true,
   "lambda": 0.5,
   "data_term": 1,
   "sil_term": 0.00002,

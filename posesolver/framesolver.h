@@ -96,6 +96,7 @@ public:
 	void load_clusters();
 
 	void save_joints(); 
+	void save_skels();
 
 	// overall depth rendering. 
 	void init_parametric_solver(); 
@@ -137,6 +138,11 @@ public:
 	void DARKOV_Step4_fitrawsource();  // fit model to raw source 
 	void DARKOV_Step4_fitreassoc();    // fit model to reassociated keypoints and silhouettes 
 	void DARKOV_Step5_postprocess();   // some postprocessing step 
+	
+	// 20210418 use triangulation only; 
+	// all steps are here. 
+	void DirectTriangulation(); 
+
 
 	// camid, candid, jointid, correspond to m_detUndist
 	// each value means tracked pig id
@@ -180,6 +186,7 @@ public:
 	bool m_use_given_scale;
 	bool m_use_init_cluster; 
 	bool m_try_load_anno;
+	bool m_use_triangulation_only;
 
 	std::string m_scenedata_path; 
 	std::string m_background_folder; 

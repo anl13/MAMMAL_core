@@ -64,6 +64,7 @@ cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height);
 
 cv::Mat get_dist_trans(cv::Mat input);
 
+cv::Mat my_resize(const cv::Mat& input, float ratio);
 
 // This class is used as struct 
 class ROIdescripter {

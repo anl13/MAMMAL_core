@@ -179,3 +179,13 @@ void FrameSolver::DARKOV_Step5_postprocess()  // some postprocessing step
 	//std::cout << "buildSIFTMapToSurface(): " << tt.Elapsed() / 1000.0 << " ms" << std::endl; 
 #endif 
 }
+
+void FrameSolver::DirectTriangulation()
+{
+	for (int i = 0; i < m_pignum; i++)
+	{
+		mp_bodysolverdevice[i]->optimizeTri(); 
+		m_skels3d[i] = mp_bodysolverdevice[i]->getSkel3D();
+	}
+	m_last_matched = m_matched; 
+}

@@ -933,3 +933,16 @@ float silhouette_iou(const cv::Mat& mask1, const cv::Mat& mask2)
 {
 	return 0; 
 }
+
+
+cv::Mat my_resize(const cv::Mat& input, float ratio)
+{
+	int H = input.rows;
+	int W = input.cols; 
+	if (ratio <= 0) return input; 
+	int output_H = H * ratio; 
+	int output_W = W * ratio; 
+	cv::Mat output;
+	cv::resize(input, output, cv::Size(output_W, output_H)); 
+	return output; 
+}
