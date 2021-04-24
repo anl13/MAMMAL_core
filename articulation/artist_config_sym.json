@@ -60,13 +60,14 @@
     [ 20, 0, 2, 1 ] // cneter
   ],
   "valid_threshold": 0.8,
-  "use_gpu": true,
+  "use_gpu": false,
   "lambda": 0.5,
   "data_term": 1,
-  "sil_term": 0.00002,
-  "reg_term": 0.05,
-  "temp_term": 0.5,
-  "floor_term": 1,
+  "sil_term": 0.00001,
+  "reg_term": 0.08,
+  "temp_term": 1,
+  "floor_term": 1, // restrict bodys are on floor
+  "on_floor_term":  1, // restrict lower back leg stand precisely on floor. 
   "anchor_term": 0,
   "gmm_term": 0.0,
   "sift_term": 0.0,
@@ -78,7 +79,7 @@
   //"scales": [ 1.28056, 1.406, 1.337, 1.300 ], // seq_noon
   "iou_thres": 0.5,
   "anchor_folder": "E:/pig_middle_data/pose_lib4/",
-  "use_bodyonly_reg": false,
+  "use_bodyonly_reg": true,
   "use_height_enhanced_temp": false
 }
 

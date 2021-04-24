@@ -92,7 +92,7 @@ protected:
 	cv::Mat m_map1; 
 	cv::Mat m_map2;
 	void initRectifyMap();
-	bool m_is_video; 
+	int m_videotype; 
 	bool m_is_read_image;
 	int m_video_frameid;
 };

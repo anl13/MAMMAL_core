@@ -155,6 +155,8 @@ public:
 	void CalcJointBidirectFloorTerm( // foot_contact: 4 * bool , [9,10,15,16] left front, right font, left back, right back
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, std::vector<bool> foot_contact
 	);
+	void CalcJointOnFloorTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+
 	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool adaptive_weight=false); 
 	void CalcRegTermBodyOnly(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
@@ -250,6 +252,7 @@ public:
 	float m_w_reg_term;
 	float m_w_temp_term;
 	float m_w_floor_term;
+	float m_w_on_floor_term; 
 	float m_kpt_track_dist;
 	float m_w_anchor_term;
 	float m_iou_thres; 

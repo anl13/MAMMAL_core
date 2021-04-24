@@ -45,6 +45,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_w_sift_term = root["sift_term"].asFloat(); 
 	m_use_bodyonly_reg = root["use_bodyonly_reg"].asBool(); 
 	m_use_height_enhanced_temp = root["use_height_enhanced_temp"].asBool(); 
+	m_w_on_floor_term = root["on_floor_term"].asFloat(); 
 
 	m_gtscale = 1;
 	m_use_triangulation_only = false; 
@@ -1669,6 +1670,27 @@ void PigSolverDevice::CalcJointFloorTerm(
 	ATb = -A.transpose() * b; 
 }
 
+void PigSolverDevice::CalcJointOnFloorTerm(
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+
+	Eigen::MatrixXf A = Eigen::MatrixXf::Zero(m_jointNum, paramNum);
+	Eigen::VectorXf b = Eigen::VectorXf::Zero(m_jointNum);
+
+	// assume we have J_joint_part_theta
+	d_J_joint.download(h_J_joint.data(), m_jointNum * 3 * sizeof(float));
+	int joint_on_floor;
+	if (m_host_jointsPosed[42](2) < m_host_jointsPosed[58](2)) joint_on_floor = 42;
+	else joint_on_floor = 58;
+	A.row(joint_on_floor) = h_J_joint.row(3 * joint_on_floor + 2);
+	b(joint_on_floor) = m_host_jointsPosed[joint_on_floor](2);
+
+	ATA = A.transpose() * A;
+	ATb = -A.transpose() * b;
+}
+
 void PigSolverDevice::CalcSurfaceFloorTerm(
 	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
 )
@@ -1770,6 +1792,7 @@ void PigSolverDevice::CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& 
 		int t = m_skelCorr[i].target; 
 		float w = m_skelCorr[i].weight;
 		r.segment<3>(3 * i) = skel[t] - last_regressed_skel[t];
+		//std::cout << "(" << i << ":" << obs[i] << ") ";
 		if (obs[i] >= 1) {
 			A.middleRows(3 * i, 3) *= 0.01;
 			r.segment<3>(3 * i, 3) *= 0.01; 

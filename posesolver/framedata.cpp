@@ -34,7 +34,7 @@ void FrameData::configByJson(std::string filename)
 	m_skelType = root["skel_type"].asString();
 	m_topo = getSkelTopoByType(m_skelType);
 	m_is_read_image = root["is_read_image"].asBool();
-	m_is_video = root["is_video"].asBool(); 
+	m_videotype = root["videotype"].asInt(); 
 	std::vector<int> camids;
 	for (auto const &c : root["camids"])
 	{
@@ -46,7 +46,7 @@ void FrameData::configByJson(std::string filename)
 
 	readCameras();
 
-	if (m_is_video)
+	if (m_videotype==1)
 	{
 		m_hourid = root["hourid"].asInt();
 		m_caps.clear();
@@ -59,11 +59,28 @@ void FrameData::configByJson(std::string filename)
 			
 			m_caps[camid] = cv::VideoCapture(name.str()); 
 
-			if (m_caps[camid].isOpened())
+			if (!m_caps[camid].isOpened())
 			{
 				std::cout << "cannot open video " << name.str() << std::endl; 
 				system("pause"); 
 				exit(-1); 
+			}
+		}
+	}
+	else if(m_videotype==2)
+	{
+		m_caps.clear(); 
+		m_caps.resize(m_camNum); 
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			std::stringstream name;
+			name << m_sequence << "videos/" << m_camids[camid] << ".mp4";
+			m_caps[camid] = cv::VideoCapture(name.str());
+			if (!m_caps[camid].isOpened())
+			{
+				std::cout << "cannot open video " << name.str() << std::endl;
+				system("pause");
+				exit(-1);
 			}
 		}
 	}
@@ -77,7 +94,7 @@ void FrameData::configByJson(std::string filename)
 void FrameData::set_frame_id(int _frameid)
 {
 	m_frameid = _frameid;
-	if (m_is_video)
+	if (m_videotype > 0)
 	{
 		if (m_frameid == m_video_frameid) return;
 		for (int i = 0; i < m_camNum; i++)
@@ -97,7 +114,7 @@ void FrameData::fetchData()
 
 	if (m_is_read_image)
 	{
-		if (m_is_video)
+		if (m_videotype > 0)
 		{
 			readImagesFromVideo(); 
 			undistImgs(); 
@@ -125,12 +142,18 @@ void FrameData::readKeypoints() // load hrnet keypoints
 {
     std::string jsonDir = m_keypointsDir;
     std::stringstream ss; 
-	if (m_is_video)
+	if (m_videotype == 1)
 	{
 		ss << jsonDir << "/hour" << m_hourid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
 	}
-	else
+	else if (m_videotype == 0 || m_videotype == 2)
+	{
 		ss << jsonDir << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	}
+	else {
+		std::cout << "read keypoints: m_videotype " << m_videotype << " not implement." << std::endl; 
+		exit(-1); 
+	}
     std::string jsonfile = ss.str(); 
 
     Json::Value root; 
@@ -187,9 +210,20 @@ void FrameData::readBoxes()
 {
     std::string jsonDir = m_boxDir;
     std::stringstream ss; 
-	if(m_is_video) ss << jsonDir << "/hour" <<m_hourid <<  "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
-    else ss << jsonDir << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
-    std::string jsonfile = ss.str(); 
+	if (m_videotype == 1)
+	{
+		ss << jsonDir << "/hour" << m_hourid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	}
+	else if (m_videotype == 0 || m_videotype == 2)
+	{
+		ss << jsonDir << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	}
+	else {
+		std::cout << "read boxes: m_videotype " << m_videotype << " not implement." << std::endl;
+		exit(-1);
+	}
+	
+	std::string jsonfile = ss.str(); 
     // parse
     Json::Value root; 
     Json::CharReaderBuilder rbuilder; 
@@ -393,9 +427,20 @@ void FrameData::readMask()
 {
     std::string jsonDir = m_maskDir;
     std::stringstream ss; 
-	if (m_is_video) ss << jsonDir << "/hour" << m_hourid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
-	else ss << jsonDir << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
-    std::string jsonfile = ss.str(); 
+	if (m_videotype == 1)
+	{
+		ss << jsonDir << "/hour" << m_hourid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	}
+	else if (m_videotype == 0 || m_videotype == 2)
+	{
+		ss << jsonDir << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+	}
+	else {
+		std::cout << "read masks: m_videotype " << m_videotype << " not implement." << std::endl;
+		exit(-1);
+	}
+	
+	std::string jsonfile = ss.str(); 
     // parse
     Json::Value root; 
     Json::CharReaderBuilder rbuilder; 

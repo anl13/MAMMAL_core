@@ -41,7 +41,7 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_pignum = root["pignum"].asInt();
 
 	m_is_read_image = root["is_read_image"].asBool();
-	m_is_video = root["is_video"].asBool();
+	m_videotype = root["videotype"].asInt();
 	m_startid = root["startid"].asInt();
 	m_framenum = root["framenum"].asInt();
 	m_epi_thres = root["epipolar_threshold"].asDouble();
@@ -84,7 +84,7 @@ void FrameSolver::configByJson(std::string jsonfile)
 	instream.close();
 	readCameras(); 
 
-	if (m_is_video)
+	if (m_videotype==1)
 	{
 		m_hourid = root["hourid"].asInt();
 		m_caps.clear();
@@ -96,6 +96,23 @@ void FrameSolver::configByJson(std::string jsonfile)
 				std::setw(6) << std::setfill('0') << m_hourid << ".mp4";
 			m_caps[camid] = cv::VideoCapture(name.str());
 
+			if (!m_caps[camid].isOpened())
+			{
+				std::cout << "cannot open video " << name.str() << std::endl;
+				system("pause");
+				exit(-1);
+			}
+		}
+	}
+	else if (m_videotype == 2)
+	{
+		m_caps.clear();
+		m_caps.resize(m_camNum);
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			std::stringstream name;
+			name << m_sequence << "videos/" << m_camids[camid] << ".mp4";
+			m_caps[camid] = cv::VideoCapture(name.str());
 			if (!m_caps[camid].isOpened())
 			{
 				std::cout << "cannot open video " << name.str() << std::endl;
@@ -727,7 +744,7 @@ void FrameSolver::pureTracking()
 	m_clusters.resize(m_pignum);
 	for (int pid = 0; pid < m_pignum; pid++)m_clusters[pid].resize(m_camNum, -1);
 
-	float threshold = 200; 
+	float threshold = 150; 
 	//renderInteractDepth(true); 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
@@ -769,22 +786,22 @@ void FrameSolver::pureTracking()
 			}
 		}
 
-		//std::cout << "sim of view: " << camid << std::endl << sim << std::endl;
-		//std::cout << "valid of view: " << std::endl << valids<< std::endl; 
-		//std::cout << "dist2 : " << std::endl << sim2 << std::endl; 
+		std::cout << "sim of view: " << camid << std::endl << sim << std::endl;
+		std::cout << "valid of view: " << std::endl << valids<< std::endl; 
+		std::cout << "dist2 : " << std::endl << sim2 << std::endl; 
 		std::vector<int> mm = solveHungarian(sim);
 
-		//for (int i = 0; i < mm.size(); i++)
-		//	std::cout << mm[i] << "  ";
-		//std::cout << std::endl; 
+		for (int i = 0; i < mm.size(); i++)
+			std::cout << mm[i] << "  ";
+		std::cout << std::endl; 
 
 		for (int i = 0; i < m_pignum; i++)
 		{
 			if (mm[i] >= 0)
 			{
 				int candid = mm[i];
-	/*			if (sim(i, candid) >= threshold)continue;
-				else m_clusters[i][camid] = candid;*/
+				if (sim(i, candid) >= threshold)continue;
+				else m_clusters[i][camid] = candid;
 				// 20210418: adapt to 1003 data. 
 				m_clusters[i][camid] = candid; 
 			}

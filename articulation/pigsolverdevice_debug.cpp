@@ -890,6 +890,7 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	if (iter > 10) w_floor = m_w_floor_term * 10; 
 	else  w_floor = m_w_floor_term;
 
+
 	float w_anchor = m_w_anchor_term; 
 	float w_sift = m_w_sift_term; 
 
@@ -945,11 +946,17 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	CalcSIFTTerm(m_siftCorrs, ATA_sift, ATb_sift); 
 #endif 
 
+	float w_on_floor = m_w_on_floor_term;
+	Eigen::MatrixXf ATA_on_floor; 
+	Eigen::VectorXf ATb_on_floor; 
+	CalcJointOnFloorTerm(ATA_on_floor, ATb_on_floor);
+
 	Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
 		+ DTD * lambda
-		+ ATA_data * w_data + ATA_anchor * w_anchor 
-		+ ATA_floor * w_floor 
+		+ ATA_data * w_data + ATA_anchor * w_anchor
+		+ ATA_floor * w_floor
 		+ ATA_temp * w_temp
+		+ ATA_on_floor * w_on_floor
 #ifdef USE_SIFT
 		+ ATA_sift * w_sift
 #endif 
@@ -958,6 +965,7 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		+ ATb_data * w_data + ATb_anchor * w_anchor
 		+ ATb_floor * w_floor
 		+ ATb_temp * w_temp
+		+ ATb_on_floor * w_on_floor
 #ifdef USE_SIFT
 		+ ATb_sift * w_sift
 #endif 

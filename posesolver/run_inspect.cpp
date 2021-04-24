@@ -18,15 +18,37 @@
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
 
+std::string get_config()
+{
+	Json::Value root;
+	Json::CharReaderBuilder rbuilder;
+	std::string errs;
+	std::ifstream instream("D:/Projects/animal_calib/configs/main_config.json");
+	if (!instream.is_open())
+	{
+		std::cout << "can not open " << " main_config.json" << std::endl;
+		exit(-1);
+	}
+	bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs);
+	if (!parsingSuccessful)
+	{
+		std::cout << "Fail to parse \n" << errs << std::endl;
+		exit(-1);
+	}
+	std::string config_file = root["config_file"].asString(); 
+	instream.close();
+	return config_file; 
+}
+
 int run_inspect()
 {
 	show_gpu_param();
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
-
+	std::string config_file = get_config(); 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/config_7.json");
+	frame.configByJson(conf_projectFolder + config_file);
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -125,6 +147,7 @@ int run_inspect()
 
 		if (frame.m_try_load_anno && frame.try_load_anno())
 		{
+			frame.save_parametric_data(); 
 			frame.DARKOV_Step5_postprocess();
 		}
 		else if (frameid == start && frame.m_use_init_cluster)

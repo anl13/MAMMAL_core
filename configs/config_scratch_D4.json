@@ -1,38 +1,39 @@
 {
   "camids": [ 4, 6, 9, 10, 12 ],
-  "sequence": "Z:/20191003_sync/",
+  "sequence": "Z:/sync_scratch/D4/",
   "hourid": 8,
   "pignum": 4,
   "is_read_image": true,
-  "is_video": true,
+  "videotype": 2,
   "imgExtension": "mp4",
-  "camfolder": "D:/Projects/animal_calibration/calibother/result/",
-  "scenedata": "D:/Projects/animal_calibration/calibother/result/scenemask.json",
-  "background_folder": "D:/Projects/animal_calibration/calibother/undist/",
+  "camfolder": "D:/Projects/animal_calib/data/calibdata_animal_7/extrinsic/",
+  "scenedata": "D:/Projects/animal_calib/data/calibdata_animal_7/scenemask.json",
+  "background_folder": "D:/Projects/animal_calib/data/calibdata_animal_7/backgrounds/",
   "imgdir": "",
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
-  "startid": 39640,
-  "framenum": 22623,
+  "startid": 0,
+  "framenum": 110,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
-  "use_gpu": true,
-  "solve_sil_iters": 15,
-  "solve_sil_iters_2nd_phase": 50,
-  "use_reassoc": false,
-  "annotation_folder": "D:/results/1003/annotation/",
-  "result_folder": "D:/results/1003/",
+  "use_gpu": false,
+  "solve_sil_iters": 8,
+  "solve_sil_iters_2nd_phase": 8,
+  "use_reassoc": true,
+  "annotation_folder": "D:/results/D4/annotation/",
+  "result_folder": "D:/results/D4/",
   "terminal_thresh": 0.005,
-  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
+  "scales": [ 1.86, 1.2, 1.35, 1.82 ], // A, D, C, B
+  //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
   //"scales": [ 1.2, 1.35, 1.86, 1.82 ], // D, C, A, B
   "pig_names": [], // ground truth identity
   "use_given_scale": true,
   "use_init_cluster": false,
   "try_load_anno": false,
-  "use_triangulation_only": false
+  "use_triangulation_only": true
 }
