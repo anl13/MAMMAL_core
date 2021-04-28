@@ -19,7 +19,7 @@ AnnoConfig::AnnoConfig()
 	Json::Value root;
 	Json::CharReaderBuilder rbuilder;
 	std::string errs;
-	std::string jsonfile = "anno_config.json";
+	std::string jsonfile = "D:/Projects/animal_calib/annotator/anno_config.json";
 	std::ifstream instream(jsonfile);
 	if (!instream.is_open())
 	{

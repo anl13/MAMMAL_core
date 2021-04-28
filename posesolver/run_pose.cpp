@@ -38,7 +38,7 @@ int run_pose_smooth()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/config_seq2.json");
+	frame.configByJson(conf_projectFolder + "/configs/config_7.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -49,12 +49,11 @@ int run_pose_smooth()
 	auto cam = cams[0];
 
 	// init renderer
-	frame.m_result_folder = "D:/results/seq_noon/";
 	frame.is_smth = false;
 	int start = frame.get_start_id();
 	frame.init_parametric_solver(); 
 
-	std::string joint62_folder = "D:/results/seq_noon/joints_62/";
+	std::string joint62_folder = frame.m_result_folder+ "/joints_62/";
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;

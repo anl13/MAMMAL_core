@@ -26,7 +26,7 @@ int run_pose_render()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/config_seq2.json");
+	frame.configByJson(conf_projectFolder + "/posesolver/config_7.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -152,6 +152,157 @@ int run_pose_render()
 		std::stringstream all_render_file;
 		all_render_file << frame.m_result_folder << "/render_all2/" << std::setw(6) << std::setfill('0')
 			<< frameid << "_overlay.png";
+		cv::imwrite(all_render_file.str(), blend);
+
+		GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		while (!glfwWindowShouldClose(windowPtr))
+		{
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+			m_renderer.Draw();
+
+			glfwSwapBuffers(windowPtr);
+			glfwPollEvents();
+		};
+	}
+
+	return 0;
+}
+
+
+int run_render_paper_20210426()
+{
+	show_gpu_param();
+	std::string conf_projectFolder = "D:/Projects/animal_calib/";
+	SkelTopology topo = getSkelTopoByType("UNIV");
+	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
+
+	FrameSolver frame;
+	frame.configByJson(conf_projectFolder + "/configs/config_7.json");
+	int startid = frame.get_start_id();
+	int framenum = frame.get_frame_num();
+
+	int m_pid = 0; // pig identity to solve now. 
+	frame.set_frame_id(0);
+	frame.fetchData();
+	auto cams = frame.get_cameras();
+	auto cam = cams[0];
+
+	// init renderer
+	Eigen::Matrix3f K = cam.K;
+	K.row(0) = K.row(0) / 1920.f;
+	K.row(1) = K.row(1) / 1080.f;
+	Renderer::s_Init(false);
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+
+	frame.mp_renderEngine = &m_renderer;
+
+	frame.m_result_folder = "D:/results/1003/";
+	frame.is_smth = false;
+	int start = 50121;
+
+	auto camnames = frame.m_camids; 
+
+	for (int frameid = start; frameid < start + 1; frameid++)
+	{
+		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
+		frame.set_frame_id(frameid);
+		frame.fetchData();
+
+		frame.load_clusters();
+		frame.read_parametric_data();
+		auto solvers1 = frame.mp_bodysolverdevice;
+
+		auto raw_imgs = frame.m_imgsUndist; 
+		for (int i =0; i < camnames.size(); i++)
+		{
+			cv::Mat assoc = frame.visualizeIdentity2D(i);
+			std::stringstream ss;
+			ss << "D:/Projects/animal_paper/middle_data2/" << std::setw(6) << std::setfill('0') << frameid << "_assc" << camnames[i] << ".png";
+			cv::imwrite(ss.str(), assoc);
+		}
+
+		m_renderer.clearAllObjs();
+		auto solvers = frame.mp_bodysolverdevice;
+
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 0.0f));
+
+		for (int pid = 0; pid < 4; pid++)
+		{
+			RenderObjectColor* p_model = new RenderObjectColor();
+			solvers[pid]->UpdateNormalFinal();
+
+			std::vector<Eigen::Vector3f> V = solvers[pid]->GetVertices(); 
+			//if(pid == 2 || pid ==1)
+			//for (int k = 0; k < V.size(); k++)
+			//{
+			//	V[k] = V[k] * 0.9; 
+			//	V[k] = V[k] - Eigen::Vector3f(0, 0, 0.01);
+			//}
+			p_model->SetVertices(V);
+			p_model->SetNormal(solvers[pid]->GetNormals());
+			p_model->SetFaces(solvers[pid]->GetFacesVert());
+			p_model->SetColor(m_CM[pid]);
+			m_renderer.colorObjs.push_back(p_model);
+		}
+
+		std::vector<int> render_views = { 0,1,2,3,4 };
+
+		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
+		std::vector<cv::Mat> rawImgsSelect;
+		for (int k = 0; k < render_views.size(); k++) rawImgsSelect.push_back(rawImgs[render_views[k]]);
+
+		std::vector<cv::Mat> all_renders(render_views.size());
+		for (int k = 0; k < render_views.size(); k++)
+		{
+			int camid = render_views[k];
+			m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
+			//m_renderer.Draw();
+			//cv::Mat img = m_renderer.GetImage();
+			cv::Mat img = m_renderer.GetImageOffscreen();
+			all_renders[k] = img;
+		}
+		m_renderer.clearAllObjs(); 
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+		m_renderer.createSceneDetailed(conf_projectFolder);
+		Eigen::Vector3f up1; up1 << 0.260221, 0.36002, 0.895919;
+		Eigen::Vector3f pos1; pos1 << -1.91923, -2.12171, 1.37056;
+		Eigen::Vector3f center1 = Eigen::Vector3f::Zero();
+		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+		cv::Mat img = m_renderer.GetImageOffscreen();
+		all_renders.push_back(img);
+		rawImgsSelect.push_back(img);
+
+		Eigen::Vector3f pos2(0.0988611, -0.0113558, 4.0438);
+		Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
+		Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
+		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
+		img = m_renderer.GetImageOffscreen();
+		all_renders.push_back(img);
+		rawImgsSelect.push_back(img);
+
+		cv::Mat pack_raw;
+		packImgBlock(rawImgsSelect, pack_raw);
+
+		cv::Mat packed_render;
+		packImgBlock(all_renders, packed_render);
+
+		//cv::namedWindow("packed_render", cv::WINDOW_NORMAL);
+		//cv::imshow("packed_render", packed_render); 
+		//cv::namedWindow("pack_raw", cv::WINDOW_NORMAL); 
+		//cv::imshow("pack_raw", pack_raw); 
+		//cv::waitKey(); 
+		//exit(-1);
+
+		cv::Mat blend;
+		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+
+		std::stringstream all_render_file;
+		all_render_file << "D:/Projects/animal_paper/middle_data2/render_" << std::setw(6) << std::setfill('0')
+			<< frameid << ".png";
 		cv::imwrite(all_render_file.str(), blend);
 
 		GLFWwindow* windowPtr = m_renderer.s_windowPtr;

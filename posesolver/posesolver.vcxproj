@@ -206,7 +206,9 @@
     <None Include="..\configs\config_20191004.json" />
     <None Include="..\configs\config_20191005.json" />
     <None Include="..\configs\config_7.json" />
+    <None Include="..\configs\config_scratch_C4.json" />
     <None Include="..\configs\config_scratch_D4.json" />
+    <None Include="..\configs\config_scratch_D9.json" />
     <None Include="..\configs\main_config.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

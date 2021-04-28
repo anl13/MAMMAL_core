@@ -27,3 +27,5 @@ int modify_model();
 int write_video();
 
 void visualize_seq(); 
+
+int run_render_paper_20210426();

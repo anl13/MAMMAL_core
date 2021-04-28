@@ -3,7 +3,7 @@
   "sequence": "Z:/20191003_sync/",
   "hourid": 8,
   "pignum": 4,
-  "is_read_image": true,
+  "is_read_image": false,
   "videotype": 1, // type1: with hour; type2: scratch clip; type0: imgs
   "imgExtension": "mp4",
   "camfolder": "D:/Projects/animal_calibration/calibother/result/",

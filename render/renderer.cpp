@@ -698,6 +698,7 @@ void Renderer::createSceneDetailed(std::string conf_projectFolder)
 		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_new_part" << k << ".obj";
 		Mesh obj(ss.str());
 		RenderObjectColor *p_model = new RenderObjectColor();
+		
 		p_model->SetVertices(obj.vertices_vec);
 		p_model->SetNormal(obj.normals_vec);
 		p_model->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));

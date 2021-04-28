@@ -357,6 +357,39 @@ int multiview_annotator()
 			
 			render_views[camid] = out; 
 		}
+		for (int camid = 0; camid < camNum; camid++)
+		{
+			if (in_list(camid, data_loader.m_matched[current_pig_id].view_ids))continue;
+			Eigen::Vector3f center = pigmodel.getRegressedSkel_host()[20];
+			Eigen::Vector3f center_2d;
+			project(cams[camid], center, center_2d);
+			cv::Rect roi;
+			float left = std::fminf(std::fmaxf(center_2d[0] - 256, 0), 1079);
+			float right = std::fmaxf(std::fminf(center_2d[0] + 256, 1919), 0); 
+			float top = std::fminf(std::fmaxf(center_2d[1] - 256, 0), 1079); 
+			float bottom = std::fmaxf(std::fminf(center_2d[1] + 256, 1079), 0);
+			roi.x = int(left); 
+			roi.y = int(top); 
+			roi.width = int(right - left); 
+			roi.height = int(bottom - top); 
+			all_rois[camid] = roi;
+			if (roi.width == 0 || roi.height == 0)continue;
+			box3_offscreen->_SetViewByCameraRT(cams[camid].R, cams[camid].T);
+			box3_offscreen->SetBuffer("positions", objfloat4.vertices);
+			box3_offscreen->SetBuffer("normals", objfloat4.normals);
+			box3_offscreen->DrawOffscreen();
+			box3_offscreen->DownloadRenderingResults(rendered_imgs);
+
+			cv::Mat render;
+			cv::cvtColor(rendered_imgs[0], render, cv::COLOR_BGRA2BGR);
+			cv::Mat render_roi = render(roi);
+			cv::Mat raw_roi = rawImgs[camid](roi);
+			cv::cvtColor(render_roi, render_roi, cv::COLOR_BGR2RGB);
+			cv::Mat out = overlay_renders(raw_roi, render_roi, alpha);
+			out = resizeAndPadding(out, 256, 256);
+
+			render_views[camid] = out;
+		}
 		cv::Mat packedRender; 
 		packImgBlock(render_views, packedRender); 
 		cv::cvtColor(packedRender, packedRender, cv::COLOR_BGR2BGRA);

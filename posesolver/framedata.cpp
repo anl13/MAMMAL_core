@@ -328,7 +328,7 @@ void FrameData::undistImgs()
     m_imgsUndist.resize(m_camNum); 
     for(int i = 0; i < m_camNum; i++)
     {
-		cv::remap(m_imgs[i], m_imgsUndist[i], m_map1, m_map2, cv::INTER_LINEAR);
+		cv::remap(m_imgs[i], m_imgsUndist[i], m_map1, m_map2, cv::INTER_LINEAR, cv::BORDER_CONSTANT, cv::Scalar(255,255,255));
     }
 }
 

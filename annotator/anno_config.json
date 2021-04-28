@@ -1,6 +1,6 @@
 {
-    "posesolver_config": "configs/config_20191005.json",
+    "posesolver_config": "configs/config_scratch_C4.json",
     "pig_config":"articulation/artist_config_sym.json",
-    "current_frame_id": 1948,
+    "current_frame_id": 0,
     "current_pig_id": 0
 }
