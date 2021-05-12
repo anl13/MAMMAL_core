@@ -83,6 +83,8 @@ public:
 	//void SaveWarpField();
 	//void LoadWarpField();
 
+	std::vector<float>           m_host_boneScales;
+
 protected:
 	// basic parameter 
 	int m_jointNum;
@@ -109,6 +111,7 @@ protected:
 	std::vector<Eigen::Vector3f> m_host_jointsPosed; 
 
 	std::vector<Eigen::Vector3f> m_host_normalsFinal; 
+	std::vector<Eigen::Vector3f> m_host_originBoneTrans; 
 
 	// model fixed data 
 	std::vector<Eigen::Vector3u> m_host_facesTex;

@@ -105,6 +105,7 @@ public:
 
 	// bone increment. defined on each joint relative to its parent. 
 	std::vector<Eigen::Vector3f> m_bone_extend; 
+	
 
 	// shape deformation
 	Eigen::Matrix<float, 3, -1, Eigen::ColMajor> m_normalOrigin; 

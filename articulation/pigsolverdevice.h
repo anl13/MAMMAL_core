@@ -241,7 +241,6 @@ public:
 	void computeDepthWeight(); 
 	bool m_use_gpu = false; 
 	std::vector<float* > d_depth_renders_interact; 
-	void optimizePoseSilOneStep(int iter); 
 	float optimizePoseSilWithAnchorOneStep(int iter); 
 
 

@@ -16,7 +16,7 @@ Eigen::Vector2f         Renderer::s_beforePos;
 float                   Renderer::s_arcballRadius; 
 double                  Renderer::s_leftClickTimeSeconds; 
 
-//#define SHOW_CAM_POSE
+#define SHOW_CAM_POSE
 
 void Renderer::s_Init(bool isHideWindow)
 {
@@ -369,8 +369,8 @@ void Renderer::Draw(std::string type)
 	//3.开启对点\线\多边形的抗锯齿功能
 	//glEnable(GL_POINT_SMOOTH);
 	//glEnable(GL_LINE_SMOOTH);
-	//glEnable(GL_POLYGON_SMOOTH);
-	//glEnable(GL_MULTISAMPLE);
+	glEnable(GL_POLYGON_SMOOTH);
+	glEnable(GL_MULTISAMPLE);
 
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -385,6 +385,12 @@ void Renderer::Draw(std::string type)
 				colorShaderML.SetVec3("spotLight.position", s_camViewer.GetPos());
 				colorShaderML.SetVec3("spotLight.direction", s_camViewer.GetFront());
 				colorShaderML.configMultiLight();
+				if (colorObjs[i]->isFill)
+				{
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				}
+				else 
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				colorObjs[i]->DrawWhole(colorShaderML);
 			}
 			else
@@ -393,6 +399,12 @@ void Renderer::Draw(std::string type)
 				s_camViewer.ConfigShader(colorShader);
 				colorShader.SetVec3("light_pos", lightPos);
 				colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+				if (colorObjs[i]->isFill)
+				{
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				}
+				else
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				colorObjs[i]->DrawWhole(colorShader);
 
 				//xrayShader.Use(); 
@@ -408,6 +420,12 @@ void Renderer::Draw(std::string type)
 			s_camViewer.ConfigShader(maskShader); 
 			maskShader.SetVec3("light_pos", lightPos); 
 			maskShader.SetFloat("far_plane", RENDER_FAR_PLANE); 
+			if (colorObjs[i]->isFill)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			colorObjs[i]->DrawWhole(maskShader); 
 		}
 		else if (type == "depth")
@@ -416,6 +434,12 @@ void Renderer::Draw(std::string type)
 			s_camViewer.ConfigShader(positionShader);
 			positionShader.SetVec3("light_pos", lightPos);
 			positionShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			if (colorObjs[i]->isFill)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			colorObjs[i]->DrawWhole(positionShader);
 		}
 	}
@@ -429,6 +453,12 @@ void Renderer::Draw(std::string type)
 			s_camViewer.ConfigShader(faceindexShader); 
 			faceindexShader.SetInt("object_texture", 0);
 			glActiveTexture(GL_TEXTURE0);
+			if (texObjs[i]->isFill)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			texObjs[i]->DrawWhole(faceindexShader); 
 		}
 		else if (texObjs[i]->isMultiLight)
@@ -441,6 +471,12 @@ void Renderer::Draw(std::string type)
 			textureShaderML.SetInt("object_texture", 0);
 
 			glActiveTexture(GL_TEXTURE0);
+			if (texObjs[i]->isFill)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			texObjs[i]->DrawWhole(textureShaderML);
 		}
 		else
@@ -451,6 +487,12 @@ void Renderer::Draw(std::string type)
 			textureShader.SetFloat("far_plane", RENDER_FAR_PLANE);
 			textureShader.SetInt("object_texture", 0);
 			glActiveTexture(GL_TEXTURE0);
+			if (texObjs[i]->isFill)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			texObjs[i]->DrawWhole(textureShader);
 		}
 	}
@@ -463,6 +505,12 @@ void Renderer::Draw(std::string type)
 			s_camViewer.ConfigShader(meshShader);
 			meshShader.SetVec3("light_pos", lightPos);
 			meshShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+			if (meshObjs[i]->isFill)
+			{
+				glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			}
+			else
+				glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 			meshObjs[i]->DrawWhole(meshShader);
 		}
 	}
@@ -478,6 +526,12 @@ void Renderer::Draw(std::string type)
 				colorShaderML.SetVec3("spotLight.position", s_camViewer.GetPos());
 				colorShaderML.SetVec3("spotLight.direction", s_camViewer.GetFront());
 				colorShaderML.configMultiLight();
+				if (skels[i]->isFill)
+				{
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				}
+				else
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				skels[i]->Draw(colorShaderML);
 			}
 			else
@@ -486,6 +540,12 @@ void Renderer::Draw(std::string type)
 				s_camViewer.ConfigShader(colorShader);
 				colorShader.SetVec3("light_pos", lightPos);
 				colorShader.SetFloat("far_plane", RENDER_FAR_PLANE);
+				if (skels[i]->isFill)
+				{
+					glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+				}
+				else
+					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				skels[i]->Draw(colorShader);
 			}
 		}
@@ -657,7 +717,7 @@ void Renderer::createScene(std::string conf_projectFolder)
 	colorObjs.push_back(p_scene3);
 }
 
-void Renderer::createPlane(std::string conf_projectFolder)
+void Renderer::createPlane(std::string conf_projectFolder, float scale)
 {
 	//Mesh obj;
 	//obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
@@ -680,18 +740,25 @@ void Renderer::createPlane(std::string conf_projectFolder)
 	obj.vertices_vec = vertices;
 	obj.vertex_num = vertices.size();
 	obj.face_num = faces.size();
+	if (scale != 1)
+	{
+		for (int i = 0; i < obj.vertices_vec.size(); i++)
+		{
+			obj.vertices_vec[i] = obj.vertices_vec[i] * scale; 
+		}
+	}
 	obj.CalcNormal();
 	RenderObjectMesh* p_floor = new RenderObjectMesh();
-	p_floor->SetVertices(vertices);
+	p_floor->SetVertices(obj.vertices_vec);
 	p_floor->SetColors(colors);
-	p_floor->SetFaces(faces);
+	p_floor->SetFaces(obj.faces_v_vec);
 	p_floor->SetNormal(obj.normals_vec);
 	meshObjs.push_back(p_floor);
 }
 
-void Renderer::createSceneDetailed(std::string conf_projectFolder)
+void Renderer::createSceneDetailed(std::string conf_projectFolder, float scale)
 {
-	createPlane(conf_projectFolder); 
+	createPlane(conf_projectFolder, scale); 
 	for (int k = 2; k < 7; k++)
 	{
 		std::stringstream ss;
@@ -699,6 +766,86 @@ void Renderer::createSceneDetailed(std::string conf_projectFolder)
 		Mesh obj(ss.str());
 		RenderObjectColor *p_model = new RenderObjectColor();
 		
+		if (scale != 1)
+		{
+			for (int i = 0; i < obj.vertices_vec.size(); i++)
+			{
+				obj.vertices_vec[i] = obj.vertices_vec[i] * scale;
+			}
+			obj.CalcNormal(); 
+		}
+		p_model->SetVertices(obj.vertices_vec);
+		p_model->SetNormal(obj.normals_vec);
+		p_model->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+		p_model->isMultiLight = false;
+		p_model->SetFaces(obj.faces_v_vec);
+		colorObjs.push_back(p_model);
+	}
+}
+
+void Renderer::createSceneHalf(std::string conf_projectFolder, float scale)
+{
+	createPlane(conf_projectFolder, scale);
+
+	std::stringstream ss;
+	ss << conf_projectFolder << "/render/data/obj_model/zhujuan_halfwall2.obj";
+	Mesh obj(ss.str());
+	RenderObjectColor *p_model = new RenderObjectColor();
+
+	if (scale != 1)
+	{
+		for (int i = 0; i < obj.vertices_vec.size(); i++)
+		{
+			obj.vertices_vec[i] = obj.vertices_vec[i] * scale;
+		}
+		obj.CalcNormal();
+	}
+	p_model->SetVertices(obj.vertices_vec);
+	p_model->SetNormal(obj.normals_vec);
+	p_model->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+	p_model->isMultiLight = false;
+	p_model->SetFaces(obj.faces_v_vec);
+	colorObjs.push_back(p_model);
+}
+
+void Renderer::createSceneHalf2(std::string conf_projectFolder, float scale)
+{
+	createPlane(conf_projectFolder, scale);
+	{
+		std::stringstream ss;
+		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_halfwall2.obj";
+		Mesh obj(ss.str());
+		RenderObjectColor *p_model = new RenderObjectColor();
+
+		if (scale != 1)
+		{
+			for (int i = 0; i < obj.vertices_vec.size(); i++)
+			{
+				obj.vertices_vec[i] = obj.vertices_vec[i] * scale;
+			}
+			obj.CalcNormal();
+		}
+		p_model->SetVertices(obj.vertices_vec);
+		p_model->SetNormal(obj.normals_vec);
+		p_model->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));
+		p_model->isMultiLight = false;
+		p_model->SetFaces(obj.faces_v_vec);
+		colorObjs.push_back(p_model);
+	}
+	{
+		std::stringstream ss;
+		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_halfwall3.obj";
+		Mesh obj(ss.str());
+		RenderObjectColor *p_model = new RenderObjectColor();
+
+		if (scale != 1)
+		{
+			for (int i = 0; i < obj.vertices_vec.size(); i++)
+			{
+				obj.vertices_vec[i] = obj.vertices_vec[i] * scale;
+			}
+			obj.CalcNormal();
+		}
 		p_model->SetVertices(obj.vertices_vec);
 		p_model->SetNormal(obj.normals_vec);
 		p_model->SetColor(Eigen::Vector3f(0.9, 0.9, 0.9));

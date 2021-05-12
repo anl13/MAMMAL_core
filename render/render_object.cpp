@@ -21,6 +21,7 @@ SimpleRenderObject::SimpleRenderObject()
 	glGenBuffers(1, &VBO_normal); 
 
 	isMultiLight = false; 
+	isFill = true; 
 }
 
 
@@ -344,6 +345,7 @@ BallStickObject::BallStickObject(
 	const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 	float ballSize, float StickSize, const Eigen::Vector3f& color)
 {
+	isFill = true; 
 	for (int i = 0; i < balls.size(); i++)
 	{
 		// std::cout << balls[i].transpose() << std::endl; 
@@ -396,6 +398,8 @@ BallStickObject::BallStickObject( // point clouds
 	const std::vector<Eigen::Vector3f>& colors
 )
 {
+	isFill = true;
+
 	for (int i = 0; i < balls.size(); i++)
 	{
 		// std::cout << balls[i].transpose() << std::endl; 
@@ -418,6 +422,8 @@ BallStickObject::BallStickObject(
 	const std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f>>& sticks,
 	float ballSize, float StickSize, const std::vector<Eigen::Vector3f>& colors)
 {
+	isFill = true;
+
 	for (int i = 0; i < balls.size(); i++)
 	{
 		// std::cout << balls[i].transpose() << std::endl; 
@@ -466,6 +472,8 @@ BallStickObject::BallStickObject(
 	const std::vector<float>& ballSizes, const std::vector<float>& StickSize, const std::vector<Eigen::Vector3f>& colors,
 	const std::vector<Eigen::Vector3f>& bone_colors)
 {
+	isFill = true;
+
 	for (int i = 0; i < balls.size(); i++)
 	{
 		// std::cout << balls[i].transpose() << std::endl; 

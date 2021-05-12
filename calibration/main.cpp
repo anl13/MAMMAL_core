@@ -198,22 +198,25 @@ void show_scene()
 
 
 	Mesh camObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/camera_big.obj");
-#if 0  // re-build scene model
-	for (int i = 1; i < 7; i++)
-	{
-		Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_new_part" + std::to_string(i) + ".obj", false);
+#if 1  // re-build scene model
+	//for (int i = 1; i < 7; i++)
+	//{
+		//Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_new_part" + std::to_string(i) + ".obj", false);
+		Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_halfwall3.obj", false);
+
 		Eigen::Matrix3f R = EulerToRotDegree(-90, 0, 90);
 		for (int i = 0; i < sceneObj.vertices_vec.size(); i++)
 		{
 			sceneObj.vertices_vec[i] = R * sceneObj.vertices_vec[i];
 		}
 		sceneObj.CalcNormal();
-		sceneObj.Save("D:/Projects/animal_calib/render/data/obj_model/zhujuan_new_part" + std::to_string(i) +".obj");
-	}
+		sceneObj.Save("D:/Projects/animal_calib/render/data/obj_model/zhujuan_halfwall3.obj");
+	//}
+	
 #endif 
 
-#if 1
-	Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_new.obj", false);
+#if 0
+	Mesh sceneObj("C:/Users/BBNC/Documents/maya/projects/default/scenes/pigscene/zhujuan_new_part4.obj", false);
 	Eigen::Matrix3f R = EulerToRotDegree(-90, 0, 90);
 	for (int i = 0; i < sceneObj.vertices_vec.size(); i++)
 	{
@@ -252,23 +255,23 @@ void show_scene()
 	//};
 
 	//std::vector<int> camids = { 4,6,9,10,12 };
-	std::vector<int> camids = { 0,1,2,5,6,7,8,9,10,11 };
-	for (int i = 0; i < cams.size(); i++)
-	{
-		m_renderer.s_camViewer.SetExtrinsic(cams[i].R.cast<float>(), cams[i].T.cast<float>());
-		glDisable(GL_CULL_FACE);
-		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		m_renderer.Draw();
-		cv::Mat render = m_renderer.GetImage();
-		cv::Mat overlay = overlay_renders(bgs[i], render,0);
-		std::stringstream ss_out; 
-		ss_out << "D:/Projects/animal_calibration/calib10/undist/bg" << camids[i] << "_overlay.png"; 
-		cv::imwrite(ss_out.str(), overlay);
-		//cv::namedWindow("show", cv::WINDOW_NORMAL);
-		//cv::imshow("show", overlay);
-		//cv::waitKey();
-		//cv::destroyAllWindows();
-	}
+	//std::vector<int> camids = { 0,1,2,5,6,7,8,9,10,11 };
+	//for (int i = 0; i < cams.size(); i++)
+	//{
+	//	m_renderer.s_camViewer.SetExtrinsic(cams[i].R.cast<float>(), cams[i].T.cast<float>());
+	//	glDisable(GL_CULL_FACE);
+	//	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//	m_renderer.Draw();
+	//	cv::Mat render = m_renderer.GetImage();
+	//	cv::Mat overlay = overlay_renders(bgs[i], render,0);
+	//	std::stringstream ss_out; 
+	//	ss_out << "D:/Projects/animal_calibration/calib10/undist/bg" << camids[i] << "_overlay.png"; 
+	//	cv::imwrite(ss_out.str(), overlay);
+	//	//cv::namedWindow("show", cv::WINDOW_NORMAL);
+	//	//cv::imshow("show", overlay);
+	//	//cv::waitKey();
+	//	//cv::destroyAllWindows();
+	//}
 }
 
 // map between artist designed scene mesh to 

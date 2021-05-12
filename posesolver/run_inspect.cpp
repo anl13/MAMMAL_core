@@ -45,15 +45,13 @@ int run_inspect()
 	show_gpu_param();
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
-	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 	std::string config_file = get_config(); 
 	FrameSolver frame;
 	frame.configByJson(conf_projectFolder + config_file);
-	int startid = frame.get_start_id();
-	int framenum = frame.get_frame_num();
 
 	int m_pid = 0; // pig identity to solve now. 
-	frame.set_frame_id(0);
+	frame.set_frame_id(frame.m_startid);
 	frame.fetchData();
 	auto cams = frame.get_cameras();
 	auto cam = cams[0];
@@ -63,7 +61,7 @@ int run_inspect()
 	Eigen::Matrix3f K = cam.K;
 	K.row(0) = K.row(0) / 1920.f;
 	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(false);
+	Renderer::s_Init(true);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -81,7 +79,7 @@ int run_inspect()
 	}
 	std::vector<std::string> subfolders = {
 		"assoc", "render_all", "clusters", "state", "reassoc2", "proj2", "before_swap2",
-		"fitting", "annotation", "skels"
+		"fitting", "annotation", "skels", "anchor_state", "rawdet"
 	};
 	for (int i = 0; i < subfolders.size(); i++)
 	{
@@ -90,9 +88,11 @@ int run_inspect()
 	}
 
 	frame.init_parametric_solver(); 
+	int framenum = frame.get_frame_num(); 
+	int increment = 1; 
+	if (framenum < 0) increment = -1;
 
-
-	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
+	for (int frameid = start; frameid != start + framenum; frameid+=increment)
 	{
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
 
@@ -103,7 +103,6 @@ int run_inspect()
 		frame.set_frame_id(frameid);
 		frame.fetchData();
 		
-
 		if (frameid == start)
 		{
 			if (frame.m_use_init_cluster)
@@ -130,17 +129,17 @@ int run_inspect()
 			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss.str(),assoc_small);
 
-			//cv::Mat rawfit = frame.visualizeRawAssoc();
-			//cv::Mat rawfit_small = my_resize(rawfit, 0.25); 
-			//std::stringstream ss_rawassoc;
-			//ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_rawassoc.str(), rawfit_small);
+			cv::Mat rawfit = frame.visualizeRawAssoc();
+			cv::Mat rawfit_small = my_resize(rawfit, 0.25); 
+			std::stringstream ss_rawassoc;
+			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_rawassoc.str(), rawfit_small);
 
-			cv::Mat reproj = frame.visualizeProj();
-			cv::Mat reproj_small = my_resize(reproj, 0.25); 
-			std::stringstream ss_proj;
-			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_proj.str(), reproj_small);
+			//cv::Mat reproj = frame.visualizeProj();
+			//cv::Mat reproj_small = my_resize(reproj, 0.25); 
+			//std::stringstream ss_proj;
+			//ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_proj.str(), reproj_small);
 
 			continue; 
 		}
@@ -150,7 +149,7 @@ int run_inspect()
 			frame.save_parametric_data(); 
 			frame.DARKOV_Step5_postprocess();
 		}
-		else if (frameid == start && frame.m_use_init_cluster)
+		else if (frameid == start && frame.m_use_init_pose)
 		{
 			frame.read_parametric_data(); 
 			frame.DARKOV_Step5_postprocess();
@@ -160,10 +159,24 @@ int run_inspect()
 		{
 
 			frame.DARKOV_Step1_setsource();
-			//frame.DARKOV_Step2_loadanchor();
-			//frame.DARKOV_Step2_searchanchor(2); 
-			//frame.saveAnchors(frame.m_result_folder +	"/anchor_state/"); 
-			//frame.DARKOV_Step2_optimanchor(2);
+			if (frameid == start && frame.m_use_init_anchor)
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					frame.DARKOV_Step2_searchanchor(i);
+					frame.saveAnchors(frame.m_result_folder + "/anchor_state/");
+					frame.DARKOV_Step2_optimanchor(i);
+					//frame.DARKOV_Step2_loadanchor();
+				}
+			}
+			else
+			{
+				for (int i = 0; i < 4; i++)
+				{
+					frame.mp_bodysolverdevice[i]->m_w_anchor_term = 0;
+				}
+			}
+
 
 			frame.DARKOV_Step4_fitrawsource();
 			frame.DARKOV_Step3_reassoc_type2();
@@ -185,22 +198,25 @@ int run_inspect()
 			std::stringstream ss;
 			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss.str(), assoc);
-#if 0
-			cv::Mat reassoc = frame.visualizeReassociation();
-			std::stringstream ss_reassoc;
-			ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_reassoc.str(), reassoc);
+#if 1
+			if (!(frame.m_use_init_pose && frameid == start))
+			{
+				cv::Mat reassoc = frame.visualizeReassociation();
+				std::stringstream ss_reassoc;
+				ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				cv::imwrite(ss_reassoc.str(), reassoc);
 
-			cv::Mat reproj = frame.visualizeVisibility();
-			std::stringstream ss_proj;
-			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_proj.str(), reproj);
+				cv::Mat reproj = frame.visualizeVisibility();
+				std::stringstream ss_proj;
+				ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				cv::imwrite(ss_proj.str(), reproj);
 
-			cv::Mat beforeimg = frame.visualizeSwap();
-			std::stringstream ss_before;
-			ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_before.str(), beforeimg);
+				cv::Mat beforeimg = frame.visualizeSwap();
+				std::stringstream ss_before;
+				ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				cv::imwrite(ss_before.str(), beforeimg);
 
+			}
 			cv::Mat rawfit = frame.visualizeRawAssoc();
 			std::stringstream ss_rawassoc; 
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
@@ -220,11 +236,11 @@ int run_inspect()
 		{
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();
-
+			int colorid = frame.m_pig_names[pid];
 			p_model->SetVertices(solvers[pid]->GetVertices());
 			p_model->SetNormal(solvers[pid]->GetNormals());
 			p_model->SetFaces(solvers[pid]->GetFacesVert());
-			p_model->SetColor(m_CM[pid]);
+			p_model->SetColor(m_CM[colorid]);
 			m_renderer.colorObjs.push_back(p_model);
 
 			std::vector<Eigen::Vector3f> joints = solvers[pid]->GetJoints();
@@ -250,7 +266,7 @@ int run_inspect()
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
 		for (int pid = 0; pid < pignum; pid++)
 			m_renderer.colorObjs[pid]->isMultiLight = true; 
-		m_renderer.createScene(conf_projectFolder);
+		m_renderer.createSceneDetailed(conf_projectFolder, 1.1);
 		Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
 		Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
 		Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
@@ -276,8 +292,6 @@ int run_inspect()
 
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
-
-		cv::resize(blend, blend, cv::Size(1920,1080));
 
 		std::stringstream all_render_file;
 		all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')

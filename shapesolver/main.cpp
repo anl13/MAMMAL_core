@@ -36,7 +36,7 @@ void readObs(std::vector<SingleObservation>& obs, std::string configfile, int pi
 
 	FrameSolver framereader;
 	framereader.configByJson("D:/Projects/animal_calib/posesolver/config.json");
-	framereader.result_folder = "H:/pig_results_debug";
+	framereader.m_result_folder = "H:/pig_results_debug";
 
 	for (const auto& data : root["frames"])
 	{
@@ -262,9 +262,8 @@ void test_modify_head()
 
 int main()
 {
-	solve_shape(); 
+	//solve_shape(); 
 	//test_shapemodel(); 
-	//test_bone_var();
 	//generate_nodegraph(); 
 
 	return 0; 

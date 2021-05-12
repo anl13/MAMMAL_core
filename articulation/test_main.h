@@ -41,3 +41,5 @@ int test_leg();
 int test_visanchors(); 
 
 void test_texture(); 
+
+void test_bone_var(); 

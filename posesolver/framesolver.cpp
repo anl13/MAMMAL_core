@@ -65,7 +65,13 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_background_folder = root["background_folder"].asString(); 
 	m_try_load_anno = root["try_load_anno"].asBool(); 
 	m_use_triangulation_only = root["use_triangulation_only"].asBool();
-
+	m_use_init_pose = root["use_init_pose"].asBool(); 
+	m_use_init_anchor = root["use_init_anchor"].asBool();
+	m_pig_names.resize(m_pignum); 
+	for (int i = 0; i < m_pignum; i++)
+	{
+		m_pig_names[i] = root["pig_names"][i].asInt(); 
+	}
 	std::vector<int> camids;
 	for (auto const &c : root["camids"])
 	{
@@ -187,18 +193,19 @@ cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 	for (int id = 0; id < m_pignum; id++)
 	{
 		if (vid >= 0 && id != vid)continue;
+		int colorid = m_pig_names[id];
 		for (int i = 0; i < m_matched[id].view_ids.size(); i++)
 		{
 			if (viewid >= 0 && m_matched[id].view_ids[i] != viewid) continue;
 			Eigen::Vector3i color;
-			color(0) = m_CM[id](2);
-			color(1) = m_CM[id](1);
-			color(2) = m_CM[id](0);
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
 			int camid = m_matched[id].view_ids[i];
 			//int candid = m_matched[id].cand_ids[i];
 			//if(candid < 0) continue; 
 			if (m_matched[id].dets[i].keypoints.size() > 0)
-				drawSkelMonoColor(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, id, m_topo);
+				drawSkelMonoColor(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, colorid, m_topo);
 			my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, color);
 
 			if (m_matched[id].dets[i].mask.size() > 0)
@@ -744,7 +751,7 @@ void FrameSolver::pureTracking()
 	m_clusters.resize(m_pignum);
 	for (int pid = 0; pid < m_pignum; pid++)m_clusters[pid].resize(m_camNum, -1);
 
-	float threshold = 150; 
+	float threshold = 250; 
 	//renderInteractDepth(true); 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
@@ -786,14 +793,14 @@ void FrameSolver::pureTracking()
 			}
 		}
 
-		std::cout << "sim of view: " << camid << std::endl << sim << std::endl;
-		std::cout << "valid of view: " << std::endl << valids<< std::endl; 
-		std::cout << "dist2 : " << std::endl << sim2 << std::endl; 
+		//std::cout << "sim of view: " << camid << std::endl << sim << std::endl;
+		//std::cout << "valid of view: " << std::endl << valids<< std::endl; 
+		//std::cout << "dist2 : " << std::endl << sim2 << std::endl; 
 		std::vector<int> mm = solveHungarian(sim);
 
-		for (int i = 0; i < mm.size(); i++)
-			std::cout << mm[i] << "  ";
-		std::cout << std::endl; 
+		//for (int i = 0; i < mm.size(); i++)
+		//	std::cout << mm[i] << "  ";
+		//std::cout << std::endl; 
 
 		for (int i = 0; i < m_pignum; i++)
 		{
@@ -1296,12 +1303,14 @@ cv::Mat FrameSolver::visualizeReassociation()
 
 	for (int id = 0; id < m_pignum; id++)
 	{
+		int colorid = m_pig_names[id];
 		for (int i= 0; i < m_matched[id].view_ids.size(); i++)
 		{
 			Eigen::Vector3i color;
-			color(0) = m_CM[id](2);
-			color(1) = m_CM[id](1);
-			color(2) = m_CM[id](0);
+			
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
 			int camid = m_matched[id].view_ids[i];
 			
 			my_draw_box(reassoc[camid], m_matched[id].dets[i].box, color);
@@ -1311,7 +1320,7 @@ cv::Mat FrameSolver::visualizeReassociation()
 		}
 		for (int camid = 0; camid < m_camNum; camid++)
 		{
-			drawSkelMonoColor(reassoc[camid], m_keypoints_associated[id][camid], id, m_topo);
+			drawSkelMonoColor(reassoc[camid], m_keypoints_associated[id][camid], colorid, m_topo);
 		}
 	}
 
@@ -1441,7 +1450,7 @@ void FrameSolver::determineTracked()
 					m_modelTracked[pid][camid][i] = -1;
 					continue;
 				}
-				if ((pointDetect.segment<2>(0) - pointProj.segment<2>(0)).norm() < 30)
+				if ((pointDetect.segment<2>(0) - pointProj.segment<2>(0)).norm() < 15)
 				{
 					m_detTracked[camid][candid][i] = pid;
 					m_modelTracked[pid][camid][i] = candid;

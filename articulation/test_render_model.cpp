@@ -73,15 +73,16 @@ int test_mean_pose()
 	smal.UpdateNormalFinal(); 
 
 	//// smal random pose 
-	//RenderObjectColor * animal_model = new RenderObjectColor(); 
-	//animal_model->SetFaces(smal.GetFacesVert());
-	//animal_model->SetVertices(smal.GetVertices());
-	//animal_model->SetNormal(smal.GetNormals()); 
-	//animal_model->SetColor(Eigen::Vector3f(1.0,0.95,0.85));
-	//animal_model->isMultiLight = true; 
-	//m_renderer.colorObjs.push_back(animal_model);
+	RenderObjectColor * animal_model = new RenderObjectColor(); 
+	animal_model->SetFaces(smal.GetFacesVert());
+	animal_model->SetVertices(smal.GetVertices());
+	animal_model->SetNormal(smal.GetNormals()); 
+	animal_model->SetColor(Eigen::Vector3f(1.0,0.95,0.85));
+	animal_model->isMultiLight = true; 
+	animal_model->isFill = false; 
+	m_renderer.colorObjs.push_back(animal_model);
 
-
+#if 0
 	std::vector<Eigen::Vector3f> joints = smal.GetJoints(); 
 	std::vector<int> parents = smal.GetParents();
 	std::vector<Eigen::Vector3f> balls;
@@ -107,8 +108,9 @@ int test_mean_pose()
 	BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen, balls, sticks, sizes, bone_sizes, colors, bone_colors);
 	p_skel->isMultiLight = false; 
 	m_renderer.skels.push_back(p_skel); 
+#endif 
 
-#if 0
+#if 1
 	std::vector<Eigen::Vector2i> bones = {
 		{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
 		 {5,7}, {7,9}, {6,8}, {8,10},
@@ -117,15 +119,15 @@ int test_mean_pose()
 		{0,20},{5,20},{6,20}
 	};
 	std::vector<int> kpt_color_ids = {
-		0,1,1,2,2,
+		0,0,0,0,0,
 		3,4,3,4,3,4,
 		5,6,5,6,5,6,
-		0,7, 0,7,0,0
+		2,2,2,2,2,2
 	};
 	std::vector<int> bone_color_ids = {
-		1,2,0,1,2,3,3,4,4,
-		7,5,6,5,5,6,6,
-		7,3,4
+		0,0,0,0,0,3,3,4,4,
+		2,5,6,5,5,6,6,
+		2,3,4
 	};
 
 	std::vector<Eigen::Vector3f> skels = smal.getRegressedSkel_host();
@@ -156,12 +158,11 @@ int test_mean_pose()
 
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
 
-	//m_renderer.createPlane(conf_projectFolder); 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
 	m_renderer.Draw(); 
 	cv::Mat img = m_renderer.GetImage(); 
-	cv::imwrite("G:/pig_middle_data/picture_model/joint.png", img);
+	cv::imwrite("E:/pig_middle_data/picture_model/skel.png", img);
 	while (!glfwWindowShouldClose(windowPtr))
 	{
 		m_renderer.Draw();
@@ -346,3 +347,127 @@ void test_texture()
 		glfwPollEvents();
 	};
 }
+
+
+
+void test_bone_var()
+{
+	// render config 
+	std::cout << "In render scene now!" << std::endl;
+
+	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> CM2 = getColorMapEigenF("anliang_rgb");
+	std::vector<Eigen::Vector3f> CM3 = getColorMapEigenF("anliang_blend");
+	std::vector<Camera> cams = readCameras();
+
+	// init a camera 
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f up; up << -0.289519, -0.293115, 0.911188;
+	Eigen::Vector3f pos; pos << 0.78681, 0.706331, 0.402439;
+	Eigen::Vector3f center; center << 0.131863, 0.0613784, -0.0129145;
+
+	// init renderer 
+	Renderer::s_Init();
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+	//m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
+
+	// init element obj
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+
+	// model data 
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config_sym.json";
+	PigModelDevice smal(smal_config);
+	for (int i = 0; i < 62; i++)
+	{
+		smal.m_host_boneScales[i] = 0.5;
+	}
+	smal.UpdateVertices();
+	smal.UpdateNormalFinal();
+
+	//// smal random pose 
+	RenderObjectColor * animal_model = new RenderObjectColor();
+	animal_model->SetFaces(smal.GetFacesVert());
+	animal_model->SetVertices(smal.GetVertices());
+	animal_model->SetNormal(smal.GetNormals());
+	animal_model->SetColor(Eigen::Vector3f(1.0, 0.95, 0.85));
+	animal_model->isMultiLight = true;
+	animal_model->isFill = false;
+	m_renderer.colorObjs.push_back(animal_model);
+
+#if 1
+	std::vector<Eigen::Vector2i> bones = {
+		{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
+		 {5,7}, {7,9}, {6,8}, {8,10},
+		{20,18},
+		{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
+		{0,20},{5,20},{6,20}
+	};
+	std::vector<int> kpt_color_ids = {
+		0,0,0,0,0,
+		3,4,3,4,3,4,
+		5,6,5,6,5,6,
+		2,2,2,2,2,2
+	};
+	std::vector<int> bone_color_ids = {
+		0,0,0,0,0,3,3,4,4,
+		2,5,6,5,5,6,6,
+		2,3,4
+	};
+
+	std::vector<Eigen::Vector3f> skels = smal.getRegressedSkel_host();
+	std::vector<Eigen::Vector3f> balls;
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+	GetBallsAndSticks(skels, bones, balls, sticks);
+	int jointnum = skels.size();
+	std::vector<float> ball_sizes;
+	ball_sizes.resize(jointnum, 0.015);
+	std::vector<float> stick_sizes;
+	stick_sizes.resize(sticks.size(), 0.008);
+	std::vector<Eigen::Vector3f> ball_colors(jointnum);
+	std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+	for (int i = 0; i < jointnum; i++)
+	{
+		ball_colors[i] = CM3[kpt_color_ids[i]];
+	}
+	for (int i = 0; i < sticks.size(); i++)
+	{
+		stick_colors[i] = CM3[bone_color_ids[i]];
+	}
+
+	BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+		balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+	m_renderer.skels.push_back(p_skel);
+
+#endif 
+
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1));
+
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+
+	m_renderer.Draw();
+	cv::Mat img = m_renderer.GetImageOffscreen();
+	//cv::imwrite("E:/pig_middle_data/picture_model/skel.png", img);
+	while (!glfwWindowShouldClose(windowPtr))
+	{
+		m_renderer.Draw();
+		glfwSwapBuffers(windowPtr);
+		glfwPollEvents();
+	};
+
+}
+

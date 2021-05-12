@@ -99,9 +99,6 @@ void PigModelDevice::UpdateScaled_device()
 	cudaSafeCall(cudaDeviceSynchronize()); 
 
 	m_device_verticesScaled.download(m_host_verticesScaled); 
-
-#pragma omp parallel for
-	for (int i = 0; i < m_jointNum; i++) m_host_jointsScaled[i] = m_host_jointsOrigin[i] * m_host_scale;
 }
 
 // ==========

@@ -37,7 +37,7 @@ void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers
 	{
 		mp_bodysolverdevice[i]->setSource(m_matched[i]);
 		mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
-		if (!m_use_init_cluster)
+		if (!m_use_init_pose)
 		{
 			mp_bodysolverdevice[i]->globalAlign();
 		}

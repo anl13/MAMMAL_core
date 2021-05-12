@@ -19,9 +19,9 @@
 #include "../utils/show_gpu_param.h"
 
 
-std::vector<Eigen::Vector3f> extract_pose_centers(int id, int start, int framenum, std::string dir)
+std::vector<Eigen::Vector3f> extract_pose_nose(int id, int start, int framenum, std::string dir)
 {
-	PigModelDevice pig("../articulation/artist_config.json");
+	PigModelDevice pig("../articulation/artist_config_sym.json");
 	std::vector<Eigen::Vector3f> centers; 
 	for (int i = start; i < start+framenum; i++)
 	{
@@ -30,8 +30,8 @@ std::vector<Eigen::Vector3f> extract_pose_centers(int id, int start, int framenu
 		ss <<  dir << "/state/pig_" << id << "_frame_" << std::setw(6) << std::setfill('0') << i << ".txt"; 
 		pig.readState(ss.str()); 
 		pig.UpdateVertices(); 
-		std::vector<Eigen::Vector3f> joints = pig.GetJoints(); 
-		centers.push_back(joints[2]);
+		std::vector<Eigen::Vector3f> joints = pig.getRegressedSkel_host();
+		centers.push_back(joints[0]);
 	}
 	return centers; 
 }
@@ -65,6 +65,7 @@ void save_points(std::string  outfile, const std::vector<Eigen::Vector3f>& point
 	return; 
 }
 
+// visualize trajectory for animal paper
 void visualize_seq()
 {
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
@@ -72,11 +73,10 @@ void visualize_seq()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/posesolver/config.json");
+	frame.configByJson(conf_projectFolder + "/configs/config_7.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
-	int m_pid = 0; // pig identity to solve now. 
 	frame.set_frame_id(0);
 	frame.fetchData();
 	auto cams = frame.get_cameras();
@@ -93,30 +93,29 @@ void visualize_seq()
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
 
 	frame.mp_renderEngine = &m_renderer;
-
-	frame.m_result_folder = "G:/pig_results_newtrack/";
-	frame.is_smth = false;
-
+	frame.is_smth = true;
 
 	m_renderer.clearAllObjs();
-	m_renderer.createScene(conf_projectFolder); 
+	m_renderer.createSceneDetailed(conf_projectFolder, 1.1); 
 	// add sequence 
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 
 
-	std::vector<Eigen::Vector3f> seq0 = extract_pose_centers(0, startid, framenum, frame.m_result_folder);
-	save_points("../result_data/traj/seq0.txt", seq0); 
+	std::vector<Eigen::Vector3f> seq2 = extract_pose_nose(2, startid, framenum, frame.m_result_folder);
+	std::vector<Eigen::Vector3f> seq0 = extract_pose_nose(0, startid, framenum, frame.m_result_folder); 
+	
+	std::vector<float> sizes2(seq2.size(), 0.01); // WT2 20191003
+	std::vector<Eigen::Vector3f> colors2(seq2.size(), m_CM[1]); // WT2 20191003
+	BallStickObject* trajectory2 = new BallStickObject(ballMesh, seq2, sizes2, colors2); 
 
-	std::vector<float> sizes(seq0.size(), 0.01);
-	std::vector<Eigen::Vector3f> colors(seq0.size(), m_CM[0]);
-	for (int i = 0; i < seq0.size(); i++)
-	{
-		float ratio = 1 - float(i) / framenum * 0.2 ;
-		colors[i] = colors[i] * ratio;
-	}
-	BallStickObject* trajectory0 = new BallStickObject(ballMesh, seq0, sizes, colors); 
+	std::vector<float> sizes0(seq0.size(), 0.01); // F0-1 20191003
+	std::vector<Eigen::Vector3f> colors0(seq0.size(), m_CM[2]); // F0-1 20191003
+	BallStickObject* trajectory0 = new BallStickObject(ballMesh, seq0, sizes0, colors0);
 
-	m_renderer.skels.push_back(trajectory0); 
+
+	m_renderer.skels.push_back(trajectory2);
+	m_renderer.skels.push_back(trajectory0);
+
 	
 	while (!glfwWindowShouldClose(windowPtr))
 	{

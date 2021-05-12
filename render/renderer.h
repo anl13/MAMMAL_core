@@ -81,9 +81,11 @@ public:
 	float* renderDepthDevice();
 
 	void createScene(std::string proectFolder);
-	void createSceneDetailed(std::string projectFolder); 
+	void createSceneDetailed(std::string projectFolder, float scale=1.0); 
+	void createSceneHalf(std::string projectFolder, float scale = 1.0);
+	void createSceneHalf2(std::string projectFolder, float scale = 1.0); 
 
-	void createPlane(std::string projectFolder); 
+	void createPlane(std::string projectFolder, float scale = 1); 
 private:
 	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;
 	void beginOffscreenRender();

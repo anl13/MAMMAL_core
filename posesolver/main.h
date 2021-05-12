@@ -28,4 +28,6 @@ int write_video();
 
 void visualize_seq(); 
 
-int run_render_paper_20210426();
+void run_trajectory();
+
+std::string get_config();

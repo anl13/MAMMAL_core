@@ -39,6 +39,7 @@ public:
 	virtual void SetNormal(const std::vector<Eigen::Vector3f> &_normals, int layout_location=1);
 
 	bool isMultiLight; 
+	bool isFill;
 protected:
 	GLuint VAO;
 	GLuint EBO;
@@ -150,6 +151,7 @@ public:
 	void deleteObjects(); 
 	virtual void Draw(SimpleShader& shader);
 	bool isMultiLight = false;
+	bool isFill; 
 private:
 	std::vector<RenderObjectColor*> objectPtrs;
 };

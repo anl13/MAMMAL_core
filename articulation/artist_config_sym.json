@@ -64,10 +64,10 @@
   "lambda": 0.5,
   "data_term": 1,
   "sil_term": 0.00001,
-  "reg_term": 0.08,
+  "reg_term": 0.01,
   "temp_term": 1,
-  "floor_term": 1, // restrict bodys are on floor
-  "on_floor_term":  1, // restrict lower back leg stand precisely on floor. 
+  "floor_term": 10, // restrict bodys are on floor
+  "on_floor_term": 1, // restrict lower back leg stand precisely on floor. 
   "anchor_term": 0,
   "gmm_term": 0.0,
   "sift_term": 0.0,
@@ -78,8 +78,8 @@
   //"scales": [ 1.337, 1.28056, 1.300, 1.406 ], // order of match_by_tracking in 750 frame
   //"scales": [ 1.28056, 1.406, 1.337, 1.300 ], // seq_noon
   "iou_thres": 0.5,
-  "anchor_folder": "E:/pig_middle_data/pose_lib4/",
-  "use_bodyonly_reg": true,
+  "anchor_folder": "E:/pig_middle_data/pose_lib3_new/",
+  "use_bodyonly_reg": false,
   "use_height_enhanced_temp": false
 }
 

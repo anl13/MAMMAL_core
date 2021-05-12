@@ -155,6 +155,30 @@
     <None Include="..\configs\config_scratch_C4.json">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="..\configs\config_seq1.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_seq2.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191003_stand.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191001_stand.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191002_stand.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191003_cwz1.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191001_standWT.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191003_stand2.json">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\utils\image_utils_gpu.cu">

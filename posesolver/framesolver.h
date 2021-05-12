@@ -187,7 +187,9 @@ public:
 	bool m_use_init_cluster; 
 	bool m_try_load_anno;
 	bool m_use_triangulation_only;
-
+	bool m_use_init_pose;
+	std::vector<int> m_pig_names; 
 	std::string m_scenedata_path; 
 	std::string m_background_folder; 
+	bool m_use_init_anchor; 
 };

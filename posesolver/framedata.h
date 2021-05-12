@@ -21,7 +21,7 @@ public:
     FrameData(){
         m_imw = 1920; 
         m_imh = 1080; 
-        getColorMap("anliang_render", m_CM); 
+        getColorMap("anliang_paper", m_CM); 
     }
     ~FrameData(){} 
 
@@ -87,7 +87,6 @@ public:
 	void readUndistImages(); 
 	void readImagesFromVideo();
 	
-protected:
 	void assembleDets();
 	cv::Mat m_map1; 
 	cv::Mat m_map2;

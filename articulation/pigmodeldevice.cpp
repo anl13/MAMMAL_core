@@ -42,6 +42,8 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 	m_faceNum = root["face_num"].asInt();
 	m_texNum = root["tex_num"].asInt();
 	instream.close();
+
+
 	/*
 	necessary: vertices, parents, faces_vert, t_pose_joints, skinning_weights
 	body parts
@@ -232,6 +234,19 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 	}
 	partFile.close();
 
+	m_host_boneScales.resize(m_jointNum, 1);
+	m_host_originBoneTrans.resize(m_jointNum, Eigen::Vector3f::Zero());
+
+	for (int i = 0; i < m_jointNum; i++)
+	{
+		int p = m_host_parents[i];
+		if (i == 0) m_host_originBoneTrans[i] = m_host_jointsOrigin[i];
+		else
+		{
+			m_host_originBoneTrans[i] = m_host_jointsOrigin[i] - m_host_jointsOrigin[p];
+		}
+	}
+
 	// init driven params
 	m_host_translation = Eigen::Vector3f::Zero();
 	m_host_poseParam.resize(m_jointNum, Eigen::Vector3f::Zero()); 
@@ -280,7 +295,7 @@ void PigModelDevice::UpdateLocalSE3_host()
 			matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
 
 			int p = m_host_parents[jointId];
-			matrix.block<3, 1>(0, 3) = m_host_jointsDeformed[jointId] - m_host_jointsDeformed[p];
+			matrix.block<3, 1>(0, 3) = (m_host_jointsDeformed[jointId] - m_host_jointsDeformed[p]) * m_host_boneScales[jointId];
 		}
 		m_host_localSE3[jointId] = matrix;
 	}
@@ -350,6 +365,12 @@ void PigModelDevice::UpdateJointsDeformed()
 void PigModelDevice::UpdateJoints()
 {
 	UpdateScaled_device(); 
+
+	for (int i = 0; i < m_jointNum; i++)
+	{
+		m_host_jointsScaled[i] = m_host_scale * m_host_jointsOrigin[i];
+	}
+
 	UpdateJointsShaped(); 
 	UpdateJointsDeformed(); 
 

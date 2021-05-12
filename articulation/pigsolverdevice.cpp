@@ -1794,8 +1794,8 @@ void PigSolverDevice::CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& 
 		r.segment<3>(3 * i) = skel[t] - last_regressed_skel[t];
 		//std::cout << "(" << i << ":" << obs[i] << ") ";
 		if (obs[i] >= 1) {
-			A.middleRows(3 * i, 3) *= 0.01;
-			r.segment<3>(3 * i, 3) *= 0.01; 
+			A.middleRows(3 * i, 3) *= 0.1;
+			r.segment<3>(3 * i, 3) *= 0.1; 
 		}
 	}
 	ATb = -A.transpose() * r; 
@@ -2078,6 +2078,7 @@ void PigSolverDevice::optimizePoseWithClickedPoints()
 float PigSolverDevice::getAvgHeight()
 {
 	float height = 0;
+	if (m_skel3d.size() == 0) return 1;
 	height += m_skel3d[6](2);
 	height += m_skel3d[5](2);
 	height += m_skel3d[20](2); 
