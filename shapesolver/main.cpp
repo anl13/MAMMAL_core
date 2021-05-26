@@ -79,10 +79,10 @@ int solve_shape()
 
 	// load data 
 	FrameSolver framereader; 
-	framereader.configByJson("D:/Projects/animal_calib/posesolver/config.json"); 
+	framereader.configByJson("D:/Projects/animal_calib/configs/.json"); 
 	framereader.set_frame_id(0); 
 	framereader.fetchData(); 
-	framereader.result_folder = "H:/pig_results_debug/";
+	framereader.m_result_folder = "H:/pig_results_debug/";
 	framereader.load_clusters(); 
 
 	// config shapesovler

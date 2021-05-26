@@ -18,7 +18,7 @@ int test_distance_transform()
 {
 	show_gpu_param();
 
-	cv::Mat raw = cv::imread("../distance_transform/input.png");
+	cv::Mat raw = cv::imread("../data/Animal_topo_transfer-univ_topo.png");
 	cv::Mat img;
 	cv::resize(raw, img, cv::Size(1920, 1080));
 	int W = img.cols;
@@ -66,10 +66,8 @@ int test_distance_transform()
 	std::cout << "sobel: " << tt.Elapsed() << std::endl; 
 
 	cv::Mat visdf = visualizeSDF2d(sdf);
-	cv::Mat visdf2 = visualizeSDF2d(sdf2); 
 
 	cv::imshow("dis", visdf); 
-	cv::imshow("dis2", visdf2); 
 	cv::waitKey(); 
 	cv::destroyAllWindows(); 
 
@@ -183,7 +181,7 @@ void test_rotation()
 
 int main()
 {
-	test_blend();
+	test_distance_transform();
 
 	system("pause"); 
 	return 0; 

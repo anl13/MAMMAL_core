@@ -39,7 +39,8 @@
   //"pose_to_solve": [ 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57 ],
   "optimize_pair": [
     // [target joint, type, source index, weight]
-    [ 0, 1, 10895, 1 ], // nose
+    //[ 0, 1, 10895, 1 ], // nose
+    [0, 1, 10904,  1], // nose
     [ 1, 1, 938, 1 ], // left eye
     [ 2, 1, 6053, 1 ], // right eye
     [ 3, 1, 1368, 1 ], // left ear

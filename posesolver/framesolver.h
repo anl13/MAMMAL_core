@@ -12,9 +12,11 @@ public:
 
 	~FrameSolver(); 
 
-
+	// association pipeline 
 	void configByJson(std::string jsonfile) override;
 	void pureTracking();
+	void restart();
+	void updateTrackConf(); 
 
 	// load manual annotation 
 	std::string m_annotation_folder; 
@@ -192,4 +194,5 @@ public:
 	std::string m_scenedata_path; 
 	std::string m_background_folder; 
 	bool m_use_init_anchor; 
+	int m_restart_threshold; 
 };

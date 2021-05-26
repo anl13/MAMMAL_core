@@ -24,10 +24,10 @@ int run_pose_render()
 	show_gpu_param();
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
-	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/configs/config_seq1.json");
+	frame.configByJson(conf_projectFolder + "/configs/config_20191003_socialdemo.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 
@@ -67,17 +67,18 @@ int run_pose_render()
 
 		for (int pid = 0; pid < 4; pid++)
 		{
+			int colorid = frame.m_pig_names[pid];
 			RenderObjectColor* p_model = new RenderObjectColor();
 			solvers[pid]->UpdateNormalFinal();
 
 			p_model->SetVertices(solvers[pid]->GetVertices());
 			p_model->SetNormal(solvers[pid]->GetNormals());
 			p_model->SetFaces(solvers[pid]->GetFacesVert());
-			p_model->SetColor(m_CM[pid]);
+			p_model->SetColor(m_CM[colorid]);
 			m_renderer.colorObjs.push_back(p_model);
 		}
 
-		std::vector<int> render_views = { 0,1,2,3,4,5,6,7,8,9};
+		std::vector<int> render_views = { 0,1,2,3,4};
 
 		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
 		
@@ -122,22 +123,22 @@ int run_pose_render()
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 		
-		//std::stringstream all_render_file;
-		//all_render_file << frame.m_result_folder << "/render_smth/" << std::setw(6) << std::setfill('0')
-		//	<< frameid << ".png";
-		//cv::imwrite(all_render_file.str(), blend);
+		std::stringstream all_render_file;
+		all_render_file << frame.m_result_folder << "/render_smth/" << std::setw(6) << std::setfill('0')
+			<< frameid << ".png";
+		cv::imwrite(all_render_file.str(), blend);
 
-		GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-		while (!glfwWindowShouldClose(windowPtr))
-		{
-			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		//while (!glfwWindowShouldClose(windowPtr))
+		//{
+		//	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-			m_renderer.Draw();
+		//	m_renderer.Draw();
 
-			glfwSwapBuffers(windowPtr);
-			glfwPollEvents();
-		};
-		return 0;
+		//	glfwSwapBuffers(windowPtr);
+		//	glfwPollEvents();
+		//};
+		//return 0;
 	}
 
 	return 0;
@@ -167,7 +168,7 @@ void run_trajectory()
 	Eigen::Vector3f center1; center1 << 0.113146, -0.0304874, 0.488063;
 
 	// init renderer 
-	Renderer::s_Init();
+	Renderer::s_Init(true);
 
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 
@@ -205,7 +206,7 @@ void run_trajectory()
 		2,3,4
 	};
 
-	cv::VideoWriter writer("D:/results/teaser/1001stand.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 25.0, cv::Size(1920, 1080));
+	cv::VideoWriter writer("D:/results/teaser/1003stand.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 25.0, cv::Size(1920, 1080));
 	if (!writer.isOpened())
 	{
 		std::cout << "not open" << std::endl;

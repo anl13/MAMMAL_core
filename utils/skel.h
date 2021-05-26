@@ -43,7 +43,7 @@ Eigen::VectorXf convertStdVecToEigenVec(const std::vector<Eigen::Vector3f>& join
 void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 	SkelTopology m_topo); 
 
-void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid, SkelTopology m_topo); 
+void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, const Eigen::Vector3i& color, SkelTopology m_topo); 
 
 void printSkel(const std::vector<Eigen::Vector3f>& skel); 
 

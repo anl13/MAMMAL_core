@@ -86,6 +86,7 @@ public:
 	Eigen::VectorXf m_latentCode; 
 	Decoder m_decoder; 
 	bool m_isLatent; 
+	std::vector<float> m_bone_lengths;
 
 
 	// traditional articulation model 

@@ -25,9 +25,10 @@ cv::Mat PigSolverDevice::debug_source_visualize()
 	for (int i = 0; i < m_source.dets.size(); i++)
 	{
 		Eigen::Vector4f box = m_source.dets[i].box;
+		Eigen::Vector4f box2 = expand_box(box, 0.2);
 		int camid = m_source.view_ids[i];
 		cv::Mat raw_img = m_imgdet[camid];
-		cv::Rect2i roi(box[0], box[1], box[2] - box[0], box[3] - box[1]);
+		cv::Rect2i roi(box2[0], box2[1], box2[2] - box2[0], box2[3] - box2[1]);
 		cv::Mat img = raw_img(roi);
 		cv::Mat img2 = resizeAndPadding(img, 256, 256);
 		crop_list[camid] = img2; 
@@ -288,134 +289,6 @@ float PigSolverDevice::evaluate_error()
 		joint_2d_error_avg += joint_2d_errors[i] / joint_2d_valid[i];
 	}
 	return joint_2d_error_avg; 
-}
-
-
-void PigSolverDevice::optimizePoseWithAnchor()
-{
-	std::cout << "optimize pose " << m_pig_id << std::endl;
-	m_det_confs.resize(m_skelTopo.joint_num);
-	for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0;
-	directTriangulationHost();
-	int maxIterTime = 40;
-	float terminal = 0.0001f;
-
-	int M = m_poseToOptimize.size();
-	int paramNum = 3 + 3 * M;
-
-	m_host_scale = m_gtscale;
-
-	float loss_2d, loss_reg, loss_temp, loss_anchor, loss_floor; 
-
-	int iterTime = 0;
-
-	for (; iterTime < maxIterTime; iterTime++)
-	{
-		UpdateVertices();
-
-		Eigen::VectorXf theta(paramNum);
-		theta.segment<3>(0) = m_host_translation;
-		for (int i = 0; i < M; i++)
-		{
-			int jIdx = m_poseToOptimize[i];
-			theta.segment<3>(3 + 3 * i) = m_host_poseParam[jIdx];
-		}
-
-		calcSkelJacobiPartTheta_host(h_J_skel); // order same to m_skelCorr
-		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
-		d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float));
-		d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float));
-
-		// data term
-		Eigen::MatrixXf ATA_data = Eigen::MatrixXf::Zero(paramNum, paramNum); // data term 
-		Eigen::VectorXf ATb_data = Eigen::VectorXf::Zero(paramNum);  // data term 
-
-		if (m_skelProjs.size() > 0)
-			for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0;
-
-		float track_radius = m_kpt_track_dist - iterTime * 10;
-		track_radius = track_radius > 30 ? track_radius : 30;
-		bool is_converge_radius = false;
-	
-		if (iterTime > 20) is_converge_radius = true;
-		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
-		//Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, 80, false, false); 
-
-		float w_data = m_w_data_term;
-		float w_reg = m_w_reg_term;
-		float w_temp = m_w_temp_term;
-		float w_anchor = m_w_anchor_term;
-		float w_floor = m_w_floor_term;
-		float w_lambda = m_lambda;
-
-		Eigen::MatrixXf ATA_anchor = Eigen::MatrixXf::Zero(paramNum, paramNum);
-		Eigen::VectorXf ATb_anchor = Eigen::VectorXf::Zero(paramNum);
-		calcAnchorTerm_host(m_anchor_id, theta, ATA_anchor, ATb_anchor);
-		Eigen::MatrixXf ATA_anchor_h = Eigen::MatrixXf::Zero(paramNum, paramNum); 
-		Eigen::VectorXf ATb_anchor_h = Eigen::VectorXf::Zero(paramNum); 
-		calcAnchorTermHeight_host(m_anchor_id, h_J_skel, ATA_anchor_h, ATb_anchor_h);
-		ATA_anchor += ATA_anchor_h;
-		ATb_anchor += ATb_anchor_h;
-
-		Eigen::MatrixXf ATA_floor;
-		Eigen::VectorXf ATb_floor;
-		CalcJointFloorTerm(ATA_floor, ATb_floor);
-
-		Eigen::MatrixXf DTD;
-		CalcLambdaTerm(DTD);
-
-		Eigen::MatrixXf ATA_temp = Eigen::MatrixXf::Zero(paramNum, paramNum);
-		Eigen::VectorXf ATb_temp = Eigen::VectorXf::Zero(paramNum);
-
-		if (m_last_regressed_skel3d.size() > 0)
-		{
-			CalcJointTempTerm2(ATA_temp, ATb_temp, h_J_skel, m_last_regressed_skel3d);
-		}
-
-		Eigen::MatrixXf ATA_reg;
-		Eigen::VectorXf ATb_reg;
-		CalcRegTermBodyOnly(theta, ATA_reg, ATb_reg);
-
-		Eigen::MatrixXf ATA = ATA_data * w_data + DTD * w_lambda 
-			+ ATA_temp * w_temp + ATA_reg * w_reg
-			+ ATA_anchor * w_anchor + ATA_floor * w_floor
-			;
-		Eigen::VectorXf ATb = ATb_data * w_data + ATb_temp * w_temp
-			+ ATb_reg * w_reg
-			+ ATb_anchor * w_anchor + ATb_floor * w_floor
-			;
-
-		Eigen::MatrixXf W = Eigen::MatrixXf::Zero(paramNum, paramNum); 
-		for (int i = 0; i < m_poseToOptimize.size(); i++)
-		{
-			if(m_optimMask(i) > 0)
-				W.block<3, 3>(3 + 3 * i, 3 + 3 * i) = Eigen::Matrix3f::Identity();
-		}
-		ATA = W * ATA * W;
-		ATb = W * ATb; 
-		Eigen::VectorXf delta = ATA.ldlt().solve(ATb);
-
-		// update 
-
-		m_host_translation += delta.segment<3>(0);
-		for (int i = 0; i < M; i++)
-		{
-			int jIdx = m_poseToOptimize[i];
-			m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
-		}
-		loss_2d = ATb_data.norm();
-		loss_reg = ATb_reg.norm();
-		loss_temp = ATb_temp.norm();
-		loss_anchor = ATb_anchor.norm();
-		loss_floor = ATb_floor.norm(); 
-		if (delta.norm() < terminal) break;
-	}
-	//std::cout << "--iter: " << iterTime << std::endl;
-	//std::cout << "--loss ATb_data: " << loss_2d << std::endl;
-	//std::cout << "--loss ATb_reg : " << loss_reg << std::endl;
-	//std::cout << "--loss ATb_temp: " << loss_temp << std::endl;
-	//std::cout << "--loss ATb_anchor: " << loss_anchor << std::endl; 
-	//std::cout << "--loss ATb_floor: " << loss_floor << std::endl; 
 }
 
 void PigSolverDevice::CalcLambdaTerm(Eigen::MatrixXf& ATA)
@@ -744,6 +617,9 @@ float ComputeTempWeight(float height)
 	return a * 10;
 }
 
+
+
+// in use
 float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 {
 	int paramNum = 3 + 3 * m_poseToOptimize.size();

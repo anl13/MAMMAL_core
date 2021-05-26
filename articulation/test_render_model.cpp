@@ -392,9 +392,13 @@ void test_bone_var()
 	// model data 
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config_sym.json";
 	PigModelDevice smal(smal_config);
-	for (int i = 0; i < 62; i++)
-	{
-		smal.m_host_boneScales[i] = 0.5;
+	std::vector<int> jointids = {
+		39,40,41,42, 55,56,57,58
+	};
+	for (int i = 0; i < jointids.size(); i++)
+	{	
+		int jid = jointids[i];
+		smal.m_host_boneScales[jid] = 1;
 	}
 	smal.UpdateVertices();
 	smal.UpdateNormalFinal();

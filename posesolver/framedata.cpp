@@ -546,13 +546,13 @@ void FrameData::assembleDets()
 
 cv::Mat FrameData::visualizeSkels2D()
 {
+	
 	vector<cv::Mat> imgdata;
 	cloneImgs(m_imgsUndist, imgdata);
 	for (int i = 0; i < m_camNum; i++)
 	{
 		for (int k = 0; k < m_detUndist[i].size(); k++)
 		{
-			drawSkelMonoColor(imgdata[i], m_detUndist[i][k].keypoints, k, m_topo);
 			Eigen::Vector3i color = m_CM[k];
 			Eigen::Vector3i c_bgr; 
 			c_bgr(0) = color(2); 
@@ -560,6 +560,8 @@ cv::Mat FrameData::visualizeSkels2D()
 			c_bgr(2) = color(0); 
 			my_draw_box(imgdata[i], m_detUndist[i][k].box, c_bgr);
 			my_draw_mask(imgdata[i], m_detUndist[i][k].mask, c_bgr, 0.5);
+			drawSkelMonoColor(imgdata[i], m_detUndist[i][k].keypoints, c_bgr, m_topo);
+
 		}
 	}
 	cv::Mat output;

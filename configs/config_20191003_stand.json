@@ -14,7 +14,7 @@
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
   "startid": 42900,
-  "framenum": 1600,
+  "framenum": 480,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,
@@ -22,7 +22,7 @@
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
   "use_gpu": false,
-  "solve_sil_iters": 1,
+  "solve_sil_iters": 2,
   "solve_sil_iters_2nd_phase": 15,
   "use_reassoc": true,
   "annotation_folder": "D:/results/1003_stand/annotation/",
@@ -34,7 +34,7 @@
   "pig_names": [3,2, 1, 0], // ground truth identity
   "use_given_scale": true,
   "use_init_cluster": true,
-  "try_load_anno": true,
+  "try_load_anno": false,
   "use_triangulation_only": false,
   "use_init_pose": true,
   "anchor_folder": "D:/results/1003_stand/anchor_state/",

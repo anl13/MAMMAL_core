@@ -286,6 +286,11 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 		double conf = _skel2d[i](2);
 		if (conf < m_topo.kpt_conf_thresh[i]) continue;
 		cv::circle(img, p, int(12 * conf), cv_color, -1);
+		cv::putText(img, std::to_string(conf), p, cv::FONT_HERSHEY_COMPLEX, 1.3, cv_color, 2, -1);
+		//cv::imshow("tset", img); 
+		//cv::waitKey(); 
+		//cv::destroyAllWindows(); 
+		//exit(-1); 
 	}
 	for (int k = 0; k < m_topo.bone_num; k++)
 	{
@@ -304,12 +309,10 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 	}
 }
 
-void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, int colorid, 
+void drawSkelMonoColor(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d, const Eigen::Vector3i& color, 
 	SkelTopology m_topo)
 {
-	std::vector<Eigen::Vector3i> m_CM = getColorMapEigen("anliang_render"); 
-	Eigen::Vector3i color = m_CM[colorid];
-	cv::Scalar cv_color(color(2), color(1), color(0));
+	cv::Scalar cv_color(color(0), color(1), color(2));
 	for (int i = 0; i < _skel2d.size(); i++)
 	{
 		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));

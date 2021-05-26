@@ -31,3 +31,5 @@ void visualize_seq();
 void run_trajectory();
 
 std::string get_config();
+
+int run_pose_bone_length();

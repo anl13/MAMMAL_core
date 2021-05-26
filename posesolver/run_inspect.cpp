@@ -111,7 +111,12 @@ int run_inspect()
 				frame.matching_by_tracking();
 		}
 		else
-			frame.pureTracking(); 
+		{
+			frame.pureTracking();
+			 
+			frame.restart(); 
+			frame.updateTrackConf();
+		}
 
 		frame.save_clusters(); 
 		frame.resetSolverStateMarker(); 
@@ -130,16 +135,16 @@ int run_inspect()
 			cv::imwrite(ss.str(),assoc_small);
 
 			cv::Mat rawfit = frame.visualizeRawAssoc();
-			cv::Mat rawfit_small = my_resize(rawfit, 0.25); 
+			cv::Mat rawfit_small = my_resize(rawfit, 1); 
 			std::stringstream ss_rawassoc;
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_rawassoc.str(), rawfit_small);
 
-			//cv::Mat reproj = frame.visualizeProj();
-			//cv::Mat reproj_small = my_resize(reproj, 0.25); 
-			//std::stringstream ss_proj;
-			//ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			//cv::imwrite(ss_proj.str(), reproj_small);
+			cv::Mat reproj = frame.visualizeProj();
+			cv::Mat reproj_small = my_resize(reproj, 0.25); 
+			std::stringstream ss_proj;
+			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			cv::imwrite(ss_proj.str(), reproj_small);
 
 			continue; 
 		}
@@ -293,10 +298,11 @@ int run_inspect()
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
+		cv::Mat blend_small = my_resize(blend, 0.25);
 		std::stringstream all_render_file;
 		all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
-		cv::imwrite(all_render_file.str(), blend);
+		cv::imwrite(all_render_file.str(), blend_small);
 		
 		std::cout << "total:       " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
 		//if (frameid == start ) {

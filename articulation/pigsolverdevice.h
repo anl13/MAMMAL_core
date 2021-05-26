@@ -78,9 +78,10 @@ public:
 	bool m_isUpdated;
 	bool m_isPostprocessed; 
 	void resetStateMarker(); 
+	float m_trackConf; 
 
 	float getAvgHeight(); 
-
+	float computeProjectionError(); 
 	float computeScale(); 
 
 	void getTheta(Eigen::VectorXf& theta);
@@ -127,7 +128,7 @@ public:
 	void calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J);
 	void calcPose2DTerm_host(const DetInstance& det, int camid, const std::vector<Eigen::Vector3f>& skel2d,
 		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb,
-		float radius, bool is_converge_detect = false);
+		float radius, bool is_converge_detect = false, std::vector<int> high_conf_views = {});
 	void calcJoint3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& skel3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcSkel3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& joints3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcAnchorTerm_host(int anchorid, const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 

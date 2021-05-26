@@ -207,6 +207,8 @@
     <None Include="..\configs\config_20191001_standWT.json" />
     <None Include="..\configs\config_20191002_stand.json" />
     <None Include="..\configs\config_20191003_cwz1.json" />
+    <None Include="..\configs\config_20191003_socialdemo.json" />
+    <None Include="..\configs\config_20191003_socialdemo2.json" />
     <None Include="..\configs\config_20191003_stand.json" />
     <None Include="..\configs\config_20191003_stand2.json" />
     <None Include="..\configs\config_20191004.json" />

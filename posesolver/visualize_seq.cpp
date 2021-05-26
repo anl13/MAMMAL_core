@@ -70,10 +70,10 @@ void visualize_seq()
 {
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
-	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/configs/config_7.json");
+	frame.configByJson(conf_projectFolder + "/configs/config_20191003_socialdemo.json");
 	int startid = frame.get_start_id();
 	int framenum = frame.get_frame_num();
 

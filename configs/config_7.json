@@ -13,27 +13,30 @@
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
-  "startid": 47205,
-  "framenum": 9000,
+  "startid": 42223,
+  "framenum": 1,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
-  "use_gpu": true,
-  "solve_sil_iters": 8,
-  "solve_sil_iters_2nd_phase": 8,
-  "use_reassoc": true,
+  "use_gpu": false,
+  "solve_sil_iters": 30,
+  "solve_sil_iters_2nd_phase": 15,
+  "use_reassoc": false,
   "annotation_folder": "D:/results/1003/annotation/",
   "result_folder": "D:/results/1003/",
   "terminal_thresh": 0.005,
-  "scales": [ 1.35, 1.86, 1.82, 1.3 ], // C, A, B, D
+  "scales": [1.3, 1.35, 1.82, 1.84], // C, A, B, D
 //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
   //"scales": [ 1.2, 1.35, 1.86, 1.82 ], // D, C, A, B
-  "pig_names": [], // ground truth identity
-  "use_given_scale": true,
-  "use_init_cluster": true,
+  "pig_names": [0,1,2,3], // ground truth identity
+  "use_given_scale": false,
+  "use_init_cluster": false,
   "try_load_anno": false,
-  "use_triangulation_only": false
+  "use_triangulation_only": false,
+  "use_init_pose": true,
+  "anchor_folder": "D:/results/1003/anchor_state/",
+  "use_init_anchor":  true
 }

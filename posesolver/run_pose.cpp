@@ -102,7 +102,7 @@ int run_pose_bone_length()
 	int framenum = frame.get_frame_num();
 
 	int m_pid = 0; // pig identity to solve now. 
-	frame.set_frame_id(0);
+	frame.set_frame_id(startid);
 	frame.fetchData();
 	auto cams = frame.get_cameras();
 	auto cam = cams[0];
@@ -112,14 +112,20 @@ int run_pose_bone_length()
 	int start = frame.get_start_id();
 	frame.init_parametric_solver();
 
-	std::string joint62_folder = frame.m_result_folder + "/joints_62/";
-	std::string smth_folder = frame.m_result_folder + "/state_smth/";
-	if (!boost::filesystem::is_directory(smth_folder))
-		boost::filesystem::create_directory(smth_folder);
+	std::vector<std::string> subfolders = {
+	"triskel", "regskel"
+	};
+	for (int i = 0; i < subfolders.size(); i++)
+	{
+		if (!boost::filesystem::is_directory(frame.m_result_folder + subfolders[i]))
+			boost::filesystem::create_directory(frame.m_result_folder + subfolders[i]);
+	}
+
+	int targetid = 1; 
 
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
-		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
+		std::cout << "===========processing frame " << frameid << "===============" << std::endl; 
 		frame.set_frame_id(frameid);
 
 		frame.read_parametric_data();

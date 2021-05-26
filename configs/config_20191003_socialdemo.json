@@ -13,8 +13,8 @@
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
-  "startid": 0,
-  "framenum": 1,
+  "startid": 28459,
+  "framenum": 30000,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,
@@ -22,20 +22,22 @@
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
   "use_gpu": false,
-  "solve_sil_iters": 30,
+  "solve_sil_iters": 5,
   "solve_sil_iters_2nd_phase": 15,
-  "use_reassoc": false,
-  "annotation_folder": "D:/results/1003_stand/annotation/",
-  "result_folder": "D:/results/1003_stand/",
+  "use_reassoc": true,
+  "annotation_folder": "D:/results/1003_social/annotation/",
+  "result_folder": "D:/results/1003_social/",
   "terminal_thresh": 0.005,
-  "scales": [ 1.28, 1.35, 1.82, 1.84 ], // C, A, B, D
+  "scales": [ 1.8,1.28,  1.8, 1.35 ], // C, A, B, D
   //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
   //"scales": [ 1.2, 1.35, 1.86, 1.82 ], // D, C, A, B
-  "pig_names": [0,1,2,3], // ground truth identity
-  "use_given_scale": false,
-  "use_init_cluster": false,
+  "pig_names": [0, 3, 1, 2], // ground truth identity
+  "use_given_scale": true,
+  "use_init_cluster": true,
   "try_load_anno": false,
   "use_triangulation_only": false,
-  "use_init_pose": false,
-  "anchor_folder":  "D:/results/1003_stand/anchor_state/"
+  "use_init_pose": true,
+  "anchor_folder":  "D:/results/1003_social/anchor_state/",
+  "use_init_anchor": false,
+  "restart_threshold":  -2
 }

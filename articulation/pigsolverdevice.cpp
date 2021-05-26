@@ -49,6 +49,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 
 	m_gtscale = 1;
 	m_use_triangulation_only = false; 
+	m_trackConf = 0.0; 
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
 	for (auto const &c : root["reg_weights"])
@@ -232,10 +233,12 @@ std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost()
 	{
 		Eigen::Vector3f X = Eigen::Vector3f::Zero(); // joint position to solve.  
 		int validnum = 0;
+		int countconf9 = 0;
 		for (int k = 0; k < m_source.view_ids.size(); k++)
 		{
 			if (m_source.dets[k].keypoints[i](2) < m_skelTopo.kpt_conf_thresh[i]) continue;
 			validnum++;
+			if (m_source.dets[k].keypoints[i](2) > 0.9) countconf9 += 1;
 		}
 		m_det_confs[i] = validnum; 
 		if (validnum < 2)
@@ -255,6 +258,7 @@ std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost()
 				Camera cam = m_cameras[view];
 				Eigen::Vector3f keypoint = m_source.dets[k].keypoints[i];
 				if (keypoint(2) < m_skelTopo.kpt_conf_thresh[i]) continue;
+				if (countconf9 > 1 && keypoint(2) <= 0.9) continue; 
 				Eigen::Vector3f x_local = cam.K * (cam.R * X + cam.T);
 				Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
 				D(0, 0) = 1 / x_local(2);
@@ -622,7 +626,8 @@ void PigSolverDevice::calcPose2DTerm_host(
 	Eigen::MatrixXf& ATA,
 	Eigen::VectorXf& ATb,
 	float track_radius, 
-	bool is_converge_detect)
+	bool is_converge_detect,
+	std::vector<int> high_conf_views)
 {
 	Camera& cam = m_cameras[camid];
 	Eigen::Matrix3f R = cam.R;
@@ -645,6 +650,7 @@ void PigSolverDevice::calcPose2DTerm_host(
 		const CorrPair& P = m_skelCorr[i];
 		int t = P.target;
 		if (det.keypoints[t](2) < m_skelTopo.kpt_conf_thresh[t]) continue;
+		if (high_conf_views[t] >= 2 && det.keypoints[t](2) <= 0.9) continue; 
 		if (is_converge_detect)
 		{
 			float dist = (skels2d[t].segment<2>(0) - det.keypoints[t].segment<2>(0)).norm();
@@ -742,14 +748,11 @@ void PigSolverDevice::optimizePose()
 	std::cout << "optimize pose " << m_pig_id << std::endl; 
 	m_det_confs.resize(m_skelTopo.joint_num);
 	for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0;
-	directTriangulationHost();
-	int maxIterTime = 200; 
+	int maxIterTime = 100; 
 	float terminal = 0.0001f; 
 	
 	int M = m_poseToOptimize.size();
 	int paramNum = 3 + 3 * M;
-
-	m_host_scale = m_gtscale;
 
 	float loss_2d, loss_reg, loss_temp;
 
@@ -781,9 +784,9 @@ void PigSolverDevice::optimizePose()
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, m_kpt_track_dist, false); 
 
 		float w_data = m_w_data_term;
-		float w_reg = m_w_reg_term;
-		float w_temp = m_w_temp_term;
-		float w_anchor = m_w_anchor_term; 
+		float w_reg = 0.02;
+		float w_temp = 0;
+		float w_anchor = 0; 
 		float w_floor = m_w_floor_term; 
 
 		Eigen::MatrixXf ATA_floor; 
@@ -850,13 +853,21 @@ void PigSolverDevice::Calc2dJointProjectionTerm(
 	// data term
 	ATA_data = Eigen::MatrixXf::Zero(paramNum, paramNum); // data term 
 	ATb_data = Eigen::VectorXf::Zero(paramNum);  // data term 
+	std::vector<int> high_conf_views(m_skelTopo.joint_num, 0); 
+	for (int i = 0; i < m_skelTopo.joint_num; i++)
+	{
+		for (int k = 0; k < source.view_ids.size(); k++)
+		{
+			if (source.dets[k].keypoints[i](2) > 0.9) high_conf_views[i] ++; 
+		}
+	}
 	for (int k = 0; k < source.view_ids.size(); k++)
 	{
 		Eigen::MatrixXf H_view;
 		Eigen::VectorXf b_view;
 		int camid = source.view_ids[k];
 		calcPose2DTerm_host(source.dets[k], camid, skel3d, h_J_skel,
-			H_view, b_view, track_radius, is_converge_detect);
+			H_view, b_view, track_radius, is_converge_detect, high_conf_views);
 		float weight = 1; 
 		if (with_depth_weight)
 		{

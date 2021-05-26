@@ -68,6 +68,8 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_use_init_pose = root["use_init_pose"].asBool(); 
 	m_use_init_anchor = root["use_init_anchor"].asBool();
 	m_pig_names.resize(m_pignum); 
+	m_restart_threshold = root["restart_thresold"].asInt(); 
+
 	for (int i = 0; i < m_pignum; i++)
 	{
 		m_pig_names[i] = root["pig_names"][i].asInt(); 
@@ -205,7 +207,7 @@ cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 			//int candid = m_matched[id].cand_ids[i];
 			//if(candid < 0) continue; 
 			if (m_matched[id].dets[i].keypoints.size() > 0)
-				drawSkelMonoColor(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, colorid, m_topo);
+				drawSkelMonoColor(m_imgsDetect[camid], m_matched[id].dets[i].keypoints, color, m_topo);
 			my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, color);
 
 			if (m_matched[id].dets[i].mask.size() > 0)
@@ -221,7 +223,7 @@ cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 			color(1) = m_CM[5](1);
 			color(2) = m_CM[5](0);
 			if (m_unmatched[camid][i].keypoints.size() > 0)
-				drawSkelMonoColor(m_imgsDetect[camid], m_unmatched[camid][i].keypoints, 5, m_topo);
+				drawSkelMonoColor(m_imgsDetect[camid], m_unmatched[camid][i].keypoints, color, m_topo);
 			my_draw_box(m_imgsDetect[camid], m_unmatched[camid][i].box, color);
 			if (m_unmatched[camid][i].mask.size() > 0)
 				my_draw_mask(m_imgsDetect[camid], m_unmatched[camid][i].mask, color, 0.5);
@@ -255,7 +257,12 @@ cv::Mat FrameSolver::visualizeProj()
 	{
 		for (int id = 0; id < m_projs[camid].size(); id++)
 		{
-			drawSkelMonoColor(imgdata[camid], m_projs[camid][id], id, m_topo);
+			Eigen::Vector3i color; 
+			int colorid = m_pig_names[id];
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
+			drawSkelMonoColor(imgdata[camid], m_projs[camid][id], color, m_topo);
 		}
 	}
 
@@ -531,6 +538,140 @@ void FrameSolver::matching_by_tracking()
 	}
 }
 
+void FrameSolver::restart()
+{
+	// step1: determine which pig to restart
+	vector<vector<Eigen::Vector3f> > skels3d_last; 
+	vector<int> restart_id; 
+	for (int i = 0; i < m_pignum; i++)
+	{
+		std::cout << "pig " << i << "  trackconf: " << mp_bodysolverdevice[i]->m_trackConf << std::endl; 
+
+		if (mp_bodysolverdevice[i]->m_trackConf < m_restart_threshold)
+		{
+			restart_id.push_back(i); 
+			skels3d_last.push_back(m_skels3d[i]);
+		}
+	}
+	if (restart_id.size() < 1) return;
+
+	
+	// get m_clusters
+	EpipolarMatching matcher;
+	matcher.set_pignum(restart_id.size());
+	matcher.set_cams(m_camsUndist);
+	matcher.set_dets(m_unmatched);
+	matcher.set_epi_thres(m_epi_thres);
+	matcher.set_epi_type(m_epi_type);
+	matcher.set_topo(m_topo);
+	
+	matcher.match();
+	matcher.truncate(restart_id.size());
+
+	vector<vector<int> > clusters; 
+	vector<vector<Eigen::Vector3f> > skels3d; 
+	matcher.get_clusters(clusters);
+	matcher.get_skels3d(skels3d);
+
+	if (clusters.size() == 0) return;
+
+	// post processing to get matched data
+	// this match data is unordered
+	vector<vector<bool> > be_matched;
+	be_matched.resize(m_camNum);
+	auto unmatched_previous = m_unmatched; 
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		be_matched[camid].resize(unmatched_previous[camid].size(), false);
+	}
+	vector<MatchedInstance> currentMatched; 
+	currentMatched.resize(clusters.size()); 
+	for (int i = 0; i < clusters.size(); i++)
+	{
+		currentMatched[i].view_ids.clear();
+		currentMatched[i].dets.clear();
+		for (int camid = 0; camid < m_camNum; camid++)
+		{
+			int candid = clusters[i][camid];
+			if (candid < 0) continue;
+			be_matched[camid][candid] = true;
+			currentMatched[i].view_ids.push_back(camid);
+			currentMatched[i].dets.push_back(unmatched_previous[camid][candid]);
+			currentMatched[i].candids.push_back(candid);
+		}
+	}
+
+	m_unmatched.clear();
+	m_unmatched.resize(m_camNum);
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int candid = 0; candid < be_matched[camid].size(); candid++)
+		{
+			if (!be_matched[camid][candid])
+			{
+				m_unmatched[camid].push_back(unmatched_previous[camid][candid]);
+			}
+		}
+	}
+
+	// track 
+	NaiveTracker m_tracker;
+	m_tracker.set_skels_last(skels3d_last);
+	m_tracker.m_cameras = m_camsUndist;
+	m_tracker.m_topo = m_topo;
+	m_tracker.track(currentMatched);
+
+	vector<int> map = m_tracker.get_map();
+	vector<MatchedInstance> rematch;
+	vector<vector<int>> recluster(clusters.size());
+	rematch.resize(currentMatched.size());
+	for (int i = 0; i < map.size(); i++)
+	{
+		int id = map[i];
+		if (id > -1)
+		{
+			rematch[i] = currentMatched[id];
+			recluster[i] = clusters[id];
+		}
+	}
+
+	// add restarted results to global tracking results 
+	for (int i = 0; i < restart_id.size(); i++)
+	{
+		int id = restart_id[i];
+		m_matched[id] = rematch[i];
+		m_clusters[id] = recluster[i];
+	}
+}
+
+void FrameSolver::updateTrackConf()
+{
+	for (int i = 0; i < m_pignum; i++)
+	{
+		if (m_matched[i].dets.size() < 1)
+		{
+			mp_bodysolverdevice[i]->m_trackConf -= 1;
+		}
+		else {
+			if (mp_bodysolverdevice[i]->m_trackConf < m_restart_threshold)
+			{
+				if (m_matched[i].dets.size() >= 2)
+				{
+					mp_bodysolverdevice[i]->optimizePose();
+					mp_bodysolverdevice[i]->m_trackConf = 0;
+				}			
+				else
+				{
+					mp_bodysolverdevice[i]->m_trackConf -= 1;
+					/*mp_bodysolverdevice[i]->m_trackConf += 1; 
+					if (mp_bodysolverdevice[i]->m_trackConf > 0)
+						mp_bodysolverdevice[i]->m_trackConf = 0; */
+				}
+			}
+
+		}
+	}
+}
 
 void FrameSolver::save_clusters()
 {
@@ -1023,6 +1164,7 @@ void FrameSolver::renderFaceIndex()
 	mp_renderEngine->clearAllObjs(); 
 }
 
+// in use. 
 void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 {
 	int iter = 0;
@@ -1320,7 +1462,12 @@ cv::Mat FrameSolver::visualizeReassociation()
 		}
 		for (int camid = 0; camid < m_camNum; camid++)
 		{
-			drawSkelMonoColor(reassoc[camid], m_keypoints_associated[id][camid], colorid, m_topo);
+			Eigen::Vector3i color;
+
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
+			drawSkelMonoColor(reassoc[camid], m_keypoints_associated[id][camid], color, m_topo);
 		}
 	}
 
@@ -1344,7 +1491,13 @@ cv::Mat FrameSolver::visualizeVisibility()
 			{
 				if (m_skelVis[id][camid][i] == 0) m_projs[camid][id][i](2) = 0; 
 			}
-			drawSkelMonoColor(imgdata[camid], m_projs[camid][id], id, m_topo);
+			Eigen::Vector3i color;
+
+			int colorid = m_pig_names[id];
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
+			drawSkelMonoColor(imgdata[camid], m_projs[camid][id], color, m_topo);
 		}
 	}
 
@@ -1482,7 +1635,12 @@ cv::Mat FrameSolver::debug_visDetTracked()
 					keypoints[i] = m_detUndist[camid][candid].keypoints[i];
 				}
 			}
-			drawSkelMonoColor(track_list[camid], keypoints, pid, m_topo);
+			Eigen::Vector3i color;
+			int colorid = m_pig_names[pid];
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
+			drawSkelMonoColor(track_list[camid], keypoints, color, m_topo);
 		}
 	}
 	cv::Mat output;

@@ -18,7 +18,11 @@ void FrameSolver::DARKOV_Step0_topdownassoc(bool isLoad)
 		if (m_frameid == m_startid)
 			matching_by_tracking();
 		else
-			pureTracking(); 
+		{
+			pureTracking();
+			updateTrackConf(); 
+			restart(); 
+		}
 	}
 
 	save_clusters(); 
