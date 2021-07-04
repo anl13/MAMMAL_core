@@ -69,6 +69,7 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_use_init_anchor = root["use_init_anchor"].asBool();
 	m_pig_names.resize(m_pignum); 
 	m_restart_threshold = root["restart_thresold"].asInt(); 
+	m_tracking_distance = root["tracking_distance"].asFloat(); 
 
 	for (int i = 0; i < m_pignum; i++)
 	{
@@ -892,7 +893,7 @@ void FrameSolver::pureTracking()
 	m_clusters.resize(m_pignum);
 	for (int pid = 0; pid < m_pignum; pid++)m_clusters[pid].resize(m_camNum, -1);
 
-	float threshold = 250; 
+	float threshold = m_tracking_distance; 
 	//renderInteractDepth(true); 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{

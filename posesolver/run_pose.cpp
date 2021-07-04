@@ -97,9 +97,10 @@ int run_pose_bone_length()
 
 	FrameSolver frame;
 	std::string configfile = get_config();
-	frame.configByJson(conf_projectFolder + configfile);
-	int startid = frame.get_start_id();
-	int framenum = frame.get_frame_num();
+	frame.configByJson(conf_projectFolder + "configs/config_20191003_socialdemo.json");
+	int startid = 9820;
+	int framenum = 200;
+	int targetid = 1;
 
 	int m_pid = 0; // pig identity to solve now. 
 	frame.set_frame_id(startid);
@@ -109,7 +110,6 @@ int run_pose_bone_length()
 
 	// init renderer
 	frame.is_smth = false;
-	int start = frame.get_start_id();
 	frame.init_parametric_solver();
 
 	std::vector<std::string> subfolders = {
@@ -121,18 +121,24 @@ int run_pose_bone_length()
 			boost::filesystem::create_directory(frame.m_result_folder + subfolders[i]);
 	}
 
-	int targetid = 1; 
 
-	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
+	std::string outputfolder = frame.m_result_folder + "/triskel/";
+	for (int frameid = startid; frameid < startid + framenum; frameid++)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl; 
 		frame.set_frame_id(frameid);
-
-		frame.read_parametric_data();
-
-		auto solvers = frame.mp_bodysolverdevice;
-
-		
+		frame.fetchData(); 
+		frame.load_clusters(); 
+		frame.DARKOV_Step1_setsource();
+		//std::vector<Eigen::Vector3f> skels = frame.mp_bodysolverdevice[targetid]->directTriangulationHost(3); 
+		frame.DirectTriangulation(); 
+		std::vector<Eigen::Vector3f> skels = frame.m_skels3d[targetid];
+		cv::Mat reproj = frame.visualizeProj();
+		cv::Mat reproj_small = my_resize(reproj, 0.25);
+		std::stringstream ss_proj;
+		ss_proj << frame.m_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss_proj.str(), reproj_small);
+		save_joints(outputfolder, targetid, frameid, skels); 
 	}
 
 	return 0;

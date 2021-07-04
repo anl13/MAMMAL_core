@@ -185,6 +185,12 @@
     <None Include="..\configs\config_20191003_socialdemo2.json">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="..\configs\config_20191004_hour13.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191005_hour13.json">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\utils\image_utils_gpu.cu">

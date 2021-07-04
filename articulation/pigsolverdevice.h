@@ -100,7 +100,7 @@ public:
 	// joint joint fitting weights 
 	std::vector<float> m_det_confs; 
 
-	std::vector<Eigen::Vector3f>  directTriangulationHost(); // calc m_skel3d using direct triangulation
+	std::vector<Eigen::Vector3f>  directTriangulationHost(int validViewThresh=2); // calc m_skel3d using direct triangulation
 	void globalAlign(); // compute scale and global R,T
 	void optimizeTri(); 
 

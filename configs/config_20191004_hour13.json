@@ -13,8 +13,8 @@
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
-  "startid": 88212,
-  "framenum": 328,
+  "startid": 2,
+  "framenum": -2,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,

@@ -114,8 +114,8 @@ int run_inspect()
 		{
 			frame.pureTracking();
 			 
-			frame.restart(); 
-			frame.updateTrackConf();
+			//frame.restart(); 
+			//frame.updateTrackConf();
 		}
 
 		frame.save_clusters(); 
@@ -164,6 +164,15 @@ int run_inspect()
 		{
 
 			frame.DARKOV_Step1_setsource();
+			//frame.DirectTriangulation();
+			//frame.save_skels();
+
+			//cv::Mat reproj = frame.visualizeProj();
+			//cv::Mat reproj_small = my_resize(reproj, 0.25);
+			//std::stringstream ss_proj;
+			//ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_proj.str(), reproj_small);
+
 			if (frameid == start && frame.m_use_init_anchor)
 			{
 				for (int i = 0; i < 4; i++)
@@ -202,24 +211,25 @@ int run_inspect()
 			cv::Mat assoc = frame.visualizeIdentity2D();
 			std::stringstream ss;
 			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss.str(), assoc);
+			cv::Mat assoc_small = my_resize(assoc, 0.25); 
+			cv::imwrite(ss.str(), assoc_small);
 #if 1
 			if (!(frame.m_use_init_pose && frameid == start))
 			{
-				cv::Mat reassoc = frame.visualizeReassociation();
-				std::stringstream ss_reassoc;
-				ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-				cv::imwrite(ss_reassoc.str(), reassoc);
+				//cv::Mat reassoc = frame.visualizeReassociation();
+				//std::stringstream ss_reassoc;
+				//ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				//cv::imwrite(ss_reassoc.str(), reassoc);
 
-				cv::Mat reproj = frame.visualizeVisibility();
-				std::stringstream ss_proj;
-				ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-				cv::imwrite(ss_proj.str(), reproj);
+				//cv::Mat reproj = frame.visualizeVisibility();
+				//std::stringstream ss_proj;
+				//ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				//cv::imwrite(ss_proj.str(), reproj);
 
-				cv::Mat beforeimg = frame.visualizeSwap();
-				std::stringstream ss_before;
-				ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-				cv::imwrite(ss_before.str(), beforeimg);
+				//cv::Mat beforeimg = frame.visualizeSwap();
+				//std::stringstream ss_before;
+				//ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				//cv::imwrite(ss_before.str(), beforeimg);
 
 			}
 			cv::Mat rawfit = frame.visualizeRawAssoc();

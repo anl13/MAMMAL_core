@@ -195,4 +195,5 @@ public:
 	std::string m_background_folder; 
 	bool m_use_init_anchor; 
 	int m_restart_threshold; 
+	float m_tracking_distance; 
 };

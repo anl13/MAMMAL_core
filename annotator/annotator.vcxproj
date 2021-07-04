@@ -185,9 +185,6 @@
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\articulation\artist_config.json" />
-    <None Include="..\articulation\artist_config_sym.json" />
-    <None Include="..\posesolver\confignew.json" />
     <None Include="anno_config.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

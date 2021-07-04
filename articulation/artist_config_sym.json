@@ -62,9 +62,9 @@
   ],
   "valid_threshold": 0.8,
   "use_gpu": false,
-  "lambda": 0.5,
+  "lambda": 0.1,
   "data_term": 1,
-  "sil_term": 0.00001,
+  "sil_term": 0.00003,
   "reg_term": 0.01,
   "temp_term": 1,
   "floor_term": 10, // restrict bodys are on floor

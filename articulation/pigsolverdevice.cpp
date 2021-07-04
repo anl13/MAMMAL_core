@@ -223,7 +223,7 @@ PigSolverDevice::~PigSolverDevice()
 }
 
 // Only point with more than 1 observations could be triangulated
-std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost()
+std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost(int validViewThresh)
 {
 	for (int i = 0; i < m_skelTopo.joint_num; i++) m_det_confs[i] = 0; 
 	int N = m_skelTopo.joint_num;
@@ -241,7 +241,7 @@ std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost()
 			if (m_source.dets[k].keypoints[i](2) > 0.9) countconf9 += 1;
 		}
 		m_det_confs[i] = validnum; 
-		if (validnum < 2)
+		if (validnum < validViewThresh)
 		{
 			skel[i] = X;
 			continue;
