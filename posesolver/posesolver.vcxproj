@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -178,8 +178,6 @@
     <CudaCompile Include="..\render\cuda_utils_render.cu">
       <FileType>Document</FileType>
     </CudaCompile>
-  </ItemGroup>
-  <ItemGroup>
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
@@ -203,22 +201,38 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\articulation\artist_config.json" />
+    <None Include="..\configs\config_20190704_foreval.json" />
+    <None Include="..\configs\config_20190704_foreval_5views.json" />
+    <None Include="..\configs\config_20190704_foreval_no_reassoc.json" />
+    <None Include="..\configs\config_20190704_foreval_no_sil.json" />
+    <None Include="..\configs\config_20190704_foreval_tri.json" />
+    <None Include="..\configs\config_20190704_foreval_tri_5views.json" />
+    <None Include="..\configs\config_20190705_feed.json" />
+    <None Include="..\configs\config_20190823_feed.json" />
+    <None Include="..\configs\config_20190824_motion.json" />
+    <None Include="..\configs\config_20190825_feed.json" />
+    <None Include="..\configs\config_20190922_feed.json" />
     <None Include="..\configs\config_20191001_stand.json" />
     <None Include="..\configs\config_20191001_standWT.json" />
     <None Include="..\configs\config_20191002_stand.json" />
     <None Include="..\configs\config_20191003_cwz1.json" />
+    <None Include="..\configs\config_20191003_hour9.json" />
     <None Include="..\configs\config_20191003_socialdemo.json" />
     <None Include="..\configs\config_20191003_socialdemo2.json" />
     <None Include="..\configs\config_20191003_stand.json" />
     <None Include="..\configs\config_20191003_stand2.json" />
     <None Include="..\configs\config_20191004.json" />
-    <None Include="..\configs\config_20191004_hour13.json" />
     <None Include="..\configs\config_20191005.json" />
     <None Include="..\configs\config_20191005_hour13.json" />
+    <None Include="..\configs\config_20191007_morning.json" />
+    <None Include="..\configs\config_20210321_motion.json" />
+    <None Include="..\configs\config_20210321_motion2.json" />
     <None Include="..\configs\config_7.json" />
+    <None Include="..\configs\config_jointangle_0823.json" />
     <None Include="..\configs\config_scratch_C4.json" />
     <None Include="..\configs\config_scratch_D4.json" />
     <None Include="..\configs\config_scratch_D9.json" />
+    <None Include="..\configs\config_seq1-old.json" />
     <None Include="..\configs\config_seq1.json" />
     <None Include="..\configs\config_seq2.json" />
     <None Include="..\configs\main_config.json" />
@@ -229,7 +243,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties __JSONSchema="https://github.com/fbecart/zinoma/releases/latest/download/zinoma-schema.json" />
+      <UserProperties />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

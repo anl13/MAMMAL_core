@@ -50,4 +50,6 @@ struct Camera
 
 	static Camera getDefaultCameraRaw();
 	static Camera getDefaultCameraUndist();
+	static Camera getFarCameraRaw();
+	static Camera getFarCameraUndist(); 
 };

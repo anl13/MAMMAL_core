@@ -1043,5 +1043,5 @@ void main()
 	//test_color_table();
 	//test_indexrender(); 
 	//generateFaceIndexMap();
-	//test_render_texture();
+	test_render_texture();
 }

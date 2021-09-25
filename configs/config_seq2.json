@@ -4,7 +4,7 @@
   "hourid": 7,
   "pignum": 4,
   "is_read_image": true,
-  "is_video": false,
+  "videotype": 0,
   "imgExtension": "jpg",
   "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust_new/",
   "scenedata": "D:/Projects/animal_calib/data/scenemask.json",
@@ -21,14 +21,22 @@
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
-  "use_gpu": true,
+  "use_gpu": false,
   "solve_sil_iters": 40,
   "solve_sil_iters_2nd_phase": 50,
   "use_reassoc": false,
-  "annotation_folder": "D:/annotation_folder/",
-  "result_folder": "D:/results/seq_test/",
+  "annotation_folder": "D:/results/seq_noon2/annotation_folder/",
+  "result_folder": "D:/results/seq_noon2/",
   "terminal_thresh": 0.005,
   "scales": [ 1.28056, 1.406, 1.337, 1.300 ], // seq_noon
-  "use_given_scale": false,
-  "use_init_cluster": true
+  "pig_names": [ 2,0,1,3 ], // ground truth identity
+  "use_given_scale": true,
+  "use_init_cluster": true,
+  "try_load_anno": true,
+  "use_triangulation_only": false,
+  "use_init_pose": true,
+  "anchor_folder": "D:/results/seq_noon2/anchor_state/",
+  "use_init_anchor": true,
+  "restart_threshold": -10,
+  "tracking_distance": 400 // pixels
 }

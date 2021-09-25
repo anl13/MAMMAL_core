@@ -756,7 +756,7 @@ void Renderer::createPlane(std::string conf_projectFolder, float scale)
 	meshObjs.push_back(p_floor);
 }
 
-void Renderer::createSceneDetailed(std::string conf_projectFolder, float scale)
+void Renderer::createSceneDetailed(std::string conf_projectFolder, float scale, int flip_axis)
 {
 	createPlane(conf_projectFolder, scale); 
 	for (int k = 2; k < 7; k++)
@@ -764,6 +764,8 @@ void Renderer::createSceneDetailed(std::string conf_projectFolder, float scale)
 		std::stringstream ss;
 		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_new_part" << k << ".obj";
 		Mesh obj(ss.str());
+		if (flip_axis >= 0)
+			obj.flip(flip_axis); 
 		RenderObjectColor *p_model = new RenderObjectColor();
 		
 		if (scale != 1)

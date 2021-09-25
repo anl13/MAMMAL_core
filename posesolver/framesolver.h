@@ -163,7 +163,7 @@ public:
 	// visualization function  
 	
 	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);
-	cv::Mat visualizeProj();
+	cv::Mat visualizeProj(int id=-1);
 
 	void writeSkel3DtoJson(std::string savepath);
 	void readSkel3DfromJson(std::string jsonfile);

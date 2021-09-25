@@ -1,3 +1,10 @@
 {
-  "config_file": "/configs/config_20191003_socialdemo2.json"
+  //"config_file":  "/configs/config_20190824_motion.json"
+  //"config_file": "/configs/config_20191005_hour13.json"
+  //"config_file":  "/configs/config_20191007_morning.json"
+  //"config_file": "/configs/config_jointangle_0823.json"
+  //"config_file":  "/configs/config_20191003_socialdemo2.json"
+  "config_file" :  "/configs/config_20210321_motion.json"
+  //"config_file":  "/configs/config_20190704_foreval_no_sil.json"
+
 }

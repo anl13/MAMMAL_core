@@ -6,14 +6,15 @@
   "is_read_image": true,
   "videotype": 0, // images
   "imgExtension": "jpg",
-  "camfolder": "D:/Projects/animal_calib/data/calibdata/adjust_new/",
-  "scenedata": "D:/Projects/animal_calib/data/scenemask.json",
+  "intrinsic_type":  0, // 0: calibdata
+  "camfolder": "D:/Projects/animal_calib/data/calibdata/extrinsic/",
+  "scenedata": "D:/Projects/animal_calib/data/calibdata/scenemask.json",
   "background_folder": "D:/Projects/animal_calib/data/calibdata/backgrounds/",
   "imgdir": "images",
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet_pr",
-  "startid": 2249,
+  "startid": 750,
   "framenum": 7500,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
@@ -21,19 +22,19 @@
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
-  "use_gpu": true,
-  "solve_sil_iters": 60,
+  "use_gpu": false,
+  "solve_sil_iters": 2,
   "solve_sil_iters_2nd_phase": 10,
   "use_reassoc": false,
   "annotation_folder": "D:/results/paper_teaser/pig_results_anchor_sil/annotation",
   "result_folder": "D:/results/paper_teaser/pig_results_anchor_sil/",
   "terminal_thresh": 0.005,
-  "scales": [ 1.337, 1.406, 1.300, 1.28056 ], // seq_noon
-  "pig_names": [], // ground truth identity
+  "scales": [ 1.337, 1.406, 1.300, 1.28056 ], // 
+  "pig_names": [1, 0, 3, 2], // ground truth identity
   "use_given_scale": true,
   "use_init_cluster": true,
   "try_load_anno": false,
   "use_triangulation_only": false,
   "use_init_pose": true,
-  "anchor_folder": "D:/results/paper_teaser/anchor_state_252/"
+  "anchor_folder": "D:/results/paper_teaser/pig_results_anchor_sil/anchor_state/"
 }

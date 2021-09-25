@@ -99,10 +99,9 @@ int run_pose_bone_length()
 	std::string configfile = get_config();
 	frame.configByJson(conf_projectFolder + "configs/config_20191003_socialdemo.json");
 	int startid = 9820;
-	int framenum = 200;
+	int framenum = 180;
 	int targetid = 1;
 
-	int m_pid = 0; // pig identity to solve now. 
 	frame.set_frame_id(startid);
 	frame.fetchData();
 	auto cams = frame.get_cameras();
@@ -133,11 +132,10 @@ int run_pose_bone_length()
 		//std::vector<Eigen::Vector3f> skels = frame.mp_bodysolverdevice[targetid]->directTriangulationHost(3); 
 		frame.DirectTriangulation(); 
 		std::vector<Eigen::Vector3f> skels = frame.m_skels3d[targetid];
-		cv::Mat reproj = frame.visualizeProj();
-		cv::Mat reproj_small = my_resize(reproj, 0.25);
+		cv::Mat reproj = frame.visualizeProj(targetid);
 		std::stringstream ss_proj;
 		ss_proj << frame.m_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss_proj.str(), reproj_small);
+		cv::imwrite(ss_proj.str(), reproj);
 		save_joints(outputfolder, targetid, frameid, skels); 
 	}
 

@@ -21,6 +21,11 @@ Eigen::Vector3f NViewDLT(
     const std::vector<Eigen::Vector2f> &xs
 ); 
 
+Eigen::Vector3f NViewDLT(
+	const std::vector<Camera>          &cams,
+	const std::vector<Eigen::Vector3f> &xs
+);
+
 class Joint3DSolver 
 {
 public: 

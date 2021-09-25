@@ -32,6 +32,34 @@ Eigen::Vector3f NViewDLT(
     return point; 
 }
 
+Eigen::Vector3f NViewDLT(
+	const std::vector<Camera>          &cams,
+	const std::vector<Eigen::Vector3f> &xs
+)
+{
+	int N_view = cams.size();
+	Eigen::MatrixXf A(N_view * 3, 4);
+	for (int i = 0; i < cams.size(); i++)
+	{
+		Eigen::Matrix4f P = cams[i].P_g.cast<float>();
+		Eigen::Vector2f x = xs[i].segment<2>(0);
+		A.row(3 * i) = -P.row(1) + P.row(2) * x(1);
+		A.row(3 * i + 1) = P.row(0) - x(0) * P.row(2);
+		A.row(3 * i + 2) = -x(1) * P.row(0) + x(0) * P.row(1);
+	}
+	Eigen::Matrix4f ATA;
+	// ATA = A.transpose() * A; 
+	ATA = A.adjoint() * A;
+
+	Eigen::SelfAdjointEigenSolver<Eigen::Matrix4f> eigenSolver(ATA);
+	// std::cout << "Eigen values: " << eigenSolver.eigenvalues() << std::endl; 
+	// std::cout << "Eigen vectors: " << std::endl << eigenSolver.eigenvectors() << std::endl;
+	Eigen::Matrix4f eigenvec = eigenSolver.eigenvectors();
+	Eigen::Vector4f v = eigenvec.col(0);
+	Eigen::Vector3f point = v.block<3, 1>(0, 0) / v(3);
+	return point;
+}
+
 using ceres::AutoDiffCostFunction; 
 using ceres::NumericDiffCostFunction; 
 using ceres::CostFunction; 

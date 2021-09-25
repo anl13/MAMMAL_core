@@ -31,7 +31,7 @@
   "scales": [ 1.35, 1.82, 1.2, 1.82 ], // C, B, D, A
 //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
   //"scales": [ 1.2, 1.35, 1.86, 1.82 ], // D, C, A, B
-  "pig_names": [], // ground truth identity
+  "pig_names": [2, 1, 3, 0], // ground truth identity
   "use_given_scale": true,
   "use_init_cluster": false,
   "try_load_anno": true,

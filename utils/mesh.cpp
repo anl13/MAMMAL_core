@@ -281,7 +281,6 @@ void MeshEigen::CalcNormal()
 	for (int i = 0; i < normals.cols(); i++) normals.col(i).normalize();
 }
 
-
 void composeMesh(Mesh& mesh1, const Mesh& mesh2)
 {
 	int vertexnum1 = mesh1.vertex_num;
@@ -300,4 +299,18 @@ void composeMesh(Mesh& mesh1, const Mesh& mesh2)
 
 	mesh1.vertex_num = mesh1.vertices_vec.size(); 
 	mesh1.face_num = mesh1.faces_v_vec.size(); 
+}
+
+void Mesh::flip(int axis)
+{
+	for (int i = 0; i < vertex_num; i++)
+	{
+		vertices_vec[i](axis) *= -1; 
+	}
+	for (int i = 0; i < face_num; i++)
+	{
+		int a = faces_v_vec[i](0);
+		faces_v_vec[i](0) = faces_v_vec[i](1);
+		faces_v_vec[i](1) = a; 
+	}
 }

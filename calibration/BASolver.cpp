@@ -344,3 +344,13 @@ std::vector<Eigen::Vector3f> BASolver::getTvecsF()
 {
 	return doubleToFloat(m_tvecs); 
 }
+
+void BASolver::setInit3DPoints(std::vector<Eigen::Vector3f> points)
+{
+	m_points.resize(m_pointNum); 
+	for (int i = 0; i < points.size(); i++)
+	{
+		if (i > m_pointNum) break; 
+		m_points[i] = points[i].cast<double>();
+	}
+}

@@ -110,6 +110,8 @@ int multiview_annotator()
 	data_loader.load_clusters();
 	data_loader.read_parametric_data(); 
 
+	std::cout << "intrinsic type: " << data_loader.m_intrinsic_type << std::endl; 
+
 	auto solvers = data_loader.mp_bodysolverdevice;
 
 	/// read smal model 

@@ -21,36 +21,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\render\camviewer.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\render_object.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\render_utils.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\renderer.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\render\shader.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\geometry.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\image_utils.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\math_utils.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\mesh.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\camera.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="clusterclique.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -66,21 +36,6 @@
     <ClCompile Include="tracking.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\Hungarian.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\skel.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -92,12 +47,6 @@
     </ClCompile>
     <ClCompile Include="visualize_seq.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="..\GMM\gmm.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\image_utils_gpu.cpp">
-      <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="mce\AdjacencyListAlgorithm.cpp">
       <Filter>源文件\mce</Filter>
@@ -120,13 +69,64 @@
     <ClCompile Include="framesolver_pipeline.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\tracking\sift_matcher.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="global_config.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\utils\camera.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\camviewer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
     <ClCompile Include="..\utils\fileoperation.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\geometry.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GMM\gmm.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\Hungarian.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils_gpu.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\math_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\mesh.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_object.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\renderer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\shader.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\tracking\sift_matcher.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
   </ItemGroup>
@@ -185,18 +185,67 @@
     <None Include="..\configs\config_20191003_socialdemo2.json">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="..\configs\config_20191004_hour13.json">
+    <None Include="..\configs\config_20191005_hour13.json">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="..\configs\config_20191005_hour13.json">
+    <None Include="..\configs\config_seq1-old.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_jointangle_0823.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190922_feed.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190825_feed.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190824_motion.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190823_feed.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190705_feed.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191007_morning.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20191003_hour9.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20210321_motion.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval_tri.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval_tri_5views.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval_no_reassoc.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval_5views.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval_no_sil.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20210321_motion2.json">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
+    <CudaCompile Include="..\articulation\gpuutils.cu">
       <Filter>other</Filter>
     </CudaCompile>
-    <CudaCompile Include="..\articulation\gpuutils.cu">
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
       <Filter>other</Filter>
     </CudaCompile>
     <CudaCompile Include="..\articulation\pigmodeldevice.cu">
@@ -205,7 +254,6 @@
     <CudaCompile Include="..\articulation\pigsolverdevice.cu">
       <Filter>other</Filter>
     </CudaCompile>
-    <CudaCompile Include="..\render\cuda_utils_render.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clusterclique.h">
@@ -219,15 +267,6 @@
     </ClInclude>
     <ClInclude Include="tracking.h">
       <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="..\articulation\pigmodeldevice.h">
-      <Filter>other</Filter>
-    </ClInclude>
-    <ClInclude Include="..\articulation\pigsolverdevice.h">
-      <Filter>other</Filter>
-    </ClInclude>
-    <ClInclude Include="..\articulation\vector_operations.hpp">
-      <Filter>other</Filter>
     </ClInclude>
     <ClInclude Include="main.h">
       <Filter>头文件</Filter>
@@ -250,14 +289,23 @@
     <ClInclude Include="scenedata.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="global_config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
     <ClInclude Include="..\articulation\gpuutils.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigmodeldevice.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolverdevice.h">
       <Filter>other</Filter>
     </ClInclude>
     <ClInclude Include="..\tracking\sift_matcher.h">
       <Filter>other</Filter>
     </ClInclude>
-    <ClInclude Include="global_config.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="..\articulation\vector_operations.hpp">
+      <Filter>other</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

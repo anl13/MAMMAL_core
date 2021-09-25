@@ -70,7 +70,7 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_pig_names.resize(m_pignum); 
 	m_restart_threshold = root["restart_thresold"].asInt(); 
 	m_tracking_distance = root["tracking_distance"].asFloat(); 
-
+	m_intrinsic_type = root["intrinsic_type"].asInt(); 
 	for (int i = 0; i < m_pignum; i++)
 	{
 		m_pig_names[i] = root["pig_names"][i].asInt(); 
@@ -248,7 +248,7 @@ cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 	}
 }
 
-cv::Mat FrameSolver::visualizeProj()
+cv::Mat FrameSolver::visualizeProj(int pid)
 {
 	std::vector<cv::Mat> imgdata;
 	cloneImgs(m_imgsUndist, imgdata);
@@ -258,6 +258,7 @@ cv::Mat FrameSolver::visualizeProj()
 	{
 		for (int id = 0; id < m_projs[camid].size(); id++)
 		{
+			if (pid >= 0 && id != pid) continue;
 			Eigen::Vector3i color; 
 			int colorid = m_pig_names[id];
 			color(0) = m_CM[colorid](2);

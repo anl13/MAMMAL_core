@@ -81,7 +81,7 @@ public:
 	float* renderDepthDevice();
 
 	void createScene(std::string proectFolder);
-	void createSceneDetailed(std::string projectFolder, float scale=1.0); 
+	void createSceneDetailed(std::string projectFolder, float scale = 1.0, int flip_axis = -1);
 	void createSceneHalf(std::string projectFolder, float scale = 1.0);
 	void createSceneHalf2(std::string projectFolder, float scale = 1.0); 
 

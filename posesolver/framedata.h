@@ -94,5 +94,6 @@ public:
 	int m_videotype; 
 	bool m_is_read_image;
 	int m_video_frameid;
+	int m_intrinsic_type; 
 };
 

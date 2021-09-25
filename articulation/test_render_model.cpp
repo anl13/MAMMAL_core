@@ -218,7 +218,7 @@ int test_body_part()
 	m_renderer.texObjs.push_back(chess_floor);
 
 	// model data 
-	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config.json";
+	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config_sym.json";
 	PigModel smal(smal_config);
 	smal.determineBodyPartsByWeight2(); 
 

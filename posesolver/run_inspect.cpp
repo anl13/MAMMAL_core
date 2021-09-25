@@ -18,6 +18,18 @@
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
 
+void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data)
+{
+	std::stringstream ss;
+	ss << folder << "/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt";
+	std::ofstream outputfile(ss.str());
+	for (int i = 0; i < data.size(); i++)
+	{
+		outputfile << data[i].transpose() << std::endl;
+	}
+	outputfile.close();
+}
+
 std::string get_config()
 {
 	Json::Value root;
@@ -79,7 +91,7 @@ int run_inspect()
 	}
 	std::vector<std::string> subfolders = {
 		"assoc", "render_all", "clusters", "state", "reassoc2", "proj2", "before_swap2",
-		"fitting", "annotation", "skels", "anchor_state", "rawdet"
+		"fitting", "annotation", "skels", "anchor_state", "rawdet", "joints_62", "joints_23"
 	};
 	for (int i = 0; i < subfolders.size(); i++)
 	{
@@ -247,6 +259,18 @@ int run_inspect()
 
 		auto solvers = frame.mp_bodysolverdevice;
 
+		// save joints 
+		{
+			for (int pid = 0; pid < pignum; pid++)
+			{
+				auto joints_62 = solvers[pid]->GetJoints(); 
+				save_points(frame.m_result_folder + "/joints_62/", pid, frameid, joints_62); 
+				auto joints_23 = solvers[pid]->getRegressedSkel_host(); 
+				save_points(frame.m_result_folder + "/joints_23/", pid, frameid, joints_23);
+
+			}
+		}
+
 		for (int pid = 0; pid < pignum; pid++)
 		{
 			RenderObjectColor* p_model = new RenderObjectColor();
@@ -265,7 +289,7 @@ int run_inspect()
 		cv::Mat a(cv::Size(1920, 1080), CV_8UC3);
 		cv::Mat pack_raw;
 		rawImgs.push_back(a);
-		rawImgs.push_back(a);
+		//rawImgs.push_back(a);
 		packImgBlock(rawImgs, pack_raw);
 
 		std::vector<cv::Mat> all_renders(cams.size());
@@ -282,24 +306,24 @@ int run_inspect()
 		for (int pid = 0; pid < pignum; pid++)
 			m_renderer.colorObjs[pid]->isMultiLight = true; 
 		m_renderer.createSceneDetailed(conf_projectFolder, 1.1);
-		Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
-		Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
-		Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
-		//Eigen::Vector3f pos1(2.05239, 0.0712245, 0.013074);
-		//Eigen::Vector3f up1(-0.0138006, 0.160204, 0.986988);
-		//Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
+		//Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
+		//Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
+		//Eigen::Vector3f center1(0.0915295, -0.128604, -0.0713566);
+		////Eigen::Vector3f pos1(2.05239, 0.0712245, 0.013074);
+		////Eigen::Vector3f up1(-0.0138006, 0.160204, 0.986988);
+		////Eigen::Vector3f center1(0.0589942, -0.0909324, 0.00569892);
 
-		m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
-		m_renderer.Draw();
-		cv::Mat img = m_renderer.GetImage();
-		all_renders.push_back(img);
+		//m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+		//m_renderer.Draw();
+		//cv::Mat img = m_renderer.GetImage();
+		//all_renders.push_back(img);
 
 		Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
 		Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
 		Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
 		m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
 		m_renderer.Draw();
-		img = m_renderer.GetImage();
+		cv::Mat img = m_renderer.GetImage();
 		all_renders.push_back(img);
 
 		cv::Mat packed_render;

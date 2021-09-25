@@ -35,6 +35,7 @@ void FrameData::configByJson(std::string filename)
 	m_topo = getSkelTopoByType(m_skelType);
 	m_is_read_image = root["is_read_image"].asBool();
 	m_videotype = root["videotype"].asInt(); 
+	m_intrinsic_type = root["intrinsic_type"].asInt(); 
 	std::vector<int> camids;
 	for (auto const &c : root["camids"])
 	{
@@ -412,9 +413,24 @@ void FrameData::readCameras()
             camfile >> a; 
             tvec(i) = a; 
         }
-        Camera cam = Camera::getDefaultCameraRaw(); 
+		Camera cam;
+		Camera camUndist;
+		if (m_intrinsic_type == 0)
+		{
+			cam = Camera::getDefaultCameraRaw();
+			camUndist = Camera::getDefaultCameraUndist();
+		}
+		else if (m_intrinsic_type == 1)
+		{
+			cam = Camera::getFarCameraRaw();
+			camUndist = Camera::getFarCameraUndist(); 
+		}
+		else
+		{
+			std::cout << "camera intrinsic type config error. " << std::endl; 
+			exit(-1); 
+		}
         cam.SetRT(rvec,  tvec); 
-        Camera camUndist = Camera::getDefaultCameraUndist(); 
         camUndist.SetRT(rvec, tvec); 
         m_cams.push_back(cam); 
         m_camsUndist.push_back(camUndist); 

@@ -131,3 +131,40 @@ void Camera::NormalizeK()
     return camera; 
 }
 
+ Camera Camera::getFarCameraRaw()
+ {
+	 Eigen::Matrix3f K;
+	 K << 1276.74351f, 0.f, 948.514503f,
+		 0.f, 1271.6652f, 522.456511f,
+		 0.f, 0.f, 1.f;
+	 Eigen::Vector3f k = { -0.376603297f, 0.205598506f, -0.0697851322f };
+	 Eigen::Vector2f p = { 0.00027846539f, 0.000750132685f };
+	 Camera camera;
+	 camera.SetK(K);
+	 camera.SetDistortion(k, p);
+
+	 Eigen::Matrix3f R = Eigen::Matrix3f::Identity();
+	 Eigen::Vector3f T = Eigen::Vector3f::Zero();
+	 camera.SetRT(R, T);
+
+	 return camera;
+ }
+
+ Camera Camera::getFarCameraUndist()
+ {
+	 Eigen::Matrix3f K;
+	 K << 674.67718506, 0.f, 877.7624969,
+		 0.f, 676.62384033, 476.87392281,
+		 0.f, 0.f, 1.f;
+	 Eigen::Vector3f k = { 0.f, 0.f, 0.f };
+	 Eigen::Vector2f p = { 0.f, 0.f };
+	 Camera camera;
+	 camera.SetK(K);
+	 camera.SetDistortion(k, p);
+
+	 Eigen::Matrix3f R = Eigen::Matrix3f::Identity();
+	 Eigen::Vector3f T = Eigen::Vector3f::Zero();
+	 camera.SetRT(R, T);
+
+	 return camera;
+ }

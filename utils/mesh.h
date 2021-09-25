@@ -37,7 +37,7 @@ public:
 	void CalcNormal();
 	void Load(const std::string& filename, bool isReadTex=true, bool isCalcNormal=true);
 	void Save(const std::string& filename) const; 
-
+	void flip(int axis = 0); // 0: x; 1: y; 2: z
 
 private: 
 	void SplitFaceStr(std::string &str, int &i1, int &i2, int &i3); 

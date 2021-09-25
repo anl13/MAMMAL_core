@@ -1,0 +1,176 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="other">
+      <UniqueIdentifier>{80ffc407-453e-4035-98e1-db0b81a95c2c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="other\mce">
+      <UniqueIdentifier>{7407971f-a2c8-4cc7-9919-816bc0c57228}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\utils\camera.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\camviewer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\fileoperation.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\geometry.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\GMM\gmm.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\Hungarian.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\image_utils_gpu.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\math_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\mesh.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigmodeldevice.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_object.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\render_utils.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\renderer.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\render\shader.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\tracking\sift_matcher.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\skel.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\AdjacencyListAlgorithm.cpp">
+      <Filter>other\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\Algorithm.cpp">
+      <Filter>other\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\MemoryManager.cpp">
+      <Filter>other\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\mce\Tools.cpp">
+      <Filter>other\mce</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\clusterclique.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\framedata.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\framesolver.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\framesolver_pipeline.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\global_config.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\matching.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\scenedata.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\tracking.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="exp1.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\articulation\gpuutils.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigmodeldevice.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\articulation\pigsolverdevice.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\render\cuda_utils_render.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\articulation\gpuutils.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigmodeldevice.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\pigsolverdevice.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\tracking\sift_matcher.h">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\articulation\vector_operations.hpp">
+      <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\posesolver\mce\AdjacencyListAlgorithm.h">
+      <Filter>other\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\posesolver\mce\Algorithm.h">
+      <Filter>other\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\posesolver\mce\MemoryManager.h">
+      <Filter>other\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="..\posesolver\mce\Tools.h">
+      <Filter>other\mce</Filter>
+    </ClInclude>
+    <ClInclude Include="main.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="exp1.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
