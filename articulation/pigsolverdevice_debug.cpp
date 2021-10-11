@@ -2,6 +2,7 @@
 #include "../utils/geometry.h"
 #include "../utils/Hungarian.h"
 
+
 cv::Mat PigSolverDevice::debug_source_visualize()
 {
 	std::vector<Eigen::Vector3i> m_CM;
@@ -168,7 +169,9 @@ void PigSolverDevice::calcSkel2DTermAnchor_host(
 
 		float dw = 1;
 		if (m_skelProjs.size() > 0)
-			dw = m_depth_weight[camid];
+			if(m_depth_weight.size() == m_cameras.size())
+				dw = m_depth_weight[camid];
+			
 
 		J.middleRows(2 * i, 2) = P.weight * D * K * R * Jacobi3d.middleRows(3 * i, 3) / dw;
 
@@ -197,7 +200,6 @@ void PigSolverDevice::optimizeAnchor(int anchor_id)
 	AnchorPoseType A = m_anchor_lib.anchors[anchor_id];
 	m_host_translation = A.translation;
 	// manually define scale 
-	m_host_scale = m_gtscale;
 	m_host_translation *= m_host_scale;
 	m_host_poseParam = A.pose;
 
@@ -622,6 +624,16 @@ float ComputeTempWeight(float height)
 // in use
 float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 {
+#ifdef DEBUG_SIL
+	std::vector<cv::Mat> color_mask_dets;
+	for (int view = 0; view < m_rois.size(); view++)
+	{
+		int camid = m_rois[view].viewid;
+		cv::Mat img(cv::Size(1920, 1080), CV_8UC3); img.setTo(255);
+		my_draw_mask(img, m_rois[view].mask_list, Eigen::Vector3i(255, 0, 0), 0);
+		color_mask_dets.push_back(img);
+	}
+#endif 
 	int paramNum = 3 + 3 * m_poseToOptimize.size();
 	int M = m_poseToOptimize.size();
 	UpdateVertices();
@@ -654,8 +666,15 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, track_radius, false, is_converge_radius);
 	}
 	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
-
+	d_J_joint.download(h_J_joint.data(), 3 * m_jointNum * sizeof(float));
+	d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float)); 
 	// compute terms
+
+	Eigen::MatrixXf ATA_3d = Eigen::MatrixXf::Zero(paramNum, paramNum); 
+	Eigen::VectorXf ATb_3d = Eigen::VectorXf::Zero(paramNum);
+	auto skel_tri = directTriangulationHost(); 
+	auto skel_reg = getRegressedSkel_host(); 
+	calcSkel3DTerm_host(h_J_skel, skel_tri, ATA_3d, ATb_3d); 
 
 	Eigen::MatrixXf ATA_sil = Eigen::MatrixXf::Zero(paramNum, paramNum);
 	Eigen::VectorXf ATb_sil = Eigen::VectorXf::Zero(paramNum);
@@ -679,7 +698,8 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	float w_floor; 
 	if (iter > 10) w_floor = m_w_floor_term * 10; 
 	else  w_floor = m_w_floor_term;
-
+	float w_collision = m_w_collision_term; 
+	float w_3d = m_w_3d_term; 
 
 	float w_anchor = m_w_anchor_term; 
 	float w_sift = m_w_sift_term; 
@@ -741,6 +761,14 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	Eigen::VectorXf ATb_on_floor; 
 	CalcJointOnFloorTerm(ATA_on_floor, ATb_on_floor);
 
+	Eigen::MatrixXf ATA_col, ATA_col2; 
+	Eigen::VectorXf ATb_col, ATb_col2; 
+	CalcCollisionJointTerm_cpu(h_J_joint, ATA_col, ATb_col); 
+
+	CalcCollisionSurfaceTerm_cpu(h_J_vert, ATA_col2, ATb_col2);
+	ATA_col += ATA_col2; 
+	ATb_col += ATb_col2; 
+
 	Eigen::MatrixXf H = ATA_sil * w_sil + ATA_reg * w_reg
 		+ DTD * lambda
 		+ ATA_data * w_data + ATA_anchor * w_anchor
@@ -750,6 +778,8 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 #ifdef USE_SIFT
 		+ ATA_sift * w_sift
 #endif 
+		+ATA_col * w_collision
+		+ ATA_3d * w_3d
 		; 
 	Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
 		+ ATb_data * w_data + ATb_anchor * w_anchor
@@ -759,6 +789,8 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 #ifdef USE_SIFT
 		+ ATb_sift * w_sift
 #endif 
+		+ ATb_col * w_collision
+		+ ATb_3d * w_3d
 		; 
 
 	Eigen::VectorXf delta = H.ldlt().solve(b);
@@ -773,15 +805,15 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 
 	
 	//std::cout << "pig " << m_pig_id << " iter: " << iter << std::endl; 
-	//std::cout << "w_temp: " << w_temp << std::endl;
-	//std::cout << "ATb_data: " << ATb_data.norm() << std::endl; 
-	//std::cout << "ATb_sil : " << ATb_sil.norm() << std::endl; 
-	//std::cout << "ATb_reg : " << ATb_reg.norm() << std::endl; 
-	//std::cout << "ATb_anchor: " << ATb_anchor.norm() << std::endl; 
-	//std::cout << "ATb_floor: " << ATb_floor.norm() << std::endl; 
-	//std::cout << "ATb_temp: " << ATb_temp.norm() << std::endl; 
-	//std::cout << "delta : " << delta.norm() << std::endl; 
-	//std::cout << "b.norm: " << b.norm() << std::endl;
+	//std::cout << "   ATb_data: " << ATb_data.norm() << std::endl; 
+	//std::cout << "   ATb_sil : " << ATb_sil.norm() << std::endl; 
+	//std::cout << "   ATb_reg : " << ATb_reg.norm() << std::endl; 
+	//std::cout << "   ATb_anchor: " << ATb_anchor.norm() << std::endl; 
+	//std::cout << "   ATb_floor: " << ATb_floor.norm() << std::endl; 
+	//std::cout << "   ATb_temp: " << ATb_temp.norm() << std::endl; 
+	//std::cout << "   ATb_col: " << ATb_col.norm() << std::endl;
+	//std::cout << "      delta : " << delta.norm() << std::endl; 
+	//std::cout << "      b.norm: " << b.norm() << std::endl;
 #ifdef USE_SIFT
 	std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
 #endif 

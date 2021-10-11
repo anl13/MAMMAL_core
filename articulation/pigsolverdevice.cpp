@@ -46,7 +46,8 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_use_bodyonly_reg = root["use_bodyonly_reg"].asBool(); 
 	m_use_height_enhanced_temp = root["use_height_enhanced_temp"].asBool(); 
 	m_w_on_floor_term = root["on_floor_term"].asFloat(); 
-
+	m_w_collision_term = root["collision_term"].asFloat(); 
+	m_w_3d_term = root["3d_term"].asFloat(); 
 	m_gtscale = 1;
 	m_use_triangulation_only = false; 
 	m_trackConf = 0.0; 
@@ -86,6 +87,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 			}
 		}
 	visRegFile.close();
+
 
 	// pre-allocate device memory 
 	m_initScale = false; 
@@ -168,6 +170,10 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	m_host_translation.setZero();
 	for (int i = 0; i < m_jointNum; i++)m_host_poseParam[i].setZero(); 
 	UpdateVertices(); 
+	UpdateNormalFinal(); 
+
+	load_reduced();
+	m_depth_weight.resize(m_cameras.size(), 0);
 
 	m_det_confs.resize(m_skelTopo.joint_num, 0); 
 
@@ -1152,16 +1158,11 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 		cv::Mat packD;
 		packImgBlock(chamfers_vis_det, packD);
 		std::stringstream ssp;
-		ssp << "G:/pig_results/debug/" << iter << "_rend_sdf_cpu.jpg";
+		ssp << "D:/results/paper_teaser/0704_demo/debug/pig" << m_pig_id << "_" << iter << "_rend_sdf_cpu.jpg";
 		cv::imwrite(ssp.str(), packP);
 		std::stringstream ssd;
-		ssd << "G:/pig_results/debug/" << iter << "_det_sdf_cpu.jpg";
+		ssd << "D:/results/paper_teaser/0704_demo/debug/pig" << m_pig_id << "_" << iter << "_det_sdf_cpu.jpg";
 		cv::imwrite(ssd.str(), packD);
-
-		//cv::Mat packdiff; packImgBlock(diff_vis, packdiff);
-		//std::stringstream ssdiff;
-		//ssdiff << "G:/pig_results/debug/diff_" << iter << ".jpg";
-		//cv::imwrite(ssdiff.str(), packdiff);
 	}
 	else {
 		std::cout << "no useful views. " << std::endl; 
@@ -1842,7 +1843,7 @@ void PigSolverDevice::postProcessing()
 	}
 
 
-	m_depth_weight.resize(m_cameras.size(), 0);
+	
 	Eigen::Vector3f center = m_host_jointsPosed[2];
 
 	for (int camid = 0; camid < m_cameras.size(); camid++)
@@ -2124,4 +2125,157 @@ void PigSolverDevice::optimizeTri()
 	}
 
 	m_isPostprocessed = true; 
+}
+
+void PigSolverDevice::load_reduced()
+{
+	// load reduced ids 
+	m_reduced_ids.clear(); 
+	std::stringstream ss; 
+	ss << m_folder << "/reduced_ids.txt"; 
+	std::ifstream is(ss.str()); 
+	if (!is.is_open())
+	{
+		std::cout << "reduced ids is not opened. " << std::endl; 
+		exit(-1); 
+	}
+	while (!is.eof())
+	{
+		int a; 
+		is >> a; 
+		m_reduced_ids.push_back(a); 
+	}
+	is.close();
+
+	// load reduced faces 
+	m_reduced_faces.clear(); 
+	std::stringstream ss2;
+	ss2 << m_folder << "/reduced_faces.txt"; 
+	std::ifstream is2(ss2.str()); 
+	if (!is2.is_open())
+	{
+		std::cout << "reduced faces is not opened." << std::endl; 
+		exit(-1); 
+	}
+	while (!is2.eof())
+	{
+		int a, b, c; 
+		is2 >> a; 
+		if (is2.eof()) break; 
+		is2 >> b >> c; 
+		Eigen::Vector3u f(a, b, c); 
+		m_reduced_faces.push_back(f); 
+	}
+	is2.close(); 
+
+	map_reduced_vertices(); 
+	std::cout << "load reduced done." << std::endl;
+}
+
+void PigSolverDevice::map_reduced_vertices()
+{
+	// set reduced vertices 
+	int N = m_reduced_ids.size();
+	if (m_reduced_vertices.size() != N)
+	{
+		m_reduced_vertices.resize(N); 
+	}
+	if (m_reduced_normals.size() != N) m_reduced_normals.resize(N); 
+	for (int i = 0; i < N; i++)
+	{
+		m_reduced_vertices[i] = m_host_verticesPosed[m_reduced_ids[i]];
+		m_reduced_normals[i] = m_host_normalsFinal[m_reduced_ids[i]]; 
+	}
+}
+
+void PigSolverDevice::CalcCollisionJointTerm_cpu(
+	Eigen::MatrixXf& J_joint,
+	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+	
+	if (m_other_pigs_reduced_vertices.size() == 0) return; 
+	int N = m_jointNum; // 62 
+
+	for (int t = 0; t < 3; t++)
+	{
+		Eigen::VectorXf r = Eigen::VectorXf::Zero(3 * N);
+		auto currentJ = J_joint; 
+		for (int i = 0; i < N; i++)
+		{
+			if (i > 46)
+			{
+				currentJ.middleRows<3>(3 * i).setZero();
+				continue; 
+			}; // do not penalize tail .
+			bool in_mesh = inMeshTest_cpu(m_other_pigs_reduced_vertices[t], m_reduced_faces, m_other_centers[t], m_host_jointsPosed[i]);
+			if (in_mesh)
+			{
+				int target_vertex_id = -1;
+				float dist = 1000.f;
+				for (int k = 0; k < m_other_pigs_reduced_vertices[t].size(); k++)
+				{
+					float d = (m_other_pigs_reduced_vertices[t][k] - m_host_jointsPosed[i]).norm();
+					if (d < dist)
+					{
+						dist = d;
+						target_vertex_id = k;
+					}
+				}
+				r.segment<3>(3 * i) = 1.1 * (m_host_jointsPosed[i] - m_other_pigs_reduced_vertices[t][target_vertex_id]);
+			}
+			else
+			{
+				currentJ.middleRows<3>(3 * i).setZero(); 
+			}
+		}
+		ATA += currentJ.transpose() * currentJ;
+		ATb += -currentJ.transpose() * r;
+	}
+}
+
+void PigSolverDevice::CalcCollisionSurfaceTerm_cpu(
+	Eigen::MatrixXf& J_vert, Eigen::MatrixXf&  ATA, Eigen::VectorXf& ATb
+)
+{
+	int paramNum = 3 + 3 * m_poseToOptimize.size();
+	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
+	ATb = Eigen::VectorXf::Zero(paramNum);
+
+	if (m_other_pigs_reduced_vertices.size() == 0) return;
+	int N = m_reduced_ids.size(); 
+	for (int t = 0; t < 3; t++)
+	{
+		Eigen::VectorXf r = Eigen::VectorXf::Zero(3 * N); 
+		Eigen::MatrixXf J = Eigen::MatrixXf::Zero(3 * N, paramNum); 
+#pragma parallel for 
+		for (int i = 0; i < N; i++)
+		{
+			if (m_host_bodyParts[m_reduced_ids[i]] == L_EAR ||
+				m_host_bodyParts[m_reduced_ids[i]] == R_EAR) continue; 
+			bool in_mesh = inMeshTest_cpu(m_other_pigs_reduced_vertices[t], m_reduced_faces, m_other_centers[t],
+				m_reduced_vertices[i]); 
+			if (in_mesh)
+			{
+				int target_vertex_id = -1;
+				float dist = 5.f;
+				for (int k = 0; k < m_other_pigs_reduced_vertices[t].size(); k++)
+				{
+					float d = (m_other_pigs_reduced_vertices[t][k] - m_reduced_vertices[i]).norm();
+					if (d < dist)
+					{
+						dist = d;
+						target_vertex_id = k;
+					}
+				}
+				if (dist > 4.9f) continue; 
+				r.segment<3>(3 * i) = dist * (m_reduced_vertices[i] - m_other_pigs_reduced_vertices[t][target_vertex_id]);
+				J.middleRows<3>(3 * i) = J_vert.middleRows<3>(3 * m_reduced_ids[i]); 
+			}
+		}
+		ATA += J.transpose() * J; 
+		ATb += -J.transpose() * r; 
+	}
 }

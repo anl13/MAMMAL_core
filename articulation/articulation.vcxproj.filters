@@ -123,6 +123,15 @@
     <ClCompile Include="..\posesolver\framedata.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="test_inmeshtest.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test_render_behavior.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test_collsion_render.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\nanoflann.hpp">

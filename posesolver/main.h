@@ -1,7 +1,15 @@
 #pragma once
 #include <string> 
+#include <vector> 
+#include <Eigen/Eigen> 
+
+void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data);
+
+
+void run_demo_20211008(); 
 
 int run_pose_render(); 
+int run_pose_render_demo(); 
 
 // custom_pig.cpp
 int run_on_sequence();
@@ -33,3 +41,6 @@ void run_trajectory();
 std::string get_config();
 
 int run_pose_bone_length();
+void run_trajectory2();
+
+void run_demo_result(); 

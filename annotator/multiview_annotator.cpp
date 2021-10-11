@@ -106,6 +106,7 @@ int multiview_annotator()
 	data_loader.configByJson(data_config); 
 	data_loader.set_frame_id(config.current_frame_id); 
 	data_loader.fetchData(); 
+	//data_loader.fetchGtData(); 
 	data_loader.is_smth = false;
 	data_loader.load_clusters();
 	data_loader.read_parametric_data(); 
@@ -246,6 +247,7 @@ int multiview_annotator()
 			{
 				data_loader.set_frame_id(current_frame_id);
 				data_loader.fetchData();
+				//data_loader.fetchGtData(); 
 				data_loader.load_clusters();
 				data_loader.read_parametric_data();
 				rawImgs = data_loader.get_imgs_undist();

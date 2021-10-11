@@ -1,21 +1,20 @@
 {
-  "camids": [ 1, 2, 5, 6, 7, 8, 9 ],
-  "sequence": "Z:/data_f1_sync_0321_2/",
-  "hourid": 13,
+  "camids": [ 4, 6, 9, 10, 12 ],
+  "sequence": "Z:/20191003_sync/",
+  "hourid": 34,
   "pignum": 4,
   "is_read_image": true,
-  "videotype": 2, // type1: with hour; type2: clip; type0: imgs
+  "videotype": 1, // type1: with hour; type2: scratch clip; type0: imgs
   "imgExtension": "mp4",
-  "intrinsic_type": 1, // 0: old data.  1: batch3 data 
-  "camfolder": "D:/Projects/animal_calib/data/calibdata_batch3/extrinsic/",
-  "scenedata": "D:/Projects/animal_calib/data/calibdata_batch3/scenemask.json",
-  "background_folder": "D:/Projects/animal_calib/data/calibdata_batch3/backgrounds/",
+  "camfolder": "D:/Projects/animal_calib/data/calibdata_animal_7/extrinsic/",
+  "scenedata": "D:/Projects/animal_calib/data/calibdata_animal_7/scenemask.json",
+  "background_folder": "D:/Projects/animal_calib/data/calibdata_animal_7/backgrounds/",
   "imgdir": "",
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
-  "startid": 985,
-  "framenum": 5,
+  "startid": 44925,
+  "framenum": 27000,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,
@@ -24,22 +23,21 @@
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
   "use_gpu": true,
   "solve_sil_iters": 2,
-  "solve_sil_iters_2nd_phase": 15,
+  "solve_sil_iters_2nd_phase": 8,
   "use_reassoc": true,
-  "annotation_folder": "D:/results/0321_motion2/annotation/",
-  "result_folder": "D:/results/0321_motion2/",
+  "annotation_folder": "F:/results/1004_hour10/annotation/",
+  "result_folder": "F:/results/1004_hour10/",
   "terminal_thresh": 0.005,
-  //"scales": [1.9, 1.55,1.75, 1.45], // 0,2,1,3
-   "scales": [1.45,1.55,1.9,1.75 ], // 3,2,0,1
+  "scales": [ 1.82, 1.82 , 1.33,1.2 ], // B, D, C, A
   //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
   //"scales": [ 1.2, 1.35, 1.86, 1.82 ], // D, C, A, B
-  "pig_names": [3,2,0,1], // ground truth identity
+  "pig_names": [ 1, 0, 2, 3 ], // ground truth identity
   "use_given_scale": true,
   "use_init_cluster": true,
   "try_load_anno": true,
   "use_triangulation_only": false,
   "use_init_pose": true,
-  "anchor_folder": "D:/results/0321_motion2/anchor_state/",
+  "anchor_folder": "F:/results/1004_hour10/anchor_state/",
   "use_init_anchor": true,
   "restart_threshold": -10,
   "tracking_distance": 400 // pixels

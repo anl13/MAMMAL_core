@@ -152,6 +152,8 @@
   <ItemGroup>
     <None Include="shader\color_f.shader" />
     <None Include="shader\color_v.shader" />
+    <None Include="shader\mask_f.shader" />
+    <None Include="shader\mask_v.shader" />
     <None Include="shader\mesh_f.shader" />
     <None Include="shader\mesh_v.shader" />
     <None Include="shader\position_f.shader" />

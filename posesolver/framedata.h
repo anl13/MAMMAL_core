@@ -22,6 +22,7 @@ public:
         m_imw = 1920; 
         m_imh = 1080; 
         getColorMap("anliang_paper", m_CM); 
+		getColorMap("anliang_blend", m_CM_blend); 
     }
     ~FrameData(){} 
 
@@ -45,6 +46,7 @@ public:
     int m_camNum; 
     std::vector<int>                          m_camids;
     std::vector<Eigen::Vector3i>              m_CM;
+	std::vector<Eigen::Vector3i>              m_CM_blend; 
 
     std::vector<Camera>                       m_cams; 
     std::vector<cv::Mat>                      m_imgs; 

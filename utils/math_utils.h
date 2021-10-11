@@ -10,7 +10,7 @@
 #include <algorithm> 
 
 #ifndef M_PI
-#define M_PI 3.1415926
+#define M_PI 3.1415926f
 #endif 
 
 namespace Eigen {
@@ -102,3 +102,11 @@ Eigen::Vector3f Mat2Euler(Eigen::Matrix3f);
 Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiFNumeric(const Eigen::Vector3f& euler);
 std::vector<Eigen::Vector3f> doubleToFloat(const std::vector<Eigen::Vector3d>& list); 
 std::vector<Eigen::Vector3d> floatToDouble(const std::vector<Eigen::Vector3f>& list); 
+
+// Test if a line (in plucker type) could go through a triangle 
+bool intersectTest(const Eigen::Vector3f& x, const Eigen::Vector3f& y, const Eigen::Vector3f& z, const Eigen::Vector3f& a, const Eigen::Vector3f& b);
+bool intersectTestSegment(const Eigen::Vector3f& x, const Eigen::Vector3f& y, const Eigen::Vector3f& z, const Eigen::Vector3f& a, const Eigen::Vector3f& b);
+
+Eigen::Vector6f convertToPluckerLine(const Eigen::Vector3f& a, const Eigen::Vector3f& b); 
+float sidePlucker(const Eigen::Vector6f& a, const Eigen::Vector6f& b); 
+float tetrahedronSignedVolume(const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c, const Eigen::Vector3f& d); 

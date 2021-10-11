@@ -25,7 +25,7 @@ std::vector<Camera> readCameras()
 		0,1,2,5,6,7,8,9,10,11
 	};
 	int m_camNum = m_camids.size();
-	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust/";
+	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/extrinsic/";
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss;

@@ -173,4 +173,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\configs\config_20190704_gt.json">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
 </Project>

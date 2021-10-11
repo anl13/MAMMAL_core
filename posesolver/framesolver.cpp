@@ -5,7 +5,11 @@
 #include "../utils/timer_util.h" 
 
 #include <boost/filesystem.hpp>
+#include <json/writer.h> 
+
 //#define VIS_ASSOC_STEP 
+//#define DEBUG_TRACK
+#define DEBUG_SIL
 
 FrameSolver::FrameSolver()
 {
@@ -248,10 +252,22 @@ cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 	}
 }
 
-cv::Mat FrameSolver::visualizeProj(int pid)
+cv::Mat FrameSolver::visualizeProj(int pid, bool withimg)
 {
 	std::vector<cv::Mat> imgdata;
-	cloneImgs(m_imgsUndist, imgdata);
+	if(withimg)
+		cloneImgs(m_imgsUndist, imgdata);
+	else
+	{
+		imgdata.resize(m_camNum); 
+		for (int i = 0; i < m_camNum; i++)
+		{
+			cv::Mat rawimg;
+			rawimg.create(cv::Size(1920, 1080), CV_8UC3);
+			rawimg.setTo(cv::Scalar(255, 255, 255));
+			imgdata[i] = rawimg; 
+		}
+	}
 	reproject_skels();
 
 	for (int camid = 0; camid < m_camNum; camid++)
@@ -259,6 +275,7 @@ cv::Mat FrameSolver::visualizeProj(int pid)
 		for (int id = 0; id < m_projs[camid].size(); id++)
 		{
 			if (pid >= 0 && id != pid) continue;
+			if (pid == 0 || pid == 2) continue;
 			Eigen::Vector3i color; 
 			int colorid = m_pig_names[id];
 			color(0) = m_CM[colorid](2);
@@ -926,7 +943,8 @@ void FrameSolver::pureTracking()
 						m_detUndist[camid][j].keypoints,
 						m_topo, valid2); // calc last 2D detection to current detection
 				}
-				sim(i, j) = dist + dist2;
+				//sim(i, j) = dist + dist2;
+				sim(i, j) = dist; 
 				sim2(i, j) = dist2; 
 				if (valid2 < 0) valid2 = valid;
 				valids(i, j) = valid + valid2;
@@ -936,9 +954,11 @@ void FrameSolver::pureTracking()
 			}
 		}
 
-		//std::cout << "sim of view: " << camid << std::endl << sim << std::endl;
-		//std::cout << "valid of view: " << std::endl << valids<< std::endl; 
-		//std::cout << "dist2 : " << std::endl << sim2 << std::endl; 
+#ifdef DEBUG_TRACK
+		std::cout << "sim of view: " << camid << std::endl << sim << std::endl;
+		std::cout << "valid of view: " << std::endl << valids<< std::endl; 
+		std::cout << "dist2 : " << std::endl << sim2 << std::endl; 
+#endif 
 		std::vector<int> mm = solveHungarian(sim);
 
 		//for (int i = 0; i < mm.size(); i++)
@@ -1166,10 +1186,11 @@ void FrameSolver::renderFaceIndex()
 	mp_renderEngine->clearAllObjs(); 
 }
 
+
 // in use. 
-void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
+void FrameSolver::optimizeSilWithAnchor(int maxIterTime, int startIter)
 {
-	int iter = 0;
+	int iter = startIter;
 	std::vector<int> totalIters(m_pignum, 0); 
 	std::vector<float> deltas(m_pignum, 1);
 
@@ -1184,9 +1205,10 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 				computeIOUs();
 			}
 			else {
-				renderInteractDepth(false);
+				renderInteractDepth(true);
 			}
 		}
+#ifdef DEBUG_SIL
 		//for (int pid = 0; pid < 4; pid++)
 		//{
 		//	std::cout << pid << " :: ";
@@ -1196,6 +1218,73 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 		//	}
 		//	std::cout << std::endl; 
 		//}
+		// render interactive mask 
+
+		std::vector<cv::Mat> pseudos;
+		cv::Mat depth_cv(cv::Size(1920, 1080), CV_32FC1);
+		for (int view = 0; view < m_camNum; view++)
+		{
+			cudaMemcpy(depth_cv.data, d_interDepth[view], 1920 * 1080 * sizeof(float), cudaMemcpyDeviceToHost);
+			cv::Mat colored = pseudoColor(depth_cv);
+			pseudos.push_back(colored);
+		}
+		cv::Mat pack_pseudo;
+		packImgBlock(pseudos, pack_pseudo);
+		std::stringstream ss_pseudo;
+		ss_pseudo << m_result_folder << "/debug/" << std::setw(6) << std::setfill('0') << iter << "_depthinteract.jpg";
+		cv::imwrite(ss_pseudo.str(), pack_pseudo);
+
+		//cv::Mat blended;
+		//cv::Mat pack_det;
+		//packImgBlock(color_mask_dets, pack_det);
+		//blended = pack_pseudo * 0.5 + pack_det * 0.5;
+		//std::stringstream ss;
+		//ss << "D:/results/paper_teaser/0704_demo/debug/" << std::setw(6) << std::setfill('0')
+		//	<< iter << "_blend.jpg";
+		//cv::imwrite(ss.str(), blended);
+
+		cv::Mat output;
+		packImgBlock(m_interMask, output);
+		std::stringstream ss;
+		ss << m_result_folder << "/debug/mask_" << m_frameid << "_iter_" << iter << ".png";
+		cv::imwrite(ss.str(), output);
+		//cv::Mat output2;
+		//packImgBlock(m_masksMatched, output2);
+		//output2 = output2 * 10;
+		//std::stringstream ss1;
+		//ss1 << m_result_folder << "/debug/maskdet_" << m_frameid << "_iter_" << iter << ".png";
+		//cv::imwrite(ss1.str(), output2);
+
+		m_skels3d.resize(m_pignum); 
+		for (int i = 0; i < m_pignum; i++)
+		{
+			m_skels3d[i] = mp_bodysolverdevice[i]->getRegressedSkel_host();
+		}
+		cv::Mat reproj = visualizeProj(-1, false);
+		std::stringstream ss_proj;
+		ss_proj << m_result_folder << "/debug/proj_" << m_frameid << "_iter_" << iter << ".png";
+		cv::imwrite(ss_proj.str(), reproj);
+
+#endif 
+		for (int i = 0; i < 4; i++)mp_bodysolverdevice[i]->map_reduced_vertices(); 
+		for (int i = 0; i < 4; i++)
+		{
+			mp_bodysolverdevice[i]->m_other_pigs_reduced_vertices.resize(3);
+			mp_bodysolverdevice[i]->m_other_centers.resize(3);
+			for (int j = 0; j < 4; j++)
+			{
+				if (j == i) continue;
+				if (j < i) {
+					mp_bodysolverdevice[i]->m_other_centers[j] = mp_bodysolverdevice[j]->GetJoints()[2];
+					mp_bodysolverdevice[i]->m_other_pigs_reduced_vertices[j] = mp_bodysolverdevice[j]->m_reduced_vertices;
+				}
+				else
+				{
+					mp_bodysolverdevice[i]->m_other_centers[j - 1] = mp_bodysolverdevice[j]->GetJoints()[2];
+					mp_bodysolverdevice[i]->m_other_pigs_reduced_vertices[j - 1] = mp_bodysolverdevice[j]->m_reduced_vertices;
+				}
+			}
+		}
 		for (int pid = 0; pid < m_pignum; pid++)
 		{
 			if (mp_bodysolverdevice[pid]->m_isUpdated) continue; 
@@ -1204,6 +1293,7 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 			{
 				mp_bodysolverdevice[pid]->o_ious = m_ious[pid];
 			}
+
 			deltas[pid] = mp_bodysolverdevice[pid]->optimizePoseSilWithAnchorOneStep(iter);
 			totalIters[pid]++;
 		}
@@ -1212,17 +1302,6 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime)
 	for (int i = 0; i < m_pignum; i++)
 		std::cout << totalIters[i] << ",";
 	std::cout << "]" << std::endl;
-	//cv::Mat output; 
-	//packImgBlock(m_interMask, output); 
-	//std::stringstream ss; 
-	//ss << "F:/pig_results_anchor_sil/debug/mask_" << m_frameid << ".png";
-	//cv::imwrite(ss.str(), output); 
-	//cv::Mat output2; 
-	//packImgBlock(m_masksMatched, output2); 
-	//output2 = output2 * 10;
-	//std::stringstream ss1; 
-	//ss1 << "F:/pig_results_anchor_sil/debug/maskdet_" << m_frameid << ".png"; 
-	//cv::imwrite(ss1.str(), output2); 
 }
 
 void FrameSolver::saveAnchors(std::string folder)
@@ -2064,13 +2143,6 @@ void FrameSolver::computeIOUs()
 		}
 	}
 
-	//for (int camid = 0; camid < m_camNum; camid++)
-	//{
-	//	std::stringstream ss; 
-	//	ss << "G:/pig_results/intermask" << camid << ".png"; 
-	//	cv::imwrite(ss.str(), m_interMask[camid]);
-	//}
-
 	m_ious = ious; 
 }
 
@@ -2419,4 +2491,292 @@ void FrameSolver::save_skels()
 		}
 		os.close();
 	}
+}
+
+// 2021/09/28: for each experiment, log its config
+void FrameSolver::saveConfig()
+{
+	boost::posix_time::ptime timeLocal = boost::posix_time::second_clock::local_time(); 
+	std::stringstream ss_time; 
+	ss_time << timeLocal.date().year() << "-" << timeLocal.date().month() << "-"
+		<< timeLocal.date().day() << "_" << timeLocal.time_of_day().hours() << "-"
+		<< timeLocal.time_of_day().minutes() << "-" << timeLocal.time_of_day().seconds(); 
+	std::string str_time = ss_time.str(); 
+	
+	std::stringstream ss_config_file;
+	ss_config_file << m_result_folder << "/config_" << str_time << ".json"; 
+
+	// build config content 
+	Json::Value root; 
+	root["sequence"] = m_sequence; 
+	root["hourid"] = Json::Value(m_hourid); 
+	root["pignum"] = Json::Value(m_pignum); 
+	root["is_read_image"] = Json::Value(m_is_read_image); 
+	root["videotype"] = Json::Value(m_videotype); 
+	root["camfolder"] = m_camDir; 
+	root["scenedata"] = m_scenedata_path;
+	root["background_folder"] = m_background_folder; 
+	root["imgdir"] = m_imgDir; 
+	root["boxdir"] = m_boxDir; 
+	root["maskdir"] = m_maskDir; 
+	root["keypointsdir"] = m_keypointsDir; 
+	root["startid"] = Json::Value(m_startid); 
+	root["framenum"] = Json::Value(m_framenum); 
+	root["epipolar_threshold"] = Json::Value(m_epi_thres); 
+	root["epipolartype"] = m_epi_type; 
+	root["box_expand_ratio"] = Json::Value(m_boxExpandRatio); 
+	root["skel_type"] = m_skelType; 
+	root["match_alg"] = m_match_alg; 
+	root["pig_config"] = m_pigConfig; 
+	root["use_gpu"] = Json::Value(m_use_gpu); 
+	root["solve_sil_iters"] = Json::Value(m_solve_sil_iters); 
+	root["solve_sil_iters_2nd_phase"] = Json::Value(m_solve_sil_iters_2nd_phase); 
+	root["use_reassoc"] = Json::Value(m_use_reassoc);
+	root["annotation_folder"] = m_annotation_folder;
+	root["result_folder"] = m_result_folder; 
+	root["terminal_thresh"] = Json::Value(m_terminal_thresh); 
+	Json::Value vec_name(Json::arrayValue);
+	for (int i = 0; i < m_pignum; i++) vec_name.append(Json::Value(m_pig_names[i]));
+	root["scales"] = vec_name;
+	root["pig_names"] = vec_name; 
+	root["use_given_scale"] = Json::Value(m_use_given_scale); 
+	root["use_init_cluster"] = Json::Value(m_use_init_cluster); 
+	root["try_load_anno"] = Json::Value(m_try_load_anno); 
+	root["use_triangulation_only"] = Json::Value(m_use_triangulation_only); 
+	root["use_init_pose"] = Json::Value(m_use_init_pose); 
+	root["anchor_folder"] = m_anchor_folder;
+	root["use_init_anchor"] = Json::Value(m_use_init_anchor);
+	root["restart_threshold"] = Json::Value(m_restart_threshold);
+	root["tracking_distance"] = Json::Value(m_tracking_distance); 
+	Json::Value vec_scale(Json::arrayValue); 
+	for (int i = 0; i < m_pignum; i++) vec_scale.append(Json::Value(m_given_scales[i]));
+	root["scales"] = vec_scale; 
+	Json::Value vec(Json::arrayValue); 
+	for (int i = 0; i < m_camNum; i++)
+	{
+		vec.append(Json::Value(m_camids[i])); 
+	}
+	root["camids"] = vec; 
+
+	Json::Value optim_param; 
+	optim_param["valid_thresold"] = Json::Value(mp_bodysolverdevice[0]->m_valid_threshold);
+	optim_param["lambda"] = Json::Value(mp_bodysolverdevice[0]->m_lambda);
+	optim_param["data_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_data_term); 
+	optim_param["sil_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_sil_term);
+	optim_param["reg_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_reg_term);
+	optim_param["temp_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_temp_term);
+	optim_param["floor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_floor_term);
+	optim_param["on_floor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_on_floor_term);
+	optim_param["anchor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_anchor_term);
+	optim_param["on_floor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_on_floor_term);
+	optim_param["collision_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_collision_term);
+	optim_param["sift_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_sift_term);
+	optim_param["kpt_track_dist"] = Json::Value(mp_bodysolverdevice[0]->m_kpt_track_dist); 
+	optim_param["iou_thres"] = Json::Value(mp_bodysolverdevice[0]->m_iou_thres); 
+	optim_param["anchor_folder"] = mp_bodysolverdevice[0]->m_anchor_folder; 
+	optim_param["use_bodyonly_reg"] = Json::Value(mp_bodysolverdevice[0]->m_use_bodyonly_reg);
+	optim_param["use_height_enhanced_temp"] = Json::Value(mp_bodysolverdevice[0]->m_use_height_enhanced_temp);
+
+	root["optim_param"] = optim_param; 
+	// write config content
+	std::ofstream outstream(ss_config_file.str()); 
+	if (!outstream.is_open())
+	{
+		std::cout << "output config file " << ss_config_file.str() << " could not open." << std::endl;
+		exit(-1); 
+	}
+	outstream << root << std::endl; 
+	outstream.close(); 
+
+}
+
+// 2021.10.1
+void FrameSolver::fetchGtData()
+{
+	// E:\evaluation_dataset\part1\dataset_process\output_label\0
+	// read m_det_undist 
+	
+	// keypoint: [camid, pigid, jointid]
+	m_keypoints_undist.clear();
+	m_keypoints_undist.resize(m_camNum);
+	for (int i = 0; i < m_camNum; i++)
+	{
+		m_keypoints_undist[i].resize(4);
+		for (int j = 0; j < 4; j++) m_keypoints_undist[i][j].resize(m_topo.joint_num, Eigen::Vector3f::Zero());
+	}
+	// mask: [camid, pigid, partid, pointid] 
+	m_masksUndist.clear();
+	m_masksUndist.resize(m_camNum);
+	for (int i = 0; i < m_camNum; i++)
+	{
+		m_masksUndist[i].resize(4);
+	}
+
+	for (int i = 0; i < m_camNum; i++)
+	{
+		int camid = m_camids[i];
+		std::stringstream ss;
+		ss << "E:/evaluation_dataset/part1/dataset_process/output_label/" << camid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+		std::string labelpath = ss.str();
+		Json::Value root;
+		Json::CharReaderBuilder rbuilder;
+		std::string errs;
+		std::ifstream is(labelpath);
+		if (!is.is_open())
+		{
+			std::cout << "can not open " << labelpath << std::endl;
+			continue;
+		}
+		bool parsingSuccessful = Json::parseFromStream(rbuilder, is, &root, &errs);
+		if (!parsingSuccessful)
+		{
+			std::cout << "parsing " << labelpath << " error!" << std::endl;
+			exit(-1);
+		}
+		Json::Value shapes = root["shapes"];
+		for (int k = 0; k < shapes.size(); k++)
+		{
+			Json::Value dict = shapes[k];
+			if (dict["shape_type"] == "point")
+			{
+				Eigen::Vector3f p;
+				p[0] = dict["points"][0][0].asFloat();
+				p[1] = dict["points"][0][1].asFloat();
+				p[2] = 1;
+				int label = std::stoi(dict["label"].asString());
+				int group = dict["group_id"].asInt();
+				m_keypoints_undist[i][group][label] = p;
+			}
+			else if (dict["shape_type"] == "polygon")
+			{
+				int group = dict["group_id"].asInt();
+				std::vector<Eigen::Vector2f> points;
+				int N = dict["points"].size();
+				points.resize(N);
+				for (int m = 0; m < N; m++)
+				{
+					points[m][0] = dict["points"][m][0].asFloat();
+					points[m][1] = dict["points"][m][1].asFloat();
+				}
+				m_masksUndist[i][group].push_back(points);
+			}
+		}
+		is.close();
+	}
+	// assemble keypoints 
+	m_matched.clear(); 
+	m_matched.resize(4); 
+	for (int camid = 0; camid < m_camNum; camid++)
+	{
+		for (int group = 0; group < 4; group++)
+		{
+			if (m_masksUndist[camid][group].size() == 0)
+			{
+				continue;
+			}
+			else
+			{
+				m_matched[group].view_ids.push_back(camid);
+				DetInstance det;
+				det.valid = true;
+				det.keypoints = m_keypoints_undist[camid][group];
+				det.mask = m_masksUndist[camid][group];
+				m_matched[group].dets.push_back(det);
+				m_matched[group].candids.push_back(-1);
+			}
+		}
+	}
+
+	m_unmatched.clear(); 
+	m_unmatched.resize(m_camNum); 
+}
+
+
+cv::Mat FrameSolver::tmp_visualizeRawDet(int viewid)
+{
+	cv::Mat rawimg = m_imgsUndist[viewid]; 
+
+		//Eigen::Vector3i color(71, 109, 245);
+		//Eigen::Vector3i color(204, 175, 143);
+
+	if (m_detUndist[viewid].size() > 0)
+	{
+		for (int candid = 0; candid < m_detUndist[viewid].size(); candid++)
+		{
+			int colorid = candid;
+			Eigen::Vector3i color;
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
+			my_draw_box(rawimg, m_detUndist[viewid][candid].box, color); 
+			my_draw_mask(rawimg, m_detUndist[viewid][candid].mask, color, 0.9);
+			//drawSkelMonoColor(rawimg, m_detUndist[viewid][candid].keypoints, color, m_topo);
+			drawSkelDebug(rawimg, m_detUndist[viewid][candid].keypoints, m_topo); 
+		}
+	}
+	
+	return rawimg; 
+}
+
+cv::Mat FrameSolver::tmp_visualizeRawDetPure(int viewid, bool withImg)
+{
+	cv::Mat rawimg;
+	rawimg.create(cv::Size(1920, 1080), CV_8UC3); 
+	rawimg.setTo(cv::Scalar(255, 255, 255)); 
+
+	cv::Mat halfraw; 
+	if(withImg)
+		halfraw = blend_images(rawimg, m_imgsUndist[viewid], 0.5); 
+	else
+		halfraw = rawimg; 
+
+	//Eigen::Vector3i color(71, 109, 245);
+	//Eigen::Vector3i color(244, 170, 2);
+	Eigen::Vector3i color(0, 0, 0); 
+
+
+	if (m_detUndist[viewid].size() > 0)
+	{
+		for (int candid = 0; candid < m_detUndist[viewid].size(); candid++)
+		{
+			//int colorid = candid;
+			//Eigen::Vector3i color;
+			//color(0) = m_CM_blend[colorid](2);
+			//color(1) = m_CM_blend[colorid](1);
+			//color(2) = m_CM_blend[colorid](0);
+			my_draw_box(halfraw, m_detUndist[viewid][candid].box, color);
+			my_draw_mask(halfraw, m_detUndist[viewid][candid].mask, color, 0, true);
+			//drawSkelMonoColor(rawimg, m_detUndist[viewid][candid].keypoints, color, m_topo);
+			drawSkelDebug(halfraw, m_detUndist[viewid][candid].keypoints, m_topo);
+		}
+	}
+	
+	return halfraw;
+}
+
+cv::Mat FrameSolver::tmp_visualizeIdentity2D(int viewid, int vid)
+{
+	cv::Mat rawimg;
+	rawimg.create(cv::Size(1920, 1080), CV_8UC3);
+	rawimg.setTo(cv::Scalar(255, 255, 255));
+	for (int id = 0; id < m_pignum; id++)
+	{
+		int colorid = m_pig_names[id];
+		if (vid > -1 && colorid != vid) continue; 
+		for (int i = 0; i < m_matched[id].view_ids.size(); i++)
+		{
+			if (viewid >= 0 && m_matched[id].view_ids[i] != viewid) continue;
+			Eigen::Vector3i color;
+			color(0) = m_CM[colorid](2);
+			color(1) = m_CM[colorid](1);
+			color(2) = m_CM[colorid](0);
+			int camid = m_matched[id].view_ids[i];
+			if (m_matched[id].dets[i].mask.size() > 0)
+				my_draw_mask(rawimg, m_matched[id].dets[i].mask, color, 0.5); 
+			if (m_matched[id].dets[i].keypoints.size() > 0)
+				drawSkelMonoColor(rawimg, m_matched[id].dets[i].keypoints, color, m_topo);
+			//my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, color);
+		}
+	}
+	return rawimg; 
 }

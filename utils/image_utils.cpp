@@ -420,10 +420,10 @@ void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4f>& boxes)
         Eigen::Vector3f p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
         Eigen::Vector3i color = Eigen::Vector3i::Zero(); 
         color(1) = 255; 
-        my_draw_segment(img, p1, p3, color, 3, 6); 
-        my_draw_segment(img, p1, p4, color, 3, 6); 
-        my_draw_segment(img, p3, p2, color, 3, 6); 
-        my_draw_segment(img, p4, p2, color, 3, 6); 
+        my_draw_segment(img, p1, p3, color, 2, 2); 
+        my_draw_segment(img, p1, p4, color, 2, 2); 
+        my_draw_segment(img, p3, p2, color, 2, 2); 
+        my_draw_segment(img, p4, p2, color, 2, 2); 
     }
 }
 
@@ -435,18 +435,22 @@ void my_draw_box(cv::Mat& img, const Eigen::Vector4f& box, Eigen::Vector3i c)
     Eigen::Vector3f p3; p3(0) = x(0); p3(1) = x(3); p3(2) = 1; 
     Eigen::Vector3f p4; p4(0) = x(2); p4(1) = x(1); p4(2) = 1; 
 	Eigen::Vector3i color = c;
-    my_draw_segment(img, p1, p3, color, 3, 6); 
-    my_draw_segment(img, p1, p4, color, 3, 6); 
-    my_draw_segment(img, p3, p2, color, 3, 6); 
-    my_draw_segment(img, p4, p2, color, 3, 6); 
+    my_draw_segment(img, p1, p3, color, 2, 2); 
+    my_draw_segment(img, p1, p4, color, 2, 2); 
+    my_draw_segment(img, p3, p2, color, 2, 2); 
+    my_draw_segment(img, p4, p2, color, 2, 2); 
 }
 
 void my_draw_mask(cv::Mat& img, 
     vector<vector<Eigen::Vector2f> > contour_list, 
     Eigen::Vector3i c, 
-    float alpha)
+    float alpha, bool is_contour)
 {
     cv::Mat raw = img.clone(); 
+	//cv::Mat panel;
+	//panel.create(cv::Size(1920, 1080), CV_8UC3);
+	//panel.setTo(cv::Scalar(255, 255, 255));
+	cv::Mat panel = img.clone(); 
     vector<vector<cv::Point2i> > contours; 
     for(int i = 0; i < contour_list.size(); i++)
     {
@@ -461,9 +465,12 @@ void my_draw_mask(cv::Mat& img,
         contours.push_back(contour_part); 
     }
     cv::Scalar color(c(0), c(1), c(2)); 
-    cv::fillPoly(img, contours, color, 1, 0); 
+	if(!is_contour)
+		cv::fillPoly(panel, contours, color, 1, 0); 
+	else
+		cv::polylines(panel, contours, true, color, 2, cv::LINE_AA);
 
-    img = blend_images(raw, img, alpha); 
+    img = blend_images(raw, panel, alpha); 
 }
 
 void my_draw_mask_gray(cv::Mat& grey,
@@ -945,4 +952,21 @@ cv::Mat my_resize(const cv::Mat& input, float ratio)
 	cv::Mat output;
 	cv::resize(input, output, cv::Size(output_W, output_H)); 
 	return output; 
+}
+
+bool inMeshTest_cpu(const std::vector<Eigen::Vector3f>& mesh_vertices,
+	const std::vector<Eigen::Vector3u>& mesh_faces,
+	const Eigen::Vector3f& a, const Eigen::Vector3f& b)
+{
+	int intersect = 0; 
+	for (int i = 0; i < mesh_faces.size(); i++)
+	{
+		Eigen::Vector3f x, y, z; 
+		x = mesh_vertices[mesh_faces[i](0)]; 
+		y = mesh_vertices[mesh_faces[i](1)]; 
+		z = mesh_vertices[mesh_faces[i](2)]; 
+		if (intersectTestSegment(x, y, z, a, b)) intersect++; 
+	}
+	if (intersect % 2 == 0) return true; 
+	else return false; 
 }

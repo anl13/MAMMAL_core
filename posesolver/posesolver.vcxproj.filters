@@ -129,6 +129,9 @@
     <ClCompile Include="..\utils\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
+    <ClCompile Include="run_demo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\articulation\artist_config.json">
@@ -237,6 +240,21 @@
       <Filter>资源文件</Filter>
     </None>
     <None Include="..\configs\config_20210321_motion2.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190703_motion.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval_3views.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval_tri_3views.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_fordemo.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190703_motion2.json">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>

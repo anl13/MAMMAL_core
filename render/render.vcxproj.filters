@@ -114,5 +114,11 @@
     <None Include="shader\texture_v.shader">
       <Filter>other</Filter>
     </None>
+    <None Include="shader\mask_f.shader">
+      <Filter>other</Filter>
+    </None>
+    <None Include="shader\mask_v.shader">
+      <Filter>other</Filter>
+    </None>
   </ItemGroup>
 </Project>

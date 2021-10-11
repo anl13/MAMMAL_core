@@ -18,12 +18,10 @@
 #include "shader.h"
 #include "../utils/math_utils.h"
 #include "../utils/safe_call.hpp"
+#include "../utils/camera.h"
 
-
-#define WINDOW_HEIGHT 1080
-#define WINDOW_WIDTH  1920
-#define SHADOW_WINDOW_HEIGHT  1080
-#define SHADOW_WINDOW_WIDTH   1920
+#define WINDOW_HEIGHT (1080)
+#define WINDOW_WIDTH  (1920)
 
 class Renderer
 {
@@ -84,6 +82,8 @@ public:
 	void createSceneDetailed(std::string projectFolder, float scale = 1.0, int flip_axis = -1);
 	void createSceneHalf(std::string projectFolder, float scale = 1.0);
 	void createSceneHalf2(std::string projectFolder, float scale = 1.0); 
+	void createHikonCam(std::string projectFolder, const std::vector<Camera>& cams); 
+	void createVirtualCam(std::string projectFolder, const std::vector<Camera>& cams); 
 
 	void createPlane(std::string projectFolder, float scale = 1); 
 private:
@@ -123,6 +123,5 @@ private:
 
 	Eigen::Vector4f m_backgroundColor; 
 	//TimerUtil::Timer<std::chrono::milliseconds> tt;
-	
 };
 

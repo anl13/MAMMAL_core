@@ -15,7 +15,6 @@
 #include "../utils/math_utils.h" 
 #include "gpuutils.h"
 
-//#define DEBUG_SIL
 //#define DEBUG_SOLVER
 
 //#define USE_GPU_SOLVER 
@@ -62,55 +61,54 @@ typedef struct {
 
 class PigSolverDevice : public PigModelDevice
 {
-public: 
-	PigSolverDevice() = delete; 
-	PigSolverDevice(const std::string &_configfile); 
+public:
+	PigSolverDevice() = delete;
+	PigSolverDevice(const std::string &_configfile);
 	~PigSolverDevice();
-	PigSolverDevice(const PigSolverDevice&) = delete; 
-	PigSolverDevice& operator=(const PigSolverDevice&) = delete; 
+	PigSolverDevice(const PigSolverDevice&) = delete;
+	PigSolverDevice& operator=(const PigSolverDevice&) = delete;
 
-	void setSource(const MatchedInstance& _source) { 
-		m_source = _source; 
+	void setSource(const MatchedInstance& _source) {
+		m_source = _source;
 	}
-
 
 	// state marker
 	bool m_isUpdated;
-	bool m_isPostprocessed; 
-	void resetStateMarker(); 
-	float m_trackConf; 
+	bool m_isPostprocessed;
+	void resetStateMarker();
+	float m_trackConf;
 
-	float getAvgHeight(); 
-	float computeProjectionError(); 
-	float computeScale(); 
+	float getAvgHeight();
+	float computeProjectionError();
+	float computeScale();
 
 	void getTheta(Eigen::VectorXf& theta);
-	void setTheta(const Eigen::VectorXf& theta); 
-	void getThetaAnchor(Eigen::VectorXf& theta); 
-	void setThetaAnchor(const Eigen::VectorXf& theta); 
+	void setTheta(const Eigen::VectorXf& theta);
+	void getThetaAnchor(Eigen::VectorXf& theta);
+	void setThetaAnchor(const Eigen::VectorXf& theta);
 
-	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams;  }
+	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams; }
 	void setRenderer(Renderer * _p_render) { mp_renderEngine = _p_render; }
 	void setROIs(std::vector<ROIdescripter> _rois) { m_rois = _rois; }
-	std::vector<Eigen::Vector3f> getSkel3D() { return m_skel3d;  }
+	std::vector<Eigen::Vector3f> getSkel3D() { return m_skel3d; }
 	std::vector<int> getPoseToOptimize() { return m_poseToOptimize; }
 	std::vector<std::vector<Eigen::Vector3f> > getSkelsProj() { return m_skelProjs; }
 
 	// detection confidence for each joint, used for adapt 
 	// joint joint fitting weights 
-	std::vector<float> m_det_confs; 
+	std::vector<float> m_det_confs;
 
-	std::vector<Eigen::Vector3f>  directTriangulationHost(int validViewThresh=2); // calc m_skel3d using direct triangulation
+	std::vector<Eigen::Vector3f>  directTriangulationHost(int validViewThresh = 2); // calc m_skel3d using direct triangulation
 	void globalAlign(); // compute scale and global R,T
-	void optimizeTri(); 
+	void optimizeTri();
 
 
-	void optimizePose(); 
+	void optimizePose();
 	void optimizePoseSilhouette(
 		int maxIter);
 
-	cv::Mat debug_source_visualize(); 
-	std::vector<float> computeValidObservation(); 
+	cv::Mat debug_source_visualize();
+	std::vector<float> computeValidObservation();
 
 	void fitPoseToVSameTopo(const std::vector<Eigen::Vector3f> &_tv);
 	void fitPoseToJointSameTopo(const std::vector<Eigen::Vector3f> &_joints);
@@ -122,23 +120,23 @@ public:
 // 3*jointnum+3:  pose parameter to solve 
 // 2d array on gpu are row major 
 	void calcPoseJacobiFullTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
-		pcl::gpu::DeviceArray2D<float> &J_vertices, bool with_vert=true);
+		pcl::gpu::DeviceArray2D<float> &J_vertices, bool with_vert = true);
 	void calcPoseJacobiPartTheta_device(pcl::gpu::DeviceArray2D<float> &J_joint,
-		pcl::gpu::DeviceArray2D<float> &J_vert, bool with_vert=true);
+		pcl::gpu::DeviceArray2D<float> &J_vert, bool with_vert = true);
 	void calcSkelJacobiPartTheta_host(Eigen::MatrixXf& J);
 	void calcPose2DTerm_host(const DetInstance& det, int camid, const std::vector<Eigen::Vector3f>& skel2d,
 		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb,
 		float radius, bool is_converge_detect = false, std::vector<int> high_conf_views = {});
 	void calcJoint3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& skel3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcSkel3DTerm_host(const Eigen::MatrixXf& Jacobi3d, const std::vector<Eigen::Vector3f>& joints3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
-	void calcAnchorTerm_host(int anchorid, const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
+	void calcAnchorTerm_host(int anchorid, const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	void calcAnchorTermHeight_host(int anchorid, const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
 	void Calc2dJointProjectionTerm(
 		const MatchedInstance& source,
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb,
 		float track_radius = 80,
-		bool with_depth_weight=false, bool is_converge_detect=false);
+		bool with_depth_weight = false, bool is_converge_detect = false);
 
 	void CalcSIFTTerm(
 		const std::vector<std::vector<SIFTCorr> > & siftcorrs,
@@ -148,8 +146,8 @@ public:
 	void Calc2dSkelProjectionTermReassoc(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight = false);
 	void Calc2DSkelTermReassoc_host(const std::vector<Eigen::Vector3f>& skel_det, const std::vector<Eigen::Vector3f>& skel3d, int camid,
-		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb); 
-	
+		const Eigen::MatrixXf& Jacobi3d, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
+
 	void CalcJointFloorTerm(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
 	);
@@ -158,13 +156,13 @@ public:
 	);
 	void CalcJointOnFloorTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
-	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool adaptive_weight=false); 
+	void CalcRegTerm(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool adaptive_weight = false);
 	void CalcRegTermBodyOnly(const Eigen::VectorXf& theta, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 
 	void CalcJointTempTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::VectorXf& last_theta, const Eigen::VectorXf& theta);
 	void CalcJointTempTerm2(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, const Eigen::MatrixXf& skelJ,
-		const std::vector<Eigen::Vector3f>& last_regressed_skel); 
-	
+		const std::vector<Eigen::Vector3f>& last_regressed_skel);
+
 
 	void CalcPoseJacobiFullTheta_cpu(Eigen::MatrixXf& jointJacobiPose, Eigen::MatrixXf& J_vert,
 		bool with_vert);
@@ -173,7 +171,7 @@ public:
 
 	// sil term constructor 
 	void CalcSilhouettePoseTerm(
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter=0);
+		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter = 0);
 	void calcSilhouetteJacobi_device(
 		Eigen::Matrix3f K, Eigen::Matrix3f R, Eigen::Vector3f T,
 		float* d_depth, float* d_depth_interact, int idcode, int paramNum, int view
@@ -181,6 +179,14 @@ public:
 
 	void CalcSilouettePoseTerm_cpu(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, int iter = 0);
+
+	// 2021.09.26 
+	void CalcCollisionJointTerm_cpu(
+		Eigen::MatrixXf& J_joint, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+	);
+	void CalcCollisionSurfaceTerm_cpu(
+		Eigen::MatrixXf& J_vert, Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
+	);
 
 	void renderDepths();
 
@@ -262,6 +268,8 @@ public:
 	bool m_use_height_enhanced_temp; 
 	bool m_use_given_scale; 
 	bool m_use_triangulation_only; 
+	float m_w_collision_term; 
+	float m_w_3d_term; 
 
 	float m_gtscale;  // This gt scale is given from outside
 	float approxIOU(int view); 
@@ -284,6 +292,7 @@ public:
 		-- 3: right front 
 	*/
 	std::vector<int> findBestViewsForLeg(int legid); 
+	
 
 	std::vector<float> o_ious; 
 
@@ -297,7 +306,21 @@ public:
 	Eigen::VectorXf m_optimMask; 
 	std::vector<int> m_currentHierarchy; 
 
+	// 2021/09/25
+	
+	void map_reduced_vertices(); 
+	vector<vector<Eigen::Vector3f> >  m_other_pigs_reduced_vertices; 
+	vector<Eigen::Vector3f> m_other_centers; 
+	std::vector<Eigen::Vector3f> m_reduced_vertices;
+	std::vector<Eigen::Vector3u> m_reduced_faces;
+	std::vector<Eigen::Vector3f> m_reduced_normals;
+
 protected:
+	// 2021/09/25
+	// reduced model for collision detection and social 
+	std::vector<int> m_reduced_ids; 
+	
+	void load_reduced();
 
 	// state indicator 
 	bool m_initScale;

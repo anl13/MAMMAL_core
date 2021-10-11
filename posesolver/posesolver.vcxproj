@@ -170,6 +170,7 @@
     <ClCompile Include="scenedata.cpp" />
     <ClCompile Include="tracking.cpp" />
     <ClCompile Include="visualize_seq.cpp" />
+    <ClCompile Include="run_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\gpuutils.cu" />
@@ -201,11 +202,16 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="..\articulation\artist_config.json" />
+    <None Include="..\configs\config_20190703_motion.json" />
+    <None Include="..\configs\config_20190703_motion2.json" />
+    <None Include="..\configs\config_20190704_fordemo.json" />
     <None Include="..\configs\config_20190704_foreval.json" />
+    <None Include="..\configs\config_20190704_foreval_3views.json" />
     <None Include="..\configs\config_20190704_foreval_5views.json" />
     <None Include="..\configs\config_20190704_foreval_no_reassoc.json" />
     <None Include="..\configs\config_20190704_foreval_no_sil.json" />
     <None Include="..\configs\config_20190704_foreval_tri.json" />
+    <None Include="..\configs\config_20190704_foreval_tri_3views.json" />
     <None Include="..\configs\config_20190704_foreval_tri_5views.json" />
     <None Include="..\configs\config_20190705_feed.json" />
     <None Include="..\configs\config_20190823_feed.json" />

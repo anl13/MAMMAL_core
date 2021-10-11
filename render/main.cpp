@@ -41,7 +41,7 @@ std::vector<Camera> readCameras()
 		0,1,2,5,6,7,8,9,10,11
 	};
 	int m_camNum = m_camids.size();
-	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/adjust/";
+	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/extrinsic/";
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss;
@@ -957,28 +957,39 @@ void test_indexrender()
 	};
 }
 
+
+// edit 20211008: render scene with camera. 
 void test_render_texture()
 {
 	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_paper");
 
+	auto cams = readCameras(); 
 	// init a camera 
-	Eigen::Matrix3f K;
-	K << 0.698f, 0.f, 0.502f,
-		0.f, 1.243f, 0.483f,
-		0.f, 0.f, 1.f;
-	std::cout << K << std::endl;
+	Eigen::Matrix3f K = cams[0].K; 
+	K.row(0) = K.row(0) / 1920; 
+	K.row(1) = K.row(1) / 1080; 
+	std::cout << K << std::endl; 
 
-	Eigen::Vector3f pos(0, 0, 5);
-	Eigen::Vector3f up(0, 1, 0);
-	Eigen::Vector3f center(0, 0, 0);
+	Eigen::Vector3f pos3(0.0, 0.0, 4.1);
+	Eigen::Vector3f up3(0.0, 0.1, 0.0);
+	Eigen::Vector3f center3(0.0, 0.0, 0.0);
+
+	Eigen::Vector3f pos4(-2.2866, -1.61577, 2.71787);
+	Eigen::Vector3f up4(0.52083, 0.378857, 0.764986);
+	Eigen::Vector3f center4(0.241644, -0.127209, 0.250072);
+
+	Eigen::Vector3f pos5(-4.06622, -1.4771, 2.92314);
+	Eigen::Vector3f up5(0.369056, 0.151044, 0.917051);
+	Eigen::Vector3f center5(0.368738, -0.0883226, 0.908236);
+
 	// init renderer 
-	Renderer::s_Init();
+	Renderer::s_Init(false);
 
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+	m_renderer.s_camViewer.SetExtrinsic(pos5, up5, center5);
 
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
@@ -987,45 +998,41 @@ void test_render_texture()
 	MeshEigen ballMeshEigen(ballMesh);
 	MeshEigen stickMeshEigen(stickMesh);
 
-	Mesh obj;
-	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
-	//obj.Load("C:/Users/BBNC/Documents/maya/projects/default/scenes/hand_cage/ground2.obj");
-	for (int i = 0; i < obj.vertices_vec.size(); i++)
+
+	for (int pid = 0; pid < 4; pid++)
 	{
-		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0.21);
+		std::stringstream ss; 
+		ss << "D:/results/paper_teaser/0704_demo/annotation/pig_" << pid << "_frame_007888.obj"; 
+		Mesh obj;
+		obj.Load(ss.str());
+		obj.ReMapTexture();
+
+		RenderObjectColor * p_model2 = new RenderObjectColor();
+		p_model2->SetVertices(obj.vertices_vec);
+		p_model2->SetFaces(obj.faces_v_vec);
+		p_model2->SetNormal(obj.normals_vec);
+		//p_model2->SetColor(CM[pid]);
+		p_model2->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8)); 
+		p_model2->isMultiLight = false; 
+		m_renderer.colorObjs.push_back(p_model2);
+		
 	}
-
-	obj.ReMapTexture();
-
-	//RenderObjectTexture* p_model = new RenderObjectTexture();
-	//p_model->SetTexture(conf_projectFolder + "/render/data/chessboard_black_large.png");
-	//p_model->SetFaces(obj.faces_t_vec);
-	//p_model->SetVertices(obj.vertices_vec_t);
-	//p_model->SetNormal(obj.normals_vec_t, 2);
-	//p_model->SetTexcoords(obj.textures_vec, 1);
-	//p_model->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	//p_model->isMultiLight = true; 
-	//p_model->isFaceIndex = false; 
-	//m_renderer.texObjs.push_back(p_model);
+	m_renderer.createSceneDetailed(conf_projectFolder); 
+	//m_renderer.createHikonCam(conf_projectFolder, cams); 
+	m_renderer.createVirtualCam(conf_projectFolder, cams); 
+	
 
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-
-	RenderObjectColor * p_model2 = new RenderObjectColor();
-	p_model2->SetVertices(obj.vertices_vec);
-	p_model2->SetFaces(obj.faces_v_vec);
-	p_model2->SetNormal(obj.normals_vec);
-	p_model2->SetColor(Eigen::Vector3f(1.0f, 0.0f, 0.0f));
-	m_renderer.colorObjs.push_back(p_model2); 
-	m_renderer.createSceneDetailed(conf_projectFolder); 
-	//m_renderer.createPlane(conf_projectFolder);
-
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
 	//m_renderer.Draw(); 
-	//cv::Mat img = m_renderer.GetImage(); 
+	cv::Mat img = m_renderer.GetImageOffscreen();
+	cv::Mat imgsmall;
+	cv::resize(img, imgsmall, cv::Size(1920, 1080), cv::INTER_CUBIC); 
 	//cv::imshow("test", img); 
-	//cv::waitKey(); 
+	cv::imwrite("D:/results/paper_teaser/0704_demo/render_all/render7888-3.png", img); 
+	cv::imwrite("D:/results/paper_teaser/0704_demo/render_all/render7888_small-3.png", imgsmall); 
 	while (!glfwWindowShouldClose(windowPtr))
 	{
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

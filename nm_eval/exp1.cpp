@@ -9,7 +9,7 @@ void Part1Data::init()
 	std::string skelType = "UNIV"; 
 	m_topo = getSkelTopoByType(skelType); 
 
-	m_camids = { 0,1,2,5,6,7,8,9,10 };
+	m_camids = { 0,1,2,5,6,7,8,9,10,11 };
 	m_camNum = m_camids.size(); 
 	readCameras(); 
 }
@@ -295,20 +295,6 @@ vector<vector<Eigen::Vector3f>> load_joint23(std::string folder, int frameid)
 	return skels;
 }
 
-
-//void eval_skel_3d(const vector<vector<vector<Eigen::Vector3f> > >& est,
-//	vector<vector<vector<Eigen::Vector3f>>>& gt)
-//{
-//	std::vector<int> valid_gt_num(23, 0); 
-//	std::vector<float> error_gt_sum(23, 0); 
-//
-//	for(int )
-//	for (int pid = 0; pid < 4; pid++)
-//	{
-//	
-//	}
-//}
-
 void process_generate_label3d()
 {
 	Part1Data loader; 
@@ -343,3 +329,14 @@ void process_generate_label3d()
 	}
 }
 
+void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data)
+{
+	std::stringstream ss;
+	ss << folder << "/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt";
+	std::ofstream outputfile(ss.str());
+	for (int i = 0; i < data.size(); i++)
+	{
+		outputfile << data[i].transpose() << std::endl;
+	}
+	outputfile.close();
+}

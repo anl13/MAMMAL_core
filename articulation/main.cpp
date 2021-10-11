@@ -21,5 +21,8 @@ void main()
 
 	//test_texture(); 
 
-	test_bone_var(); 
+	//test_bone_var(); 
+	//test_inmeshtest();
+	//test_render_behavior(); 
+	test_collision_render(); 
 }

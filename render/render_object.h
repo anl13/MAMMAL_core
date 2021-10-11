@@ -40,6 +40,7 @@ public:
 
 	bool isMultiLight; 
 	bool isFill;
+	float alpha; 
 protected:
 	GLuint VAO;
 	GLuint EBO;

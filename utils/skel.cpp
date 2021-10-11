@@ -140,12 +140,19 @@ SkelTopology getSkelTopoByType(std::string type)
         {18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
 		{0,20},{5,20},{6,20}
         };
-        A.kpt_color_ids = {
-            0,0,0,0,0, // face 
-            2,1,2,1,2,1, // front legs 
-            4,3,4,3,4,3, // back legs 
-            5,9,5,6,5,5 // ceneter and tail 
-        }; 
+        //A.kpt_color_ids = {
+        //    0,0,0,0,0, // face 
+        //    2,1,2,1,2,1, // front legs 
+        //    4,3,4,3,4,3, // back legs 
+        //    5,9,5,6,5,5 // ceneter and tail 
+        //}; 
+		A.kpt_color_ids =
+		{
+					0,0,0,0,0,
+		3,4,3,4,3,4,
+		5,6,5,6,5,6,
+		2,2,2,2,2,2
+		};
         //A.kpt_conf_thresh = {
         //    0.8, // nose 0
         //    0.8, // eye left  1
@@ -275,18 +282,23 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 	)
 {
 	std::vector<Eigen::Vector3i> m_CM; 
-	getColorMap("anliang_render", m_CM);
+	getColorMap("anliang_blend", m_CM);
+	std::vector<int> bone_color_ids = {
+	0,0,0,0,0,3,3,4,4,
+	2,5,6,5,5,6,6,
+	2,3,4
+	};
 	for (int i = 0; i < _skel2d.size(); i++)
 	{
 		int colorid = m_topo.kpt_color_ids[i];
 		Eigen::Vector3i color = m_CM[colorid];
-		cv::Scalar cv_color(color(2), color(1), color(1));
+		cv::Scalar cv_color(color(2), color(1), color(0));
 
 		cv::Point2d p(_skel2d[i](0), _skel2d[i](1));
 		double conf = _skel2d[i](2);
 		if (conf < m_topo.kpt_conf_thresh[i]) continue;
-		cv::circle(img, p, int(12 * conf), cv_color, -1);
-		cv::putText(img, std::to_string(conf), p, cv::FONT_HERSHEY_COMPLEX, 1.3, cv_color, 2, -1);
+		cv::circle(img, p, int(8 * conf), cv_color, -1);
+		//cv::putText(img, std::to_string(conf), p, cv::FONT_HERSHEY_COMPLEX, 1.3, cv_color, 2, -1);
 		//cv::imshow("tset", img); 
 		//cv::waitKey(); 
 		//cv::destroyAllWindows(); 
@@ -294,8 +306,7 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 	}
 	for (int k = 0; k < m_topo.bone_num; k++)
 	{
-		int jid = m_topo.bones[k](0);
-		int colorid = m_topo.kpt_color_ids[jid];
+		int colorid = bone_color_ids[k];
 		Eigen::Vector3i color = m_CM[colorid];
 		cv::Scalar cv_color(color(2), color(1), color(0));
 
@@ -305,7 +316,7 @@ void drawSkelDebug(cv::Mat& img, const vector<Eigen::Vector3f>& _skel2d,
 		if (p1(2) < m_topo.kpt_conf_thresh[b(0)] || p2(2) < m_topo.kpt_conf_thresh[b(1)]) continue;
 		cv::Point2d p1_cv(p1(0), p1(1));
 		cv::Point2d p2_cv(p2(0), p2(1));
-		cv::line(img, p1_cv, p2_cv, cv_color, 4);
+		cv::line(img, p1_cv, p2_cv, cv_color, 3);
 	}
 }
 

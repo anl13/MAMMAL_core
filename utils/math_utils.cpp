@@ -499,8 +499,8 @@ Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiF(const Eigen::Vector3f& 
 Eigen::Matrix<float, 3, 9, Eigen::ColMajor> EulerJacobiFNumeric(const Eigen::Vector3f& euler)
 {
 	Eigen::Matrix<float, 3, 9, Eigen::ColMajor> dR; 
-	float alpha = 0.001; 
-	float invalpha = 1000;
+	float alpha = 0.001f; 
+	float invalpha = 1000.f;
 	Eigen::Matrix3f R0 = EulerToRotRad(euler);
 	
 	for (int i = 0; i < 3; i++)
@@ -534,4 +534,63 @@ std::vector<Eigen::Vector3d> floatToDouble(const std::vector<Eigen::Vector3f>& l
 		listd[i] = list[i].cast<double>(); 
 	}
 	return listd; 
+}
+
+
+
+bool intersectTest(const Eigen::Vector3f& x, const Eigen::Vector3f& y, const Eigen::Vector3f& z, const Eigen::Vector3f& a, const Eigen::Vector3f& b)
+{
+	// 2021/09/26: refer to https://blog.csdn.net/qq_33263124/article/details/88179289
+	Eigen::Vector6f e1 = convertToPluckerLine(x, y);
+	Eigen::Vector6f e2 = convertToPluckerLine(y, z);
+	Eigen::Vector6f e3 = convertToPluckerLine(z, x);
+	Eigen::Vector6f L = convertToPluckerLine(a, b);
+	float S1 = sidePlucker(L, e1);
+	float S2 = sidePlucker(L, e2);
+	float S3 = sidePlucker(L, e3);
+	if ((S1 > 0 && S2 > 0 && S3 > 0) || (S1 < 0 && S2 < 0 && S3 < 0)) return true;
+	else return false;
+}
+
+
+bool intersectTestSegment(const Eigen::Vector3f& x, const Eigen::Vector3f& y, const Eigen::Vector3f& z, const Eigen::Vector3f& a, const Eigen::Vector3f& b)
+{
+	bool r = intersectTest(x, y, z, a, b); 
+	if (!r) return r; 
+	float v_a = tetrahedronSignedVolume(x, y, z, a); 
+	float v_b = tetrahedronSignedVolume(x, y, z, b); 
+	if (v_a * v_b >= 0) return false;
+	else return true; 
+}
+
+Eigen::Vector6f convertToPluckerLine(const Eigen::Vector3f& a, const Eigen::Vector3f& b)
+{
+	Eigen::Vector6f L; 
+	L[0] = a(0) * b(1) - b(0) * a(1); 
+	L[1] = a(0) * b(2) - b(0) * a(2); 
+	L[2] = a(0) - b(0); 
+	L[3] = a(1) * b(2) - b(1) * a(2); 
+	L[4] = a(2) - b(2); 
+	L[5] = b(1) - a(1); 
+	return L; 
+}
+
+float sidePlucker(const Eigen::Vector6f& a, const Eigen::Vector6f& b)
+{
+	float result = a(0) * b(4)
+		+ a(1) * b(5)
+		+ a(2) * b(3)
+		+ a(3) * b(2)
+		+ a(4) * b(0)
+		+ a(5) * b(1);
+	return result; 
+}
+
+float tetrahedronSignedVolume(const Eigen::Vector3f& a, const Eigen::Vector3f& b, const Eigen::Vector3f& c, const Eigen::Vector3f& d)
+{
+	// refer to https://www.cs.jhu.edu/~misha/Spring20/09.pdf 
+	// if v > 0: d is on the left of triangle (a,b,c) 
+	// else: d is on the right 
+	float v = (d - a).dot((b - a).cross(c - a)) / 6; 
+	return v; 
 }

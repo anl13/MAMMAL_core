@@ -90,7 +90,7 @@ int run_inspect()
 		boost::filesystem::create_directory(test_result_folder); 
 	}
 	std::vector<std::string> subfolders = {
-		"assoc", "render_all", "clusters", "state", "reassoc2", "proj2", "before_swap2",
+		"assoc", "render", "clusters", "state", "reassoc2", "proj2", "before_swap2",
 		"fitting", "annotation", "skels", "anchor_state", "rawdet", "joints_62", "joints_23"
 	};
 	for (int i = 0; i < subfolders.size(); i++)
@@ -103,6 +103,8 @@ int run_inspect()
 	int framenum = frame.get_frame_num(); 
 	int increment = 1; 
 	if (framenum < 0) increment = -1;
+
+	frame.saveConfig();
 
 	for (int frameid = start; frameid != start + framenum; frameid+=increment)
 	{
@@ -334,7 +336,7 @@ int run_inspect()
 
 		cv::Mat blend_small = my_resize(blend, 0.25);
 		std::stringstream all_render_file;
-		all_render_file << test_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
+		all_render_file << test_result_folder << "/render/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
 		cv::imwrite(all_render_file.str(), blend_small);
 		

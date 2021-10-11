@@ -9,6 +9,9 @@ date: 2020/11/08
 
 #include "../utils/timer_util.h"
 
+#define DEBUG_SIL
+
+
 void FrameSolver::DARKOV_Step0_topdownassoc(bool isLoad)
 {
 	if (isLoad)
@@ -88,6 +91,14 @@ void FrameSolver::DARKOV_Step3_reassoc_type1()
 
 void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 {
+#ifdef DEBUG_SIL
+	renderInteractDepth(true); 
+	cv::Mat output;
+	packImgBlock(m_interMask, output);
+	std::stringstream ss;
+	ss << m_result_folder << "/debug/mask_" << m_frameid << "_anchor_" << ".png";
+	cv::imwrite(ss.str(), output);
+#endif 
 	for (int i = 0; i < m_pignum; i++)
 	{
 		mp_bodysolverdevice[i]->m_isReAssoc = false; 
@@ -117,6 +128,7 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 
 	TimerUtil::Timer<std::chrono::microseconds> tt;
 	tt.Start();
+
 	for (int k = 0; k < hierarachy.size(); k++)
 	{
 		for (int pid = 0; pid < m_pignum; pid++)
@@ -125,7 +137,18 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 		}
 		if (m_solve_sil_iters > 0)
 		{
-			optimizeSilWithAnchor(m_solve_sil_iters);
+#ifdef DEBUG_SIL 
+			cv::Mat output;
+			packImgBlock(m_interMask, output);
+			std::stringstream ss;
+			ss << m_result_folder << "/debug/mask_" << m_frameid << "_before_optim_" << ".png";
+			cv::imwrite(ss.str(), output);
+			for (int pid = 0; pid < 4; pid++)
+			{
+				std::cout << "pig " << pid << " : " << std::endl << mp_bodysolverdevice[pid]->GetScale() << std::endl; 
+			}
+#endif 
+			optimizeSilWithAnchor(m_solve_sil_iters,0);
 		}
 	}
 	float micro = tt.Elapsed();	
@@ -157,7 +180,7 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 		}
 		if (m_solve_sil_iters > 0)
 		{
-			optimizeSilWithAnchor(m_solve_sil_iters_2nd_phase);
+			optimizeSilWithAnchor(m_solve_sil_iters_2nd_phase, m_solve_sil_iters);
 		}
 	}
 

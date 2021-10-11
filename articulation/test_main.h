@@ -43,3 +43,8 @@ int test_visanchors();
 void test_texture(); 
 
 void test_bone_var(); 
+
+void test_inmeshtest(); 
+
+int test_render_behavior(); 
+void test_collision_render(); 

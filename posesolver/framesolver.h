@@ -4,6 +4,7 @@
 #include "scenedata.h"
 #include "../articulation/pigsolverdevice.h"
 #include "../tracking/sift_matcher.h" 
+#include <boost/date_time.hpp> 
 
 class FrameSolver : public FrameData
 {
@@ -12,11 +13,14 @@ public:
 
 	~FrameSolver(); 
 
+	void fetchGtData(); 
+
 	// association pipeline 
 	void configByJson(std::string jsonfile) override;
 	void pureTracking();
 	void restart();
 	void updateTrackConf(); 
+	void saveConfig(); 
 
 	// load manual annotation 
 	std::string m_annotation_folder; 
@@ -118,6 +122,11 @@ public:
 	cv::Mat visualizeSwap(); 
 	cv::Mat visualizeRawAssoc();
 	cv::Mat visualizeSIFT(); 
+	cv::Mat tmp_visualizeRawDet(int viewid); 
+	cv::Mat tmp_visualizeRawDetPure(int viewid, bool withImg = true); 
+	cv::Mat tmp_visualizeIdentity2D(int viewid, int vid=-1); 
+	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);
+	cv::Mat visualizeProj(int id = -1, bool withimg = true);
 
 	// 20201108: assoc with 
 	void reAssocProcessStep1();
@@ -157,13 +166,10 @@ public:
 	vector<vector<float> > m_ious; // [id, camid]
 	void computeIOUs(); // return: [id, camid]
 
-	void optimizeSilWithAnchor(int maxIterTime); 
+	void optimizeSilWithAnchor(int maxIterTime, int startIter=0); 
 	void saveAnchors(std::string folder);
 	void loadAnchors(std::string folder, bool andsolve=false); 
 	// visualization function  
-	
-	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);
-	cv::Mat visualizeProj(int id=-1);
 
 	void writeSkel3DtoJson(std::string savepath);
 	void readSkel3DfromJson(std::string jsonfile);

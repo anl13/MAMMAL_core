@@ -240,6 +240,11 @@ void Renderer::s_ScrollCallBack(GLFWwindow* _windowPtr, double xOffset, double y
 	if ((newPos - center).dot(pos - center) > 0.0f)
 	{
 		s_camViewer.SetExtrinsic(newPos, up, center);
+#ifdef SHOW_CAM_POSE
+		std::cout << "camPOs:   " << newPos.transpose() << std::endl;
+		std::cout << "nowcamUp: " << up.transpose() << std::endl;
+		std::cout << "camCen   :" << center.transpose() << std::endl;
+#endif 
 	}
 }
 
@@ -360,7 +365,7 @@ void Renderer::Draw(std::string type)
 	glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glEnable(GL_BLEND);
+	//glEnable(GL_BLEND);
 	//glDisable(GL_DEPTH_TEST);
 	//2.指定混合因子
 	//注意:如果你修改了混合方程式,当你使用混合抗锯齿功能时,请一定要改为默认混合方程式
@@ -369,8 +374,8 @@ void Renderer::Draw(std::string type)
 	//3.开启对点\线\多边形的抗锯齿功能
 	//glEnable(GL_POINT_SMOOTH);
 	//glEnable(GL_LINE_SMOOTH);
-	glEnable(GL_POLYGON_SMOOTH);
-	glEnable(GL_MULTISAMPLE);
+	//glEnable(GL_POLYGON_SMOOTH);
+	//glEnable(GL_MULTISAMPLE);
 
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -595,7 +600,7 @@ void Renderer::initResource()
 		GL_RENDERBUFFER, cudaGraphicsRegisterFlagsReadOnly);
 
 	cudaMalloc((void**)&m_device_depth, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float));
-	cudaMalloc((void**)&m_device_renderData, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float4)); 
+	cudaMalloc((void**)&m_device_renderData, WINDOW_WIDTH * WINDOW_HEIGHT * sizeof(float4));
 }
 
 void Renderer::releaseResource()
@@ -761,6 +766,7 @@ void Renderer::createSceneDetailed(std::string conf_projectFolder, float scale, 
 	createPlane(conf_projectFolder, scale); 
 	for (int k = 2; k < 7; k++)
 	{
+		if (k == 4) continue; 
 		std::stringstream ss;
 		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_new_part" << k << ".obj";
 		Mesh obj(ss.str());
@@ -854,5 +860,78 @@ void Renderer::createSceneHalf2(std::string conf_projectFolder, float scale)
 		p_model->isMultiLight = false;
 		p_model->SetFaces(obj.faces_v_vec);
 		colorObjs.push_back(p_model);
+	}
+}
+
+void Renderer::createHikonCam(std::string projectFolder, const std::vector<Camera>& cams)
+{
+	std::vector<Eigen::Vector3f> colors = {
+		{0.71, 0.71, 0.71}, 
+	{0.465, 0.50, 0.564}, 
+	{0.07, 0.07, 0.07}, 
+	{0.07, 0.07, 0.07}
+	}; 
+	std::vector<Mesh> meshes; 
+	for (int k = 0; k < 4; k++)
+	{
+		std::stringstream ss; 
+		ss << projectFolder << "/render/data/obj_model/camera_big_resize_part" << k + 1 << ".obj"; 
+		Mesh model(ss.str()); 
+		for (int i = 0; i < model.vertex_num; i++) model.vertices_vec[i] *= 0.01; 
+		meshes.push_back(model); 
+	}
+
+	for (int camid = 0; camid < cams.size(); camid++)
+	{
+		Camera cam = cams[camid]; 
+		Eigen::Matrix3f R = cam.inv_R; 
+		Eigen::Vector3f T = -R * cam.T; 
+		Eigen::Vector3f euler = Mat2Euler(R); 
+		euler(0) = 0; euler(2) = 0; 
+		Eigen::Matrix3f R_2 = EulerToRotRad(euler); 
+		for (int part = 0; part < 4; part++)
+		{
+			Mesh local = meshes[part];
+			for (int i = 0; i < local.vertices_vec.size(); i++)
+			{
+				local.vertices_vec[i] = R_2 * local.vertices_vec[i] + T;
+			}
+			RenderObjectColor * p_camera = new RenderObjectColor();
+			p_camera->SetVertices(local.vertices_vec);
+			p_camera->SetFaces(local.faces_v_vec);
+			p_camera->SetNormal(local.normals_vec);
+			p_camera->SetColor(colors[part]);
+			colorObjs.push_back(p_camera);
+		}
+	}
+}
+
+void Renderer::createVirtualCam(std::string projectFolder, const std::vector<Camera>& cams)
+{
+	Mesh obj(projectFolder + "/render/data/obj_model/cam_watertight.obj"); 
+
+	for (int camid = 0; camid < cams.size(); camid++)
+	{
+		Camera cam = cams[camid];
+		Eigen::Matrix3f R = cam.inv_R;
+		Eigen::Vector3f T = -R * cam.T;
+		T.segment<2>(0) *= 1.2; 
+		if (camid == 0 || camid == 3 || camid == 5 || camid == 6)
+			T(2) -= 0.3; 
+		else T(2) += 0.12; 
+		Mesh local = obj;
+		for (int i = 0; i < local.vertices_vec.size(); i++)
+		{
+			local.vertices_vec[i](2) *= -1; 
+			local.vertices_vec[i](0) *= -1; 
+			local.vertices_vec[i] = R * local.vertices_vec[i] + T;
+		}
+		RenderObjectColor * p_camera = new RenderObjectColor();
+		p_camera->SetVertices(local.vertices_vec);
+		p_camera->SetFaces(local.faces_v_vec);
+		p_camera->SetNormal(local.normals_vec);
+		p_camera->SetColor(Eigen::Vector3f(0,0,0));
+		p_camera->isFill = false; 
+		colorObjs.push_back(p_camera);
 	}
 }

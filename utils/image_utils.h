@@ -50,7 +50,7 @@ Eigen::Vector4f my_undistort_box(Eigen::Vector4f box,const Camera &cam, const Ca
 Eigen::Vector4f expand_box(Eigen::Vector4f box, float ratio = 0.15); 
 void my_draw_boxes(cv::Mat& img, const std::vector<Eigen::Vector4f>& boxes); 
 void my_draw_box(cv::Mat& img, const Eigen::Vector4f& box, Eigen::Vector3i c);
-void my_draw_mask(cv::Mat& img, vector<vector<Eigen::Vector2f> > contour_list, Eigen::Vector3i c, float alpha=0);
+void my_draw_mask(cv::Mat& img, vector<vector<Eigen::Vector2f> > contour_list, Eigen::Vector3i c, float alpha=0, bool is_contour=false);
 void my_draw_mask_gray(cv::Mat& img, vector<vector<Eigen::Vector2f> > contour_list, int c);
 void my_draw_box_fill_gray(cv::Mat& img, const Eigen::Vector4f& box, unsigned int c); 
 
@@ -137,3 +137,10 @@ cv::Mat drawCVDepth(Eigen::MatrixXf vertices, Eigen::MatrixXu faces, Camera cam)
 
 
 float silhouette_iou(const cv::Mat& mask1, const cv::Mat& mask2); 
+
+// input: mesh vertices and mesh faces forms a mesh(watertight is best) 
+//        point a and b forms a line. 
+// output: whether the line is in mesh. 
+bool inMeshTest_cpu(const std::vector<Eigen::Vector3f>& mesh_vertices,
+	const std::vector<Eigen::Vector3u>& mesh_faces,
+	const Eigen::Vector3f& a, const Eigen::Vector3f& b); 

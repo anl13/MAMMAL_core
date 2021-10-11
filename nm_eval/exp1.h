@@ -69,3 +69,5 @@ void eval_skel_3d(const vector<vector<vector<Eigen::Vector3f> > >& est,
 	vector<vector<vector<Eigen::Vector3f>>>& gt); 
 
 void process_generate_label3d(); 
+
+void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data); 

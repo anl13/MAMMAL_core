@@ -38,7 +38,7 @@ void main()
 
     
     out_color =  (ambient + (1.0 - shadow) * (diffuse + specular)) * vec4(object_color,1.0);
-   
+	out_color[3] = 1;
     /// render normal 
     // out_color = vec4(fs_in.normal, 1.0); 
 

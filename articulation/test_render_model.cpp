@@ -20,6 +20,9 @@
 #include "test_main.h"
 #include "../utils/timer_util.h"
 
+// 2021.10.6: 
+// This code is used to generate model visualiization in paper.
+
 int test_mean_pose()
 {
 	// render config 
@@ -39,23 +42,23 @@ int test_mean_pose()
 		0.f, 0.f, 1.f;
 	std::cout << K << std::endl;
 
-	//Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
-	//Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
-	//Eigen::Vector3f center = Eigen::Vector3f::Zero();
-	//Eigen::Vector3f up; up << 0.00644722, 0.00535911, 0.999965;
-	//Eigen::Vector3f pos; pos << 0.92963, 0.678552, -0.0248966;
-	//Eigen::Vector3f center; center << 0.131863 , 0.0613784, - 0.0129145;
+	//// bakcup: this parameter is used for CELL paper. 
+	// AN Liang. 2021. 10 .6 
+	//Eigen::Vector3f up; up << -0.289519, -0.293115, 0.911188;
+	//Eigen::Vector3f pos; pos << 0.78681, 0.706331, 0.402439;
+	//Eigen::Vector3f center; center << 0.131863, 0.0613784, -0.0129145;
 
-	Eigen::Vector3f up; up << -0.289519, -0.293115, 0.911188;
-	Eigen::Vector3f pos; pos << 0.78681, 0.706331, 0.402439;
-	Eigen::Vector3f center; center << 0.131863, 0.0613784, -0.0129145;
+	//// this parameter is used for NM paper. 
+	Eigen::Vector3f up(-0.077325, 0.180478, 0.980535);
+	Eigen::Vector3f pos(0.563461, -0.829368, 0.181309);
+	Eigen::Vector3f center(0.131863, 0.0613784, -0.0129145);
+
 
 	// init renderer 
 	Renderer::s_Init();
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-	//m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[1].T.cast<float>());
 
 	// init element obj
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
@@ -68,21 +71,23 @@ int test_mean_pose()
 
 	// model data 
 	std::string smal_config = "D:/Projects/animal_calib/articulation/artist_config_sym.json";
-	PigModelDevice smal(smal_config);
+	PigSolverDevice smal(smal_config);
 	smal.UpdateVertices();
 	smal.UpdateNormalFinal(); 
 
+#if 0
 	//// smal random pose 
 	RenderObjectColor * animal_model = new RenderObjectColor(); 
 	animal_model->SetFaces(smal.GetFacesVert());
 	animal_model->SetVertices(smal.GetVertices());
 	animal_model->SetNormal(smal.GetNormals()); 
-	animal_model->SetColor(Eigen::Vector3f(1.0,0.95,0.85));
+	animal_model->SetColor(Eigen::Vector3f(1,1,1));
 	animal_model->isMultiLight = true; 
 	animal_model->isFill = false; 
 	m_renderer.colorObjs.push_back(animal_model);
+#endif 
 
-#if 0
+#if 0 // render joints 
 	std::vector<Eigen::Vector3f> joints = smal.GetJoints(); 
 	std::vector<int> parents = smal.GetParents();
 	std::vector<Eigen::Vector3f> balls;
@@ -110,7 +115,7 @@ int test_mean_pose()
 	m_renderer.skels.push_back(p_skel); 
 #endif 
 
-#if 1
+#if 0 // render skel 
 	std::vector<Eigen::Vector2i> bones = {
 		{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
 		 {5,7}, {7,9}, {6,8}, {8,10},
@@ -129,7 +134,7 @@ int test_mean_pose()
 		2,5,6,5,5,6,6,
 		2,3,4
 	};
-
+	// skels 
 	std::vector<Eigen::Vector3f> skels = smal.getRegressedSkel_host();
 	std::vector<Eigen::Vector3f> balls;
 	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
@@ -156,13 +161,56 @@ int test_mean_pose()
 
 #endif 
 
+#if 1 // render node graph 
+	std::vector<Eigen::Vector3u> reduced_faces = smal.m_reduced_faces; 
+	std::vector<Eigen::Vector3f> reduced_verts = smal.m_reduced_vertices; 
+	std::vector<Eigen::Vector3f> balls; 
+	std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+	std::vector<Eigen::Vector2i> bones; 
+	for (int i = 0; i < reduced_faces.size(); i++)
+	{
+		int a = reduced_faces[i](0); 
+		int b = reduced_faces[i](1); 
+		int c = reduced_faces[i](2); 
+		std::vector<Eigen::Vector2i> lines = {
+			{a,b}, {b,c}, {c,a}
+		};
+		for (int k = 0; k < 3; k++)
+		{
+			int valid = true; 
+			for (int m = 0; m < bones.size(); m++)
+			{
+				if ((bones[m](0) == lines[k](0) && bones[m](1) == lines[k](1))
+					|| (bones[m](0) == lines[k](1) && bones[m](1) == lines[k](0)))
+				{
+					valid = false; 
+					break;
+				}
+			}
+			if (valid) bones.push_back(lines[k]); 
+		}
+	}
+	GetBallsAndSticks(reduced_verts, bones, balls, sticks); 
+	std::vector<float> ball_sizes;
+	ball_sizes.resize(reduced_verts.size(), 0.003);
+	std::vector<float> stick_sizes;
+	stick_sizes.resize(sticks.size(), 0.0014);
+	std::vector<Eigen::Vector3f> ball_colors(reduced_verts.size(), Eigen::Vector3f(1,0,0));
+	std::vector<Eigen::Vector3f> stick_colors(sticks.size(), Eigen::Vector3f(0,1,0));
+
+	BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+		balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+	m_renderer.skels.push_back(p_skel);
+
+#endif 
+
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
-	m_renderer.Draw(); 
-	cv::Mat img = m_renderer.GetImage(); 
-	cv::imwrite("E:/pig_middle_data/picture_model/skel.png", img);
+	//m_renderer.Draw();
+	cv::Mat img = m_renderer.GetImageOffscreen(); 
+	cv::imwrite("D:/paper_writing_figs/nodes2.png", img);
 	while (!glfwWindowShouldClose(windowPtr))
 	{
 		m_renderer.Draw();
