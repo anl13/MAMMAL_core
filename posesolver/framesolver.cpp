@@ -2572,6 +2572,8 @@ void FrameSolver::saveConfig()
 	optim_param["anchor_folder"] = mp_bodysolverdevice[0]->m_anchor_folder; 
 	optim_param["use_bodyonly_reg"] = Json::Value(m_params.m_use_bodyonly_reg);
 	optim_param["use_height_enhanced_temp"] = Json::Value(m_params.m_use_height_enhanced_temp);
+	optim_param["sil_step"] = Json::Value(m_params.m_sil_step); 
+	optim_param["collision_step"] = Json::Value(m_params.m_collision_step); 
 
 	root["optim_param"] = optim_param; 
 	// write config content

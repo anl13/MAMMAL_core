@@ -13,7 +13,7 @@
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
-  "startid": 87047,
+  "startid": 77888,
   "framenum": 1,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
@@ -25,8 +25,8 @@
   "solve_sil_iters": 40,
   "solve_sil_iters_2nd_phase": 60,
   "use_reassoc": true,
-  "annotation_folder": "D:/results/paper_taeser/demo4/annotation_folder/",
-  "result_folder": "D:/results/paper_teaser/demo4/",
+  "annotation_folder": "D:/results/paper_taeser/demo6/annotation_folder/",
+  "result_folder": "D:/results/paper_teaser/demo6/",
   "terminal_thresh": 0.005,
   "scales": [1.337,1.406,  1.28056,  1.300 ], // seq_noon
   "pig_names": [1,0,2,3], // ground truth identity
@@ -34,7 +34,7 @@
   "try_load_anno": false,
   "use_triangulation_only": false,
   "use_init_pose": false,
-  "anchor_folder": "D:/results/paper_teaser/demo4/anchor_state/",
+  "anchor_folder": "D:/results/paper_teaser/demo6/anchor_state/",
   "use_init_anchor": true,
   "restart_threshold": -10,
   "tracking_distance": 400, // pixels

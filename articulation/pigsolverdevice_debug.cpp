@@ -249,7 +249,8 @@ int PigSolverDevice::searchAnchorSpace()
 	int min_loss = 100000;
 	for (int i = 0; i < anchor_errors.size(); i++)
 	{
-		float err = anchor_errors[i] + anchor_mask_errors[i] * 20;
+		//float err = anchor_errors[i] + anchor_mask_errors[i] * 20;
+		float err = anchor_errors[i] + anchor_mask_errors[i] * 5; 
 		if (err < min_loss)
 		{
 			min_loss = err;

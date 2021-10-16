@@ -1682,11 +1682,11 @@ void PigSolverDevice::CalcJointFloorTerm(
 	{
 		if (jid < 5 || (jid >= 46 && jid <= 53) || (jid >= 21 && jid <= 37)) continue; 
 		Eigen::Vector3f joint = m_host_jointsPosed[jid];
-		if (joint(2) > -0.05) continue; 
+		if (joint(2) > -0.01) continue; 
 		else
 		{
 			A.row(jid) = h_J_joint.row(3 * jid + 2);
-			b(jid) = joint(2) + 0.05;
+			b(jid) = joint(2) + 0.01;
 		}
 	}
 	ATA = A.transpose() * A; 

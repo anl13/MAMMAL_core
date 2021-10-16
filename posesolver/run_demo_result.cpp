@@ -30,7 +30,7 @@ void run_demo_result()
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
-	std::string config_file = "/configs/config_demo5.json"; 
+	std::string config_file = "/configs/config_demo11.json"; 
 	FrameSolver frame;
 	frame.configByJson(conf_projectFolder + config_file);
 
@@ -277,7 +277,7 @@ void run_demo_result()
 			m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
 			cv::Mat img = m_renderer.GetImageOffscreen(); 
 			std::stringstream ss_perimg;
-			ss_perimg << test_result_folder << "/render_all_last/" << prefix << "_" << camid << ".png";
+			ss_perimg << test_result_folder << "/render_all_last/" << prefix << "_" << camid << "_" << frameid << ".png";
 			cv::imwrite(ss_perimg.str(), img);
 		}
 
@@ -311,20 +311,20 @@ void run_demo_result()
 
 		m_renderer.s_camViewer.SetExtrinsic(pos4, up4, center4); 
 		cv::Mat imgforpaper = m_renderer.GetImageOffscreen(); 
-		cv::imwrite(test_result_folder + "/render_all_last/" + prefix + ".png", imgforpaper);
+		cv::imwrite(test_result_folder + "/render_all_last/" + prefix + std::to_string(frameid) + ".png", imgforpaper);
 
-		if (frameid == start) {
-			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-			while (!glfwWindowShouldClose(windowPtr))
-			{
-				//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		//if (frameid == start) {
+		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		//	while (!glfwWindowShouldClose(windowPtr))
+		//	{
+		//		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-				m_renderer.Draw();
+		//		m_renderer.Draw();
 
-				glfwSwapBuffers(windowPtr);
-				glfwPollEvents();
-			};
-		}
+		//		glfwSwapBuffers(windowPtr);
+		//		glfwPollEvents();
+		//	};
+		//}
 	}
 
 }
