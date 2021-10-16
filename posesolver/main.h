@@ -44,3 +44,4 @@ int run_pose_bone_length();
 void run_trajectory2();
 
 void run_demo_result(); 
+void run_eval_seq(); 

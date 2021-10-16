@@ -5,8 +5,6 @@
 
 cv::Mat PigSolverDevice::debug_source_visualize()
 {
-	std::vector<Eigen::Vector3i> m_CM;
-	getColorMap("anliang_rgb", m_CM); 
 	std::vector<cv::Mat> m_imgdet; 
 	cloneImgs(m_rawimgs, m_imgdet); 
 	for (int i = 0; i < m_source.view_ids.size(); i++)
@@ -652,7 +650,7 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	// calc joint term 
 	Eigen::MatrixXf ATA_data;
 	Eigen::VectorXf ATb_data;
-	float track_radius = m_kpt_track_dist - iter * 10;
+	float track_radius = m_params.m_kpt_track_dist - iter * 10;
 	track_radius = track_radius > 30 ? track_radius : 30;
 	bool is_converge_radius = false;
 	if (iter > 20) is_converge_radius = true;
@@ -676,10 +674,29 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	auto skel_reg = getRegressedSkel_host(); 
 	calcSkel3DTerm_host(h_J_skel, skel_tri, ATA_3d, ATb_3d); 
 
+	float lambda = m_params.m_lambda;
+	float w_data = m_params.m_w_data_term;
+	float w_sil; 
+	if (iter < m_params.m_sil_step) w_sil = 0; 
+	else w_sil = m_params.m_w_sil_term;
+	float w_reg = m_params.m_w_reg_term;
+	float w_temp = m_params.m_w_temp_term;
+	float w_floor; 
+	if (iter > 10) w_floor = m_params.m_w_floor_term * 10; 
+	else  w_floor = m_params.m_w_floor_term;
+	float w_collision; 
+	if (iter < m_params.m_collision_step) 
+		w_collision = 0; 
+	else
+		w_collision = m_params.m_w_collision_term; 
+	float w_3d = m_params.m_w_3d_term; 
+
+	float w_anchor = m_params.m_w_anchor_term; 
+	float w_sift = m_params.m_w_sift_term; 
+
 	Eigen::MatrixXf ATA_sil = Eigen::MatrixXf::Zero(paramNum, paramNum);
 	Eigen::VectorXf ATb_sil = Eigen::VectorXf::Zero(paramNum);
-
-	if (m_w_sil_term > 0)
+	if (w_sil > 0)
 	{
 		renderDepths();
 		if (m_use_gpu)
@@ -687,22 +704,6 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		else
 			CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter);
 	}
-
-	float lambda = m_lambda;
-	float w_data = m_w_data_term;
-	float w_sil; 
-	if (iter < 10) w_sil = m_w_sil_term * 0.1; 
-	else w_sil = m_w_sil_term;
-	float w_reg = m_w_reg_term;
-	float w_temp = m_w_temp_term;
-	float w_floor; 
-	if (iter > 10) w_floor = m_w_floor_term * 10; 
-	else  w_floor = m_w_floor_term;
-	float w_collision = m_w_collision_term; 
-	float w_3d = m_w_3d_term; 
-
-	float w_anchor = m_w_anchor_term; 
-	float w_sift = m_w_sift_term; 
 
 	Eigen::MatrixXf ATA_floor;
 	Eigen::VectorXf ATb_floor;
@@ -732,19 +733,19 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	}
 
 	float height = getAvgHeight(); 
-	if (m_use_height_enhanced_temp)
+	if (m_params.m_use_height_enhanced_temp)
 	{
-		w_temp = m_w_temp_term * (1 + ComputeTempWeight(height));
+		w_temp = m_params.m_w_temp_term * (1 + ComputeTempWeight(height));
 	}
 	else
 	{
-		w_temp = m_w_temp_term; 
+		w_temp = m_params.m_w_temp_term; 
 	}
 
 	Eigen::MatrixXf ATA_reg;
 	Eigen::VectorXf ATb_reg;
 
-	if(m_use_bodyonly_reg)
+	if(m_params.m_use_bodyonly_reg)
 		CalcRegTermBodyOnly(theta, ATA_reg, ATb_reg); 
 	else {
 		CalcRegTerm(theta, ATA_reg, ATb_reg, false);
@@ -756,7 +757,7 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	CalcSIFTTerm(m_siftCorrs, ATA_sift, ATb_sift); 
 #endif 
 
-	float w_on_floor = m_w_on_floor_term;
+	float w_on_floor = m_params.m_w_on_floor_term;
 	Eigen::MatrixXf ATA_on_floor; 
 	Eigen::VectorXf ATb_on_floor; 
 	CalcJointOnFloorTerm(ATA_on_floor, ATb_on_floor);
@@ -804,16 +805,16 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	}
 
 	
-	//std::cout << "pig " << m_pig_id << " iter: " << iter << std::endl; 
-	//std::cout << "   ATb_data: " << ATb_data.norm() << std::endl; 
-	//std::cout << "   ATb_sil : " << ATb_sil.norm() << std::endl; 
-	//std::cout << "   ATb_reg : " << ATb_reg.norm() << std::endl; 
-	//std::cout << "   ATb_anchor: " << ATb_anchor.norm() << std::endl; 
-	//std::cout << "   ATb_floor: " << ATb_floor.norm() << std::endl; 
-	//std::cout << "   ATb_temp: " << ATb_temp.norm() << std::endl; 
-	//std::cout << "   ATb_col: " << ATb_col.norm() << std::endl;
-	//std::cout << "      delta : " << delta.norm() << std::endl; 
-	//std::cout << "      b.norm: " << b.norm() << std::endl;
+	std::cout << "pig " << m_pig_id << " iter: " << iter << std::endl; 
+	std::cout << "   ATb_data: " << ATb_data.norm() << std::endl; 
+	std::cout << "   ATb_sil : " << ATb_sil.norm() << std::endl; 
+	std::cout << "   ATb_reg : " << ATb_reg.norm() << std::endl; 
+	std::cout << "   ATb_anchor: " << ATb_anchor.norm() << std::endl; 
+	std::cout << "   ATb_floor: " << ATb_floor.norm() << std::endl; 
+	std::cout << "   ATb_temp: " << ATb_temp.norm() << std::endl; 
+	std::cout << "   ATb_col: " << ATb_col.norm() << std::endl;
+	std::cout << "      delta : " << delta.norm() << std::endl; 
+	std::cout << "      b.norm: " << b.norm() << std::endl;
 #ifdef USE_SIFT
 	std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
 #endif 

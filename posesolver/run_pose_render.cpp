@@ -429,7 +429,7 @@ int run_pose_render_demo()
 	frame.is_smth = false;
 	int start = frame.get_start_id();
 	int pignum = frame.m_pignum;
-	for (int frameid = 7888; frameid < 7889; frameid++)
+	for (int frameid = 7880; frameid < 7881; frameid++)
 	{
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
@@ -461,6 +461,60 @@ int run_pose_render_demo()
 			m_renderer.colorObjs.push_back(p_model);
 		}
 
+		/// add skels 
+#if 1
+		std::vector<Eigen::Vector3f> CM3 = getColorMapEigenF("anliang_blend");
+		Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+		Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+		MeshEigen ballMeshEigen(ballMesh);
+		MeshEigen stickMeshEigen(stickMesh);
+		std::vector<Eigen::Vector2i> bones = {
+		{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
+		 {5,7}, {7,9}, {6,8}, {8,10},
+		{20,18},
+		{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
+		{0,20},{5,20},{6,20}
+		};
+		std::vector<int> kpt_color_ids = {
+			0,0,0,0,0,
+			3,4,3,4,3,4,
+			5,6,5,6,5,6,
+			2,2,2,2,2,2
+		};
+		std::vector<int> bone_color_ids = {
+			0,0,0,0,0,3,3,4,4,
+			2,5,6,5,5,6,6,
+			2,3,4
+		};
+		// skels 
+		for (int i = 0; i < 4; i++)
+		{
+			std::vector<Eigen::Vector3f> skels = solvers[i]->getRegressedSkel_host();
+			std::vector<Eigen::Vector3f> balls;
+			std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+			GetBallsAndSticks(skels, bones, balls, sticks);
+			int jointnum = skels.size();
+			std::vector<float> ball_sizes;
+			ball_sizes.resize(jointnum, 0.015);
+			std::vector<float> stick_sizes;
+			stick_sizes.resize(sticks.size(), 0.008);
+			std::vector<Eigen::Vector3f> ball_colors(jointnum);
+			std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+			for (int i = 0; i < jointnum; i++)
+			{
+				ball_colors[i] = CM3[kpt_color_ids[i]];
+			}
+			for (int i = 0; i < sticks.size(); i++)
+			{
+				stick_colors[i] = CM3[bone_color_ids[i]];
+			}
+
+			BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+				balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+			m_renderer.skels.push_back(p_skel);
+		}
+#endif 
+
 		std::vector<int> render_views = { 0,1,2,3,4,5,6,7,8,9};
 
 		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
@@ -477,11 +531,11 @@ int run_pose_render_demo()
 			all_renders[k] = img;
 		}
 		//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-		m_renderer.createSceneDetailed(conf_projectFolder, 1);
+		//m_renderer.createSceneDetailed(conf_projectFolder, 1);
 		//m_renderer.createSceneHalf(conf_projectFolder, 1.08);
 
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1));
-		Eigen::Vector3f pos3(0.0, -0.0, 4.1);
+		Eigen::Vector3f pos3(0.0, -0.0, 2.5);
 		Eigen::Vector3f up3(0.0, 0.1, -0.0);
 		Eigen::Vector3f center3(0.0, -0.0, 0.0);
 		m_renderer.s_camViewer.SetExtrinsic(pos3, up3, center3);
@@ -496,25 +550,25 @@ int run_pose_render_demo()
 		////img = m_renderer.GetImageOffscreen();
 		//m_renderer.Draw(); 
 		//img = m_renderer.GetImage(); 
-		//std::stringstream ss_out;
-		//ss_out << frame.m_result_folder << "/render_all/render" << std::setw(6) << std::setfill('0')
-		//	<< frameid << ".png";
-		//cv::imwrite(ss_out.str(), img);
-		//img = my_resize(img, 0.5); 
-
-		cv::Mat packed_render;
-		packImgBlock(all_renders, packed_render);
-		cv::Mat pack_raw;
-		packImgBlock(rawImgsSelect, pack_raw);
-
-		cv::Mat blend;
-		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
-
-		cv::Mat small_img = my_resize(blend, 1);
-		std::stringstream all_render_file;
-		all_render_file << frame.m_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
+		std::stringstream ss_out;
+		ss_out << frame.m_result_folder << "/render_last/render" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
-		cv::imwrite(all_render_file.str(), small_img);
+		cv::imwrite(ss_out.str(), img);
+		img = my_resize(img, 0.5); 
+
+		//cv::Mat packed_render;
+		//packImgBlock(all_renders, packed_render);
+		//cv::Mat pack_raw;
+		//packImgBlock(rawImgsSelect, pack_raw);
+
+		//cv::Mat blend;
+		//overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+
+		//cv::Mat small_img = my_resize(blend, 1);
+		//std::stringstream all_render_file;
+		//all_render_file << frame.m_result_folder << "/render_all/" << std::setw(6) << std::setfill('0')
+		//	<< frameid << ".png";
+		//cv::imwrite(all_render_file.str(), small_img);
 		
 		GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 		while (!glfwWindowShouldClose(windowPtr))

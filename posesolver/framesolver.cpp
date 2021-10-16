@@ -9,7 +9,7 @@
 
 //#define VIS_ASSOC_STEP 
 //#define DEBUG_TRACK
-#define DEBUG_SIL
+//#define DEBUG_SIL
 
 FrameSolver::FrameSolver()
 {
@@ -75,6 +75,8 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_restart_threshold = root["restart_thresold"].asInt(); 
 	m_tracking_distance = root["tracking_distance"].asFloat(); 
 	m_intrinsic_type = root["intrinsic_type"].asInt(); 
+	m_params.loadParams(root["optim_params"]); 
+
 	for (int i = 0; i < m_pignum; i++)
 	{
 		m_pig_names[i] = root["pig_names"][i].asInt(); 
@@ -1024,21 +1026,15 @@ void FrameSolver::init_parametric_solver()
 	{
 		if (mp_bodysolverdevice[i] == nullptr)
 		{
-			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig);
+			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig, m_use_gpu);
 			mp_bodysolverdevice[i]->m_gtscale = m_given_scales[i];
-			mp_bodysolverdevice[i]->m_use_given_scale = m_use_given_scale; 
+			mp_bodysolverdevice[i]->setParams(m_params); 
 			mp_bodysolverdevice[i]->setCameras(m_camsUndist);
 			//mp_bodysolver[i]->InitNodeAndWarpField();
 			mp_bodysolverdevice[i]->setRenderer(mp_renderEngine);
 			mp_bodysolverdevice[i]->m_undist_mask_chamfer = mp_sceneData->m_undist_mask_chamfer;
 			mp_bodysolverdevice[i]->m_scene_mask_chamfer = mp_sceneData->m_scene_mask_chamfer;
 			mp_bodysolverdevice[i]->m_pig_id = i;
-			if (mp_bodysolverdevice[i]->m_use_gpu != m_use_gpu)
-			{
-				std::cout << "Sorry! please agree on use gpu or not. " << std::endl; 
-				system("pause"); 
-				exit(-1); 
-			}
 			std::cout << "init model " << i << std::endl;
 		}
 	}
@@ -1052,9 +1048,9 @@ void FrameSolver::renderInteractDepth(bool withmask)
 		if (m_interMask.size() != m_camNum) m_interMask.resize(m_camNum); 
 	std::vector<Eigen::Vector3f> id_colors = {
 		{1.0f, 0.0f,0.0f},
-	{0.0f, 1.0f, 0.0f},
-	{0.0f, 0.0f, 1.0f},
-	{1.0f, 1.0f, 0.0f}
+		{0.0f, 1.0f, 0.0f},
+		{0.0f, 0.0f, 1.0f},
+		{1.0f, 1.0f, 0.0f}
 	};
 	mp_renderEngine->clearAllObjs();
 	for (int i = 0; i < m_pignum; i++)
@@ -1197,7 +1193,7 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime, int startIter)
 	for (; iter < maxIterTime; iter++)
 	{
 		//std::cout << "iter: " << iter << " ..... " << std::endl; 
-		if (mp_bodysolverdevice[0]->m_w_sil_term > 0)
+		if (m_params.m_w_sil_term > 0)
 		{
 			if (iter == 0)
 			{
@@ -1289,7 +1285,7 @@ void FrameSolver::optimizeSilWithAnchor(int maxIterTime, int startIter)
 		{
 			if (mp_bodysolverdevice[pid]->m_isUpdated) continue; 
 			if (deltas[pid] < m_terminal_thresh) continue; 
-			if (mp_bodysolverdevice[pid]->m_w_sil_term > 0)
+			if (m_params.m_w_sil_term > 0)
 			{
 				mp_bodysolverdevice[pid]->o_ious = m_ious[pid];
 			}
@@ -2559,23 +2555,23 @@ void FrameSolver::saveConfig()
 	root["camids"] = vec; 
 
 	Json::Value optim_param; 
-	optim_param["valid_thresold"] = Json::Value(mp_bodysolverdevice[0]->m_valid_threshold);
-	optim_param["lambda"] = Json::Value(mp_bodysolverdevice[0]->m_lambda);
-	optim_param["data_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_data_term); 
-	optim_param["sil_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_sil_term);
-	optim_param["reg_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_reg_term);
-	optim_param["temp_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_temp_term);
-	optim_param["floor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_floor_term);
-	optim_param["on_floor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_on_floor_term);
-	optim_param["anchor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_anchor_term);
-	optim_param["on_floor_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_on_floor_term);
-	optim_param["collision_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_collision_term);
-	optim_param["sift_term"] = Json::Value(mp_bodysolverdevice[0]->m_w_sift_term);
-	optim_param["kpt_track_dist"] = Json::Value(mp_bodysolverdevice[0]->m_kpt_track_dist); 
-	optim_param["iou_thres"] = Json::Value(mp_bodysolverdevice[0]->m_iou_thres); 
+	optim_param["valid_thresold"] = Json::Value(m_params.m_valid_threshold);
+	optim_param["lambda"] = Json::Value(m_params.m_lambda);
+	optim_param["data_term"] = Json::Value(m_params.m_w_data_term); 
+	optim_param["sil_term"] = Json::Value(m_params.m_w_sil_term);
+	optim_param["reg_term"] = Json::Value(m_params.m_w_reg_term);
+	optim_param["temp_term"] = Json::Value(m_params.m_w_temp_term);
+	optim_param["floor_term"] = Json::Value(m_params.m_w_floor_term);
+	optim_param["on_floor_term"] = Json::Value(m_params.m_w_on_floor_term);
+	optim_param["anchor_term"] = Json::Value(m_params.m_w_anchor_term);
+	optim_param["on_floor_term"] = Json::Value(m_params.m_w_on_floor_term);
+	optim_param["collision_term"] = Json::Value(m_params.m_w_collision_term);
+	optim_param["sift_term"] = Json::Value(m_params.m_w_sift_term);
+	optim_param["kpt_track_dist"] = Json::Value(m_params.m_kpt_track_dist); 
+	optim_param["iou_thres"] = Json::Value(m_params.m_iou_thres); 
 	optim_param["anchor_folder"] = mp_bodysolverdevice[0]->m_anchor_folder; 
-	optim_param["use_bodyonly_reg"] = Json::Value(mp_bodysolverdevice[0]->m_use_bodyonly_reg);
-	optim_param["use_height_enhanced_temp"] = Json::Value(mp_bodysolverdevice[0]->m_use_height_enhanced_temp);
+	optim_param["use_bodyonly_reg"] = Json::Value(m_params.m_use_bodyonly_reg);
+	optim_param["use_height_enhanced_temp"] = Json::Value(m_params.m_use_height_enhanced_temp);
 
 	root["optim_param"] = optim_param; 
 	// write config content

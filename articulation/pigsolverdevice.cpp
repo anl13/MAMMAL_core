@@ -4,7 +4,30 @@
 #include <cuda_profiler_api.h>
 #include "../utils/geometry.h"
 
-PigSolverDevice::PigSolverDevice(const std::string& _configFile)
+void ParamSet::loadParams(const Json::Value& root)
+{
+	m_valid_threshold = root["valid_threshold"].asFloat();
+	m_lambda = root["lambda"].asFloat();
+	m_w_data_term = root["data_term"].asFloat();
+	m_w_sil_term = root["sil_term"].asFloat();
+	m_w_reg_term = root["reg_term"].asFloat();
+	m_w_temp_term = root["temp_term"].asFloat();
+	m_w_floor_term = root["floor_term"].asFloat();
+	m_kpt_track_dist = root["kpt_track_dist"].asFloat();
+	m_w_anchor_term = root["anchor_term"].asFloat();
+	m_iou_thres = root["iou_thres"].asFloat();
+	m_w_sift_term = root["sift_term"].asFloat();
+	m_use_bodyonly_reg = root["use_bodyonly_reg"].asBool();
+	m_use_height_enhanced_temp = root["use_height_enhanced_temp"].asBool();
+	m_w_on_floor_term = root["on_floor_term"].asFloat();
+	m_w_collision_term = root["collision_term"].asFloat();
+	m_w_3d_term = root["3d_term"].asFloat();	
+	m_use_given_scale = root["use_given_scale"].asBool(); 
+	m_sil_step = root["sil_step"].asInt(); 
+	m_collision_step = root["collision_step"].asInt(); 
+}
+
+PigSolverDevice::PigSolverDevice(const std::string& _configFile, bool _use_gpu)
 	:PigModelDevice(_configFile)
 {
 	Json::Value root;
@@ -30,26 +53,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 		m_poseToOptimize.push_back(c.asInt());
 	}
 
-	m_valid_threshold = root["valid_threshold"].asFloat();
-	m_lambda = root["lambda"].asFloat();
-	m_w_data_term = root["data_term"].asFloat();
-	m_w_sil_term = root["sil_term"].asFloat();
-	m_w_reg_term = root["reg_term"].asFloat();
-	m_w_temp_term = root["temp_term"].asFloat();
-	m_w_floor_term = root["floor_term"].asFloat();
-	m_kpt_track_dist = root["kpt_track_dist"].asFloat();
-	m_w_anchor_term = root["anchor_term"].asFloat();
-	m_use_gpu = root["use_gpu"].asBool(); 
-	m_iou_thres = root["iou_thres"].asFloat(); 
-	m_anchor_folder = root["anchor_folder"].asString();
-	m_w_sift_term = root["sift_term"].asFloat(); 
-	m_use_bodyonly_reg = root["use_bodyonly_reg"].asBool(); 
-	m_use_height_enhanced_temp = root["use_height_enhanced_temp"].asBool(); 
-	m_w_on_floor_term = root["on_floor_term"].asFloat(); 
-	m_w_collision_term = root["collision_term"].asFloat(); 
-	m_w_3d_term = root["3d_term"].asFloat(); 
-	m_gtscale = 1;
-	m_use_triangulation_only = false; 
+	m_gtscale = 1; 
 	m_trackConf = 0.0; 
 
 	m_param_reg_weight.resize(m_poseToOptimize.size()*3+3, 1);
@@ -70,6 +74,8 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 			}
 		}
 	}
+	m_anchor_folder = root["anchor_folder"].asString(); 
+	m_anchor_lib.load(m_anchor_folder);
 
 	instream.close();
 	m_visRegressorList.resize(m_jointNum);
@@ -88,8 +94,8 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 		}
 	visRegFile.close();
 
-
 	// pre-allocate device memory 
+	m_use_gpu = _use_gpu; 
 	m_initScale = false; 
 	m_host_paramLines.resize(m_poseToOptimize.size() * 3 + 3);
 	m_host_paramLines[0] = 0; 
@@ -132,6 +138,7 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	cudaMalloc((void**)&d_middle_mask, H/2*W /2* sizeof(uchar));
 
 	if (m_use_gpu)
+	//if(true)
 	{
 		cudaMalloc((void**)&d_rend_sdf, H / 2 * W / 2 * sizeof(float));
 		cudaMalloc((void**)&d_const_distort_mask, H * W * sizeof(uchar));
@@ -173,16 +180,14 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile)
 	UpdateNormalFinal(); 
 
 	load_reduced();
-	m_depth_weight.resize(m_cameras.size(), 0);
+	m_depth_weight.resize(10, 0);
 
 	m_det_confs.resize(m_skelTopo.joint_num, 0); 
 
-	m_anchor_lib.load(m_anchor_folder);
 
 	m_isReAssoc = false;
 	m_isUpdated = false; 
 	m_isPostprocessed = false; 
-	m_use_given_scale = false; 
 	// 2021/2/20 add: init clicked points 
 
 }
@@ -227,6 +232,12 @@ PigSolverDevice::~PigSolverDevice()
 		d_det_mask.clear();
 	}
 }
+
+void PigSolverDevice::setParams(const ParamSet& _params)
+{
+	m_params = _params; 
+}
+
 
 // Only point with more than 1 observations could be triangulated
 std::vector<Eigen::Vector3f> PigSolverDevice::directTriangulationHost(int validViewThresh)
@@ -355,7 +366,7 @@ void PigSolverDevice::globalAlign()
 	std::vector<float> weights(N, 0); 
 	std::vector<Eigen::Vector3f> skelReg = getRegressedSkel_host();
 
-	if (m_use_given_scale)
+	if (m_params.m_use_given_scale)
 	{
 		m_host_scale = m_gtscale;
 		std::cout << "pig: " << m_pig_id << " scale: " << m_host_scale << " (given) " << std::endl;
@@ -787,13 +798,13 @@ void PigSolverDevice::optimizePose()
 
 		if(m_skelProjs.size() > 0)
 		for (int k = 0; k < m_skelTopo.joint_num; k++) m_det_confs[k] = 0;
-		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, m_kpt_track_dist, false); 
+		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, m_params.m_kpt_track_dist, false); 
 
-		float w_data = m_w_data_term;
+		float w_data = m_params.m_w_data_term;
 		float w_reg = 0.02;
 		float w_temp = 0;
 		float w_anchor = 0; 
-		float w_floor = m_w_floor_term; 
+		float w_floor = m_params.m_w_floor_term; 
 
 		Eigen::MatrixXf ATA_floor; 
 		Eigen::VectorXf ATb_floor; 
@@ -954,7 +965,7 @@ void PigSolverDevice::optimizePoseSilhouette(
 		// calc joint term 
 		Eigen::MatrixXf ATA_data; 
 		Eigen::VectorXf ATb_data; 
-		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, m_kpt_track_dist, false); 
+		Calc2dJointProjectionTerm(m_source, ATA_data, ATb_data, m_params.m_kpt_track_dist, false); 
 
 		calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert, false); // TODO: remove d_J_vert computation here. 
 
@@ -1007,12 +1018,12 @@ void PigSolverDevice::optimizePoseSilhouette(
 		//std::cout << "ATb gpu: " << std::endl << ATb_sil.segment<9>(0).transpose() << std::endl;
 
 
-		float lambda = m_lambda;
-		float w_data = m_w_data_term;
-		float w_sil = m_w_sil_term;
-		float w_reg = m_w_reg_term;
-		float w_temp = m_w_temp_term;
-		float w_floor = m_w_floor_term; 
+		float lambda = m_params.m_lambda;
+		float w_data = m_params.m_w_data_term;
+		float w_sil = m_params.m_w_sil_term;
+		float w_reg = m_params.m_w_reg_term;
+		float w_temp = m_params.m_w_temp_term;
+		float w_floor = m_params.m_w_floor_term; 
 
 		Eigen::MatrixXf ATA_floor;
 		Eigen::VectorXf ATb_floor;
@@ -1084,14 +1095,14 @@ void PigSolverDevice::CalcSilhouettePoseTerm(
 #endif 
 	for (int view = 0; view < m_viewids.size(); view++)
 	{
-		if (m_valid_keypoint_ratio[view] < m_valid_threshold) {
+		if (m_valid_keypoint_ratio[view] < m_params.m_valid_threshold) {
 #ifdef DEBUG_SIL
 			std::cout << "(" << m_viewids[view] << ":" << m_valid_keypoint_ratio[view] << "),";
 #endif
 			continue;
 		}
 		int camid = m_viewids[view];
-		if (o_ious[camid] < m_iou_thres)
+		if (o_ious[camid] < m_params.m_iou_thres)
 		{
 #ifdef DEBUG_SIL
 			std::cout << "[" << camid << ":" << o_ious[camid] << "],";
@@ -1198,7 +1209,7 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 
 	for (int roiIdx = 0; roiIdx < m_rois.size(); roiIdx++)
 	{
-		if (m_rois[roiIdx].valid < m_valid_threshold) {
+		if (m_rois[roiIdx].valid < m_params.m_valid_threshold) {
 			//std::cout << "view " << roiIdx << " is invalid. " << m_rois[roiIdx].valid << std::endl;
 			continue;
 		}

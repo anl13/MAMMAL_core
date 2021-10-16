@@ -25,7 +25,8 @@ void run_demo_20211008()
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
-	std::string config_file = get_config();
+	//std::string config_file = get_config();
+	std::string config_file = "configs/config_20190704_fordemo.json"; 
 	FrameSolver frame;
 	frame.configByJson(conf_projectFolder + config_file);
 
@@ -59,7 +60,7 @@ void run_demo_20211008()
 	std::vector<std::string> subfolders = {
 		"assoc", "render", "clusters", "state", "reassoc2", "proj2", "before_swap2",
 		"fitting", "annotation", "skels", "anchor_state", "rawdet", "joints_62", "joints_23", 
-		"debug"
+		"debug", "render_all", "render_last"
 	};
 	for (int i = 0; i < subfolders.size(); i++)
 	{
@@ -106,17 +107,17 @@ void run_demo_20211008()
 		{
 			int id = ids[k];
 			std::stringstream ss;
-			ss << "D:/results/paper_teaser/0704_demo/render_all/raw_" << id << ".png";
+			ss << "D:/results/paper_teaser/0704_demo/render_last/raw_" << id << ".png";
 			cv::imwrite(ss.str(), rawimgs[id]);
 
 			std::stringstream ss_rawdetpre1;
-			ss_rawdetpre1 << "D:/results/paper_teaser/0704_demo/render_all/rawdetpure3_" << id << ".png";
+			ss_rawdetpre1 << "D:/results/paper_teaser/0704_demo/render_last/rawdetpure3_" << id << ".png";
 			cv::Mat rawdetpure1 = frame.tmp_visualizeRawDetPure(id, false);
 			cv::imwrite(ss_rawdetpre1.str(), rawdetpure1);
 
 
 			std::stringstream ss_rawdetpre;
-			ss_rawdetpre << "D:/results/paper_teaser/0704_demo/render_all/rawdetpure4_" << id << ".png";
+			ss_rawdetpre << "D:/results/paper_teaser/0704_demo/render_last/rawdetpure4_" << id << ".png";
 			cv::Mat rawdetpure = frame.tmp_visualizeRawDetPure(id);
 			cv::imwrite(ss_rawdetpre.str(), rawdetpure);
 
@@ -133,19 +134,19 @@ void run_demo_20211008()
 
 			cv::Mat assoc = frame.visualizeIdentity2D(id);
 			std::stringstream ss1;
-			ss1 << test_result_folder << "/render_all/assoc_" << k << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			ss1 << test_result_folder << "/render_last/assoc_" << k << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss1.str(), assoc);
 
 			for (int pid = 0; pid < 4; pid++)
 			{
 				cv::Mat assoc2 = frame.visualizeIdentity2D(id, pid);
 				std::stringstream ss2;
-				ss2 << test_result_folder << "/render_all/assoc_" << k << "_" << pid << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				ss2 << test_result_folder << "/render_last/assoc_" << k << "_" << pid << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
 				cv::imwrite(ss2.str(), assoc2);
 
 				cv::Mat assoc3 = frame.tmp_visualizeIdentity2D(id, pid); 
 				std::stringstream ss3; 
-				ss3 << test_result_folder << "/render_all/group_" << k << "_" << pid << ".png";
+				ss3 << test_result_folder << "/render_last/group_" << k << "_" << pid << ".png";
 				cv::imwrite(ss3.str(), assoc3); 
 			}
 		}
@@ -166,7 +167,7 @@ void run_demo_20211008()
 
 		frame.DARKOV_Step1_setsource(); 
 
-#if 0// search anchor 
+#if 1// search anchor 
 		if (frame.m_use_init_anchor)
 		{
 			for (int i = 0; i < 4; i++)
@@ -182,7 +183,7 @@ void run_demo_20211008()
 			frame.DARKOV_Step2_optimanchor(i); 
 #endif 
 
-#if 0 // comment to visualize anchor result
+#if 1 // comment to visualize anchor result
 		frame.DARKOV_Step4_fitrawsource();
 		frame.DARKOV_Step3_reassoc_type2();
 		frame.DARKOV_Step4_fitreassoc();
@@ -253,7 +254,7 @@ void run_demo_20211008()
 			m_renderer.Draw();
 			cv::Mat img = m_renderer.GetImage();
 			std::stringstream ss_perimg; 
-			ss_perimg << test_result_folder << "/render_all/" << prefix << "_" << camid << ".png"; 
+			ss_perimg << test_result_folder << "/render_last/" << prefix << "_" << camid << ".png"; 
 			cv::imwrite(ss_perimg.str(), img); 
 			all_renders[camid] = img;
 		}
@@ -282,7 +283,7 @@ void run_demo_20211008()
 
 		cv::Mat blend_small = my_resize(blend, 0.25);
 		std::stringstream all_render_file;
-		all_render_file << test_result_folder << "/render_all/" << prefix << std::setw(6) << std::setfill('0')
+		all_render_file << test_result_folder << "/render_last/" << prefix << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
 		cv::imwrite(all_render_file.str(), blend_small);
 
@@ -295,7 +296,7 @@ void run_demo_20211008()
 		m_renderer.s_camViewer.SetExtrinsic(cams[8].R, cams[8].T + Eigen::Vector3f(0,0,0.125)); 
 		m_renderer.Draw(); 
 		cv::Mat imgforpaper = m_renderer.GetImage(); 
-		cv::imwrite(test_result_folder + "/render_all/" + prefix + ".png", imgforpaper); 
+		cv::imwrite(test_result_folder + "/render_last/" + prefix + ".png", imgforpaper); 
 		if (frameid == start ) {
 			GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 			while (!glfwWindowShouldClose(windowPtr))

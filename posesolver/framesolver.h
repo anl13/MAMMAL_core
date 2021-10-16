@@ -62,6 +62,8 @@ public:
 	int m_startid;
 	int m_framenum;
 
+	ParamSet m_params; 
+
 	vector<MatchedInstance>                   m_matched; // matched raw data after matching()
 	vector<vector<DetInstance> >              m_unmatched; // [camnum, candnum]
 	std::vector<cv::Mat> m_masksMatched; 

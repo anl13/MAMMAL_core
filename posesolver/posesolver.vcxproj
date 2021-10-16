@@ -164,6 +164,8 @@
     <ClCompile Include="mce\Algorithm.cpp" />
     <ClCompile Include="mce\MemoryManager.cpp" />
     <ClCompile Include="mce\Tools.cpp" />
+    <ClCompile Include="run_demo_result.cpp" />
+    <ClCompile Include="run_eval_seq.cpp" />
     <ClCompile Include="run_inspect.cpp" />
     <ClCompile Include="run_pose.cpp" />
     <ClCompile Include="run_pose_render.cpp" />
@@ -213,6 +215,7 @@
     <None Include="..\configs\config_20190704_foreval_tri.json" />
     <None Include="..\configs\config_20190704_foreval_tri_3views.json" />
     <None Include="..\configs\config_20190704_foreval_tri_5views.json" />
+    <None Include="..\configs\config_20190704_gt.json" />
     <None Include="..\configs\config_20190705_feed.json" />
     <None Include="..\configs\config_20190823_feed.json" />
     <None Include="..\configs\config_20190824_motion.json" />
@@ -234,6 +237,7 @@
     <None Include="..\configs\config_20210321_motion.json" />
     <None Include="..\configs\config_20210321_motion2.json" />
     <None Include="..\configs\config_7.json" />
+    <None Include="..\configs\config_demo1.json" />
     <None Include="..\configs\config_jointangle_0823.json" />
     <None Include="..\configs\config_scratch_C4.json" />
     <None Include="..\configs\config_scratch_D4.json" />

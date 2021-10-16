@@ -884,7 +884,6 @@ cv::Mat pseudoColor(cv::Mat depth)
 	img.setTo(0);
 	double minv, maxv;
 	cv::minMaxLoc(depth, &minv, &maxv);
-	std::cout << "min: " << minv << "  max: " << maxv << std::endl; 
 	for (int i = 0; i < h; i++)
 	{
 		for (int j = 0; j < w; j++)

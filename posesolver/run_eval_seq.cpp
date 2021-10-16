@@ -18,49 +18,15 @@
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
 
-void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data)
-{
-	std::stringstream ss;
-	ss << folder << "/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt";
-	std::ofstream outputfile(ss.str());
-	for (int i = 0; i < data.size(); i++)
-	{
-		outputfile << data[i].transpose() << std::endl;
-	}
-	outputfile.close();
-}
-
-std::string get_config()
-{
-	Json::Value root;
-	Json::CharReaderBuilder rbuilder;
-	std::string errs;
-	std::ifstream instream("D:/Projects/animal_calib/configs/main_config.json");
-	if (!instream.is_open())
-	{
-		std::cout << "can not open " << " main_config.json" << std::endl;
-		exit(-1);
-	}
-	bool parsingSuccessful = Json::parseFromStream(rbuilder, instream, &root, &errs);
-	if (!parsingSuccessful)
-	{
-		std::cout << "Fail to parse \n" << errs << std::endl;
-		exit(-1);
-	}
-	std::string config_file = root["config_file"].asString(); 
-	instream.close();
-	return config_file; 
-}
-
-int run_inspect()
+void  run_eval_seq()
 {
 	show_gpu_param();
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
-	std::string config_file = get_config(); 
+	std::string config_file = get_config();
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + config_file);
+	frame.configByJson(conf_projectFolder + "configs/config_20190704_foreval.json");
 
 	int m_pid = 0; // pig identity to solve now. 
 	frame.set_frame_id(frame.m_startid);
@@ -82,16 +48,16 @@ int run_inspect()
 	frame.mp_renderEngine = &m_renderer;
 
 	frame.is_smth = false;
-	int start = frame.get_start_id(); 
+	int start = frame.get_start_id();
 
 	std::string test_result_folder = frame.m_result_folder;
 	if (!boost::filesystem::is_directory(test_result_folder))
 	{
-		boost::filesystem::create_directory(test_result_folder); 
+		boost::filesystem::create_directory(test_result_folder);
 	}
 	std::vector<std::string> subfolders = {
 		"assoc", "render", "clusters", "state", "reassoc2", "proj2", "before_swap2",
-		"fitting", "annotation", "skels", "anchor_state", "rawdet", "joints_62", "joints_23"
+		"fitting", "annotation", "skels", "anchor_state", "rawdet", "joints_62", "joints_23", "render_all", "debug"
 	};
 	for (int i = 0; i < subfolders.size(); i++)
 	{
@@ -99,15 +65,13 @@ int run_inspect()
 			boost::filesystem::create_directory(test_result_folder + subfolders[i]);
 	}
 
-	frame.init_parametric_solver(); 
-	int framenum = frame.get_frame_num(); 
-	int increment = 1; 
-	if (framenum < 0) increment = -1;
+	frame.init_parametric_solver();
 
 	frame.saveConfig();
 
-	for (int frameid = start; frameid != start + framenum; frameid+=increment)
+	for (int k = 0; k < 75; k++)
 	{
+		int frameid = 750 + 25 * k; 
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
 
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
@@ -116,124 +80,39 @@ int run_inspect()
 
 		frame.set_frame_id(frameid);
 		frame.fetchData();
+
+		frame.load_clusters();
+		frame.resetSolverStateMarker();
+		frame.DARKOV_Step1_setsource();
+
+		for (int i = 0; i < 4; i++)
+		{
+			frame.DARKOV_Step2_searchanchor(i);
+			frame.saveAnchors(frame.m_result_folder + "/anchor_state/");
+			frame.DARKOV_Step2_optimanchor(i);
+		}
+			
+
+		frame.DARKOV_Step4_fitrawsource();
+		frame.DARKOV_Step3_reassoc_type2();
+		frame.DARKOV_Step4_fitreassoc();
+
+		frame.DARKOV_Step5_postprocess();
+		frame.save_parametric_data();
 		
-		if (frameid == start)
-		{
-			if (frame.m_use_init_cluster)
-				frame.load_clusters(); 
-			else
-				frame.matching_by_tracking();
-		}
-		else
-		{
-			frame.pureTracking();
-		}
-
-		frame.save_clusters(); 
-		frame.resetSolverStateMarker(); 
-
-		if (frame.m_use_triangulation_only)
-		{
-			frame.DARKOV_Step1_setsource();
-			frame.DirectTriangulation();
-			frame.save_skels(); 
-			std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
-
-			cv::Mat assoc = frame.visualizeIdentity2D();
-			cv::Mat assoc_small = my_resize(assoc, 0.25); 
-			std::stringstream ss;
-			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss.str(),assoc_small);
-
-			cv::Mat rawfit = frame.visualizeRawAssoc();
-			cv::Mat rawfit_small = my_resize(rawfit, 1); 
-			std::stringstream ss_rawassoc;
-			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_rawassoc.str(), rawfit_small);
-
-			cv::Mat reproj = frame.visualizeProj();
-			cv::Mat reproj_small = my_resize(reproj, 0.25); 
-			std::stringstream ss_proj;
-			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_proj.str(), reproj_small);
-
-			continue; 
-		}
-
-		if (frame.m_try_load_anno && frame.try_load_anno())
-		{
-			frame.save_parametric_data(); 
-			frame.DARKOV_Step5_postprocess();
-		}
-		else if (frameid == start && frame.m_use_init_pose)
-		{
-			frame.read_parametric_data(); 
-			frame.DARKOV_Step5_postprocess();
-		}
-		// pipeline 3 
-		else
-		{
-
-			frame.DARKOV_Step1_setsource();
-			if (frameid == start && frame.m_use_init_anchor)
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					frame.DARKOV_Step2_searchanchor(i);
-					frame.saveAnchors(frame.m_result_folder + "/anchor_state/");
-					frame.DARKOV_Step2_optimanchor(i);
-					//frame.DARKOV_Step2_loadanchor();
-				}
-			}
-			else
-			{
-				for (int i = 0; i < 4; i++)
-				{
-					frame.mp_bodysolverdevice[i]->m_params.m_w_anchor_term = 0;
-				}
-			}
-
-			frame.DARKOV_Step4_fitrawsource();
-			frame.DARKOV_Step3_reassoc_type2();
-			frame.DARKOV_Step4_fitreassoc();
-
-			frame.DARKOV_Step5_postprocess();
-			frame.save_parametric_data();
-		}
 		std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
-		//continue;
 		{
+
 			cv::Mat assoc = frame.visualizeIdentity2D();
 			std::stringstream ss;
 			ss << test_result_folder << "/assoc/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::Mat assoc_small = my_resize(assoc, 0.25); 
+			cv::Mat assoc_small = my_resize(assoc, 0.25);
 			cv::imwrite(ss.str(), assoc_small);
 #if 1
-			if (!(frame.m_use_init_pose && frameid == start))
-			{
-				//cv::Mat reassoc = frame.visualizeReassociation();
-				//std::stringstream ss_reassoc;
-				//ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-				//cv::imwrite(ss_reassoc.str(), reassoc);
-
-				//cv::Mat reproj = frame.visualizeVisibility();
-				//std::stringstream ss_proj;
-				//ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-				//cv::imwrite(ss_proj.str(), reproj);
-
-				//cv::Mat beforeimg = frame.visualizeSwap();
-				//std::stringstream ss_before;
-				//ss_before << test_result_folder << "/before_swap2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-				//cv::imwrite(ss_before.str(), beforeimg);
-
-			}
 			cv::Mat rawfit = frame.visualizeRawAssoc();
-			std::stringstream ss_rawassoc; 
+			std::stringstream ss_rawassoc;
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_rawassoc.str(), rawfit); 
-
-			//frame.pipeline2_searchanchor();
-			//frame.saveAnchors(test_result_folder + "/anchor_state_252");
+			cv::imwrite(ss_rawassoc.str(), rawfit);
 #endif 
 		}
 
@@ -246,9 +125,9 @@ int run_inspect()
 		{
 			for (int pid = 0; pid < pignum; pid++)
 			{
-				auto joints_62 = solvers[pid]->GetJoints(); 
-				save_points(frame.m_result_folder + "/joints_62/", pid, frameid, joints_62); 
-				auto joints_23 = solvers[pid]->getRegressedSkel_host(); 
+				auto joints_62 = solvers[pid]->GetJoints();
+				save_points(frame.m_result_folder + "/joints_62/", pid, frameid, joints_62);
+				auto joints_23 = solvers[pid]->getRegressedSkel_host();
 				save_points(frame.m_result_folder + "/joints_23/", pid, frameid, joints_23);
 
 			}
@@ -285,9 +164,9 @@ int run_inspect()
 			all_renders[camid] = img;
 		}
 
-		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1));
 		for (int pid = 0; pid < pignum; pid++)
-			m_renderer.colorObjs[pid]->isMultiLight = true; 
+			m_renderer.colorObjs[pid]->isMultiLight = true;
 		m_renderer.createSceneDetailed(conf_projectFolder, 1.1);
 		//Eigen::Vector3f pos1(0.904806, -1.57754, 0.58256);
 		//Eigen::Vector3f up1(-0.157887, 0.333177, 0.929551);
@@ -315,12 +194,12 @@ int run_inspect()
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 
-		cv::Mat blend_small = my_resize(blend, 0.25);
+		cv::Mat blend_small = my_resize(blend, 1);
 		std::stringstream all_render_file;
 		all_render_file << test_result_folder << "/render/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";
 		cv::imwrite(all_render_file.str(), blend_small);
-		
+
 		std::cout << "total:       " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
 		//if (frameid == start ) {
 		//	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
@@ -336,5 +215,5 @@ int run_inspect()
 		//}
 	}
 
- 	return 0;
+	return;
 }

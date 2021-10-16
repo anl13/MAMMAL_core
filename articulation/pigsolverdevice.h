@@ -5,7 +5,7 @@
 #include <fstream> 
 
 #include <Eigen/Eigen> 
-
+#include <json/json.h>
 #include "pigmodeldevice.h"
 #include "../render/renderer.h"
 #include "../utils/skel.h"
@@ -20,6 +20,31 @@
 //#define USE_GPU_SOLVER 
 #define SHOW_FITTING_INFO
 //#define USE_SIFT
+
+class ParamSet {
+public: 
+	ParamSet() {} 
+	void loadParams(const Json::Value& data); 
+	float m_valid_threshold;
+	float m_lambda;
+	float m_w_data_term;
+	float m_w_sil_term;
+	float m_w_reg_term;
+	float m_w_temp_term;
+	float m_w_floor_term;
+	float m_w_on_floor_term;
+	float m_kpt_track_dist;
+	float m_w_anchor_term;
+	float m_iou_thres;
+	float m_w_sift_term;
+	bool m_use_bodyonly_reg;
+	bool m_use_height_enhanced_temp;
+	float m_w_collision_term;
+	float m_w_3d_term;
+	bool m_use_given_scale; 
+	int m_sil_step; 
+	int m_collision_step; 
+};
 
 typedef struct
 {
@@ -63,11 +88,13 @@ class PigSolverDevice : public PigModelDevice
 {
 public:
 	PigSolverDevice() = delete;
-	PigSolverDevice(const std::string &_configfile);
+	PigSolverDevice(const std::string &_configfile, bool _use_gpu = false);
 	~PigSolverDevice();
 	PigSolverDevice(const PigSolverDevice&) = delete;
 	PigSolverDevice& operator=(const PigSolverDevice&) = delete;
 
+	ParamSet m_params;
+	std::string m_anchor_folder; 
 	void setSource(const MatchedInstance& _source) {
 		m_source = _source;
 	}
@@ -77,6 +104,10 @@ public:
 	bool m_isPostprocessed;
 	void resetStateMarker();
 	float m_trackConf;
+	bool m_use_gpu = false;
+	float m_gtscale;  // This gt scale is given from outside
+	bool m_isReAssoc;
+
 
 	float getAvgHeight();
 	float computeProjectionError();
@@ -87,6 +118,7 @@ public:
 	void getThetaAnchor(Eigen::VectorXf& theta);
 	void setThetaAnchor(const Eigen::VectorXf& theta);
 
+	void setParams(const ParamSet& _params); 
 	void setCameras(const std::vector<Camera>& _cams) { m_cameras = _cams; }
 	void setRenderer(Renderer * _p_render) { mp_renderEngine = _p_render; }
 	void setROIs(std::vector<ROIdescripter> _rois) { m_rois = _rois; }
@@ -246,32 +278,10 @@ public:
 	void CalcSurfaceFloorTerm(Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb);
 	
 	void computeDepthWeight(); 
-	bool m_use_gpu = false; 
+	
 	std::vector<float* > d_depth_renders_interact; 
 	float optimizePoseSilWithAnchorOneStep(int iter); 
 
-
-	float m_valid_threshold;
-	float m_lambda;
-	float m_w_data_term;
-	float m_w_sil_term;
-	float m_w_reg_term;
-	float m_w_temp_term;
-	float m_w_floor_term;
-	float m_w_on_floor_term; 
-	float m_kpt_track_dist;
-	float m_w_anchor_term;
-	float m_iou_thres; 
-	float m_w_sift_term; 
-	std::string m_anchor_folder; 
-	bool m_use_bodyonly_reg;
-	bool m_use_height_enhanced_temp; 
-	bool m_use_given_scale; 
-	bool m_use_triangulation_only; 
-	float m_w_collision_term; 
-	float m_w_3d_term; 
-
-	float m_gtscale;  // This gt scale is given from outside
 	float approxIOU(int view); 
 
 	std::vector < std::vector<Eigen::Vector3f> > m_skelProjs; // [viewid, jointid] (u,v,visibility)
@@ -281,7 +291,6 @@ public:
 	void projectSkels(); 
 
 	std::vector<std::vector<Eigen::Vector3f> > m_keypoints_reassociated; // camnum, jointnum
-	bool m_isReAssoc; 
 	cv::Mat debug_vis_reassoc_swap();
 	
 	/*

@@ -40,7 +40,7 @@
   "optimize_pair": [
     // [target joint, type, source index, weight]
     //[ 0, 1, 10895, 1 ], // nose
-    [0, 1, 10904,  1], // nose
+    [ 0, 1, 10904, 1 ], // nose
     [ 1, 1, 938, 1 ], // left eye
     [ 2, 1, 6053, 1 ], // right eye
     [ 3, 1, 1368, 1 ], // left ear
@@ -60,30 +60,7 @@
     [ 18, 1, 7903, 1 ],
     [ 20, 0, 2, 1 ] // cneter
   ],
-  "valid_threshold": 0.8,
-  "use_gpu": true,
-  "lambda": 0.1,
-  "data_term": 1,
-  "sil_term": 0.00005,
-  "reg_term": 0.01,
-  "temp_term": 1,
-  "floor_term": 10, // restrict bodys are on floor
-  "on_floor_term": 1, // restrict lower back leg stand precisely on floor. 
-  "anchor_term": 0,
-  "gmm_term": 0.0,
-  "collision_term":  10,
-  "sift_term": 0.0,
-  "3d_term": 0.0,
-  "reg_weights": [ [ 2, 1, 1, 1 ] ],
-  "kpt_track_dist": 200, // px  * depthweight
-  //"scales": [ 1.337, 1.280, 1.406, 1.300 ],
-  //"scales": [ 1.406, 1.337, 1.300, 1.28056 ],
-  //"scales": [ 1.337, 1.28056, 1.300, 1.406 ], // order of match_by_tracking in 750 frame
-  //"scales": [ 1.28056, 1.406, 1.337, 1.300 ], // seq_noon
-  "iou_thres": 0.5,
-  "anchor_folder": "D:/Projects/animal_calib/data/pose_lib3_new/",
-  "use_bodyonly_reg": false,
-  "use_height_enhanced_temp": false
+  "anchor_folder": "D:/pig_middle_data/build_pose_lib5/pose_lib5/"
 }
 
 

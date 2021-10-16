@@ -26,7 +26,7 @@
   "solve_sil_iters": 100,
   "solve_sil_iters_2nd_phase": 10,
   "use_reassoc": false,
-  "annotation_folder": "D:/results/paper_teaser/0704_gt/annotation",
+  "annotation_folder": "D:/results/paper_teaser/0704_gt/annotation/",
   "result_folder": "D:/results/paper_teaser/0704_gt/",
   "terminal_thresh": 0.005,
   "scales": [ 1.406,1.337,  1.28056,  1.300], //

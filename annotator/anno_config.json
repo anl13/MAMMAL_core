@@ -1,5 +1,5 @@
 {
-    "posesolver_config": "configs/config_20190704_foreval.json",
+    "posesolver_config": "configs/config_seq2.json",
     "pig_config":"articulation/artist_config_sym.json",
     "current_frame_id": 750,
     "current_pig_id": 2

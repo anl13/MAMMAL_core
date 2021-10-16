@@ -17,12 +17,13 @@ void main()
 	//test_visdesigned();
 	//test_lay();
 
-	//test_visanchors(); 
+	test_visanchors(); 
 
 	//test_texture(); 
 
 	//test_bone_var(); 
 	//test_inmeshtest();
 	//test_render_behavior(); 
-	test_collision_render(); 
+	//test_collision_render(); 
+
 }
