@@ -75,6 +75,8 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_restart_threshold = root["restart_thresold"].asInt(); 
 	m_tracking_distance = root["tracking_distance"].asFloat(); 
 	m_intrinsic_type = root["intrinsic_type"].asInt(); 
+	m_use_per_frame_anchor = root["use_per_frame_anchor"].asBool(); 
+
 	m_params.loadParams(root["optim_params"]); 
 
 	for (int i = 0; i < m_pignum; i++)
@@ -963,10 +965,11 @@ void FrameSolver::pureTracking()
 #endif 
 		std::vector<int> mm = solveHungarian(sim);
 
-		//for (int i = 0; i < mm.size(); i++)
-		//	std::cout << mm[i] << "  ";
-		//std::cout << std::endl; 
-
+#ifdef DEBUG_TRACK
+		for (int i = 0; i < mm.size(); i++)
+			std::cout << mm[i] << "  ";
+		std::cout << std::endl; 
+#endif 
 		for (int i = 0; i < m_pignum; i++)
 		{
 			if (mm[i] >= 0)
@@ -1515,16 +1518,28 @@ void FrameSolver::reAssociateKeypoints()
 	}
 }
 
-cv::Mat FrameSolver::visualizeReassociation()
+cv::Mat FrameSolver::visualizeReassociation(
+	std::vector<int> ids, 
+	int viewid, bool withImg
+)
 {
-	std::vector<cv::Mat> reassoc; 
-	cloneImgs(m_imgsUndist, reassoc);
+	cv::Mat rawimg;
+	rawimg.create(cv::Size(1920, 1080), CV_8UC3);
+	rawimg.setTo(cv::Scalar(255, 255, 255));
 
-	for (int id = 0; id < m_pignum; id++)
+	cv::Mat halfraw;
+	if (withImg)
+		halfraw = blend_images(rawimg, m_imgsUndist[viewid], 0.5);
+	else
+		halfraw = rawimg;
+
+	for(int k = 0; k < ids.size(); k++)
 	{
+		int id = ids[k];
 		int colorid = m_pig_names[id];
 		for (int i= 0; i < m_matched[id].view_ids.size(); i++)
 		{
+			if (m_matched[id].view_ids[i] != viewid) continue; 
 			Eigen::Vector3i color;
 			
 			color(0) = m_CM[colorid](2);
@@ -1532,25 +1547,21 @@ cv::Mat FrameSolver::visualizeReassociation()
 			color(2) = m_CM[colorid](0);
 			int camid = m_matched[id].view_ids[i];
 			
-			my_draw_box(reassoc[camid], m_matched[id].dets[i].box, color);
+			//my_draw_box(halfraw, m_matched[id].dets[i].box, color);
 
 			if (m_matched[id].dets[i].mask.size() > 0)
-				my_draw_mask(reassoc[camid], m_matched[id].dets[i].mask, color, 0.5);
+				my_draw_mask(halfraw, m_matched[id].dets[i].mask, color, 0.5);
 		}
-		for (int camid = 0; camid < m_camNum; camid++)
-		{
-			Eigen::Vector3i color;
 
-			color(0) = m_CM[colorid](2);
-			color(1) = m_CM[colorid](1);
-			color(2) = m_CM[colorid](0);
-			drawSkelMonoColor(reassoc[camid], m_keypoints_associated[id][camid], color, m_topo);
-		}
+		Eigen::Vector3i color;
+		color(0) = m_CM[colorid](2);
+		color(1) = m_CM[colorid](1);
+		color(2) = m_CM[colorid](0);
+		drawSkelMonoColor(halfraw, m_keypoints_associated[id][viewid], color, m_topo);
+		
 	}
 
-	cv::Mat packed;
-	packImgBlock(reassoc, packed);
-	return packed; 
+	return halfraw;
 }
 
 cv::Mat FrameSolver::visualizeVisibility()
@@ -2771,8 +2782,8 @@ cv::Mat FrameSolver::tmp_visualizeIdentity2D(int viewid, int vid)
 			int camid = m_matched[id].view_ids[i];
 			if (m_matched[id].dets[i].mask.size() > 0)
 				my_draw_mask(rawimg, m_matched[id].dets[i].mask, color, 0.5); 
-			if (m_matched[id].dets[i].keypoints.size() > 0)
-				drawSkelMonoColor(rawimg, m_matched[id].dets[i].keypoints, color, m_topo);
+			//if (m_matched[id].dets[i].keypoints.size() > 0)
+			//	drawSkelMonoColor(rawimg, m_matched[id].dets[i].keypoints, color, m_topo);
 			//my_draw_box(m_imgsDetect[camid], m_matched[id].dets[i].box, color);
 		}
 	}

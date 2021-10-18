@@ -200,10 +200,10 @@ void run_demo_result()
 
 		std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
 
-		cv::Mat reassoc = frame.visualizeReassociation();
-		std::stringstream ss_reassoc;
-		ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-		cv::imwrite(ss_reassoc.str(), reassoc);
+		//cv::Mat reassoc = frame.visualizeReassociation();
+		//std::stringstream ss_reassoc;
+		//ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		//cv::imwrite(ss_reassoc.str(), reassoc);
 
 		cv::Mat beforeimg = frame.visualizeSwap();
 		std::stringstream ss_before;

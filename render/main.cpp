@@ -247,9 +247,9 @@ void test_depth()
 	for (int i = 0; i < vertexNum; i++)
 	{
 		Eigen::Vector3f v = obj.vertices_vec[i]; 
-		Eigen::Vector3f uv = project(cams[0], v);
+		Eigen::Vector3f uv = project(cams[8], v);
 		float d = queryDepth(depth, uv(0), uv(1));
-		v = cams[0].R * v + cams[0].T; 
+		v = cams[8].R * v + cams[8].T; 
 		//std::cout << "d: " << d << "  gt: " << v(2) << std::endl;
 		if (d > 0 && abs(d - v(2)) < 0.02f)
 		{

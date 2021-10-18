@@ -144,10 +144,10 @@ void run_demo_20211008()
 				ss2 << test_result_folder << "/render_last/assoc_" << k << "_" << pid << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
 				cv::imwrite(ss2.str(), assoc2);
 
-				cv::Mat assoc3 = frame.tmp_visualizeIdentity2D(id, pid); 
-				std::stringstream ss3; 
+				cv::Mat assoc3 = frame.tmp_visualizeIdentity2D(id, pid);
+				std::stringstream ss3;
 				ss3 << test_result_folder << "/render_last/group_" << k << "_" << pid << ".png";
-				cv::imwrite(ss3.str(), assoc3); 
+				cv::imwrite(ss3.str(), assoc3);
 			}
 		}
 
@@ -165,7 +165,7 @@ void run_demo_20211008()
 			cv::imwrite(ss_proj.str(), reproj_small);
 		}
 
-		frame.DARKOV_Step1_setsource(); 
+		frame.DARKOV_Step1_setsource();
 
 #if 1// search anchor 
 		if (frame.m_use_init_anchor)
@@ -179,8 +179,8 @@ void run_demo_20211008()
 		}
 #else 
 		frame.DARKOV_Step2_loadanchor();
-		for(int i = 0; i < 4; i++)
-			frame.DARKOV_Step2_optimanchor(i); 
+		for (int i = 0; i < 4; i++)
+			frame.DARKOV_Step2_optimanchor(i);
 #endif 
 
 #if 1 // comment to visualize anchor result
@@ -188,12 +188,13 @@ void run_demo_20211008()
 		frame.DARKOV_Step3_reassoc_type2();
 		frame.DARKOV_Step4_fitreassoc();
 
-		frame.DARKOV_Step5_postprocess(); 
-		frame.save_parametric_data(); 
+		frame.DARKOV_Step5_postprocess();
+		frame.save_parametric_data();
 
 		std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
 
-		cv::Mat reassoc = frame.visualizeReassociation();
+		std::vector<int> reassoc_ids = { 0,1,2,3 };
+		cv::Mat reassoc = frame.visualizeReassociation(reassoc_ids,0);
 		std::stringstream ss_reassoc;
 		ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 		cv::imwrite(ss_reassoc.str(), reassoc);
@@ -309,6 +310,232 @@ void run_demo_20211008()
 				glfwPollEvents();
 			};
 		}
+	}
+
+}
+
+
+void run_demo_visualize_depth()
+{
+	show_gpu_param();
+	std::string conf_projectFolder = "D:/Projects/animal_calib/";
+	SkelTopology topo = getSkelTopoByType("UNIV");
+	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
+	//std::string config_file = get_config();
+	std::string config_file = "configs/config_20190704_fordemo.json";
+	FrameSolver frame;
+	frame.configByJson(conf_projectFolder + config_file);
+
+	int m_pid = 0; // pig identity to solve now. 
+	frame.set_frame_id(frame.m_startid);
+	frame.fetchData();
+	auto cams = frame.get_cameras();
+	auto cam = cams[0];
+	int pignum = frame.m_pignum;
+
+	// init renderer
+	Eigen::Matrix3f K = cam.K;
+	K.row(0) = K.row(0) / 1920.f;
+	K.row(1) = K.row(1) / 1080.f;
+	Renderer::s_Init(false);
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+
+	frame.mp_renderEngine = &m_renderer;
+
+	frame.is_smth = false;
+	int start = frame.get_start_id();
+
+	std::string test_result_folder = frame.m_result_folder;
+	if (!boost::filesystem::is_directory(test_result_folder))
+	{
+		boost::filesystem::create_directory(test_result_folder);
+	}
+	std::vector<std::string> subfolders = {
+		"assoc", "render", "clusters", "state", "reassoc2", "proj2", "before_swap2",
+		"fitting", "annotation", "skels", "anchor_state", "rawdet", "joints_62", "joints_23",
+		"debug", "render_all", "render_last"
+	};
+	for (int i = 0; i < subfolders.size(); i++)
+	{
+		if (!boost::filesystem::is_directory(test_result_folder + subfolders[i]))
+			boost::filesystem::create_directory(test_result_folder + subfolders[i]);
+	}
+
+	frame.init_parametric_solver();
+	int framenum = frame.get_frame_num();
+	int increment = 1;
+	if (framenum < 0) increment = -1;
+
+	frame.saveConfig();
+
+	for (int frameid = 7888;;)
+	{
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
+
+		frame.set_frame_id(frameid);
+		frame.fetchData();
+
+		frame.load_clusters();
+		frame.resetSolverStateMarker();
+		frame.DARKOV_Step1_setsource();
+
+		for (int pid = 0; pid < 4; pid++)
+		{
+			if (pid != 1 && pid != 3) continue; 
+			cv::Mat assoc3 = frame.tmp_visualizeIdentity2D(8, pid);
+			std::stringstream ss3;
+			ss3 << test_result_folder << "/debug/group_" << "_" << pid << ".png";
+			cv::imwrite(ss3.str(), assoc3);
+		}
+
+		//if (frame.m_use_init_anchor)
+		//{
+		//	for (int i = 0; i < 4; i++)
+		//	{
+		//		frame.DARKOV_Step2_searchanchor(i);
+		//		frame.saveAnchors(frame.m_result_folder + "/anchor_state/");
+		//		frame.DARKOV_Step2_optimanchor(i);
+		//	}
+		//}
+
+		frame.DARKOV_Step2_loadanchor();
+		//for (int i = 0; i < 4; i++)
+		//	frame.DARKOV_Step2_optimanchor(i);
+		for (int k = 0; k < 4; k++)
+		{
+			std::stringstream ss; 
+			ss << test_result_folder << "/debug/anchor_" << k << ".txt"; 
+			frame.mp_bodysolverdevice[k]->readState(ss.str());
+			frame.mp_bodysolverdevice[k]->UpdateVertices(); 
+			frame.mp_bodysolverdevice[k]->UpdateNormalFinal(); 
+			frame.mp_bodysolverdevice[k]->map_reduced_vertices(); 
+		}
+
+#if 1 // comment to visualize anchor result
+		frame.DARKOV_Step4_fitrawsource();
+		frame.DARKOV_Step3_reassoc_type2();
+		frame.DARKOV_Step4_fitreassoc();
+
+		frame.DARKOV_Step5_postprocess();
+		frame.save_parametric_data();
+
+		cv::Mat reassoc = frame.visualizeReassociation({ 1,3 }, 8, false);
+		std::stringstream ss_reassoc;
+		ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss_reassoc.str(), reassoc);
+#endif 
+		//frame.read_parametric_data(); 
+		std::string prefix = "anchor";
+		m_renderer.clearAllObjs();
+		std::vector<Eigen::Vector3f> id_colors = {
+			{1.0f, 0.0f,0.0f},
+			{0.0f, 1.0f, 0.0f},
+			{0.0f, 0.0f, 1.0f},
+			{1.0f, 1.0f, 0.0f}
+				};
+		std::vector<int> render_pig_ids = { 1,3 };
+		auto solvers = frame.mp_bodysolverdevice;
+		for (int k = 0; k < render_pig_ids.size(); k++)
+		{
+			int pid = render_pig_ids[k];
+			RenderObjectColor* p_model = new RenderObjectColor();
+			solvers[pid]->UpdateNormalFinal();
+			int colorid = frame.m_pig_names[pid];
+			p_model->SetVertices(solvers[pid]->GetVertices());
+			p_model->SetNormal(solvers[pid]->GetNormals());
+			p_model->SetFaces(solvers[pid]->GetFacesVert());
+			//p_model->SetColor(m_CM[colorid]);
+			p_model->SetColor(id_colors[pid]);
+			m_renderer.colorObjs.push_back(p_model);
+
+			std::vector<Eigen::Vector3f> joints = solvers[pid]->GetJoints();
+		}
+
+		m_renderer.s_camViewer.SetExtrinsic(cams[8].R, cams[8].T);
+		float * depth_device = m_renderer.renderDepthDevice();
+		// render depth 
+		cv::Mat depth;
+		depth.create(cv::Size(1920, 1080), CV_32FC1);
+		cudaMemcpy(depth.data, depth_device, 1920 * 1080 * sizeof(float), cudaMemcpyDeviceToHost);
+
+		cv::Mat depth_pseudo = pseudoColor(depth);
+
+		cv::imshow("depth", depth_pseudo);
+		cv::imwrite(test_result_folder + "/debug/depth_afteroptim.png", depth_pseudo); 
+		cv::waitKey();
+		cv::destroyAllWindows();
+
+		// visibility check 
+		std::vector<uchar> visibility(solvers[3]->GetVertexNum(), 0);
+		pcl::gpu::DeviceArray<Eigen::Vector3f> points_device;
+		points_device.upload(solvers[3]->GetVertices());
+
+		TimerUtil::Timer<std::chrono::microseconds> tt1;
+		tt1.Start();
+		check_visibility(depth_device, WINDOW_WIDTH, WINDOW_HEIGHT, points_device,
+			cams[8].K, cams[8].R, cams[8].T, visibility);
+		std::cout << tt1.Elapsed() << std::endl;
+
+		int vertexNum = solvers[3]->GetVertexNum();
+		std::vector<Eigen::Vector3f> colors(vertexNum, Eigen::Vector3f(1.0f, 1.0f, 1.0f));
+
+		TimerUtil::Timer<std::chrono::microseconds> tt;
+		tt.Start();
+		std::vector<Eigen::Vector3f> vertices = solvers[3]->GetVertices(); 
+		for (int i = 0; i < vertexNum; i++)
+		{
+			Eigen::Vector3f v = vertices[i];
+			Eigen::Vector3f uv = project(cams[8], v);
+			float d = queryDepth(depth, uv(0), uv(1));
+			v = cams[8].R * v + cams[8].T;
+			//std::cout << "d: " << d << "  gt: " << v(2) << std::endl;
+			if (d > 0 && abs(d - v(2)) < 0.02f)
+			{
+				colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
+			}
+			else
+			{
+				colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f);
+			}
+			if (visibility[i] > 0) colors[i] = Eigen::Vector3f(1.0f, 0.0f, 0.0f);
+			else colors[i] = Eigen::Vector3f(0.f, 0.f, 1.0f);
+		}
+
+		m_renderer.clearAllObjs(); 
+		RenderObjectMesh* meshcolor = new RenderObjectMesh();
+		meshcolor->SetVertices(vertices);
+		meshcolor->SetFaces(solvers[3]->GetFacesVert());
+		meshcolor->SetColors(colors);
+		meshcolor->SetNormal(solvers[3]->GetNormals());
+		m_renderer.meshObjs.push_back(meshcolor); 
+		// end visibility check
+
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1));
+		for (int k = 0; k < render_pig_ids.size(); k++)
+		{
+			int pid = render_pig_ids[k];
+			m_renderer.colorObjs[k]->isMultiLight = true;
+		}
+
+		//Eigen::Vector3f pos2(0.0988611, -0.0113558, 3.00438);
+		//Eigen::Vector3f up2(0.00346774, 0.999541, -0.0301062);
+		//Eigen::Vector3f center2(0.0589942, -0.0909324, 0.00569892);
+		//m_renderer.s_camViewer.SetExtrinsic(pos2, up2, center2);
+
+		GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+		while (!glfwWindowShouldClose(windowPtr))
+		{
+			//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+			m_renderer.Draw();
+			glfwSwapBuffers(windowPtr);
+			glfwPollEvents();
+		};
+
+		break;
 	}
 
 }

@@ -173,7 +173,6 @@ int run_inspect()
 		// pipeline 3 
 		else
 		{
-
 			frame.DARKOV_Step1_setsource();
 			if (frameid == start && frame.m_use_init_anchor)
 			{
@@ -187,6 +186,7 @@ int run_inspect()
 			}
 			else
 			{
+				frame.m_params.m_w_anchor_term = 0; 
 				for (int i = 0; i < 4; i++)
 				{
 					frame.mp_bodysolverdevice[i]->m_params.m_w_anchor_term = 0;

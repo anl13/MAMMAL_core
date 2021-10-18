@@ -6,8 +6,9 @@
 int main(int argc, char** argv)
 {
 	//run_inspect();
-	run_demo_result(); 
+	//run_demo_result(); 
 	//run_demo_20211008(); 
+	run_demo_visualize_depth(); 
 	//run_eval_seq(); 
 	//run_pose_smooth(); 
 	//run_trajectory2();

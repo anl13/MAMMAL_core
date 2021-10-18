@@ -26,7 +26,7 @@ void  run_eval_seq()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 	std::string config_file = get_config();
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "configs/config_20190704_foreval.json");
+	frame.configByJson(conf_projectFolder + "configs/config_20190704_foreval2.json");
 
 	int m_pid = 0; // pig identity to solve now. 
 	frame.set_frame_id(frame.m_startid);
@@ -69,9 +69,10 @@ void  run_eval_seq()
 
 	frame.saveConfig();
 
-	for (int k = 0; k < 75; k++)
+	for (int k = start; k < start + 1800; k++)
 	{
-		int frameid = 750 + 25 * k; 
+		//int frameid = 750 + 25 * k; 
+		int frameid = k; 
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
 
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
@@ -113,6 +114,11 @@ void  run_eval_seq()
 			std::stringstream ss_rawassoc;
 			ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss_rawassoc.str(), rawfit);
+
+			//cv::Mat reassoc = frame.visualizeReassociation();
+			//std::stringstream ss_reassoc;
+			//ss_reassoc << test_result_folder << "/reassoc2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			//cv::imwrite(ss_reassoc.str(), reassoc);
 #endif 
 		}
 

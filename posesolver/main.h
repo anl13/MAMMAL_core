@@ -45,3 +45,4 @@ void run_trajectory2();
 
 void run_demo_result(); 
 void run_eval_seq(); 
+void run_demo_visualize_depth(); 

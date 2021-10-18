@@ -2,6 +2,7 @@
 #include "../utils/geometry.h"
 #include "../utils/Hungarian.h"
 
+//#define VISUAL_LOSS
 
 cv::Mat PigSolverDevice::debug_source_visualize()
 {
@@ -249,8 +250,8 @@ int PigSolverDevice::searchAnchorSpace()
 	int min_loss = 100000;
 	for (int i = 0; i < anchor_errors.size(); i++)
 	{
-		//float err = anchor_errors[i] + anchor_mask_errors[i] * 20;
-		float err = anchor_errors[i] + anchor_mask_errors[i] * 5; 
+		float err = anchor_errors[i] + anchor_mask_errors[i] * 20;
+		//float err = anchor_errors[i] + anchor_mask_errors[i] * 5; 
 		if (err < min_loss)
 		{
 			min_loss = err;
@@ -701,7 +702,7 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	{
 		renderDepths();
 		if (m_use_gpu)
-			CalcSilhouettePoseTerm(ATA_sil, ATb_sil);
+			CalcSilhouettePoseTerm(ATA_sil, ATb_sil, iter);
 		else
 			CalcSilouettePoseTerm_cpu(ATA_sil, ATb_sil, iter);
 	}
@@ -805,7 +806,7 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		m_host_poseParam[jIdx] += delta.segment<3>(3 + 3 * i);
 	}
 
-	
+#ifdef VISUAL_LOSS
 	std::cout << "pig " << m_pig_id << " iter: " << iter << std::endl; 
 	std::cout << "   ATb_data: " << ATb_data.norm() << std::endl; 
 	std::cout << "   ATb_sil : " << ATb_sil.norm() << std::endl; 
@@ -816,6 +817,7 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 	std::cout << "   ATb_col: " << ATb_col.norm() << std::endl;
 	std::cout << "      delta : " << delta.norm() << std::endl; 
 	std::cout << "      b.norm: " << b.norm() << std::endl;
+#endif 
 #ifdef USE_SIFT
 	std::cout << "ATb_sift: " << ATb_sift.norm() << std::endl; 
 #endif 

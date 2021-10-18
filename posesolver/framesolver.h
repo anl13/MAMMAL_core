@@ -119,7 +119,7 @@ public:
 	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_associated; // idnum, camnum, jointnum
 	std::vector< std::vector< std::vector<Eigen::Vector3f> > > m_keypoints_pool; // camnum, jointnum, candnum
 	std::vector< std::vector<std::vector<float> > > m_skelVis; // idnum, camnum, jointnum
-	cv::Mat visualizeReassociation(); 
+	cv::Mat visualizeReassociation(std::vector<int> ids, int viewid, bool withImg = true);
 	cv::Mat visualizeVisibility(); 
 	cv::Mat visualizeSwap(); 
 	cv::Mat visualizeRawAssoc();
@@ -204,4 +204,5 @@ public:
 	bool m_use_init_anchor; 
 	int m_restart_threshold; 
 	float m_tracking_distance; 
+	bool m_use_per_frame_anchor;
 };

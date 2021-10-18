@@ -849,6 +849,7 @@ cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh)
 	int w = tsdf.cols;
 	int h = tsdf.rows;
 	cv::Mat img(cv::Size(w, h), CV_8UC3);
+#pragma parallel for 
 	for (int i = 0; i < h; i++)
 	{
 		for (int j = 0; j < w; j++)
@@ -877,13 +878,14 @@ cv::Mat visualizeSDF2d(cv::Mat tsdf, int thresh)
 cv::Mat pseudoColor(cv::Mat depth)
 {
 	std::vector<Eigen::Vector3i> CM;
-	getColorMap("jet", CM);
+	getColorMap("gist_yarg", CM);
 	int w = depth.cols;
 	int h = depth.rows;
 	cv::Mat img(cv::Size(w, h), CV_8UC3);
 	img.setTo(0);
 	double minv, maxv;
 	cv::minMaxLoc(depth, &minv, &maxv);
+#pragma parallel for 
 	for (int i = 0; i < h; i++)
 	{
 		for (int j = 0; j < w; j++)
