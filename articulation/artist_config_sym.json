@@ -61,7 +61,7 @@
     [ 20, 0, 2, 1 ] // cneter
   ],
   "anchor_folder": "D:/pig_middle_data/build_pose_lib5/pose_lib5/",
-  "m_use_gpu":  false 
+  "m_use_gpu":  true 
 }
 
 

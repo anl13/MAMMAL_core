@@ -137,6 +137,7 @@
     <ClCompile Include="..\posesolver\clusterclique.cpp" />
     <ClCompile Include="..\posesolver\framedata.cpp" />
     <ClCompile Include="..\posesolver\framesolver.cpp" />
+    <ClCompile Include="..\posesolver\framesolver_eval.cpp" />
     <ClCompile Include="..\posesolver\framesolver_pipeline.cpp" />
     <ClCompile Include="..\posesolver\global_config.cpp" />
     <ClCompile Include="..\posesolver\matching.cpp" />
@@ -163,6 +164,7 @@
     <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="exp1.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="run_eval_sil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\gpuutils.cu" />

@@ -25,47 +25,10 @@ int main()
 	//run_eval(); 
 	//process_generate_label3d(); 
 	//run_visualize_gt(); 
-	run_fitgt(); 
+	//run_fitgt(); 
+	//run_eval_sil(); 
+	run_eval_reassoc(); 
 
-	return 0; 
-}
-
-int run_eval()
-{
-	show_gpu_param();
-	std::string conf_projectFolder = "D:/Projects/animal_calib/";
-	SkelTopology topo = getSkelTopoByType("UNIV");
-	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
-
-	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/configs/config_20190704_foreval.json");
-
-	frame.set_frame_id(750);
-	frame.fetchData();
-	auto cams = frame.get_cameras();
-	auto cam = cams[0];
-
-	// init renderer
-	Eigen::Matrix3f K = cam.K;
-	K.row(0) = K.row(0) / 1920.f;
-	K.row(1) = K.row(1) / 1080.f;
-	Renderer::s_Init(true);
-	Renderer m_renderer(conf_projectFolder + "/render/shader/");
-	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
-
-	for (int i = 0; i < 40; i++)
-	{
-		int frameid = 750 + 25 * i;
-		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
-		frame.set_frame_id(frameid);
-		frame.fetchData();
-		frame.load_clusters();
-		frame.read_parametric_data();
-
-
-	}
 	return 0; 
 }
 
@@ -101,13 +64,14 @@ int run_visualize_gt()
 	return 0; 
 }
 
+
 int run_fitgt()
 {
 	show_gpu_param();
 	std::string conf_projectFolder = "D:/Projects/animal_calib/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
-	std::string config_file = "configs/config_20190704_gt.json"; 
+	std::string config_file = "configs/config_20190704_gt.json";
 	FrameSolver frame;
 	frame.configByJson(conf_projectFolder + config_file);
 
@@ -153,7 +117,7 @@ int run_fitgt()
 
 	for (int i = 0; i < 70; i++)
 	{
-		int frameid = 750 + 25 * i; 
+		int frameid = 750 + 25 * i;
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
 
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
@@ -161,8 +125,10 @@ int run_fitgt()
 		tt.Start();
 
 		frame.set_frame_id(frameid);
-		frame.fetchGtData(); 
-		frame.fetchData(); 
+		frame.fetchGtData();
+		frame.fetchData();
+
+
 		//frame.matching_by_tracking(); 
 
 		frame.resetSolverStateMarker();
@@ -191,7 +157,7 @@ int run_fitgt()
 		frame.DARKOV_Step4_fitrawsource();
 		frame.DARKOV_Step5_postprocess();
 		frame.save_parametric_data();
-		
+
 		std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
 
 		m_renderer.clearAllObjs();

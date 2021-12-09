@@ -115,7 +115,7 @@ int test_mean_pose()
 	m_renderer.skels.push_back(p_skel); 
 #endif 
 
-#if 0 // render skel 
+#if 1 // render skel 
 	std::vector<Eigen::Vector2i> bones = {
 		{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
 		 {5,7}, {7,9}, {6,8}, {8,10},
@@ -161,7 +161,7 @@ int test_mean_pose()
 
 #endif 
 
-#if 1 // render node graph 
+#if 0 // render node graph 
 	std::vector<Eigen::Vector3u> reduced_faces = smal.m_reduced_faces; 
 	std::vector<Eigen::Vector3f> reduced_verts = smal.m_reduced_vertices; 
 	std::vector<Eigen::Vector3f> balls; 
@@ -210,7 +210,7 @@ int test_mean_pose()
 
 	//m_renderer.Draw();
 	cv::Mat img = m_renderer.GetImageOffscreen(); 
-	cv::imwrite("D:/paper_writing_figs/nodes2.png", img);
+	cv::imwrite("D:/paper_writing_figs/skel_only.png", img);
 	while (!glfwWindowShouldClose(windowPtr))
 	{
 		m_renderer.Draw();

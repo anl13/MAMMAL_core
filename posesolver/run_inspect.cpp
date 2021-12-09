@@ -30,12 +30,12 @@ void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::
 	outputfile.close();
 }
 
-std::string get_config()
+std::string get_config(std::string name)
 {
 	Json::Value root;
 	Json::CharReaderBuilder rbuilder;
 	std::string errs;
-	std::ifstream instream("D:/Projects/animal_calib/configs/main_config.json");
+	std::ifstream instream("D:/Projects/animal_calib/configs/"+ name + ".json");
 	if (!instream.is_open())
 	{
 		std::cout << "can not open " << " main_config.json" << std::endl;

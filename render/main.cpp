@@ -897,7 +897,7 @@ void test_indexrender()
 	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
 	for (int i = 0; i < obj.vertices_vec.size(); i++)
 	{
-		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0.21);
+		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0);
 	}
 
 	obj.ReMapTexture();
@@ -1048,7 +1048,7 @@ void main()
 {
 	//test_trajectory();
 	//test_color_table();
-	//test_indexrender(); 
+	test_indexrender(); 
 	//generateFaceIndexMap();
-	test_render_texture();
+	//test_render_texture();
 }

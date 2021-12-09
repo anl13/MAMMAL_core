@@ -138,6 +138,9 @@
     <ClCompile Include="run_eval_seq.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="framesolver_eval.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\articulation\artist_config.json">
@@ -267,6 +270,12 @@
       <Filter>资源文件</Filter>
     </None>
     <None Include="..\configs\config_20190704_gt.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_newf1_batch4_0928.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_newf1_batch5_2.json">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>

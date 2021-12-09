@@ -439,7 +439,7 @@ void FrameSolver::save_parametric_data()
 void FrameSolver::read_parametric_data()
 {
 	init_parametric_solver(); 
-
+	//std::vector<int> mpp = { 0,1,3,2 };
 	for (int i = 0; i < m_pignum; i++)
 	{
 		if (m_matched.size() > 0)
@@ -447,7 +447,9 @@ void FrameSolver::read_parametric_data()
 			mp_bodysolverdevice[i]->setSource(m_matched[i]);
 			mp_bodysolverdevice[i]->m_rawimgs = m_imgsUndist;
 		}
-		std::string savefolder = m_result_folder + "/state";
+		std::string savefolder =
+			m_result_folder + "/state";
+			//"E:/results/paper_teaser/0704_eval2-5views/state";
 		if (is_smth) savefolder = savefolder + "_smth";
 		std::stringstream ss;
 		ss << savefolder << "/pig_" << i << "_frame_" <<
@@ -2597,107 +2599,6 @@ void FrameSolver::saveConfig()
 	outstream << root << std::endl; 
 	outstream.close(); 
 
-}
-
-// 2021.10.1
-void FrameSolver::fetchGtData()
-{
-	// E:\evaluation_dataset\part1\dataset_process\output_label\0
-	// read m_det_undist 
-	
-	// keypoint: [camid, pigid, jointid]
-	m_keypoints_undist.clear();
-	m_keypoints_undist.resize(m_camNum);
-	for (int i = 0; i < m_camNum; i++)
-	{
-		m_keypoints_undist[i].resize(4);
-		for (int j = 0; j < 4; j++) m_keypoints_undist[i][j].resize(m_topo.joint_num, Eigen::Vector3f::Zero());
-	}
-	// mask: [camid, pigid, partid, pointid] 
-	m_masksUndist.clear();
-	m_masksUndist.resize(m_camNum);
-	for (int i = 0; i < m_camNum; i++)
-	{
-		m_masksUndist[i].resize(4);
-	}
-
-	for (int i = 0; i < m_camNum; i++)
-	{
-		int camid = m_camids[i];
-		std::stringstream ss;
-		ss << "E:/evaluation_dataset/part1/dataset_process/output_label/" << camid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
-		std::string labelpath = ss.str();
-		Json::Value root;
-		Json::CharReaderBuilder rbuilder;
-		std::string errs;
-		std::ifstream is(labelpath);
-		if (!is.is_open())
-		{
-			std::cout << "can not open " << labelpath << std::endl;
-			continue;
-		}
-		bool parsingSuccessful = Json::parseFromStream(rbuilder, is, &root, &errs);
-		if (!parsingSuccessful)
-		{
-			std::cout << "parsing " << labelpath << " error!" << std::endl;
-			exit(-1);
-		}
-		Json::Value shapes = root["shapes"];
-		for (int k = 0; k < shapes.size(); k++)
-		{
-			Json::Value dict = shapes[k];
-			if (dict["shape_type"] == "point")
-			{
-				Eigen::Vector3f p;
-				p[0] = dict["points"][0][0].asFloat();
-				p[1] = dict["points"][0][1].asFloat();
-				p[2] = 1;
-				int label = std::stoi(dict["label"].asString());
-				int group = dict["group_id"].asInt();
-				m_keypoints_undist[i][group][label] = p;
-			}
-			else if (dict["shape_type"] == "polygon")
-			{
-				int group = dict["group_id"].asInt();
-				std::vector<Eigen::Vector2f> points;
-				int N = dict["points"].size();
-				points.resize(N);
-				for (int m = 0; m < N; m++)
-				{
-					points[m][0] = dict["points"][m][0].asFloat();
-					points[m][1] = dict["points"][m][1].asFloat();
-				}
-				m_masksUndist[i][group].push_back(points);
-			}
-		}
-		is.close();
-	}
-	// assemble keypoints 
-	m_matched.clear(); 
-	m_matched.resize(4); 
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		for (int group = 0; group < 4; group++)
-		{
-			if (m_masksUndist[camid][group].size() == 0)
-			{
-				continue;
-			}
-			else
-			{
-				m_matched[group].view_ids.push_back(camid);
-				DetInstance det;
-				det.valid = true;
-				det.keypoints = m_keypoints_undist[camid][group];
-				det.mask = m_masksUndist[camid][group];
-				m_matched[group].dets.push_back(det);
-				m_matched[group].candids.push_back(-1);
-			}
-		}
-	}
-
-	m_unmatched.clear(); 
-	m_unmatched.resize(m_camNum); 
 }
 
 

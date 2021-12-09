@@ -1,6 +1,6 @@
 {
-    "posesolver_config": "configs/config_seq2.json",
+    "posesolver_config": "configs/config_newf1_batch5_2.json",
     "pig_config":"articulation/artist_config_sym.json",
-    "current_frame_id": 750,
+    "current_frame_id": 0,
     "current_pig_id": 2
 }

@@ -156,6 +156,7 @@
     <ClCompile Include="clusterclique.cpp" />
     <ClCompile Include="framedata.cpp" />
     <ClCompile Include="framesolver.cpp" />
+    <ClCompile Include="framesolver_eval.cpp" />
     <ClCompile Include="framesolver_pipeline.cpp" />
     <ClCompile Include="global_config.cpp" />
     <ClCompile Include="main.cpp" />
@@ -239,6 +240,8 @@
     <None Include="..\configs\config_7.json" />
     <None Include="..\configs\config_demo1.json" />
     <None Include="..\configs\config_jointangle_0823.json" />
+    <None Include="..\configs\config_newf1_batch4_0928.json" />
+    <None Include="..\configs\config_newf1_batch5_2.json" />
     <None Include="..\configs\config_scratch_C4.json" />
     <None Include="..\configs\config_scratch_D4.json" />
     <None Include="..\configs\config_scratch_D9.json" />

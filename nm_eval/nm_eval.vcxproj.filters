@@ -120,6 +120,12 @@
     <ClCompile Include="exp1.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="run_eval_sil.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="..\posesolver\framesolver_eval.cpp">
+      <Filter>other</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\gpuutils.cu">

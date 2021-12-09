@@ -38,7 +38,7 @@ void visualize_seq();
 
 void run_trajectory();
 
-std::string get_config();
+std::string get_config(std::string name="main_config");
 
 int run_pose_bone_length();
 void run_trajectory2();
@@ -46,3 +46,4 @@ void run_trajectory2();
 void run_demo_result(); 
 void run_eval_seq(); 
 void run_demo_visualize_depth(); 
+void run_eval_seq_loadanchor_temp();

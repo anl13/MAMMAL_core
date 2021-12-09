@@ -26,8 +26,8 @@
   "solve_sil_iters": 5,
   "solve_sil_iters_2nd_phase": 20,
   "use_reassoc": true,
-  "annotation_folder": "D:/results/paper_teaser/0704_eval_no_sil/annotation/",
-  "result_folder": "D:/results/paper_teaser/0704_eval_no_sil/",
+  "annotation_folder": "D:/results/paper_teaser/0704_eval_no_anchor/annotation/",
+  "result_folder": "D:/results/paper_teaser/0704_eval_no_anchor/",
   "terminal_thresh": 0.005,
   "scales": [ 1.406, 1.28056, 1.337, 1.300 ], //
   "pig_names": [ 0, 2, 1, 3 ], // ground truth identity
@@ -35,7 +35,7 @@
   "try_load_anno": false,
   "use_triangulation_only": false,
   "use_init_pose": false,
-  "anchor_folder": "D:/results/paper_teaser/0704_eval_no_sil/anchor_state/",
+  "anchor_folder": "D:/results/paper_teaser/0704_eval_no_anchor/anchor_state/",
   "use_init_anchor": false,
   "restart_threshold": -10,
   "use_per_frame_anchor":  false,
@@ -44,12 +44,12 @@
     "valid_threshold": 0.8,
     "lambda": 0.1,
     "data_term": 1,
-    "sil_term": 0.0,
+    "sil_term": 0.00005,
     "reg_term": 0.01,
     "temp_term": 0.5,
     "floor_term": 10, // restrict bodys are on floor
     "on_floor_term": 1, // restrict lower back leg stand precisely on floor.
-    "anchor_term": 0.0,
+    "anchor_term": 0,
     "gmm_term": 0.0,
     "collision_term": 0.01,
     "sift_term": 0.0,

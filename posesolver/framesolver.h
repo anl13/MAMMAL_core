@@ -13,7 +13,18 @@ public:
 
 	~FrameSolver(); 
 
+	// 2021.10.23 
+	// functions for evaluation
 	void fetchGtData(); 
+	void compute_silhouette_loss(); 
+	void compute_2dskel_loss(); 
+	void compute_2dskel_loss_proj(); 
+	vector<vector<Eigen::Vector3f>> load_gt_joint23(std::string folder, int frameid);
+	vector<vector<vector<Eigen::Vector3f> > > m_gt_keypoints_undist; // keypoint: [camid, pigid, jointid]
+	vector<vector<vector<vector<Eigen::Vector2f> > > > m_gt_masksUndist;
+	vector<MatchedInstance>                   m_gt_matched; // matched raw data after matching()
+	vector<vector<Eigen::Vector3f> > m_gt_keypoints_3d; // pigid, jointid; if no 3d, set as [0,0,0]
+
 
 	// association pipeline 
 	void configByJson(std::string jsonfile) override;
