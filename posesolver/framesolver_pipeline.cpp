@@ -89,7 +89,7 @@ void FrameSolver::DARKOV_Step3_reassoc_type1()
 	reAssocProcessStep1();
 }
 
-void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
+void FrameSolver::DARKOV_Step4_fitrawsource(int _maxIters)  // fit model to raw source
 {
 #ifdef DEBUG_SIL
 	renderInteractDepth(true); 
@@ -123,11 +123,11 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 
 	std::vector<std::vector<int> > hierarachy =
 	{
-		{0,1,2,3,4, 21,22,23,13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
+		{0,2,4, 21,22,23,13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
 	};
 
-	TimerUtil::Timer<std::chrono::microseconds> tt;
-	tt.Start();
+	//TimerUtil::Timer<std::chrono::microseconds> tt;
+	//tt.Start();
 
 	for (int k = 0; k < hierarachy.size(); k++)
 	{
@@ -135,7 +135,7 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 		{
 			mp_bodysolverdevice[pid]->m_currentHierarchy = hierarachy[k];
 		}
-		if (m_solve_sil_iters > 0)
+		if (_maxIters > 0)
 		{
 #ifdef DEBUG_SIL 
 			cv::Mat output;
@@ -148,16 +148,16 @@ void FrameSolver::DARKOV_Step4_fitrawsource()  // fit model to raw source
 				std::cout << "pig " << pid << " : " << std::endl << mp_bodysolverdevice[pid]->GetScale() << std::endl; 
 			}
 #endif 
-			optimizeSilWithAnchor(m_solve_sil_iters,0);
+			optimizeSilWithAnchor(_maxIters, 0);
 		}
 	}
-	float micro = tt.Elapsed();	
-	std::cout << "raw fit: " << micro / 1000.0 << " ms; " 
-		<< micro / 1000. / (hierarachy.size()) << " ms per hierarchy" 
-		<< std::endl; 
+	//float micro = tt.Elapsed();	
+	//std::cout << "raw fit: " << micro / 1000.0 << " ms; " 
+	//	<< micro / 1000. / (hierarachy.size()) << " ms per hierarchy" 
+	//	<< std::endl; 
 }
 
-void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoints and silhouettes
+void FrameSolver::DARKOV_Step4_fitreassoc(int _maxIters)  // fit model to reassociated keypoints and silhouettes
 {
 	if (!m_use_reassoc) return; 
 	for (int i = 0; i < m_pignum; i++)
@@ -166,11 +166,11 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 	}
 	std::vector<std::vector<int> > hierarachy =
 	{
-		{0,1,2,3,4, 21,22,23,13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
+		{0,2,4, 21,22,23,13,14,15,16, 5,6,7,8,54,55,56,57,38,39,40,41}
 	};
 
-	TimerUtil::Timer<std::chrono::microseconds> tt;
-	tt.Start();
+	//TimerUtil::Timer<std::chrono::microseconds> tt;
+	//tt.Start();
 
 	for (int k = 0; k < hierarachy.size(); k++)
 	{
@@ -178,16 +178,16 @@ void FrameSolver::DARKOV_Step4_fitreassoc()  // fit model to reassociated keypoi
 		{
 			mp_bodysolverdevice[pid]->m_currentHierarchy = hierarachy[k];
 		}
-		if (m_solve_sil_iters > 0)
+		if (_maxIters > 0)
 		{
-			optimizeSilWithAnchor(m_solve_sil_iters_2nd_phase, m_solve_sil_iters);
+			optimizeSilWithAnchor(_maxIters, 0);
 		}
 	}
 
-	float micro = tt.Elapsed();
-	std::cout << "rea fit: " << micro / 1000.0 << " ms; "
-		<< micro / 1000. / (hierarachy.size()) << " ms per hierarchy"
-		<< std::endl;
+	//float micro = tt.Elapsed();
+	//std::cout << "rea fit: " << micro / 1000.0 << " ms; "
+	//	<< micro / 1000. / (hierarachy.size()) << " ms per hierarchy"
+	//	<< std::endl;
 }
 
 void FrameSolver::DARKOV_Step5_postprocess()  // some postprocessing step 

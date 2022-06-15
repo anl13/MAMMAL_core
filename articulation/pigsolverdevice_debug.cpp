@@ -250,7 +250,7 @@ int PigSolverDevice::searchAnchorSpace()
 	int min_loss = 100000;
 	for (int i = 0; i < anchor_errors.size(); i++)
 	{
-		float err = anchor_errors[i] + anchor_mask_errors[i] * 20;
+		float err = anchor_errors[i] + anchor_mask_errors[i] * 50;
 		//float err = anchor_errors[i] + anchor_mask_errors[i] * 5; 
 		if (err < min_loss)
 		{
@@ -691,10 +691,8 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		w_collision = 0; 
 	else
 		w_collision = m_params.m_w_collision_term; 
-	float w_3d = m_params.m_w_3d_term; 
 
 	float w_anchor = m_params.m_w_anchor_term; 
-	float w_sift = m_params.m_w_sift_term; 
 
 	Eigen::MatrixXf ATA_sil = Eigen::MatrixXf::Zero(paramNum, paramNum);
 	Eigen::VectorXf ATb_sil = Eigen::VectorXf::Zero(paramNum);
@@ -782,7 +780,6 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		+ ATA_sift * w_sift
 #endif 
 		+ATA_col * w_collision
-		+ ATA_3d * w_3d
 		; 
 	Eigen::VectorXf b = ATb_sil * w_sil + ATb_reg * w_reg
 		+ ATb_data * w_data + ATb_anchor * w_anchor
@@ -793,7 +790,6 @@ float PigSolverDevice::optimizePoseSilWithAnchorOneStep(int iter)
 		+ ATb_sift * w_sift
 #endif 
 		+ ATb_col * w_collision
-		+ ATb_3d * w_3d
 		; 
 
 	Eigen::VectorXf delta = H.ldlt().solve(b);
@@ -979,13 +975,4 @@ cv::Mat PigSolverDevice::debug_vis_reassoc_swap()
 	cv::Mat output;
 	packImgBlock(crop_list, output);
 	return output;
-}
-
-std::vector<int> findBestViewsForLeg(int legid)
-{
-	std::vector<std::vector<int> > leg_ids = {
-		{5,7,9},
-	{6,8,10},
-	{11,13,15}, {12,14,16}
-	};
 }

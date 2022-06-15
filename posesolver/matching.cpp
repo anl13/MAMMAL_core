@@ -1,6 +1,6 @@
 #include "matching.h" 
 
-// #define DEBUG_MATCH
+ //#define DEBUG_MATCH
 
 bool equal_concensus(const ConcensusData& data1, const ConcensusData& data2)
 {

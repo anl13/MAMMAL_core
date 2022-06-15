@@ -18,12 +18,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="pigsolver_fitting.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="pigsolver_jacobi.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\camera.cpp">
       <Filter>other</Filter>
     </ClCompile>
@@ -69,28 +63,10 @@
     <ClCompile Include="test_render_model.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="test_fitting_model.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="test_render_video.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="test_vae.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="pigmodeldevice.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="test_gpu.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="pigsolverdevice.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="pigmodel.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="pigsolver_sil.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\skel.cpp">
@@ -99,14 +75,8 @@
     <ClCompile Include="..\utils\mesh.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="test_compare_cpugpu.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\image_utils_gpu.cpp">
       <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="test_pointer.cpp">
-      <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="pigsolverdevice_debug.cpp">
       <Filter>源文件</Filter>
@@ -114,23 +84,8 @@
     <ClCompile Include="..\GMM\gmm.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="test_regressor.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="test_visdesigned.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\posesolver\framedata.cpp">
       <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="test_inmeshtest.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="test_render_behavior.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="test_collsion_render.cpp">
-      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -149,13 +104,7 @@
     <ClInclude Include="..\utils\safe_call.hpp">
       <Filter>other</Filter>
     </ClInclude>
-    <ClInclude Include="gpuutils.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="vector_operations.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="safe_call.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="common.h">
@@ -164,11 +113,8 @@
     <ClInclude Include="pigsolverdevice.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="pigmodel.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="pigsolver.h">
-      <Filter>头文件</Filter>
+    <ClInclude Include="..\utils\gpuutils.h">
+      <Filter>other</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -182,9 +128,6 @@
     <CudaCompile Include="pigmodeldevice.cu">
       <Filter>源文件</Filter>
     </CudaCompile>
-    <CudaCompile Include="gpuutils.cu">
-      <Filter>源文件</Filter>
-    </CudaCompile>
     <CudaCompile Include="..\render\cuda_utils_render.cu">
       <Filter>other</Filter>
     </CudaCompile>
@@ -192,6 +135,9 @@
       <Filter>源文件</Filter>
     </CudaCompile>
     <CudaCompile Include="..\utils\image_utils_gpu.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\gpuutils.cu">
       <Filter>other</Filter>
     </CudaCompile>
   </ItemGroup>

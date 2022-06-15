@@ -30,9 +30,6 @@
     <ClCompile Include="matching.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="run_inspect.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="tracking.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -123,9 +120,6 @@
     <ClCompile Include="..\render\shader.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\tracking\sift_matcher.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
@@ -139,6 +133,12 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="framesolver_eval.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="for_nm.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="MAMMAL_main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -278,12 +278,39 @@
     <None Include="..\configs\config_newf1_batch5_2.json">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="..\configs\config_20190703_motion4.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190703_motion5.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190704_foreval-seq.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190703_motion_new.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190703_motion2_new.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190703_motion3_new.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_20190705_feed10.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_demo6.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_demo2.json">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="..\configs\config_BamaPigEval3D_main.json">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
-    <CudaCompile Include="..\articulation\gpuutils.cu">
-      <Filter>other</Filter>
-    </CudaCompile>
     <CudaCompile Include="..\utils\image_utils_gpu.cu">
       <Filter>other</Filter>
     </CudaCompile>
@@ -291,6 +318,9 @@
       <Filter>other</Filter>
     </CudaCompile>
     <CudaCompile Include="..\articulation\pigsolverdevice.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\gpuutils.cu">
       <Filter>other</Filter>
     </CudaCompile>
   </ItemGroup>
@@ -331,16 +361,10 @@
     <ClInclude Include="global_config.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="..\articulation\gpuutils.h">
-      <Filter>other</Filter>
-    </ClInclude>
     <ClInclude Include="..\articulation\pigmodeldevice.h">
       <Filter>other</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\pigsolverdevice.h">
-      <Filter>other</Filter>
-    </ClInclude>
-    <ClInclude Include="..\tracking\sift_matcher.h">
       <Filter>other</Filter>
     </ClInclude>
     <ClInclude Include="..\articulation\vector_operations.hpp">

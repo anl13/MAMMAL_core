@@ -20,9 +20,18 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 		exit(-1);
 	}
 
+	// read basic params 
+	m_folder = root["folder"].asString();
+	m_jointNum = root["joint_num"].asInt();
+	m_vertexNum = root["vertex_num"].asInt();
+	m_shapeNum = root["shape_num"].asInt();
+	m_faceNum = root["face_num"].asInt();
+	m_texNum = root["tex_num"].asInt();
+	instream.close();
+
 	std::string topo_type = root["topo"].asString();
 	m_skelTopo = getSkelTopoByType(topo_type);
-	// read optim pair;
+	// read surface/joint to skeleton correspondence
 	m_skelCorr.clear();
 	for (auto const&c : root["optimize_pair"])
 	{
@@ -33,15 +42,6 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 		pair.weight = c[3].asDouble();
 		m_skelCorr.push_back(pair);
 	}
-
-	// read basic params 
-	m_folder = root["folder"].asString();
-	m_jointNum = root["joint_num"].asInt();
-	m_vertexNum = root["vertex_num"].asInt();
-	m_shapeNum = root["shape_num"].asInt();
-	m_faceNum = root["face_num"].asInt();
-	m_texNum = root["tex_num"].asInt();
-	instream.close();
 
 
 	/*

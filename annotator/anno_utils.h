@@ -10,6 +10,7 @@ class AnnoConfig
 {
 public: 
 	AnnoConfig();
+	std::string project_dir; 
 	std::string posesolver_config; 
 	std::string pig_config; 
 	int current_frame_id;

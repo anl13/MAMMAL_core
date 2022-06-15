@@ -123,14 +123,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="camera.cpp" />
-    <ClCompile Include="fileoperation.cpp" />
     <ClCompile Include="geometry.cpp" />
     <ClCompile Include="hungarian.cpp" />
     <ClCompile Include="image_utils.cpp" />
     <ClCompile Include="image_utils_gpu.cpp" />
     <ClCompile Include="math_utils.cpp" />
     <ClCompile Include="mesh.cpp" />
-    <ClCompile Include="node_graph.cpp" />
     <ClCompile Include="skel.cpp" />
     <ClCompile Include="test_main.cpp" />
     <ClCompile Include="volume.cpp" />
@@ -139,8 +137,8 @@
     <ClInclude Include="camera.h" />
     <ClInclude Include="colorterminal.h" />
     <ClInclude Include="definitions.h" />
-    <ClInclude Include="fileoperation.h" />
     <ClInclude Include="geometry.h" />
+    <ClInclude Include="gpuutils.h" />
     <ClInclude Include="hungarian.h" />
     <ClInclude Include="image_utils.h" />
     <ClInclude Include="image_utils_gpu.h" />
@@ -148,7 +146,6 @@
     <ClInclude Include="math_utils.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="nanoflann.hpp" />
-    <ClInclude Include="node_graph.h" />
     <ClInclude Include="safe_call.hpp" />
     <ClInclude Include="show_gpu_param.h" />
     <ClInclude Include="skel.h" />
@@ -157,6 +154,7 @@
     <ClInclude Include="volume.h" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="gpuutils.cu" />
     <CudaCompile Include="image_utils_gpu.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -16,18 +16,16 @@ void ParamSet::loadParams(const Json::Value& root)
 	m_kpt_track_dist = root["kpt_track_dist"].asFloat();
 	m_w_anchor_term = root["anchor_term"].asFloat();
 	m_iou_thres = root["iou_thres"].asFloat();
-	m_w_sift_term = root["sift_term"].asFloat();
 	m_use_bodyonly_reg = root["use_bodyonly_reg"].asBool();
 	m_use_height_enhanced_temp = root["use_height_enhanced_temp"].asBool();
 	m_w_on_floor_term = root["on_floor_term"].asFloat();
 	m_w_collision_term = root["collision_term"].asFloat();
-	m_w_3d_term = root["3d_term"].asFloat();	
 	m_use_given_scale = root["use_given_scale"].asBool(); 
 	m_sil_step = root["sil_step"].asInt(); 
 	m_collision_step = root["collision_step"].asInt(); 
 }
 
-PigSolverDevice::PigSolverDevice(const std::string& _configFile, bool _use_gpu)
+PigSolverDevice::PigSolverDevice(const std::string& _configFile, bool _use_gpu, int _view_num)
 	:PigModelDevice(_configFile)
 {
 	Json::Value root;
@@ -109,11 +107,12 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile, bool _use_gpu)
 	m_device_paramLines.upload(m_host_paramLines); 
 
 	int paramNum = m_host_paramLines.size(); 
-	d_depth_renders.resize(10); 
-	d_depth_renders_interact.resize(10); 
+    
+	d_depth_renders.resize(_view_num); 
+	d_depth_renders_interact.resize(_view_num); 
 	int H = WINDOW_HEIGHT;
 	int W = WINDOW_WIDTH;
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < _view_num; i++)
 	{
 		cudaMalloc((void**)&d_depth_renders[i], H * W * sizeof(float));
 		cudaMalloc((void**)&d_depth_renders_interact[i], H * W * sizeof(float));
@@ -138,17 +137,16 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile, bool _use_gpu)
 	cudaMalloc((void**)&d_middle_mask, H/2*W /2* sizeof(uchar));
 
 	if (m_use_gpu)
-	//if(true)
 	{
 		cudaMalloc((void**)&d_rend_sdf, H / 2 * W / 2 * sizeof(float));
 		cudaMalloc((void**)&d_const_distort_mask, H * W * sizeof(uchar));
-		d_const_scene_mask.resize(10);
-		d_det_mask.resize(10);
-		d_det_sdf.resize(10);
-		d_det_gradx.resize(10);
-		d_det_grady.resize(10);
+		d_const_scene_mask.resize(_view_num);
+		d_det_mask.resize(_view_num);
+		d_det_sdf.resize(_view_num);
+		d_det_gradx.resize(_view_num);
+		d_det_grady.resize(_view_num);
 
-		for (int i = 0; i < 10; i++)
+		for (int i = 0; i < _view_num; i++)
 		{
 			cudaMalloc((void**)&d_const_scene_mask[i], H*W * sizeof(float));
 			cudaMalloc((void**)&d_det_mask[i], H*W * sizeof(float));
@@ -180,16 +178,13 @@ PigSolverDevice::PigSolverDevice(const std::string& _configFile, bool _use_gpu)
 	UpdateNormalFinal(); 
 
 	load_reduced();
-	m_depth_weight.resize(10, 0);
+	m_depth_weight.resize(_view_num, 0);
 
 	m_det_confs.resize(m_skelTopo.joint_num, 0); 
-
 
 	m_isReAssoc = false;
 	m_isUpdated = false; 
 	m_isPostprocessed = false; 
-	// 2021/2/20 add: init clicked points 
-
 }
 
 PigSolverDevice::~PigSolverDevice()
@@ -699,65 +694,6 @@ void PigSolverDevice::calcPose2DTerm_host(
 
 	ATb = -J.transpose() * r;
 	ATA = J.transpose() * J;
-}
-
-void PigSolverDevice::CalcSIFTTerm(const std::vector<std::vector<SIFTCorr> > & siftcorrs,
-	Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb)
-{
-	int paramNum = 3 + 3 * m_poseToOptimize.size();
-
-	ATA = Eigen::MatrixXf::Zero(paramNum, paramNum);
-	ATb = Eigen::VectorXf::Zero(paramNum);
-	calcPoseJacobiPartTheta_device(d_J_joint, d_J_vert);
-	d_J_vert.download(h_J_vert.data(), 3 * m_vertexNum * sizeof(float));
-
-	for (int camid = 0; camid < m_cameras.size(); camid++)
-	{
-		int N = siftcorrs[camid].size(); 
-		//std::cout << "camid: " << camid << ", " << N << std::endl; 
-		Eigen::VectorXf r = Eigen::VectorXf::Zero(6 * N);
-		Eigen::MatrixXf J;
-		J = Eigen::MatrixXf::Zero(6 * N, paramNum);
-		Camera& cam = m_cameras[camid];
-		Eigen::Matrix3f R = cam.R;
-		Eigen::Matrix3f K = cam.K;
-		Eigen::Vector3f T = cam.T;
-		K.row(0) /= 1920;
-		K.row(1) /= 1080;
-
-		for (int i = 0; i < N; i++)
-		{
-			int faceid = siftcorrs[camid][i].faceid;
-			Eigen::Vector2f target = siftcorrs[camid][i].pixel;
-			Eigen::Vector3u face = m_host_facesVert[faceid];
-			int onevertexid = face(0); 
-			if (m_host_bodyParts[onevertexid] == MAIN_BODY || m_host_bodyParts[onevertexid] == TAIL) continue; 
-			for (int f = 0; f < 3; f++)
-			{
-				int vertexid = face(f);
-
-				Eigen::Vector3f x_local = K * (R * m_host_verticesPosed[vertexid]+ T);
-				Eigen::MatrixXf D = Eigen::MatrixXf::Zero(2, 3);
-				D(0, 0) = 1 / x_local(2);
-				D(1, 1) = 1 / x_local(2);
-				D(0, 2) = -x_local(0) / (x_local(2) * x_local(2));
-				D(1, 2) = -x_local(1) / (x_local(2) * x_local(2));
-
-				J.middleRows(6 * i + 2 * f, 2) = D * K * R * h_J_vert.middleRows(3 * vertexid, 3);
-
-				Eigen::Vector2f u;
-				u(0) = x_local(0) / x_local(2);
-				u(1) = x_local(1) / x_local(2);
-				Eigen::Vector2f det_u;
-				det_u(0) = target(0) / 1920;
-				det_u(1) = target(1) / 1080;
-				r.segment<2>(6 * i + 2 * f) = (u - det_u);
-			}
-		}
-
-		ATA += J.transpose() * J; 
-		ATb += -J.transpose() * r; 
-	}
 }
 
 void PigSolverDevice::optimizePose()
@@ -1291,6 +1227,8 @@ void PigSolverDevice::CalcSilouettePoseTerm_cpu(
 			int y = round(x_local(1) / x_local(2)); 
 			if (x < 0 || x >= 1920 || y < 0 || y >= 1080)continue;
 
+			// TODO: 
+			// precompute SDF of distort mask and scene mask, to better mask out points near the occlusions. 
 			if (c_const_distort_mask.at<uchar>(y, x) == 0) continue; 
 			if (c_const_scene_mask[camid].at<uchar>(y, x) > 0)continue; 
 

@@ -22,7 +22,7 @@
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
-  "use_gpu": true,
+  "use_gpu": false,
   "solve_sil_iters": 5,
   "solve_sil_iters_2nd_phase": 20,
   "use_reassoc": true,

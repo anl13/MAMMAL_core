@@ -180,6 +180,7 @@ void FrameData::readKeypoints() // load hrnet keypoints
         Json::Value c = root[std::to_string(m_camids[camid])]; 
         vector<vector<Eigen::Vector3f> > aframe; 
         int cand_num = c.size(); 
+		
         for(int candid = 0; candid < cand_num; candid++)
         {
             if(candid >=m_pignum) break; 
@@ -542,6 +543,7 @@ void FrameData::assembleDets()
         {
 			m_detUndist[camid][candid].valid = true;
             m_detUndist[camid][candid].keypoints = m_keypoints_undist[camid][candid];
+
 			if (m_detUndist[camid][candid].keypoints.size() == 0)
 				m_detUndist[camid][candid].keypoints.resize(m_topo.joint_num, Eigen::Vector3f::Zero()); 
             m_detUndist[camid][candid].box = m_boxes_processed[camid][candid]; 

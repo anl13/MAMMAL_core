@@ -153,6 +153,7 @@ public:
 	virtual void Draw(SimpleShader& shader);
 	bool isMultiLight = false;
 	bool isFill; 
+	void SetTransform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale);
 private:
 	std::vector<RenderObjectColor*> objectPtrs;
 };

@@ -4,7 +4,7 @@
 #include "tracking.h"
 #include "../utils/timer_util.h" 
 
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <json/writer.h> 
 
 //#define VIS_ASSOC_STEP 
@@ -20,6 +20,8 @@ FrameSolver::FrameSolver()
 
 void FrameSolver::configByJson(std::string jsonfile)
 {
+	m_input_configfile = jsonfile; 
+
 	Json::Value root;
 	Json::CharReaderBuilder rbuilder;
 	std::string errs;
@@ -61,6 +63,7 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_annotation_folder = root["annotation_folder"].asString(); 
 	m_use_reassoc = root["use_reassoc"].asBool(); 
 	m_solve_sil_iters_2nd_phase = root["solve_sil_iters_2nd_phase"].asInt(); 
+	m_initialization_iters = root["initialization_iters"].asInt(); 
 	m_terminal_thresh = root["terminal_thresh"].asFloat(); 
 	m_result_folder = root["result_folder"].asString(); 
 	m_use_given_scale = root["use_given_scale"].asBool(); 
@@ -76,8 +79,9 @@ void FrameSolver::configByJson(std::string jsonfile)
 	m_tracking_distance = root["tracking_distance"].asFloat(); 
 	m_intrinsic_type = root["intrinsic_type"].asInt(); 
 	m_use_per_frame_anchor = root["use_per_frame_anchor"].asBool(); 
-
+	m_render_resize_ratio = root["render_resize_ratio"].asFloat(); 
 	m_params.loadParams(root["optim_params"]); 
+	
 
 	for (int i = 0; i < m_pignum; i++)
 	{
@@ -91,6 +95,13 @@ void FrameSolver::configByJson(std::string jsonfile)
 	}
 	m_camids = camids;
 	m_camNum = m_camids.size();
+
+	m_render_views.clear(); 
+	for (auto const & c : root["render_views"])
+	{
+		int id = c.asInt();
+		m_render_views.push_back(id);
+	}
 
 	m_given_scales.resize(m_pignum);
 	for (int i = 0; i < m_pignum; i++)
@@ -152,16 +163,6 @@ void FrameSolver::configByJson(std::string jsonfile)
 	{
 		cudaMalloc((void**)&d_interDepth[i], H * W * sizeof(float));
 	}
-
-	p_sift = cv::SIFT::create();
-	m_siftKeypointsCurrent.resize(m_camNum); 
-	m_siftMatches.resize(m_camNum); 
-	m_siftMatchesCleaned.resize(m_camNum); 
-	m_siftDescriptionCurrent.resize(m_camNum); 
-
-	m_faceIndexTexImg = cv::imread("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png");
-	m_objForTex.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
-	m_faceIndexImg.resize(m_camNum); 
 
 	initRectifyMap(); 
 }
@@ -279,13 +280,13 @@ cv::Mat FrameSolver::visualizeProj(int pid, bool withimg)
 		for (int id = 0; id < m_projs[camid].size(); id++)
 		{
 			if (pid >= 0 && id != pid) continue;
-			if (pid == 0 || pid == 2) continue;
+			/*if (pid == 0 || pid == 2) continue;*/
 			Eigen::Vector3i color; 
 			int colorid = m_pig_names[id];
 			color(0) = m_CM[colorid](2);
 			color(1) = m_CM[colorid](1);
 			color(2) = m_CM[colorid](0);
-			drawSkelMonoColor(imgdata[camid], m_projs[camid][id], color, m_topo);
+			drawSkelProj(imgdata[camid], m_projs[camid][id], color, m_topo);
 		}
 	}
 
@@ -482,7 +483,7 @@ bool FrameSolver::try_load_anno()
 		ss << savefolder << "/pig_" << i << "_frame_" <<
 			std::setw(6) << std::setfill('0') << m_frameid
 			<< ".txt";
-		if (boost::filesystem::exists(ss.str()))
+		if (std::filesystem::exists(ss.str()))
 		{
 			mp_bodysolverdevice[i]->readState(ss.str()); 
 			mp_bodysolverdevice[i]->UpdateVertices(); 
@@ -1100,94 +1101,6 @@ void FrameSolver::renderInteractDepth(bool withmask)
 	}
 }
 
-void FrameSolver::renderMaskColor()
-{
-	if (m_interMask.size() != m_camNum) m_interMask.resize(m_camNum);
-	std::vector<Eigen::Vector3f> id_colors = {
-		{1.0f, 0.0f,0.0f},
-	{0.0f, 1.0f, 0.0f},
-	{0.0f, 0.0f, 1.0f},
-	{1.0f, 1.0f, 0.0f}
-	};
-	mp_renderEngine->clearAllObjs();
-	for (int i = 0; i < m_pignum; i++)
-	{
-		mp_bodysolverdevice[i]->UpdateNormalFinal();
-		RenderObjectColor* p_model = new RenderObjectColor();
-		p_model->SetVertices(mp_bodysolverdevice[i]->GetVertices());
-		p_model->SetFaces(mp_bodysolverdevice[i]->GetFacesVert());
-		p_model->SetNormal(mp_bodysolverdevice[i]->GetNormals());
-		p_model->SetColor(id_colors[i]);
-		mp_renderEngine->colorObjs.push_back(p_model);
-	}
-
-	for (int view = 0; view < m_camNum; view++)
-	{
-		int camid = view;
-		Camera cam = m_camsUndist[camid];
-		mp_renderEngine->s_camViewer.SetExtrinsic(cam.R, cam.T);
-
-		//mp_renderEngine->SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1));
-		mp_renderEngine->Draw("mask");
-		m_interMask[view] = mp_renderEngine->GetImage();
-
-		//std::stringstream name;
-		//name << "D:/results/tmp/" << view << ".jpg"; 
-		//cv::imwrite(name.str(), m_interMask[view]); 
-	}
-
-	//cv::namedWindow("mask", cv::WINDOW_NORMAL); 
-	//cv::imshow("mask", m_interMask[1]);
-	//cv::waitKey(); 
-	//cv::destroyAllWindows(); 
-	//exit(-1); 
-	
-	//exit(-1);
-
-	mp_renderEngine->clearAllObjs();
-}
-
-void FrameSolver::renderFaceIndex()
-{
-	mp_renderEngine->clearAllObjs(); 
-	for (int i = 0; i < m_pignum; i++)
-	{
-		mp_bodysolverdevice[i]->UpdateNormalFinal(); 
-		RenderObjectTexture* p_model = new RenderObjectTexture(); 
-		p_model->SetTextureNoMipmap(m_faceIndexTexImg); 
-		Mesh obj = m_objForTex; 
-		obj.vertices_vec = mp_bodysolverdevice[i]->GetVertices();
-		obj.normals_vec = mp_bodysolverdevice[i]->GetNormals(); 
-		obj.ReMapTexture(); 
-		p_model->SetFaces(obj.faces_t_vec);
-		p_model->SetVertices(obj.vertices_vec_t);
-		p_model->SetNormal(obj.normals_vec_t, 2);
-		p_model->SetTexcoords(obj.textures_vec, 1);
-		p_model->isMultiLight = false; 
-		p_model->isFaceIndex = true; 
-		mp_renderEngine->texObjs.push_back(p_model);
-	}
-	for (int view = 0; view < m_camNum; view++)
-	{
-		int camid = view;
-		Camera cam = m_camsUndist[camid];
-		mp_renderEngine->s_camViewer.SetExtrinsic(cam.R, cam.T);
-
-		//mp_renderEngine->SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 0));
-		mp_renderEngine->Draw();
-		m_faceIndexImg[view] = mp_renderEngine->GetImage();
-		//cv::rectangle(m_faceIndexImg[view], cv::Rect(0, 0, 10, 10), cv::Scalar(0, 255, 0), -1);
-		//cv::rectangle(m_faceIndexImg[view], cv::Rect(1910, 0, 10, 10), cv::Scalar(0, 255, 0), -1);
-		//std::stringstream name;
-		//name << "D:/results/tmp/" << view << ".jpg"; 
-		//cv::imwrite(name.str(), m_faceIndexImg[view]); 
-	}
-	//exit(-1);
-
-	mp_renderEngine->clearAllObjs(); 
-}
-
-
 // in use. 
 void FrameSolver::optimizeSilWithAnchor(int maxIterTime, int startIter)
 {
@@ -1324,7 +1237,7 @@ void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 	if (andsolve)
 	{
 		//DARKOV_Step2_optimanchor(); 
-		DARKOV_Step4_fitrawsource(); 
+		DARKOV_Step4_fitrawsource(m_initialization_iters); 
 		//DARKOV_Step3_reassoc_type2(); 
 		//DARKOV_Step4_fitreassoc(); 
 		DARKOV_Step5_postprocess(); 
@@ -1571,7 +1484,7 @@ cv::Mat FrameSolver::visualizeVisibility()
 	std::vector<cv::Mat> imgdata;
 	cloneImgs(m_imgsUndist, imgdata);
 	reproject_skels();
-
+	std::cout << "m_projs.size(): " << m_projs.size() << std::endl; 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		for (int id = 0; id < m_projs[camid].size(); id++)
@@ -2171,165 +2084,6 @@ void FrameSolver::save_joints()
 	}
 }
 
-void FrameSolver::readSIFTandTrack()
-{
-	// read sift data 
-	m_siftKeypointsCurrent.clear();
-	m_siftDescriptionCurrent.clear();
-	std::stringstream ss;
-	ss << m_sequence << "/sift/sift" << std::setw(10) << std::setfill('0') << m_frameid << ".txt"; 
-	readSIFTKeypoints(ss.str(), m_siftKeypointsCurrent, m_siftDescriptionCurrent, m_camNum); 
-	m_siftMatches.clear(); 
-	m_siftMatchesCleaned.clear(); 
-	m_siftMatches.resize(m_camNum); 
-	m_siftMatchesCleaned.resize(m_camNum); 
-	if (m_frameid > m_startid)
-	{
-		//std::stringstream ss_match;
-		//ss_match << m_sequence << "/sift/match" << std::setw(10) << std::setfill('0') << m_frameid << ".txt";
-		//readSIFTMatches(ss_match.str(), m_siftMatchesCleaned, m_camNum);
-
-		for (int camid = 0; camid < m_camNum; camid++)
-		{
-			m_siftMatcher.match(m_siftDescriptionLast[camid], m_siftDescriptionCurrent[camid], m_siftMatches[camid]);
-			clean_bfmatches(m_siftKeypointsLast[camid], m_siftKeypointsCurrent[camid], m_siftMatches[camid], m_siftMatchesCleaned[camid], 40);
-		}
-
-		// build sift corrs 
-		m_siftCorrs.clear();
-		m_siftCorrs.resize(m_pignum);
-		for (int pid = 0; pid < m_pignum; pid++)
-		{
-			m_siftCorrs[pid].resize(m_camNum);
-		}
-		for (int camid = 0; camid < m_camNum; camid++)
-		{
-			for (int i = 0; i < m_siftMatchesCleaned[camid].size(); i++)
-			{
-				int lastid = m_siftMatchesCleaned[camid][i].queryIdx;
-				int pid = m_siftToFaceIds[camid][lastid].id;
-				if (pid < 0) continue;
-				int faceid = m_siftToFaceIds[camid][lastid].faceid;
-				SIFTCorr corr;
-				corr.track = m_siftMatchesCleaned[camid][i];
-				int currentid = corr.track.trainIdx;
-				corr.pixel(0) = m_siftKeypointsCurrent[camid][currentid].pt.x;
-				corr.pixel(1) = m_siftKeypointsCurrent[camid][currentid].pt.y;
-				corr.faceid = faceid;
-				m_siftCorrs[pid][camid].push_back(corr);
-			}
-		}
-	}
-}
-
-void FrameSolver::detectSIFTandTrack()
-{
-	m_siftKeypointsCurrent.clear(); 
-	m_siftKeypointsCurrent.resize(m_camNum); 
-	m_siftDescriptionCurrent.clear(); 
-	m_siftDescriptionCurrent.resize(m_camNum); 
-
-	TimerUtil::Timer<std::chrono::microseconds> tt;
-	tt.Start();
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		cv::Mat mask(cv::Size(1920, 1080), CV_8UC1);
-		for (int i = 0; i < m_detUndist[camid].size(); i++)
-		{
-			my_draw_mask_gray(mask, m_detUndist[camid][i].mask, 255); 
-		}
-		std::vector<cv::KeyPoint> key; 
-		cv::Mat des; 
-		p_sift->detectAndCompute(m_imgsUndist[camid], mask, key, des);
-		m_siftKeypointsCurrent[camid] = key;
-		m_siftDescriptionCurrent[camid] = des; 
-	}
-
-	if (m_siftKeypointsLast.size() == 0) return; 
-	
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		m_siftMatcher.match(m_siftDescriptionLast[camid], m_siftDescriptionCurrent[camid],
-			m_siftMatches[camid]);
-		clean_bfmatches(m_siftKeypointsLast[camid], m_siftKeypointsCurrent[camid],
-			m_siftMatches[camid], m_siftMatchesCleaned[camid],20);
-	}
-	std::cout << "Detect sift and match: " << tt.Elapsed() / 1000.0 << " ms" << std::endl;
-
-	tt.Start(); 
-	m_siftCorrs.clear(); 
-	m_siftCorrs.resize(m_pignum); 
-	for (int pid = 0; pid < m_pignum; pid++)
-	{
-		m_siftCorrs[pid].resize(m_camNum);
-	}
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		for (int i = 0; i < m_siftMatchesCleaned[camid].size(); i++)
-		{
-			int lastid = m_siftMatchesCleaned[camid][i].queryIdx; 
-			int pid = m_siftToFaceIds[camid][lastid].id;
-			if (pid < 0) continue; 
-			int faceid = m_siftToFaceIds[camid][lastid].faceid;
-			SIFTCorr corr;
-			corr.track = m_siftMatchesCleaned[camid][i];
-			int currentid = corr.track.trainIdx;
-			corr.pixel(0) = m_siftKeypointsCurrent[camid][currentid].pt.x;
-			corr.pixel(1) = m_siftKeypointsCurrent[camid][currentid].pt.y;
-			corr.faceid = faceid; 
-			m_siftCorrs[pid][camid].push_back(corr); 
-		}
-	}
-	std::cout << "build sift corr: " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
-
-#if 0
-	// draw sift 
-	auto faces = mp_bodysolverdevice[0]->GetFacesVert();
-	auto vertices = mp_bodysolverdevice[0]->GetVertices(); 
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		cv::Mat output = m_imgsUndist[camid].clone(); 
-		std::vector<Eigen::Vector3i> CM = getColorMapEigen("anliang_rgb");
-		for (int i = 0; i < m_siftCorrs[0][camid].size(); i++)
-		{
-			int faceid = m_siftCorrs[0][camid][i].faceid;
-			if (faceid < 0)
-			{
-				std::cout << "error: " << faceid << std::endl;
-				continue; 
-			}
-			std::vector<std::vector<cv::Point2i> > triangle;
-			triangle.resize(1);
-			Eigen::Vector3u face = faces[faceid];
-			for (int f = 0; f < 3; f++)
-			{
-				Eigen::Vector3f point2d = project(m_camsUndist[camid], vertices[face(f)]);
-				cv::Point2i p;
-				p.x = round(point2d(0));
-				p.y = round(point2d(1));
-				triangle[0].push_back(p);
-			}
-			cv::fillPoly(output, triangle, cv::Scalar(0, 255, 0), 1, 0);
-
-			cv::DMatch track = m_siftCorrs[0][camid][i].track;
-			int a = track.queryIdx;
-			int b = track.trainIdx;
-			cv::Point2f p1 = m_siftKeypointsLast[camid][a].pt;
-			cv::Point2f p2 = m_siftKeypointsCurrent[camid][b].pt;
-			int colorid = 0;
-			cv::Scalar color(CM[colorid](2), CM[colorid](1), CM[colorid](0));
-			cv::circle(output, p1, 2, color, -1);
-			cv::circle(output, p2, 4, color, 1);
-			cv::line(output, p1, p2, color, 1);
-
-		}
-		std::stringstream name; 
-		name << "D:/results/tmp/sift_cam" << camid << "_pig" << 0 << ".jpg";
-		cv::imwrite(name.str(), output); 
-	}
-	exit(-1); 
-#endif 
-}
 
 /* 
 20210227: An Liang
@@ -2360,118 +2114,6 @@ int determineColorid(const cv::Vec3b& pixel)
 	return -1; 
 }
 
-int color2faceid(const cv::Vec3b& c)
-{
-	int b = int(c[0]) / 8;
-	int g = int(c[1]) / 8; 
-	int r = int(c[2]) / 8;
-	int faceid = (b * 32 + g) *32 + r;
-	if (faceid == 0) return -1; 
-	if (faceid > 22445)
-	{
-		std::cout << "wrong face id " << faceid << ": (" << int(c[0]) << "," << int(c[1]) << "," << int(c[2]) << ")" << std::endl;
-	}
-	return faceid; 
-}
-
-void FrameSolver::buildSIFTMapToSurface()
-{
-	TimerUtil::Timer < std::chrono::microseconds> tt;
-	tt.Start();
-	renderMaskColor();
-	renderFaceIndex(); 
-	std::cout << "render mask and faceid: " << tt.Elapsed() / 1000.0 << " ms" << std::endl;
-
-	m_siftToFaceIds.clear();
-	m_siftToFaceIds.resize(m_camNum); 
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		m_siftToFaceIds[camid].resize(m_siftKeypointsCurrent[camid].size()); 
-		for (int index = 0; index < m_siftKeypointsCurrent[camid].size(); index++)
-		{
-			cv::Point2f p1 = m_siftKeypointsCurrent[camid][index].pt;
-			int x = round(p1.x);
-			int y = round(p1.y); 
-			cv::Vec3b pixel = m_interMask[camid].at<cv::Vec3b>(y, x);
-			int pid = determineColorid(pixel); 
-			if (pid < 0) {
-				m_siftToFaceIds[camid][index].id = -1; 
-				m_siftToFaceIds[camid][index].faceid = -1; 
-				continue;
-			}
-			else
-			{
-				m_siftToFaceIds[camid][index].id = pid; 
-				cv::Vec3b color = m_faceIndexImg[camid].at<cv::Vec3b>(y, x); 
-				int faceid = color2faceid(color); 
-				if (faceid < 0) continue; 
-				m_siftToFaceIds[camid][index].faceid = faceid; 
-			}
-		}
-	}
-
-	m_siftKeypointsLast   = m_siftKeypointsCurrent;
-	m_siftDescriptionLast = m_siftDescriptionCurrent;
-}
-
-cv::Mat FrameSolver::visualizeSIFT()
-{
-	// draw sift 
-	std::vector<cv::Mat> packsift; 
-	packsift.resize(m_camNum); 
-	auto bodyparts = mp_bodysolverdevice[0]->GetBodyPart(); 
-	for (int camid = 0; camid < m_camNum; camid++)
-	{
-		cv::Mat output = m_imgsUndist[camid].clone();
-		std::vector<Eigen::Vector3i> CM = getColorMapEigen("anliang_rgb");
-		for (int pid = 0; pid < m_pignum; pid++)
-		{
-			auto faces = mp_bodysolverdevice[pid]->GetFacesVert();
-			auto vertices = mp_bodysolverdevice[pid]->GetVertices();
-			for (int i = 0; i < m_siftCorrs[pid][camid].size(); i++)
-			{
-				int faceid = m_siftCorrs[pid][camid][i].faceid;
-				if (faceid < 0)
-				{
-					std::cout << "error: " << faceid << std::endl;
-					continue;
-				}
-				std::vector<std::vector<cv::Point2i> > triangle;
-				triangle.resize(1);
-				Eigen::Vector3u face = faces[faceid];
-				if (bodyparts[face(0)] == MAIN_BODY || bodyparts[face(0)] == TAIL) continue; 
-				for (int f = 0; f < 3; f++)
-				{
-					Eigen::Vector3f point2d = project(m_camsUndist[camid], vertices[face(f)]);
-					cv::Point2i p;
-					p.x = round(point2d(0));
-					p.y = round(point2d(1));
-					triangle[0].push_back(p);
-				}
-
-				int colorid = pid;
-				cv::Scalar color(CM[colorid](2), CM[colorid](1), CM[colorid](0));
-				cv::Scalar invcolor(255 - CM[colorid](2), 255 - CM[colorid](1), 255 - CM[colorid](0));
-				//cv::fillPoly(output, triangle, invcolor, 1, 0);
-
-				cv::DMatch track = m_siftCorrs[pid][camid][i].track;
-				int a = track.queryIdx;
-				int b = track.trainIdx;
-				cv::Point2f p1 = m_siftKeypointsLast[camid][a].pt;
-				cv::Point2f p2 = m_siftKeypointsCurrent[camid][b].pt;
-
-				cv::circle(output, p1, 2, color, -1);
-				cv::circle(output, p2, 4, color, 1);
-				cv::line(output, p1, p2, color, 1);
-
-			}
-		}
-		packsift[camid] = output; 
-	}
-	cv::Mat packed; 
-	packImgBlock(packsift, packed); 
-	return packed; 
-}
 
 void FrameSolver::resetSolverStateMarker()
 {
@@ -2502,109 +2144,55 @@ void FrameSolver::save_skels()
 	}
 }
 
+void FrameSolver::read_skels(std::string folder, int frameid)
+{
+	m_skels3d.resize(4); 
+	
+	for (int pid = 0; pid < 4; pid++)
+	{
+		m_skels3d[pid].resize(23); 
+		std::stringstream ss;
+		ss << folder << "/" << "pig_" << pid << "_" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+		std::ifstream is(ss.str()); 
+		if (!is.is_open())
+		{
+			ss.str(""); 
+			ss << folder << "/" << "pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << m_frameid << ".txt";
+			is.open(ss.str()); 
+		}
+		for (int k = 0; k < m_skels3d[pid].size(); k++)
+		{
+			float x, y, z;
+			is >> x >> y >> z; 
+			m_skels3d[pid][k] = Eigen::Vector3f(x, y, z); 
+		}
+		is.close(); 
+	}
+}
+
 // 2021/09/28: for each experiment, log its config
 void FrameSolver::saveConfig()
 {
 	boost::posix_time::ptime timeLocal = boost::posix_time::second_clock::local_time(); 
 	std::stringstream ss_time; 
 	ss_time << timeLocal.date().year() << "-" << timeLocal.date().month() << "-"
-		<< timeLocal.date().day() << "_" << timeLocal.time_of_day().hours() << "-"
-		<< timeLocal.time_of_day().minutes() << "-" << timeLocal.time_of_day().seconds(); 
+		<< timeLocal.date().day() << "++" << std::setw(2) << std::setfill('0') 
+		<< timeLocal.time_of_day().hours() << "-" << std::setw(2) << std::setfill('0')
+		<< timeLocal.time_of_day().minutes() << "-" << std::setw(2) << std::setfill('0')
+		<< timeLocal.time_of_day().seconds();
 	std::string str_time = ss_time.str(); 
 	
 	std::stringstream ss_config_file;
 	ss_config_file << m_result_folder << "/config_" << str_time << ".json"; 
 
-	// build config content 
-	Json::Value root; 
-	root["sequence"] = m_sequence; 
-	root["hourid"] = Json::Value(m_hourid); 
-	root["pignum"] = Json::Value(m_pignum); 
-	root["is_read_image"] = Json::Value(m_is_read_image); 
-	root["videotype"] = Json::Value(m_videotype); 
-	root["camfolder"] = m_camDir; 
-	root["scenedata"] = m_scenedata_path;
-	root["background_folder"] = m_background_folder; 
-	root["imgdir"] = m_imgDir; 
-	root["boxdir"] = m_boxDir; 
-	root["maskdir"] = m_maskDir; 
-	root["keypointsdir"] = m_keypointsDir; 
-	root["startid"] = Json::Value(m_startid); 
-	root["framenum"] = Json::Value(m_framenum); 
-	root["epipolar_threshold"] = Json::Value(m_epi_thres); 
-	root["epipolartype"] = m_epi_type; 
-	root["box_expand_ratio"] = Json::Value(m_boxExpandRatio); 
-	root["skel_type"] = m_skelType; 
-	root["match_alg"] = m_match_alg; 
-	root["pig_config"] = m_pigConfig; 
-	root["use_gpu"] = Json::Value(m_use_gpu); 
-	root["solve_sil_iters"] = Json::Value(m_solve_sil_iters); 
-	root["solve_sil_iters_2nd_phase"] = Json::Value(m_solve_sil_iters_2nd_phase); 
-	root["use_reassoc"] = Json::Value(m_use_reassoc);
-	root["annotation_folder"] = m_annotation_folder;
-	root["result_folder"] = m_result_folder; 
-	root["terminal_thresh"] = Json::Value(m_terminal_thresh); 
-	Json::Value vec_name(Json::arrayValue);
-	for (int i = 0; i < m_pignum; i++) vec_name.append(Json::Value(m_pig_names[i]));
-	root["scales"] = vec_name;
-	root["pig_names"] = vec_name; 
-	root["use_given_scale"] = Json::Value(m_use_given_scale); 
-	root["use_init_cluster"] = Json::Value(m_use_init_cluster); 
-	root["try_load_anno"] = Json::Value(m_try_load_anno); 
-	root["use_triangulation_only"] = Json::Value(m_use_triangulation_only); 
-	root["use_init_pose"] = Json::Value(m_use_init_pose); 
-	root["anchor_folder"] = m_anchor_folder;
-	root["use_init_anchor"] = Json::Value(m_use_init_anchor);
-	root["restart_threshold"] = Json::Value(m_restart_threshold);
-	root["tracking_distance"] = Json::Value(m_tracking_distance); 
-	Json::Value vec_scale(Json::arrayValue); 
-	for (int i = 0; i < m_pignum; i++) vec_scale.append(Json::Value(m_given_scales[i]));
-	root["scales"] = vec_scale; 
-	Json::Value vec(Json::arrayValue); 
-	for (int i = 0; i < m_camNum; i++)
-	{
-		vec.append(Json::Value(m_camids[i])); 
-	}
-	root["camids"] = vec; 
-
-	Json::Value optim_param; 
-	optim_param["valid_thresold"] = Json::Value(m_params.m_valid_threshold);
-	optim_param["lambda"] = Json::Value(m_params.m_lambda);
-	optim_param["data_term"] = Json::Value(m_params.m_w_data_term); 
-	optim_param["sil_term"] = Json::Value(m_params.m_w_sil_term);
-	optim_param["reg_term"] = Json::Value(m_params.m_w_reg_term);
-	optim_param["temp_term"] = Json::Value(m_params.m_w_temp_term);
-	optim_param["floor_term"] = Json::Value(m_params.m_w_floor_term);
-	optim_param["on_floor_term"] = Json::Value(m_params.m_w_on_floor_term);
-	optim_param["anchor_term"] = Json::Value(m_params.m_w_anchor_term);
-	optim_param["on_floor_term"] = Json::Value(m_params.m_w_on_floor_term);
-	optim_param["collision_term"] = Json::Value(m_params.m_w_collision_term);
-	optim_param["sift_term"] = Json::Value(m_params.m_w_sift_term);
-	optim_param["kpt_track_dist"] = Json::Value(m_params.m_kpt_track_dist); 
-	optim_param["iou_thres"] = Json::Value(m_params.m_iou_thres); 
-	optim_param["anchor_folder"] = mp_bodysolverdevice[0]->m_anchor_folder; 
-	optim_param["use_bodyonly_reg"] = Json::Value(m_params.m_use_bodyonly_reg);
-	optim_param["use_height_enhanced_temp"] = Json::Value(m_params.m_use_height_enhanced_temp);
-	optim_param["sil_step"] = Json::Value(m_params.m_sil_step); 
-	optim_param["collision_step"] = Json::Value(m_params.m_collision_step); 
-
-	root["optim_param"] = optim_param; 
-	// write config content
-	std::ofstream outstream(ss_config_file.str()); 
-	if (!outstream.is_open())
-	{
-		std::cout << "output config file " << ss_config_file.str() << " could not open." << std::endl;
-		exit(-1); 
-	}
-	outstream << root << std::endl; 
-	outstream.close(); 
+	std::filesystem::copy_file(m_input_configfile, ss_config_file.str()); 
 
 }
 
 
-cv::Mat FrameSolver::tmp_visualizeRawDet(int viewid)
+cv::Mat FrameSolver::tmp_visualizeRawDet(int viewid, int pid)
 {
-	cv::Mat rawimg = m_imgsUndist[viewid]; 
+	cv::Mat rawimg = m_imgsUndist[viewid].clone(); 
 
 		//Eigen::Vector3i color(71, 109, 245);
 		//Eigen::Vector3i color(204, 175, 143);
@@ -2613,13 +2201,14 @@ cv::Mat FrameSolver::tmp_visualizeRawDet(int viewid)
 	{
 		for (int candid = 0; candid < m_detUndist[viewid].size(); candid++)
 		{
+			if (pid >= 0 && candid != pid) continue; 
 			int colorid = candid;
 			Eigen::Vector3i color;
 			color(0) = m_CM[colorid](2);
 			color(1) = m_CM[colorid](1);
 			color(2) = m_CM[colorid](0);
-			my_draw_box(rawimg, m_detUndist[viewid][candid].box, color); 
-			my_draw_mask(rawimg, m_detUndist[viewid][candid].mask, color, 0.9);
+			//my_draw_box(rawimg, m_detUndist[viewid][candid].box, color); 
+			my_draw_mask(rawimg, m_detUndist[viewid][candid].mask, Eigen::Vector3i(71, 109, 245), 0, true);
 			//drawSkelMonoColor(rawimg, m_detUndist[viewid][candid].keypoints, color, m_topo);
 			drawSkelDebug(rawimg, m_detUndist[viewid][candid].keypoints, m_topo); 
 		}

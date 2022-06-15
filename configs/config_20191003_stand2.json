@@ -6,9 +6,9 @@
   "is_read_image": true,
   "videotype": 1, // type1: with hour; type2: scratch clip; type0: imgs
   "imgExtension": "mp4",
-  "camfolder": "D:/Projects/animal_calibration/calibother/result/",
-  "scenedata": "D:/Projects/animal_calibration/calibother/result/scenemask.json",
-  "background_folder": "D:/Projects/animal_calibration/calibother/undist/",
+  "camfolder": "D:/Projects/animal_calib/data/calibdata_animal_7/extrinsic/",
+  "scenedata": "D:/Projects/animal_calib/data/calibdata_animal_7/scenemask.json",
+  "background_folder": "D:/Projects/animal_calib/data/calibdata_animal_7/backgrounds/",
   "imgdir": "",
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
@@ -28,10 +28,10 @@
   "annotation_folder": "D:/results/1003_stand2/annotation/",
   "result_folder": "D:/results/1003_stand2/",
   "terminal_thresh": 0.005,
-  "scales": [ 1.28,1.82, 1.35, 1.82 ], // C, A, B, D
+  "scales": [ 1.28, 1.82, 1.35, 1.82 ], // C, A, B, D
   //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
   //"scales": [ 1.2, 1.35, 1.86, 1.82 ], // D, C, A, B
-  "pig_names": [3,0,2,1], // ground truth identity
+  "pig_names": [ 3, 0, 2, 1 ], // ground truth identity
   "use_given_scale": true,
   "use_init_cluster": true,
   "try_load_anno": false,

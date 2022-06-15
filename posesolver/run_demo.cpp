@@ -9,8 +9,6 @@
 
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
-#include "../articulation/pigmodel.h"
-#include "../articulation/pigsolver.h"
 #include "framesolver.h"
 #include "../utils/mesh.h"
 #include <vector_functions.hpp>
@@ -75,6 +73,8 @@ void run_demo_20211008()
 
 	frame.saveConfig();
 
+	std::string output_dir = "render_7888"; 
+
 	for (int frameid = start; frameid != start + framenum; frameid += increment)
 	{
 		m_renderer.SetBackgroundColor(Eigen::Vector4f(0, 0, 0, 0));
@@ -94,77 +94,82 @@ void run_demo_20211008()
 		frame.save_clusters();
 		frame.resetSolverStateMarker();
 
-		if (frame.m_use_triangulation_only)
-		{
-			frame.DARKOV_Step1_setsource();
-			frame.DirectTriangulation();
-			frame.save_skels();
-		}
 		std::cout << "w/o rendering " << tt.Elapsed() / 1000.0 << "  ms" << std::endl;
-		std::vector<int> ids = { 0,3,7,8 };
+		std::vector<int> ids = { 0,3,8};
 		auto rawimgs = frame.m_imgsUndist;
 		for (int k = 0; k < ids.size(); k++)
 		{
 			int id = ids[k];
 			std::stringstream ss;
-			ss << "D:/results/paper_teaser/0704_demo/render_last/raw_" << id << ".png";
+			ss << "D:/results/paper_teaser/0704_demo/" << output_dir << "/raw_" << id << ".png";
 			cv::imwrite(ss.str(), rawimgs[id]);
 
-			std::stringstream ss_rawdetpre1;
-			ss_rawdetpre1 << "D:/results/paper_teaser/0704_demo/render_last/rawdetpure3_" << id << ".png";
-			cv::Mat rawdetpure1 = frame.tmp_visualizeRawDetPure(id, false);
-			cv::imwrite(ss_rawdetpre1.str(), rawdetpure1);
+			//std::stringstream ss_rawdetpre1;
+			//ss_rawdetpre1 << "D:/results/paper_teaser/0704_demo/" << output_dir << "/rawdetpure1_" << id << ".png";
+			//cv::Mat rawdetpure1 = frame.tmp_visualizeRawDetPure(id, false);
+			//cv::imwrite(ss_rawdetpre1.str(), rawdetpure1);
 
 
 			std::stringstream ss_rawdetpre;
-			ss_rawdetpre << "D:/results/paper_teaser/0704_demo/render_last/rawdetpure4_" << id << ".png";
+			ss_rawdetpre << "D:/results/paper_teaser/0704_demo/" << output_dir << "/rawdetpure4_" << id << ".png";
 			cv::Mat rawdetpure = frame.tmp_visualizeRawDetPure(id);
 			cv::imwrite(ss_rawdetpre.str(), rawdetpure);
 
-			/*std::stringstream ss_rawdet;
-			ss_rawdet << "D:/results/paper_teaser/0704_demo/render_all/rawdet_" << id << ".png";
-			cv::Mat rawdet = frame.tmp_visualizeRawDet(id);
-			cv::imwrite(ss_rawdet.str(), rawdet);*/
-			//cv::Mat rawdet = blend_images(rawimgs[id], rawdetpure, 0.5); 
-			//std::stringstream ss_rawdet;
-			//ss_rawdet << "D:/results/paper_teaser/0704_demo/render_all/rawdet3_" << id << ".png";
-			//cv::imwrite(ss_rawdet.str(), rawdet);
+			for (int pid = 0; pid < 4; pid++)
+			{
+				std::stringstream ss_rawdet;
+				ss_rawdet << "D:/results/paper_teaser/0704_demo/" << output_dir << "/rawdet_" << id << "_" << pid << ".png";
+				cv::Mat rawdet = frame.tmp_visualizeRawDet(id, pid);
+				cv::imwrite(ss_rawdet.str(), rawdet);
+			}
+			continue; 
 
-
+			//cv::Mat rawdet3 = blend_images(rawimgs[id], rawdetpure, 0.5); 
+			//std::stringstream ss_rawdet3;
+			//ss_rawdet3 << "D:/results/paper_teaser/0704_demo/" << output_dir << "/rawdet3_" << id << ".png";
+			//cv::imwrite(ss_rawdet3.str(), rawdet3);
 
 			cv::Mat assoc = frame.visualizeIdentity2D(id);
 			std::stringstream ss1;
-			ss1 << test_result_folder << "/render_last/assoc_" << k << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
+			ss1 << test_result_folder << "/" << output_dir << "/assoc_" << k << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
 			cv::imwrite(ss1.str(), assoc);
 
 			for (int pid = 0; pid < 4; pid++)
 			{
 				cv::Mat assoc2 = frame.visualizeIdentity2D(id, pid);
 				std::stringstream ss2;
-				ss2 << test_result_folder << "/render_last/assoc_" << k << "_" << pid << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
+				ss2 << test_result_folder << "/" << output_dir << "/assoc_" << k << "_" << pid << "_" << std::setw(6) << std::setfill('0') << frameid << ".png";
 				cv::imwrite(ss2.str(), assoc2);
 
 				cv::Mat assoc3 = frame.tmp_visualizeIdentity2D(id, pid);
 				std::stringstream ss3;
-				ss3 << test_result_folder << "/render_last/group_" << k << "_" << pid << ".png";
+				ss3 << test_result_folder << "/" << output_dir << "/group_" << k << "_" << pid << ".png";
 				cv::imwrite(ss3.str(), assoc3);
 			}
 		}
+		return; 
 
 		cv::Mat rawfit = frame.visualizeRawAssoc();
 		cv::Mat rawfit_small = my_resize(rawfit, 1);
 		std::stringstream ss_rawassoc;
-		ss_rawassoc << test_result_folder << "/fitting/" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		ss_rawassoc << test_result_folder << "/" << output_dir << "/fitting" << std::setw(6) << std::setfill('0') << frameid << ".png";
 		cv::imwrite(ss_rawassoc.str(), rawfit_small);
 
-		if (frame.m_use_triangulation_only) {
-			cv::Mat reproj = frame.visualizeProj();
-			cv::Mat reproj_small = my_resize(reproj, 0.25);
-			std::stringstream ss_proj;
-			ss_proj << test_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
-			cv::imwrite(ss_proj.str(), reproj_small);
-		}
 
+		frame.DARKOV_Step1_setsource();
+		frame.DirectTriangulation();
+		cv::Mat reproj = frame.visualizeProj(1);
+		std::stringstream ss_proj;
+		ss_proj << test_result_folder << "/" << output_dir << "/proj" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss_proj.str(), reproj);
+		
+		frame.read_parametric_data(); 
+		cv::Mat reproj_fit = frame.visualizeProj(1);
+		std::stringstream ss_proj_fit;
+		ss_proj_fit << test_result_folder << "/" << output_dir << "/proj_fit" << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss_proj_fit.str(), reproj_fit);
+
+		continue; 
 		frame.DARKOV_Step1_setsource();
 
 #if 1// search anchor 
@@ -184,9 +189,9 @@ void run_demo_20211008()
 #endif 
 
 #if 1 // comment to visualize anchor result
-		frame.DARKOV_Step4_fitrawsource();
+		frame.DARKOV_Step4_fitrawsource(frame.m_solve_sil_iters);
 		frame.DARKOV_Step3_reassoc_type2();
-		frame.DARKOV_Step4_fitreassoc();
+		frame.DARKOV_Step4_fitreassoc(frame.m_solve_sil_iters_2nd_phase);
 
 		frame.DARKOV_Step5_postprocess();
 		frame.save_parametric_data();
@@ -415,9 +420,9 @@ void run_demo_visualize_depth()
 		}
 
 #if 1 // comment to visualize anchor result
-		frame.DARKOV_Step4_fitrawsource();
+		frame.DARKOV_Step4_fitrawsource(frame.m_solve_sil_iters);
 		frame.DARKOV_Step3_reassoc_type2();
-		frame.DARKOV_Step4_fitreassoc();
+		frame.DARKOV_Step4_fitreassoc(frame.m_solve_sil_iters_2nd_phase);
 
 		frame.DARKOV_Step5_postprocess();
 		frame.save_parametric_data();

@@ -4,7 +4,6 @@
 #include <vector>
 #include <Eigen/Core>
 #include <opencv2/opencv.hpp>
-#include "../utils/node_graph.h"
 #include "../utils/math_utils.h"
 #include "../utils/image_utils.h"
 #include "../utils/timer_util.h"
@@ -32,7 +31,7 @@ public:
 	void readState(std::string state_file = "state.txt");
 	void saveObj(const std::string& filename) const; 
 
-	// all data interfaces are on host 
+	// all data interfaces are on host (CPU)
 	void SetPose(Eigen::VectorXf _poseParam) {
 		for (int i = 0; i < m_jointNum; i++) m_host_poseParam[i] = _poseParam.segment<3>(3 * i); 
 	}
@@ -48,43 +47,30 @@ public:
 	std::vector<Eigen::Vector3f> GetVertices() const { return m_host_verticesPosed; }
 	std::vector<Eigen::Vector3u> GetFacesTex() { return m_host_facesTex; }
 	std::vector<Eigen::Vector3u> GetFacesVert() { return m_host_facesVert; }
-	Eigen::Vector3f GetTranslation() { return m_host_translation; }
-	Eigen::VectorXf GetShape() { return m_host_shapeParam; }
+	Eigen::Vector3f              GetTranslation() { return m_host_translation; }
+	Eigen::VectorXf              GetShape() { return m_host_shapeParam; }
 	std::vector<Eigen::Vector3f> GetPose() { return m_host_poseParam; }
 	std::vector<Eigen::Vector3f> GetNormals() { return m_host_normalsFinal; }
-	std::vector<int> GetParents() { return m_host_parents; }
-	float GetScale() { return m_host_scale; }
-	cv::Mat getTexImg() { return m_host_texImg; }
+	std::vector<int>             GetParents() { return m_host_parents; }
+	float                        GetScale() { return m_host_scale; }
+	cv::Mat                      getTexImg() { return m_host_texImg; }
 	std::vector<Eigen::Vector2f> GetTexcoords() { return m_host_texcoords; }
-	std::string GetFolder() { return m_folder; }
-	int GetVertexNum() { return m_vertexNum; }
-	int GetJointNum() { return m_jointNum; }
-	int GetFaceNum() { return m_faceNum; }
-	Eigen::MatrixXf GetShapeBlendV() { return m_host_shapeBlendV; }
-	Eigen::MatrixXf GetJRegressor() { return m_host_jregressor; }
-	Eigen::MatrixXf GetLBSWeights() { return m_host_lbsweights; }
-	std::vector<BODY_PART> GetBodyPart() { return m_host_bodyParts; }
-	SkelTopology GetTopo() { return m_skelTopo; }
+	std::string                  GetFolder() { return m_folder; }
+	int                          GetVertexNum() { return m_vertexNum; }
+	int                          GetJointNum() { return m_jointNum; }
+	int                          GetFaceNum() { return m_faceNum; }
+	Eigen::MatrixXf              GetShapeBlendV() { return m_host_shapeBlendV; }
+	Eigen::MatrixXf              GetJRegressor() { return m_host_jregressor; }
+	Eigen::MatrixXf              GetLBSWeights() { return m_host_lbsweights; }
+	std::vector<BODY_PART>       GetBodyPart() { return m_host_bodyParts; }
+	SkelTopology                 GetTopo() { return m_skelTopo; }
+	std::vector<Eigen::Vector3f> RegressJointsPosed();
+	std::vector<Eigen::Vector3f> getRegressedSkel_host();
 
 	void UpdateVertices();
 	void UpdateJoints();
 	void UpdateNormalFinal(); 
-	std::vector<Eigen::Vector3f> RegressJointsPosed(); 
-	std::vector<Eigen::Vector3f> getRegressedSkel_host();
-
-	//void UpdateNormals();
-
-	// texture
-	//void ReadTexImg(std::string filename);
-	//void SaveTexImg(std::string filename);
-
-	//void InitNodeAndWarpField();
-	//void UpdateModelShapedByKNN();
-	//void SaveWarpField();
-	//void LoadWarpField();
-
-	std::vector<float>           m_host_boneScales;
-
+	std::string m_folder;
 protected:
 	// basic parameter 
 	int m_jointNum;
@@ -92,11 +78,11 @@ protected:
 	int m_shapeNum;
 	int m_faceNum; 
 	int m_texNum;
-	std::string m_folder;
+	
 
 	SkelTopology m_skelTopo; 
 	std::vector<CorrPair> m_skelCorr;
-
+	std::vector<float>           m_host_boneScales;
 	// model state data 
 	std::vector<Eigen::Vector3f> m_host_verticesOrigin;
 	std::vector<Eigen::Vector3f> m_host_verticesScaled; 

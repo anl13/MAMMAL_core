@@ -71,20 +71,21 @@
     <Import Project="..\props\json.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\ceres.props" />
-    <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\gl-pcl.props" />
     <Import Project="..\props\opencv450.props" />
+    <Import Project="..\props\boost1.79.0.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>false</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -141,37 +142,19 @@
     <ClCompile Include="..\VAE\decoder.cpp" />
     <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="pigmodel.cpp" />
     <ClCompile Include="pigmodeldevice.cpp" />
     <ClCompile Include="pigsolverdevice.cpp" />
     <ClCompile Include="pigsolverdevice_debug.cpp" />
-    <ClCompile Include="pigsolver_fitting.cpp" />
-    <ClCompile Include="pigsolver_jacobi.cpp" />
-    <ClCompile Include="pigsolver_sil.cpp" />
-    <ClCompile Include="test_collsion_render.cpp" />
-    <ClCompile Include="test_compare_cpugpu.cpp" />
-    <ClCompile Include="test_fitting_model.cpp" />
-    <ClCompile Include="test_gpu.cpp" />
-    <ClCompile Include="test_inmeshtest.cpp" />
-    <ClCompile Include="test_pointer.cpp" />
-    <ClCompile Include="test_regressor.cpp" />
-    <ClCompile Include="test_render_behavior.cpp" />
     <ClCompile Include="test_render_model.cpp" />
-    <ClCompile Include="test_render_video.cpp" />
-    <ClCompile Include="test_vae.cpp" />
-    <ClCompile Include="test_visdesigned.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\utils\gpuutils.h" />
     <ClInclude Include="..\utils\nanoflann.hpp" />
     <ClInclude Include="..\utils\safe_call.hpp" />
     <ClInclude Include="..\utils\timer_util.h" />
     <ClInclude Include="common.h" />
-    <ClInclude Include="gpuutils.h" />
-    <ClInclude Include="pigmodel.h" />
     <ClInclude Include="pigmodeldevice.h" />
-    <ClInclude Include="pigsolver.h" />
     <ClInclude Include="pigsolverdevice.h" />
-    <ClInclude Include="safe_call.hpp" />
     <ClInclude Include="test_main.h" />
     <ClInclude Include="vector_operations.hpp" />
   </ItemGroup>
@@ -184,8 +167,8 @@
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
+    <CudaCompile Include="..\utils\gpuutils.cu" />
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
-    <CudaCompile Include="gpuutils.cu" />
     <CudaCompile Include="pigmodeldevice.cu" />
     <CudaCompile Include="pigsolverdevice.cu" />
   </ItemGroup>

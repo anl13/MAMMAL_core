@@ -1,67 +1,66 @@
 {
   "camids": [ 0, 1, 2, 5, 6, 7, 8, 9, 10, 11 ],
-  "sequence": "Z:/20190703_sync/",
-  "hourid": 14,
+  "sequence": "Z:/sequences/20190704_morning",
+  "hourid": 7,
   "pignum": 4,
   "is_read_image": true,
-  "videotype": 1, // type1: with hour; type2: scratch clip; type0: imgs
-  "imgExtension": "mp4",
+  "videotype": 0, // images
+  "imgExtension": "jpg",
+  "intrinsic_type": 0, // 0: calibdata
   "camfolder": "D:/Projects/animal_calib/data/calibdata/extrinsic/",
   "scenedata": "D:/Projects/animal_calib/data/calibdata/scenemask.json",
   "background_folder": "D:/Projects/animal_calib/data/calibdata/backgrounds/",
-  "imgdir": "",
+  "imgdir": "images",
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
-  "keypointsdir": "keypoints_hrnet",
-  "startid": 88078,
-  "framenum": 2000,
+  "keypointsdir": "keypoints_hrnet_pr",
+  "startid": 750,
+  "framenum": 1800,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track"
   "pig_config": "D:/Projects/animal_calib/articulation/artist_config_sym.json",
-  "use_gpu": true,
-  "solve_sil_iters": 5,
-  "solve_sil_iters_2nd_phase": 15,
+  "use_gpu": false,
+  "solve_sil_iters": 10,
+  "solve_sil_iters_2nd_phase": 50,
   "use_reassoc": true,
-  "annotation_folder": "G:/results/0703_motion4_new/annotation/",
-  "result_folder": "G:/results/0703_motion4_new/",
+  "annotation_folder": "D:/results/paper_teaser/0704_eval2/annotation/",
+  "result_folder": "D:/results/paper_teaser/0704_eval2/",
   "terminal_thresh": 0.005,
-  "scales": [1.39, 1.337, 1.3, 1.28 ], // B,A,D,C
-  //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
-  //"scales": [ 1.2, 1.35, 1.86, 1.82 ], // D, C, A, B
-  "pig_names": [ 1,0,3,2 ], // ground truth identity
-  "use_given_scale": true,
+  "scales": [ 1.35, 1.28056, 1.337, 1.300 ], //
+  "pig_names": [ 0, 2, 1, 3 ], // ground truth identity
   "use_init_cluster": true,
-  "try_load_anno": true,
+  "try_load_anno": false,
   "use_triangulation_only": false,
   "use_init_pose": true,
-  "anchor_folder": "G:/results/0703_motion4_new/anchor_state/",
+  "anchor_folder": "D:/results/paper_teaser/0704_eval2/anchor_state/",
   "use_init_anchor": true,
-  "restart_threshold": -10,
+  "restart_threshold": -10, 
+  "use_per_frame_anchor":  false,
   "tracking_distance": 400, // pixels
   "optim_params": {
-    "valid_threshold": 0.8,
-    "lambda": 0.1,
+    "valid_threshold": 0.9,
+    "lambda": 0.05,
     "data_term": 1,
     "sil_term": 0.00005,
     "reg_term": 0.01,
     "temp_term": 1,
     "floor_term": 10, // restrict bodys are on floor
-    "on_floor_term": 1, // restrict lower back leg stand precisely on floor.
+    "on_floor_term": 0, // restrict lower back leg stand precisely on floor.
     "anchor_term": 0.0,
     "gmm_term": 0.0,
-    "collision_term": 0.0,
+    "collision_term": 0.01,
     "sift_term": 0.0,
     "3d_term": 0.0,
     "reg_weights": [ [ 2, 1, 1, 1 ] ],
-    "kpt_track_dist": 200, // px  * depthweight
+    "kpt_track_dist": 400, // px  * depthweight
     "iou_thres": 0.5,
     "use_bodyonly_reg": false,
     "use_height_enhanced_temp": true,
     "use_given_scale": true,
     "sil_step": 5,
-    "collision_step": 20
+    "collision_step": 40
   }
 }

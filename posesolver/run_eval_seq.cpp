@@ -9,8 +9,6 @@
 
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
-#include "../articulation/pigmodel.h"
-#include "../articulation/pigsolver.h"
 #include "framesolver.h"
 #include "../utils/mesh.h"
 #include <vector_functions.hpp>
@@ -109,9 +107,9 @@ void  run_eval_seq()
 		}
 			
 
-		frame.DARKOV_Step4_fitrawsource();
+		frame.DARKOV_Step4_fitrawsource(frame.m_solve_sil_iters);
 		frame.DARKOV_Step3_reassoc_type2();
-		frame.DARKOV_Step4_fitreassoc();
+		frame.DARKOV_Step4_fitreassoc(frame.m_solve_sil_iters_2nd_phase);
 
 		frame.DARKOV_Step5_postprocess();
 		frame.save_parametric_data();
@@ -324,9 +322,9 @@ void  run_eval_seq_loadanchor_temp()
 				frame.DARKOV_Step2_optimanchor(id); 
 		}
 
-		frame.DARKOV_Step4_fitrawsource();
+		frame.DARKOV_Step4_fitrawsource(frame.m_solve_sil_iters);
 		frame.DARKOV_Step3_reassoc_type2();
-		frame.DARKOV_Step4_fitreassoc();
+		frame.DARKOV_Step4_fitreassoc(frame.m_solve_sil_iters_2nd_phase);
 		frame.DARKOV_Step5_postprocess();
 
 		frame.save_parametric_data();
@@ -547,9 +545,9 @@ void  run_eval_seq_noanchor()
 		}
 
 
-		frame.DARKOV_Step4_fitrawsource();
+		frame.DARKOV_Step4_fitrawsource(frame.m_solve_sil_iters);
 		frame.DARKOV_Step3_reassoc_type2();
-		frame.DARKOV_Step4_fitreassoc();
+		frame.DARKOV_Step4_fitreassoc(frame.m_solve_sil_iters_2nd_phase);
 
 		frame.DARKOV_Step5_postprocess();
 		frame.save_parametric_data();

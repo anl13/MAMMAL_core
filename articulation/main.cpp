@@ -1,29 +1,13 @@
+/*
+This file is used for testing the forward skinning pipeline. 
+
+*/
+
+
 #include "test_main.h"
 
 
 void main()
 {
-	//test_body_part(); 
-	//test_fitting();
-	test_mean_pose(); 
-	//test_gpu(); 
-	//test_compare_cpugpu(); 
-	//test_compare_cpugpu_jacobi(); 
-	//show_gpu_param(); 
-
-	//test_pointer(); 
-	//test_regressor(); 
-
-	//test_visdesigned();
-	//test_lay();
-
-	//test_visanchors(); 
-
-	//test_texture(); 
-
-	//test_bone_var(); 
-	//test_inmeshtest();
-	//test_render_behavior(); 
-	//test_collision_render(); 
-
+	render_mean_pose(); 
 }

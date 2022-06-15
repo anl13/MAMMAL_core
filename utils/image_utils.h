@@ -45,6 +45,9 @@ void cloneImgs(const std::vector<cv::Mat> & input, std::vector<cv::Mat> &output)
 //void getLegend(cv::Mat& out);
 
 std::vector<Eigen::Vector3f> read_points(std::string filename); 
+void write_points(std::string filename, const std::vector<Eigen::Vector3f>& data); 
+void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data);
+
 
 Eigen::Vector4f my_undistort_box(Eigen::Vector4f box,const Camera &cam, const Camera &newcam); 
 Eigen::Vector4f expand_box(Eigen::Vector4f box, float ratio = 0.15); 
@@ -65,6 +68,9 @@ cv::Mat resizeAndPadding(cv::Mat img, const int width, const int height);
 cv::Mat get_dist_trans(cv::Mat input);
 
 cv::Mat my_resize(const cv::Mat& input, float ratio);
+
+std::vector<std::vector<Eigen::Vector3f>>
+hanning_smooth(const std::vector<std::vector<Eigen::Vector3f>> & raw_seq); 
 
 // This class is used as struct 
 class ROIdescripter {
@@ -144,3 +150,6 @@ float silhouette_iou(const cv::Mat& mask1, const cv::Mat& mask2);
 bool inMeshTest_cpu(const std::vector<Eigen::Vector3f>& mesh_vertices,
 	const std::vector<Eigen::Vector3u>& mesh_faces,
 	const Eigen::Vector3f& a, const Eigen::Vector3f& b); 
+
+std::string get_current_folder(); 
+std::string get_parent_folder(); 

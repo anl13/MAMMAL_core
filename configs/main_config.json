@@ -1,9 +1,17 @@
 {
-  //"config_file":  "/configs/config_20190703_motion2.json"
+  //"config_file":  "/configs/config_20190703_motion5.json"
+  //"config_file":  "/configs/config_20190703_motion_new.json"
+  //"config_file":  "/configs/config_seq2.json"
+  //"config_file":  "/configs/config_20190703_motion5.json"
+
   //"config_file": "/configs/config_20191005_hour13.json"
   //"config_file":  "/configs/config_20191007_morning.json"
   //"config_file": "/configs/config_jointangle_0823.json"
   //"config_file":  "/configs/config_20191003_socialdemo2.json"
   //"config_file" :  "/configs/config_20210321_motion2.json"
-  "config_file":  "/configs/config_newf1_batch5_2.json"
+  //"config_file":  "/configs/config_20191005.json"
+  //"config_file":  "/configs/config_20190704_foreval-seq.json"
+  //"config_file":  "/configs/config_newf1_batch4_0928.json"
+  //"config_file":  "config_demo6.json"
+  "config_file": "/configs/config_BamaPigEval3D_main.json"
 }

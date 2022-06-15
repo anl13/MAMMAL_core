@@ -7,35 +7,21 @@
 #include <json/json.h> 
 #include <Eigen/Eigen> 
 #include <opencv2/opencv.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem> 
 
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
-#include "../articulation/pigmodel.h"
-#include "../articulation/pigsolver.h"
 #include "../utils/mesh.h"
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
-
+#include "../utils/image_utils.h"
 #include "framesolver.h"
 #include "main.h"
-
-void save_joints(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data)
-{
-	std::stringstream ss;
-	ss << folder << "/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt"; 
-	std::ofstream outputfile(ss.str()); 
-	for (int i = 0; i < data.size(); i++)
-	{
-		outputfile << data[i].transpose() << std::endl; 
-	}
-	outputfile.close(); 
-}
 
 int run_pose_smooth()
 {
 	show_gpu_param();
-	std::string conf_projectFolder = "D:/Projects/animal_calib/";
+	std::string conf_projectFolder = "H:/MAMMAL_core/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_render");
 
@@ -58,28 +44,59 @@ int run_pose_smooth()
 
 	std::string joint62_folder = frame.m_result_folder+ "/joints_62/";
 	std::string smth_folder = frame.m_result_folder + "/state_smth/"; 
-	if (!boost::filesystem::is_directory(smth_folder))
-		boost::filesystem::create_directory(smth_folder);
+	if (!std::filesystem::is_directory(smth_folder))
+	{
+		std::filesystem::create_directory(smth_folder);
+	}
+	std::string jsmth_folder = frame.m_result_folder + "/joints_62_smth/";
+	if (!std::filesystem::is_directory(jsmth_folder))
+	{
+		std::filesystem::create_directory(jsmth_folder); 
+	}
+	std::string j23smth_folder = frame.m_result_folder + "/joints_23_smth/";
+	if (!std::filesystem::is_directory(j23smth_folder))
+	{
+		std::filesystem::create_directory(j23smth_folder); 
+	}
 
+	// smoothing the whole sequence
+	std::vector<std::vector<std::vector<Eigen::Vector3f> > > all_joints62; 
+	all_joints62.resize(4); 
+	
+	for (int pid = 0; pid < 4; pid++)
+	{
+		all_joints62[pid].resize(frame.get_frame_num()); 
+		for (int frameid = 0; frameid < frame.get_frame_num(); frameid++)
+		{
+			std::stringstream ss;
+			ss << frame.m_result_folder << "/joints_62/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			all_joints62[pid][frameid] = read_points(ss.str());
+		}
+		all_joints62[pid] = hanning_smooth(all_joints62[pid]); 
+	}
+	// re-fit smoothed joints; write states and renderings. 
+	std::cout << "run joint smoothing ... " << std::endl; 
 	for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	{
-		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
+		std::cout << "===========write smoothed data frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
-
 		frame.read_parametric_data();
-		
 		auto solvers = frame.mp_bodysolverdevice;
 
 		for (int pid = 0; pid < frame.m_pignum; pid++)
 		{
 			std::stringstream ss; 
-			ss << frame.m_result_folder << "/joints_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
-			std::vector<Eigen::Vector3f> points62 = read_points(ss.str()); 
-			solvers[pid]->fitPoseToJointSameTopo(points62);
+			ss << frame.m_result_folder << "/joints_62_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
+			write_points(ss.str(), all_joints62[pid][frameid]); 
+			solvers[pid]->fitPoseToJointSameTopo(all_joints62[pid][frameid]);
 
 			std::stringstream ss_state; 
 			ss_state << frame.m_result_folder << "/state_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
 			solvers[pid]->saveState(ss_state.str()); 
+
+			std::stringstream ss_23; 
+			ss_23 << frame.m_result_folder << "/joints_23_smth/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt"; 
+			write_points(ss_23.str(), solvers[pid]->getRegressedSkel_host()); 
 		}
 	}
 
@@ -87,7 +104,7 @@ int run_pose_smooth()
 }
 
 
-
+// this is for hind_leg angle profiling.
 int run_pose_bone_length()
 {
 	show_gpu_param();
@@ -97,10 +114,10 @@ int run_pose_bone_length()
 
 	FrameSolver frame;
 	std::string configfile = get_config();
-	frame.configByJson(conf_projectFolder + "configs/config_20191003_socialdemo.json");
-	int startid = 9820;
-	int framenum = 180;
-	int targetid = 1;
+	frame.configByJson(conf_projectFolder + "configs/config_20190703_motion4.json");
+	int startid = 79140;
+	int framenum = 60;
+	int targetid = 0;
 
 	frame.set_frame_id(startid);
 	frame.fetchData();
@@ -116,8 +133,8 @@ int run_pose_bone_length()
 	};
 	for (int i = 0; i < subfolders.size(); i++)
 	{
-		if (!boost::filesystem::is_directory(frame.m_result_folder + subfolders[i]))
-			boost::filesystem::create_directory(frame.m_result_folder + subfolders[i]);
+		if (!std::filesystem::is_directory(frame.m_result_folder + subfolders[i]))
+			std::filesystem::create_directory(frame.m_result_folder + subfolders[i]);
 	}
 
 
@@ -136,7 +153,7 @@ int run_pose_bone_length()
 		std::stringstream ss_proj;
 		ss_proj << frame.m_result_folder << "/proj2/" << std::setw(6) << std::setfill('0') << frameid << ".png";
 		cv::imwrite(ss_proj.str(), reproj);
-		save_joints(outputfolder, targetid, frameid, skels); 
+		save_points(outputfolder, targetid, frameid, skels); 
 	}
 
 	return 0;

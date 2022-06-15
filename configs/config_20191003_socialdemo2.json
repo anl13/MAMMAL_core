@@ -13,8 +13,9 @@
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet",
-  "startid": 0,
-  "framenum": 45000,
+  "startid": 74100,
+  "framenum" :  6000,
+  //"framenum": 45000,
   "epipolar_threshold": 25,
   "epipolartype": "p2l", // "p2l" or "l2l"
   "box_expand_ratio": 0.01,
@@ -25,8 +26,8 @@
   "solve_sil_iters": 2,
   "solve_sil_iters_2nd_phase": 20,
   "use_reassoc": true,
-  "annotation_folder": "Z:/results/1003_social2/annotation/",
-  "result_folder": "Z:/results/1003_social2/",
+  "annotation_folder": "E:/results/1003_social2/annotation/",
+  "result_folder": "E:/results/1003_social2/",
   "terminal_thresh": 0.005,
   "scales": [ 1.8, 1.28, 1.8, 1.35 ], // C, A, B, D
   //  "scales": [ 1.82, 1.86, 1.35, 1.2 ], // B, A, C, D
@@ -37,7 +38,7 @@
   "try_load_anno": true,
   "use_triangulation_only": false,
   "use_init_pose": true,
-  "anchor_folder": "Z:/results/1003_social2/anchor_state/",
+  "anchor_folder": "E:/results/1003_social2/anchor_state/",
   "use_init_anchor": true,
   "restart_threshold": -10,
   "tracking_distance": 400 // pixels

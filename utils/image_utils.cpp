@@ -3,6 +3,8 @@
 #include "geometry.h"
 #include "math_utils.h"
 #include <opencv2/video/background_segm.hpp>
+#include <filesystem>
+
 
 void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, const Camera &newcam)
 {
@@ -359,6 +361,34 @@ std::vector<Eigen::Vector3f> read_points(std::string filename)
     infile.close(); 
     return points;
 }
+
+void write_points(std::string filename, const std::vector<Eigen::Vector3f>& data)
+{
+	std::ofstream outputfile(filename); 
+	if (!outputfile.is_open())
+	{
+		std::cout << "Can not open " << filename << std::endl; 
+		exit(-1); 
+	}
+	for (int i = 0; i < data.size(); i++)
+	{
+		outputfile << data[i].transpose() << std::endl; 
+	}
+	outputfile.close(); 
+}
+
+void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data)
+{
+	std::stringstream ss;
+	ss << folder << "/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt";
+	std::ofstream outputfile(ss.str());
+	for (int i = 0; i < data.size(); i++)
+	{
+		outputfile << data[i].transpose() << std::endl;
+	}
+	outputfile.close();
+}
+
 
 Eigen::Vector4f my_undistort_box(Eigen::Vector4f x, const Camera &cam, const Camera &newcam)
 {
@@ -970,4 +1000,76 @@ bool inMeshTest_cpu(const std::vector<Eigen::Vector3f>& mesh_vertices,
 	}
 	if (intersect % 2 == 0) return true; 
 	else return false; 
+}
+
+
+std::vector<std::vector<Eigen::Vector3f>>
+hanning_smooth(const std::vector<std::vector<Eigen::Vector3f>> & raw_seq)
+{
+	Eigen::VectorXf hanning_weight(9);
+	hanning_weight.setZero();
+	hanning_weight(1) = 0.14644661;
+	hanning_weight(2) = 0.5;
+	hanning_weight(3) = 0.85355339;
+	hanning_weight(4) = 1;
+	hanning_weight(5) = 0.85355339;
+	hanning_weight(6) = 0.5;
+	hanning_weight(7) = 0.14644661;
+	hanning_weight = hanning_weight / 4;
+
+	std::vector<std::vector<Eigen::Vector3f> > output = raw_seq;
+	int N = raw_seq.size();
+	int R = 4; // R = int(9/2)
+	for (int n = 0; n < N; n++)
+	{
+		int start = n - R;
+		int end = n + R + 1;
+		if (start < 0) start = 0;
+		if (end >= N) end = N;
+		int off_left = start - n + R;
+		int off_right = end - n + R;
+		int v_length = off_right - off_left;
+		for (int jid = 0; jid < raw_seq[n].size(); jid++)
+		{
+			Eigen::Vector3f avg = Eigen::Vector3f::Zero();
+
+			for (int k = start; k < end; k++)
+			{
+				avg += hanning_weight(k - n + R) * raw_seq[k][jid];
+			}
+			if (off_left > 0) {
+				for (int k = 0; k < off_left; k++)
+					avg += raw_seq[start][jid] * hanning_weight(k);
+			}
+			if (off_right < 9) {
+				for (int k = off_right; k < 9; k++)
+					avg += raw_seq[end - 1][jid] * hanning_weight(k);
+			}
+			output[n][jid] = avg;
+		}
+	}
+
+	return output;
+}
+
+std::string get_current_folder()
+{
+	std::string current_path = std::filesystem::current_path().string();
+	for (int k = 0; k < current_path.length(); k++)
+	{
+		if (current_path[k] == '\\')
+			current_path[k] = '/';
+	}
+	return current_path + "/"; 
+}
+std::string get_parent_folder()
+{
+	std::filesystem::path p = std::filesystem::current_path(); 
+	std::string pp = p.parent_path().string(); 
+	for (int k = 0; k < pp.length(); k++)
+	{
+		if (pp[k] == '\\')
+			pp[k] = '/';
+	}
+	return pp + "/";
 }

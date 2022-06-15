@@ -14,7 +14,7 @@
   "boxdir": "boxes_pr",
   "maskdir": "masks_pr",
   "keypointsdir": "keypoints_hrnet_pr",
-  "startid": 7880,
+  "startid": 7888,
   "framenum": 1,
   "epipolar_threshold": 100,
   "epipolartype": "p2l", // "p2l" or "l2l"

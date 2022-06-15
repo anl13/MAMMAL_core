@@ -71,9 +71,9 @@
     <Import Project="..\props\json.props" />
     <Import Project="..\props\eigen.props" />
     <Import Project="..\props\ceres.props" />
-    <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\opencv450.props" />
     <Import Project="..\props\nanorenderer.props" />
+    <Import Project="..\props\boost1.79.0.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />

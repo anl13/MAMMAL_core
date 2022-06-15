@@ -1,13 +1,11 @@
 {
-  "folder": "D:/Projects/animal_calib/data/artist_model_sym3/",
+  "folder": "../data/artist_model_sym3/",
   "joint_num": 62,
   "vertex_num": 11239,
   "tex_num": 12208,
   "face_num": 22446,
   "shape_num": 0,
   "topo": "UNIV",
-  "texture_img": "body_red.png",
-  "latent": false,
   "sym_num": 0,
   "mapper": [
     [ 1, 10895 ], // nose
@@ -60,8 +58,7 @@
     [ 18, 1, 7903, 1 ],
     [ 20, 0, 2, 1 ] // cneter
   ],
-  "anchor_folder": "D:/pig_middle_data/build_pose_lib5/pose_lib5/",
-  "m_use_gpu":  true 
+  "anchor_folder": "../data/anchor_pose_library/"
 }
 
 

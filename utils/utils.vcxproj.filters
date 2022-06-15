@@ -27,9 +27,6 @@
     <ClCompile Include="math_utils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="node_graph.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="volume.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -46,9 +43,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="image_utils_gpu.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="fileoperation.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -72,9 +66,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="nanoflann.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="node_graph.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="safe_call.hpp">
@@ -107,12 +98,15 @@
     <ClInclude Include="definitions.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="fileoperation.h">
+    <ClInclude Include="gpuutils.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="image_utils_gpu.cu">
+      <Filter>源文件</Filter>
+    </CudaCompile>
+    <CudaCompile Include="gpuutils.cu">
       <Filter>源文件</Filter>
     </CudaCompile>
   </ItemGroup>

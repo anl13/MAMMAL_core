@@ -40,17 +40,17 @@
   "restart_threshold": -10,
   "tracking_distance": 400, // pixels
   "optim_params": {
-    "valid_threshold": 0.8,
-    "lambda": 0.1,
+    "valid_threshold": 0.9,
+    "lambda": 0.05,
     "data_term": 1,
     "sil_term": 0.00005,
     "reg_term": 0.01,
-    "temp_term": 0.4,
-    "floor_term": 100, // restrict bodys are on floor
-    "on_floor_term": 1, // restrict lower back leg stand precisely on floor.
-    "anchor_term": 0.001,
+    "temp_term": 1,
+    "floor_term": 10, // restrict bodys are on floor
+    "on_floor_term": 0, // restrict lower back leg stand precisely on floor.
+    "anchor_term": 0.0,
     "gmm_term": 0.0,
-    "collision_term": 10,
+    "collision_term": 0.01,
     "sift_term": 0.0,
     "3d_term": 0.0,
     "reg_weights": [ [ 2, 1, 1, 1 ] ],

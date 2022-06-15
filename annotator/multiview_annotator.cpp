@@ -96,8 +96,8 @@ void readStateFile(std::string state_file, Eigen::Vector3f& translation, float& 
 int multiview_annotator()
 {
 	AnnoConfig config;
-	std::string projectParentDir = "D:/Projects/";
-	std::string projectDir = projectParentDir + "animal_calib/"; 
+	std::string projectParentDir = config.project_dir;
+	std::string projectDir = projectParentDir + "/animal_calib/"; 
 	std::vector<float4> colormap = getColorMapFloat4("anliang_render");
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_render");
     /// read frame data 

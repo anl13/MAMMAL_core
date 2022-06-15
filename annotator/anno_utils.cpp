@@ -19,7 +19,7 @@ AnnoConfig::AnnoConfig()
 	Json::Value root;
 	Json::CharReaderBuilder rbuilder;
 	std::string errs;
-	std::string jsonfile = "D:/Projects/animal_calib/annotator/anno_config.json";
+	std::string jsonfile = "anno_config.json";
 	std::ifstream instream(jsonfile);
 	if (!instream.is_open())
 	{
@@ -33,10 +33,12 @@ AnnoConfig::AnnoConfig()
 		exit(-1);
 	}
 
+	project_dir       = root["project_dir"].asString();
 	posesolver_config = root["posesolver_config"].asString();
-	pig_config = root["pig_config"].asString();
-	current_frame_id = root["current_frame_id"].asInt();
-	current_pig_id = root["current_pig_id"].asInt(); 
+	pig_config        = root["pig_config"].asString();
+	current_frame_id  = root["current_frame_id"].asInt();
+	current_pig_id    = root["current_pig_id"].asInt(); 
+	 
 
 	instream.close(); 
 }

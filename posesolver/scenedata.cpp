@@ -1,6 +1,8 @@
 #include "scenedata.h"
 #include <json/json.h>
-#include "../utils/fileoperation.h"
+#include <filesystem>
+
+//#include "../utils/fileoperation.h"
 
 SceneData::SceneData(std::string camfolder,
 	std::string backgroundfolder,
@@ -23,9 +25,9 @@ void SceneData::readBackground(std::string backgroundfolder)
 		ss_bg << backgroundfolder << "/bg" << m_camids[camid] << "_undist";
 		std::string bg = ss_bg.str();
 		cv::Mat img2;
-		if (IsFileExistent(bg + ".png"))
+		if (std::filesystem::is_regular_file(bg + ".png"))
 			img2 = cv::imread(bg + ".png");
-		else if (IsFileExistent(bg + ".jpg"))
+		else if (std::filesystem::is_regular_file(bg + ".jpg"))
 			img2 = cv::imread(bg + ".jpg"); 
 		if (img2.empty())
 		{

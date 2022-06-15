@@ -13,13 +13,12 @@
 
 #include "../utils/image_utils.h"
 #include "../utils/math_utils.h" 
-#include "gpuutils.h"
+#include "../utils/gpuutils.h"
 
 //#define DEBUG_SOLVER
 
 //#define USE_GPU_SOLVER 
 #define SHOW_FITTING_INFO
-//#define USE_SIFT
 
 class ParamSet {
 public: 
@@ -36,11 +35,9 @@ public:
 	float m_kpt_track_dist;
 	float m_w_anchor_term;
 	float m_iou_thres;
-	float m_w_sift_term;
 	bool m_use_bodyonly_reg;
 	bool m_use_height_enhanced_temp;
 	float m_w_collision_term;
-	float m_w_3d_term;
 	bool m_use_given_scale; 
 	int m_sil_step; 
 	int m_collision_step; 
@@ -51,44 +48,20 @@ typedef struct
 	std::vector<Eigen::Vector3f> pose; // pose in rotation 
 	Eigen::Vector3f translation; 
 	float scale; 
-
 	std::vector<Eigen::Vector3f> joint_positions_62; // root relative 3D joint positions 
 	std::vector<Eigen::Vector3f> joint_positions_23; // root relative 3D joint positions 
 }AnchorPoseType;
 
 typedef struct {
 	std::vector<AnchorPoseType> anchors; 
-	
 	void load(std::string folder); 
-
 }AnchorPoseLib;
-
-/*
-20210225
-Surface sift point flow are built based on the rendering
-of estimated model. 
-By first track all correspondences, we find each point's 
-corresponding surface face index. Then constrain the surface 
-motion. This is largely rely on the motion accuracy of last 
-frame. So we may label first frame at the onset of whole 
-optimization and tracking. 
-*/
-typedef struct {
-	cv::DMatch track; // sift corr between this frame and lsst frame
-	Eigen::Vector2f pixel; 
-	int faceid; // surface id 
-}SIFTCorr;
-
-typedef struct {
-	int id;
-	int faceid;
-}SurfaceCorr;
 
 class PigSolverDevice : public PigModelDevice
 {
 public:
 	PigSolverDevice() = delete;
-	PigSolverDevice(const std::string &_configfile, bool _use_gpu = false);
+	PigSolverDevice(const std::string &_configfile, bool _use_gpu = false, int _view_num = 10);
 	~PigSolverDevice();
 	PigSolverDevice(const PigSolverDevice&) = delete;
 	PigSolverDevice& operator=(const PigSolverDevice&) = delete;
@@ -104,10 +77,9 @@ public:
 	bool m_isPostprocessed;
 	void resetStateMarker();
 	float m_trackConf;
-	bool m_use_gpu = false;
+	bool m_use_gpu;
 	float m_gtscale;  // This gt scale is given from outside
 	bool m_isReAssoc;
-
 
 	float getAvgHeight();
 	float computeProjectionError();
@@ -169,11 +141,6 @@ public:
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb,
 		float track_radius = 80,
 		bool with_depth_weight = false, bool is_converge_detect = false);
-
-	void CalcSIFTTerm(
-		const std::vector<std::vector<SIFTCorr> > & siftcorrs,
-		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb
-	);
 
 	void Calc2dSkelProjectionTermReassoc(
 		Eigen::MatrixXf& ATA, Eigen::VectorXf& ATb, bool with_depth_weight = false);
@@ -292,30 +259,15 @@ public:
 
 	std::vector<std::vector<Eigen::Vector3f> > m_keypoints_reassociated; // camnum, jointnum
 	cv::Mat debug_vis_reassoc_swap();
-	
-	/*
-	Legid: 
-		-- 0: left front 
-		-- 1: right front
-		-- 2: left back 
-		-- 3: right front 
-	*/
-	std::vector<int> findBestViewsForLeg(int legid); 
-	
 
 	std::vector<float> o_ious; 
-
 
 	// 2021/2/20 add: fitting for clicked points  
 	std::vector<std::vector<Eigen::Vector3f> > clicked_points; 
 	void optimizePoseWithClickedPoints();
 
-	// 2021/02/27: fit sift track 
-	std::vector<std::vector<SIFTCorr> > m_siftCorrs; 
 	Eigen::VectorXf m_optimMask; 
 	std::vector<int> m_currentHierarchy; 
-
-	// 2021/09/25
 	
 	void map_reduced_vertices(); 
 	vector<vector<Eigen::Vector3f> >  m_other_pigs_reduced_vertices; 

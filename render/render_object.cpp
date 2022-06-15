@@ -541,3 +541,14 @@ void BallStickObject::Draw(SimpleShader& shader)
 		ptr->DrawWhole(shader);
 	}
 }
+
+void BallStickObject::SetTransform(const Eigen::Vector3f& _translation, const Eigen::Vector3f& _rotation, const float _scale)
+{
+	for (int k = 0; k < objectPtrs.size(); k++)
+	{
+		if (objectPtrs[k] != nullptr)
+		{
+			objectPtrs[k]->SetTransform(_translation, _rotation, _scale); 
+		}
+	}
+}

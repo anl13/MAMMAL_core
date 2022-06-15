@@ -9,8 +9,6 @@
 
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
-#include "../articulation/pigmodel.h"
-#include "../articulation/pigsolver.h"
 #include "framesolver.h"
 #include "../utils/mesh.h"
 #include <vector_functions.hpp>

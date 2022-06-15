@@ -3,7 +3,6 @@
 #include "framedata.h"
 #include "scenedata.h"
 #include "../articulation/pigsolverdevice.h"
-#include "../tracking/sift_matcher.h" 
 #include <boost/date_time.hpp> 
 
 class FrameSolver : public FrameData
@@ -42,26 +41,6 @@ public:
 	vector<MatchedInstance> m_last_matched; // used for tracking
 	vector<vector<Eigen::Vector3f> > m_skels3d_last;
 
-    // sift flows 
-	vector<vector<cv::KeyPoint> > m_siftKeypointsLast; // [camid, index]
-	vector<cv::Mat> m_siftDescriptionLast; //[camid]
-	cv::Ptr<cv::SIFT> p_sift;
-	vector<vector<cv::KeyPoint> > m_siftKeypointsCurrent; // [camid, idnex]
-	vector<cv::Mat> m_siftDescriptionCurrent; // [camid]
-	cv::FlannBasedMatcher m_siftMatcher; 
-	vector<vector<cv::DMatch> > m_siftMatches; 
-	vector<vector<cv::DMatch> > m_siftMatchesCleaned; 
-	void buildSIFTMapToSurface(); 
-	vector<vector<SurfaceCorr> > m_siftToFaceIds; //[camid, index]
-	vector<vector<vector<SIFTCorr> > > m_siftCorrs; // [pid, camid, index]
-	void renderFaceIndex();
-	void renderMaskColor(); 
-	void detectSIFTandTrack();
-	void readSIFTandTrack(); 
-	cv::Mat m_faceIndexTexImg; 
-	Mesh m_objForTex; 
-	vector<cv::Mat> m_faceIndexImg; 
-
 	// scene rendering
 	std::shared_ptr<SceneData> mp_sceneData;
 	Renderer* mp_renderEngine;
@@ -83,6 +62,7 @@ public:
 	vector<vector<int> > m_clusters; // pigid, camid [candid]
 	vector<vector<Eigen::Vector3f> > m_skels3d; // pigid, kptid
 	bool m_use_gpu;
+	int m_initialization_iters; 
 	int m_solve_sil_iters;
 	int m_solve_sil_iters_2nd_phase; 
 	float       m_epi_thres;
@@ -116,6 +96,7 @@ public:
 
 	void save_joints(); 
 	void save_skels();
+	void read_skels(std::string folder, int frameid); 
 
 	// overall depth rendering. 
 	void init_parametric_solver(); 
@@ -134,8 +115,7 @@ public:
 	cv::Mat visualizeVisibility(); 
 	cv::Mat visualizeSwap(); 
 	cv::Mat visualizeRawAssoc();
-	cv::Mat visualizeSIFT(); 
-	cv::Mat tmp_visualizeRawDet(int viewid); 
+	cv::Mat tmp_visualizeRawDet(int viewid, int pid=-1); 
 	cv::Mat tmp_visualizeRawDetPure(int viewid, bool withImg = true); 
 	cv::Mat tmp_visualizeIdentity2D(int viewid, int vid=-1); 
 	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);
@@ -159,8 +139,8 @@ public:
 	void DARKOV_Step2_optimanchor(int pid); 
 	void DARKOV_Step3_reassoc_type2(); // type2 contains three small steps: find tracked, assign untracked, solve mix-up
 	void DARKOV_Step3_reassoc_type1(); 
-	void DARKOV_Step4_fitrawsource();  // fit model to raw source 
-	void DARKOV_Step4_fitreassoc();    // fit model to reassociated keypoints and silhouettes 
+	void DARKOV_Step4_fitrawsource(int _maxIters);  // fit model to raw source 
+	void DARKOV_Step4_fitreassoc(int _maxIters);    // fit model to reassociated keypoints and silhouettes 
 	void DARKOV_Step5_postprocess();   // some postprocessing step 
 	
 	// 20210418 use triangulation only; 
@@ -203,6 +183,10 @@ public:
 	int _countValid(const vector<Eigen::Vector3f>& skel);
 
 	// anliang 2021/03/30
+	std::string m_input_configfile; 
+	std::vector<int> m_render_views; 
+	float m_render_resize_ratio; 
+
 	std::vector<float> m_given_scales;
 	bool m_use_given_scale;
 	bool m_use_init_cluster; 

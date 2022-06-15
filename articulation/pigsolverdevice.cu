@@ -20,7 +20,7 @@
 #endif
 
 #include <Eigen/Core>
-#include "gpuutils.h"
+#include "../utils/gpuutils.h"
 
 // artist model 
 #define NUM_MODEL_JOINT 62

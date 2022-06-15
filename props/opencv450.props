@@ -3,8 +3,8 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <IncludePath>D:\Projects\animal_calib\3rdparty\opencv450\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\Projects\animal_calib\3rdparty\opencv450\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\3rdparty\opencv450\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\3rdparty\opencv450\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>

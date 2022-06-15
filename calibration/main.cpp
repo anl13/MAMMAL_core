@@ -11,11 +11,13 @@ std::vector<Camera> readCameras()
 {
 	std::vector<Camera> cams; 
 	std::vector<int> m_camids = {
-		1,2,5,6,7,8,9
+		//1,2,5,6,7,8,9
+		0,1,2,5,6,7,8,9,10,11
 	};
 	int m_camNum = m_camids.size(); 
 	//std::string m_camDir = "D:/Projects/animal_calib/data/calibdata_animal_6/extrinsic/"; 
-	std::string m_camDir = "D:/Projects/animal_calibration/calib_batch3/result_batch3/";
+	//std::string m_camDir = "D:/Projects/animal_calibration/calib_batch3/result_batch3/";
+	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/extrinsic/"; 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss;
@@ -40,8 +42,8 @@ std::vector<Camera> readCameras()
 			tvec(i) = a;
 		}
 
-		//Camera camUndist = Camera::getDefaultCameraUndist();
-		Camera camUndist = Camera::getFarCameraUndist(); 
+		Camera camUndist = Camera::getDefaultCameraUndist();
+		//Camera camUndist = Camera::getFarCameraUndist(); 
 		camUndist.SetRT(rvec, tvec);
 		cams.push_back(camUndist);
 		camfile.close();
@@ -53,9 +55,11 @@ std::vector<cv::Mat> readImgs()
 {
 	std::string folder = "D:/Projects/animal_calib/";
 	//std::string m_imgDir = folder + "/data/calibdata_animal_5/backgrounds/bg";
-	std::string m_imgDir = "D:/Projects/animal_calibration/calib_batch3/result_batch3/undist/bg";
+	//std::string m_imgDir = "D:/Projects/animal_calibration/calib_batch3/result_batch3/undist/bg";
+	std::string m_imgDir = "D:/Projects/animal_calibration/calib10/undist/bg"; 
 	std::vector<int> m_camids = {
-		1,2,5,6,7,8,9
+		//1,2,5,6,7,8,9
+		0,1,2,5,6,7,8,9,10,11
 	};
 	int m_camNum = m_camids.size();
 	std::vector<cv::Mat> m_imgs;
@@ -94,11 +98,11 @@ void show_scene()
 	Renderer::s_Init(false);
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	//m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[0].T.cast<float>());
-	Eigen::Vector3f pos(0, 0, 5);
-	Eigen::Vector3f up(0, 1, 0);
-	Eigen::Vector3f center(0, 0, 0);
-	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
+	m_renderer.s_camViewer.SetExtrinsic(cams[0].R.cast<float>(), cams[0].T.cast<float>());
+	//Eigen::Vector3f pos(0, 0, 5);
+	//Eigen::Vector3f up(0, 1, 0);
+	//Eigen::Vector3f center(0, 0, 0);
+	//m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 	// init element obj
 	const Mesh ballObj(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	const Mesh stickObj(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
@@ -106,11 +110,11 @@ void show_scene()
 	const Mesh cameraObj(conf_projectFolder + "/render/data/obj_model/camera.obj");
 	const MeshEigen ballObjEigen(ballObj); 
 
-	//std::string point_file = conf_projectFolder + "/data/calibdata/adjust_new/points3d.txt";
-	std::string point_file = "D:/Projects/animal_calibration/calib_batch3/points3d_flipx.txt"; 
+	std::string point_file = conf_projectFolder + "/data/calibdata/extrinsic/points3d.txt";
+	//std::string point_file = "D:/Projects/animal_calibration/calib_batch3/points3d_flipx.txt"; 
 	std::vector<Eigen::Vector3f> points = read_points(point_file);
 	std::vector<Eigen::Vector3f> selected_points = points;
-	std::vector<float> sizes(selected_points.size(), 0.01f);
+	std::vector<float> sizes(selected_points.size(), 0.03f);
 	std::vector<Eigen::Vector3f> balls, colors;
 	balls.resize(selected_points.size());
 	colors.resize(selected_points.size());
@@ -118,7 +122,7 @@ void show_scene()
 	{
 		balls[i] = selected_points[i].cast<float>();
 		colors[i] = CM[0];
-		if (i == 74) colors[i] = CM[1];
+		//if (i == 74) colors[i] = CM[1];
 	}
 	BallStickObject* skelObject = new BallStickObject(ballObjEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(skelObject);
@@ -173,7 +177,7 @@ void show_scene()
 
 #endif
 
-	m_renderer.createSceneDetailed("D:/Projects/animal_calib", 1, 0);
+	m_renderer.createSceneDetailed("D:/Projects/animal_calib", 1, -1);
 	//RenderObjectColor *p_cam = new RenderObjectColor();
 	//p_cam->SetVertices(camObj.vertices_vec);
 	//p_cam->SetNormal(camObj.normals_vec);
@@ -191,19 +195,22 @@ void show_scene()
 	//	glfwPollEvents();
 	//};
 
-	std::vector<int> camids = {1,2,5,6,7,8,9};
+	//std::vector<int> camids = {1,2,5,6,7,8,9};
 	//std::vector<int> camids = { 4,6,9,10,12 };
-	//std::vector<int> camids = { 0,1,2,5,6,7,8,9,10,11 };
+	std::vector<int> camids = { 0,1,2,5,6,7,8,9,10,11 };
 	for (int i = 0; i < cams.size(); i++)
 	{
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
 		m_renderer.s_camViewer.SetExtrinsic(cams[i].R.cast<float>(), cams[i].T.cast<float>());
 		glDisable(GL_CULL_FACE);
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		m_renderer.Draw();
-		cv::Mat render = m_renderer.GetImage();
+		//cv::Mat render = m_renderer.GetImage();
+		cv::Mat render = m_renderer.GetImageOffscreen(); 
 		cv::Mat overlay = overlay_renders(bgs[i], render,0.5);
 		std::stringstream ss_out; 
-		ss_out << "D:/Projects/animal_calibration/calib_batch3/result_batch3/undist/bg" << camids[i] << "_overlay.png"; 
+		//ss_out << "D:/Projects/animal_calibration/calib_batch3/result_batch3/undist/bg" << camids[i] << "_overlay.png"; 
+		ss_out << "D:/Projects/animal_calibration/calib10/undist_new/bg" << camids[i] << "_overlay.png"; 
 		cv::imwrite(ss_out.str(), overlay);
 		//cv::namedWindow("show", cv::WINDOW_NORMAL);
 		//cv::imshow("show", overlay);
@@ -505,11 +512,11 @@ int main()
 	// fit image features. 
 	show_scene();
 
-	// ---- calibrating the 10 camera system. 
-	std::string folder = "D:/Projects/animal_calib/"; 
-	Calibrator calib(folder); 
-	//calib.test_epipolar(); 
-	calib.calib_pipeline(); 
+	//// ---- calibrating the 10 camera system. 
+	//std::string folder = "D:/Projects/animal_calib/"; 
+	//Calibrator calib(folder); 
+	////calib.test_epipolar(); 
+	//calib.calib_pipeline(); 
 
 	return 0; 
 }

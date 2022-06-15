@@ -65,6 +65,7 @@ public:
 	std::vector<BallStickObject*> skels; 
 
 	void clearAllObjs(); 
+	void clearSkels(); 
 
 	void Draw(std::string type="color"); 
 	cv::Mat GetImage(); 
@@ -86,6 +87,7 @@ public:
 	void createVirtualCam(std::string projectFolder, const std::vector<Camera>& cams); 
 
 	void createPlane(std::string projectFolder, float scale = 1); 
+	void createPlaneBlack(std::string conf_projectFolder, float scale = 1);
 private:
 	std::vector<cudaGraphicsResource_t> m_cuda_gl_resources;
 	void beginOffscreenRender();

@@ -673,6 +673,12 @@ void Renderer::clearAllObjs()
 	skels.clear(); 
 }
 
+void Renderer::clearSkels()
+{
+	for (int i = 0; i < skels.size(); i++)skels[i]->deleteObjects();
+	skels.clear();
+}
+
 void Renderer::createScene(std::string conf_projectFolder)
 {
 	//Mesh obj;
@@ -750,6 +756,32 @@ void Renderer::createPlane(std::string conf_projectFolder, float scale)
 		for (int i = 0; i < obj.vertices_vec.size(); i++)
 		{
 			obj.vertices_vec[i] = obj.vertices_vec[i] * scale; 
+		}
+	}
+	obj.CalcNormal();
+	RenderObjectMesh* p_floor = new RenderObjectMesh();
+	p_floor->SetVertices(obj.vertices_vec);
+	p_floor->SetColors(colors);
+	p_floor->SetFaces(obj.faces_v_vec);
+	p_floor->SetNormal(obj.normals_vec);
+	meshObjs.push_back(p_floor);
+}
+
+void Renderer::createPlaneBlack(std::string conf_projectFolder, float scale)
+{
+	std::vector<Eigen::Vector3f> vertices, colors;
+	std::vector<Eigen::Vector3u> faces;
+	readObjectWithColor(conf_projectFolder + "/render/data/obj_model/floor_z+.obj", vertices, colors, faces);
+	Mesh obj;
+	obj.faces_v_vec = faces;
+	obj.vertices_vec = vertices;
+	obj.vertex_num = vertices.size();
+	obj.face_num = faces.size();
+	if (scale != 1)
+	{
+		for (int i = 0; i < obj.vertices_vec.size(); i++)
+		{
+			obj.vertices_vec[i] = obj.vertices_vec[i] * scale;
 		}
 	}
 	obj.CalcNormal();
