@@ -305,7 +305,7 @@
     <None Include="..\configs\config_demo2.json">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="..\configs\config_BamaPigEval3D_main.json">
+    <None Include="..\configs\config_BamaPig3D_main.json">
       <Filter>资源文件</Filter>
     </None>
   </ItemGroup>

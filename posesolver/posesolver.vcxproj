@@ -245,7 +245,7 @@
     <None Include="..\configs\config_20210321_motion.json" />
     <None Include="..\configs\config_20210321_motion2.json" />
     <None Include="..\configs\config_7.json" />
-    <None Include="..\configs\config_BamaPigEval3D_main.json" />
+    <None Include="..\configs\config_BamaPig3D_main.json" />
     <None Include="..\configs\config_demo1.json" />
     <None Include="..\configs\config_demo2.json" />
     <None Include="..\configs\config_demo6.json" />

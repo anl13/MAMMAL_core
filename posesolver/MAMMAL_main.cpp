@@ -49,6 +49,7 @@ int run_MAMMAL_main()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 	std::string config_file = get_config(conf_projectFolder + "/configs/main_config.json"); 
 	FrameSolver frame;
+	frame.m_project_folder = conf_projectFolder; 
 	frame.configByJson(conf_projectFolder + config_file);
 
 	int m_pid = 0; // pig identity to solve now. 

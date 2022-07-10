@@ -12,8 +12,6 @@
 #include <vector_functions.hpp>
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
-#include "../articulation/pigmodel.h"
-#include "../articulation/pigsolver.h"
 #include "../posesolver/framesolver.h"
 #include "../utils/mesh.h"
 #include "../utils/image_utils_gpu.h"
@@ -23,10 +21,10 @@
 int run_eval_sil()
 {
 	show_gpu_param();
-	std::string conf_projectFolder = "D:/Projects/animal_calib/";
+	std::string conf_projectFolder = get_parent_folder();
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
-	std::string config_file = "configs/config_20190704_foreval.json";
+	std::string config_file = "configs/config_BamaPig3D_main.json";
 	FrameSolver frame;
 	frame.configByJson(conf_projectFolder + config_file);
 
@@ -54,14 +52,13 @@ int run_eval_sil()
 
 	for (int i = 0; i < 70; i++)
 	{
-		int frameid = 750 + 25 * i;
+		int frameid = 25 * i;
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchGtData();
 		frame.fetchData();
 		frame.load_clusters(); 
 		frame.read_parametric_data(); 
-
 		frame.compute_silhouette_loss(); 
 	}
 
@@ -124,7 +121,7 @@ int run_eval_reassoc()
 			for (int id = 0; id < 4; id++)
 				frame.DARKOV_Step2_optimanchor(id); 
 		}
-		frame.DARKOV_Step4_fitrawsource(); 
+		frame.DARKOV_Step4_fitrawsource(frame.m_solve_sil_iters); 
 		frame.DARKOV_Step3_reassoc_type2(); 
 
 

@@ -27,7 +27,7 @@ int run_pose_render()
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + get_config());
+	frame.configByJson(conf_projectFolder + get_config(conf_projectFolder + "/configs/main_config.json"));
 
 	int m_pid = 0; // pig identity to solve now. 
 	frame.set_frame_id(0);
@@ -60,7 +60,6 @@ int run_pose_render()
 		std::cout << "===========processing frame " << frameid << "===============" << std::endl;
 		frame.set_frame_id(frameid);
 		frame.fetchData();
-
 		frame.load_clusters();
 		frame.read_parametric_data();
 
@@ -112,7 +111,7 @@ int run_pose_render()
 			m_renderer.colorObjs.push_back(p_model);
 		}
 
-		std::vector<int> render_views = {0};
+		std::vector<int> render_views = {0,1,2,3,4,5,6,7,8,9};
 
 		std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
 		
@@ -127,20 +126,19 @@ int run_pose_render()
 			cv::Mat img = m_renderer.GetImageOffscreen();
 			all_renders[k] = img;
 		}
-		//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-		//m_renderer.createSceneDetailed(conf_projectFolder, 1);
-		//m_renderer.createSceneHalf(conf_projectFolder, 1.08);
+		m_renderer.createSceneDetailed(conf_projectFolder, 1.1);
+		//m_renderer.createSceneHalf(conf_projectFolder, 1.1);
 
-		//m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
-		//Eigen::Vector3f pos3(0.0, -0.0, 4.1);
-		//Eigen::Vector3f up3(0.0, 0.1, -0.0);
-		//Eigen::Vector3f center3(0.0, -0.0, 0.0); 
-		//m_renderer.s_camViewer.SetExtrinsic(pos3, up3, center3);
-		//m_renderer.s_camViewer.SetIntrinsic(another_cam.K, 1920, 1080); 
-		//cv::Mat img = m_renderer.GetImageOffscreen(); 
-		//all_renders.push_back(img);
-		//rawImgsSelect.push_back(img); 
-		//m_renderer.s_camViewer.SetIntrinsic(cams[0].K, 1920, 1080);
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1)); 
+		Eigen::Vector3f pos3(0.0, -0.0, 4.1);
+		Eigen::Vector3f up3(0.0, 0.1, -0.0);
+		Eigen::Vector3f center3(0.0, -0.0, 0.0); 
+		m_renderer.s_camViewer.SetExtrinsic(pos3, up3, center3);
+		m_renderer.s_camViewer.SetIntrinsic(another_cam.K, 1920, 1080); 
+		cv::Mat img = m_renderer.GetImageOffscreen(); 
+		all_renders.push_back(img);
+		rawImgsSelect.push_back(img); 
+		m_renderer.s_camViewer.SetIntrinsic(cams[0].K, 1920, 1080);
 
 		//Eigen::Vector3f pos4(-2.2866, -1.61577, 2.71787);
 		//Eigen::Vector3f up4(0.52083, 0.378857, 0.764986);
@@ -160,7 +158,7 @@ int run_pose_render()
 		cv::Mat blend;
 		overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
 		
-		cv::Mat small_img = my_resize(blend, 0.5); 
+		cv::Mat small_img = my_resize(blend, frame.m_render_resize_ratio); 
 		std::stringstream all_render_file;
 		all_render_file << frame.m_result_folder << "/render_smth/" << std::setw(6) << std::setfill('0')
 			<< frameid << ".png";

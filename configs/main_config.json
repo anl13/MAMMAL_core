@@ -13,5 +13,5 @@
   //"config_file":  "/configs/config_20190704_foreval-seq.json"
   //"config_file":  "/configs/config_newf1_batch4_0928.json"
   //"config_file":  "config_demo6.json"
-  "config_file": "/configs/config_BamaPigEval3D_main.json"
+  "config_file": "/configs/config_BamaPig3D_main.json"
 }

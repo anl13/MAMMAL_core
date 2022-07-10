@@ -27,7 +27,7 @@ void FrameSolver::fetchGtData()
 	{
 		int camid = m_camids[i];
 		std::stringstream ss;
-		ss << "E:/evaluation_dataset/part1/dataset_process/output_label/" << camid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+		ss << m_sequence << "/label_images/cam" << camid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
 		std::string labelpath = ss.str();
 		Json::Value root;
 		Json::CharReaderBuilder rbuilder;
@@ -128,7 +128,7 @@ void FrameSolver::compute_silhouette_loss()
 		p_model->SetColor(id_colors[i]);
 		mp_renderEngine->colorObjs.push_back(p_model);
 	}
-	mp_renderEngine->createSceneDetailed("D:/Projects/animal_calib/",1); 
+	mp_renderEngine->createSceneDetailed(m_project_folder,1); 
 
 	for (int view = 0; view < m_camNum; view++)
 	{

@@ -93,7 +93,7 @@ int render_mean_pose()
 	}
 
 	// 2. render driven joints 
-	if (0) {
+	if (1) {
 		std::vector<Eigen::Vector3f> joints = pig.GetJoints();
 		std::vector<int> parents = pig.GetParents();
 		std::vector<Eigen::Vector3f> balls;
@@ -102,7 +102,7 @@ int render_mean_pose()
 		int jointnum = pig.GetJointNum();
 		std::vector<float> sizes;
 		sizes.resize(jointnum, 0.01);
-		std::vector<int> ids = { 2, 4, 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57, 21, 22, 23 };
+		std::vector<int> ids = { 0,1,2,3, 4, 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57, 21, 22, 23 };
 		std::vector<Eigen::Vector3f> colors;
 		colors.resize(jointnum, Eigen::Vector3f(1.0, 0.95, 0.85));
 		for (int k = 0; k < ids.size(); k++)

@@ -474,28 +474,29 @@ int nm_fig_skel_rend_demo()
 int nm_skelrender_for_comparison()
 {
 	//show_gpu_param();
-	std::string conf_projectFolder = "D:/Projects/animal_calib/";
+	std::string conf_projectFolder = "H:/MAMMAL_core/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 
 	FrameSolver frame;
-	frame.configByJson(conf_projectFolder + "/configs/config_20190704_foreval-seq.json");
+	frame.configByJson(conf_projectFolder + "/configs/config_BamaPigEval3D_main.json");
 
 	frame.set_frame_id(0);
 	frame.fetchData();
 	auto cams = frame.get_cameras();
 	auto cam = cams[0];
 
-	std::string proj_folder = "H:/results/paper_teaser/skel_projs/fit3view/"; 
-	std::string rend_folder = "H:/results/paper_teaser/skel_renders/fit3view/";
+	std::string proj_folder = "H:/results/paper_teaser/skel_projs/fit10view/"; 
+	std::string rend_folder = "H:/results/paper_teaser/skel_renders/fit10view/";
 
 	//std::string skel_folder = "E:/results/paper_teaser/0704_eval2-5views/joints_23/"; 
-	std::string skel_folder = "E:/results/paper_teaser/0704_eval2-(057)/joints_23/"; 
-	//std::string skel_folder = "D:/results/paper_teaser/0704_eval2/joints_23/"; 
+	//std::string skel_folder = "E:/results/paper_teaser/0704_eval2-(057)/joints_23/"; 
+	std::string skel_folder = "H:/results/BamaPigEval3D_main/joints_23/"; 
 	//std::string skel_folder = "D:/results/paper_teaser/0704_eval_tri/skels/";
 	//std::string skel_folder = "E:/results/paper_teaser/0704_eval2-5views/skels/"; 
 	//std::string skel_folder = "E:/results/paper_teaser/0704_eval2-(057)/skels/"; 
-	std::vector<int> nameids = { 2,0,3,1 };
+	//std::vector<int> nameids = { 2,0,3,1 };
+	std::vector<int> nameids = { 0,2,3,1 };
 	frame.m_pig_names = nameids; 
 
 	// init renderer
@@ -553,11 +554,12 @@ int nm_skelrender_for_comparison()
 //cv::imwrite(ss.str(), fullrawdet);
 
 		/// 2022.03.30 proj for nm_video2
-		//cv::Mat reproj = frame.visualizeProj();
-		//std::stringstream ss_proj;
-		//ss_proj << proj_folder << std::setw(6) << std::setfill('0') << frameid << ".png";
-		//cv::Mat small_reproj = my_resize(reproj, 0.5); 
-		//cv::imwrite(ss_proj.str(), small_reproj);
+		cv::Mat reproj = frame.visualizeProj(0);
+		std::stringstream ss_proj;
+		ss_proj << proj_folder << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::Mat small_reproj = my_resize(reproj, 0.5); 
+		cv::imwrite(ss_proj.str(), small_reproj);
+
 		auto skels_data = frame.get_skels3d(); 
 		for (int pid = 0; pid < 4; pid++)
 		{
@@ -597,31 +599,34 @@ int nm_skelrender_for_comparison()
 		Eigen::Vector3f up4(0.384713, - 0.170107 , 0.907226);
 		Eigen::Vector3f center4(0.241644, - 0.127209,  0.250072);
 		m_renderer.s_camViewer.SetExtrinsic(pos4, up4, center4); 
-		//cv::Mat img = m_renderer.GetImageOffscreen();
-		//std::stringstream ss_out; 
-		//ss_out << rend_folder << std::setw(6) << std::setfill('0') << frameid << ".png";
-		//cv::imwrite(ss_out.str(), img); 
+		cv::Mat img = m_renderer.GetImageOffscreen();
+		std::stringstream ss_out; 
+		ss_out << rend_folder << std::setw(6) << std::setfill('0') << frameid << ".png";
+		cv::imwrite(ss_out.str(), img); 
 
-		for (int timeindex = 0; timeindex < 151; timeindex++)
+		if (frameid == 1510 || frameid == 1274)
 		{
-			for (int k = 0; k < m_renderer.meshObjs.size(); k++)
+			for (int timeindex = 0; timeindex < 151; timeindex++)
 			{
-				m_renderer.meshObjs[k]->SetTransform(Eigen::Vector3f::Zero(), Eigen::Vector3f(0, 0, timeindex / 150.f * M_PI * 2), 1);
+				for (int k = 0; k < m_renderer.meshObjs.size(); k++)
+				{
+					m_renderer.meshObjs[k]->SetTransform(Eigen::Vector3f::Zero(), Eigen::Vector3f(0, 0, timeindex / 150.f * M_PI * 2), 1);
+				}
+				for (int k = 0; k < m_renderer.skels.size(); k++)
+				{
+					m_renderer.skels[k]->SetTransform(Eigen::Vector3f::Zero(), Eigen::Vector3f(0, 0, timeindex / 150.f * M_PI * 2), 1);
+				}
+				m_renderer.Draw();
+				glfwPollEvents();
+				cv::Mat img = m_renderer.GetImageOffscreen();
+				std::stringstream ss_out;
+				//ss_out.str("");
+				ss_out << rend_folder << "/freeview/" << std::setw(6) << std::setfill('0') << frameid << "_" << timeindex << ".png";
+				cv::imwrite(ss_out.str(), img);
 			}
-			for (int k = 0; k < m_renderer.skels.size(); k++)
-			{
-				m_renderer.skels[k]->SetTransform(Eigen::Vector3f::Zero(), Eigen::Vector3f(0, 0, timeindex / 150.f * M_PI * 2), 1);
-			}
-			m_renderer.Draw(); 
-			glfwPollEvents(); 
-			cv::Mat img = m_renderer.GetImageOffscreen();
-			std::stringstream ss_out; 
-			//ss_out.str("");
-			ss_out << rend_folder << "/freeview/" << std::setw(6) << std::setfill('0') << frameid << "_" << timeindex << ".png";
-			cv::imwrite(ss_out.str(), img);
 		}
 
-		return 0; 
+		//return 0; 
 
 		//TimerUtil::Timer<std::chrono::milliseconds> timer; 
 		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;

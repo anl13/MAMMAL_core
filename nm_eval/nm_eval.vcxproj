@@ -72,8 +72,8 @@
     <Import Project="..\props\json.props" />
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\gl-pcl.props" />
-    <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\opencv450.props" />
+    <Import Project="..\props\boost1.79.0.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -85,6 +85,8 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <PreprocessorDefinitions>_SILENCE_CXX17_ALLOCATOR_VOID_DEPRECATION_WARNING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -167,14 +169,13 @@
     <ClCompile Include="run_eval_sil.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\articulation\gpuutils.cu" />
     <CudaCompile Include="..\articulation\pigmodeldevice.cu" />
     <CudaCompile Include="..\articulation\pigsolverdevice.cu" />
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
+    <CudaCompile Include="..\utils\gpuutils.cu" />
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\articulation\gpuutils.h" />
     <ClInclude Include="..\articulation\pigmodeldevice.h" />
     <ClInclude Include="..\articulation\pigsolverdevice.h" />
     <ClInclude Include="..\articulation\vector_operations.hpp" />

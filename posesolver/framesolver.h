@@ -119,7 +119,7 @@ public:
 	cv::Mat tmp_visualizeRawDetPure(int viewid, bool withImg = true); 
 	cv::Mat tmp_visualizeIdentity2D(int viewid, int vid=-1); 
 	cv::Mat visualizeIdentity2D(int viewid = -1, int id = -1);
-	cv::Mat visualizeProj(int id = -1, bool withimg = true);
+	cv::Mat visualizeProj(int viewid = -1, int id = -1, bool withimg = true);
 
 	// 20201108: assoc with 
 	void reAssocProcessStep1();
@@ -184,6 +184,7 @@ public:
 
 	// anliang 2021/03/30
 	std::string m_input_configfile; 
+	std::string m_project_folder; 
 	std::vector<int> m_render_views; 
 	float m_render_resize_ratio; 
 

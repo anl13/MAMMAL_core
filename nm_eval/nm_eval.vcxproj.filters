@@ -128,9 +128,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\articulation\gpuutils.cu">
-      <Filter>other</Filter>
-    </CudaCompile>
     <CudaCompile Include="..\utils\image_utils_gpu.cu">
       <Filter>other</Filter>
     </CudaCompile>
@@ -143,11 +140,11 @@
     <CudaCompile Include="..\render\cuda_utils_render.cu">
       <Filter>other</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\utils\gpuutils.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\articulation\gpuutils.h">
-      <Filter>other</Filter>
-    </ClInclude>
     <ClInclude Include="..\articulation\pigmodeldevice.h">
       <Filter>other</Filter>
     </ClInclude>

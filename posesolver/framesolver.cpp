@@ -257,7 +257,7 @@ cv::Mat FrameSolver::visualizeIdentity2D(int viewid, int vid)
 	}
 }
 
-cv::Mat FrameSolver::visualizeProj(int pid, bool withimg)
+cv::Mat FrameSolver::visualizeProj(int viewid, int pid, bool withimg)
 {
 	std::vector<cv::Mat> imgdata;
 	if(withimg)
@@ -277,6 +277,7 @@ cv::Mat FrameSolver::visualizeProj(int pid, bool withimg)
 
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
+		if (viewid >= 0 && viewid != camid) continue; 
 		for (int id = 0; id < m_projs[camid].size(); id++)
 		{
 			if (pid >= 0 && id != pid) continue;
@@ -289,6 +290,9 @@ cv::Mat FrameSolver::visualizeProj(int pid, bool withimg)
 			drawSkelProj(imgdata[camid], m_projs[camid][id], color, m_topo);
 		}
 	}
+
+	if (viewid >= 0)
+		return imgdata[viewid];
 
 	cv::Mat packed;
 	packImgBlock(imgdata, packed);

@@ -328,15 +328,3 @@ void process_generate_label3d()
 		}
 	}
 }
-
-void save_points(std::string folder, int pid, int fid, const std::vector<Eigen::Vector3f>& data)
-{
-	std::stringstream ss;
-	ss << folder << "/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << fid << ".txt";
-	std::ofstream outputfile(ss.str());
-	for (int i = 0; i < data.size(); i++)
-	{
-		outputfile << data[i].transpose() << std::endl;
-	}
-	outputfile.close();
-}
