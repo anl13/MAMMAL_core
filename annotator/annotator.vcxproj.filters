@@ -178,9 +178,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\articulation\gpuutils.cu">
-      <Filter>other</Filter>
-    </CudaCompile>
     <CudaCompile Include="..\articulation\pigmodeldevice.cu">
       <Filter>other</Filter>
     </CudaCompile>
@@ -191,6 +188,9 @@
       <Filter>other</Filter>
     </CudaCompile>
     <CudaCompile Include="..\render\cuda_utils_render.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
+    <CudaCompile Include="..\utils\gpuutils.cu">
       <Filter>other</Filter>
     </CudaCompile>
   </ItemGroup>

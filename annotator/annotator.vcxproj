@@ -179,10 +179,10 @@
     <ClCompile Include="test_nano.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\articulation\gpuutils.cu" />
     <CudaCompile Include="..\articulation\pigmodeldevice.cu" />
     <CudaCompile Include="..\articulation\pigsolverdevice.cu" />
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
+    <CudaCompile Include="..\utils\gpuutils.cu" />
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
   <ItemGroup>

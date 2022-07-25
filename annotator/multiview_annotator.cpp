@@ -97,7 +97,7 @@ int multiview_annotator()
 {
 	AnnoConfig config;
 	std::string projectParentDir = config.project_dir;
-	std::string projectDir = projectParentDir + "/animal_calib/"; 
+	std::string projectDir = projectParentDir + "/MAMMAL_core/"; 
 	std::vector<float4> colormap = getColorMapFloat4("anliang_render");
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_render");
     /// read frame data 
@@ -117,7 +117,7 @@ int multiview_annotator()
 
 	/// read smal model 
 	Mesh obj;
-	obj.Load(projectDir + "shapesolver/data/model.obj");
+	obj.Load(projectDir + "data/artist_model_sym3/manual_artist_sym.obj");
 	MeshFloat4 objfloat4(obj);
 
 	std::vector<Camera> cams = data_loader.get_cameras();

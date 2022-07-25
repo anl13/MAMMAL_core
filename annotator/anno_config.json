@@ -1,8 +1,8 @@
 {
   "project_dir":  "H:/",
-  "posesolver_config": "configs/config_demo6.json",
-  //"posesolver_config": "configs/config_20190704_foreval.json",
+  //"posesolver_config": "configs/config_demo6.json", // 77888
+  "posesolver_config": "configs/config_20190704_foreval.json",
   "pig_config": "articulation/artist_config_sym.json",
-  "current_frame_id": 77888,
-  "current_pig_id": 2
+  "current_frame_id": 750,
+  "current_pig_id": 0
 }

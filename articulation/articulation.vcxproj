@@ -146,6 +146,7 @@
     <ClCompile Include="pigsolverdevice.cpp" />
     <ClCompile Include="pigsolverdevice_debug.cpp" />
     <ClCompile Include="test_render_model.cpp" />
+    <ClCompile Include="test_visdesigned.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\gpuutils.h" />

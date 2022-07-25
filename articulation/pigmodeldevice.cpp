@@ -54,6 +54,7 @@ PigModelDevice::PigModelDevice(const std::string&_configFile)
 	if (!vfile.is_open()) {
 		std::cout << "vfile not open" << std::endl; exit(-1);
 	}
+	m_host_verticesOrigin.reserve(m_vertexNum); 
 	m_host_verticesOrigin.resize(m_vertexNum); 
 	for (int i = 0; i < m_vertexNum; i++)
 	{
@@ -285,8 +286,14 @@ void PigModelDevice::UpdateLocalSE3_host()
 
 		if (jointId == 0)
 		{
-			matrix.block<3, 3>(0, 0) = EulerToRotRad(pose);
-			//matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+			if(m_global_rot_type == "euler")
+				matrix.block<3, 3>(0, 0) = EulerToRotRad(pose);
+			else if (m_global_rot_type == "axis-angle")
+				matrix.block<3, 3>(0, 0) = GetRodrigues(pose);
+			else {
+				std::cout << "Wrong m_global_rot_type: " << m_global_rot_type << std::endl; 
+				exit(-1); 
+			}
 
 			matrix.block<3, 1>(0, 3) = m_host_jointsDeformed[jointId] + m_host_translation;
 		}

@@ -6,7 +6,7 @@
 #include <fstream> 
 #include <Eigen/Eigen> 
 #include <opencv2/opencv.hpp>
-#include <boost/filesystem.hpp>
+#include <filesystem> 
 
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
@@ -16,6 +16,171 @@
 #include "../utils/image_utils_gpu.h"
 #include "../utils/show_gpu_param.h"
 #include "../render/render_utils.h"
+
+int nm_monocolor_44_clips()
+{
+	show_gpu_param();
+	std::string conf_projectFolder = "H:/MAMMAL_core/";
+	SkelTopology topo = getSkelTopoByType("UNIV");
+	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
+
+	FrameSolver frame;
+	//frame.configByJson(conf_projectFolder + "/configs/config_20190704_foreval-seq.json");
+	frame.configByJson(conf_projectFolder + "/configs/config_seq2.json");
+
+
+	int m_pid = 0; // pig identity to solve now. 
+	frame.set_frame_id(0);
+	frame.fetchData();
+	auto cams = frame.get_cameras();
+	auto cam = cams[0];
+
+	// init renderer
+	Eigen::Matrix3f K = cam.K;
+	K.row(0) = K.row(0) / 1920.f;
+	K.row(1) = K.row(1) / 1080.f;
+	Renderer::s_Init(false);
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+
+	frame.mp_renderEngine = &m_renderer;
+	frame.is_smth = true;
+	int start = frame.get_start_id();
+	int pignum = frame.m_pignum;
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+	std::vector<Eigen::Vector2i> bones = {
+	{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
+	 {5,7}, {7,9}, {6,8}, {8,10},
+	{20,18},
+	{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
+	{0,20},{5,20},{6,20}
+	};
+	std::vector<int> kpt_color_ids = {
+		0,0,0,0,0,
+		3,4,3,4,3,4,
+		5,6,5,6,5,6,
+		2,2,2,2,2,2
+	};
+	std::vector<int> bone_color_ids = {
+		0,0,0,0,0,3,3,4,4,
+		2,5,6,5,5,6,6,
+		2,3,4
+	};
+
+	std::vector<std::vector<int> > configs = {
+		// start, end, pig name, view id
+		{0,	875,	0,	9},
+	{1190,	1400,	0,	2},
+	{2620,	2800,	0,	2},
+	{3800,	4329,	0,	8},
+	{5170,	5712,	0,	7},
+	{5960,	6600,	0,	1} ,
+	{6910,	7128,	0,	9},
+	{9330,	10000,	0,	1},
+	{0,	80,	1,	8},
+	{350,	841,	1,	2},
+	{1035,	1580,	1,	4},
+	{2540,	2900,	1,	7},
+	{3648,	4679,	1,	0},
+	{6315,	6600,	1,	6},
+	{7800,	8000,	1,	1},
+	{8270,	8490,	1,	9},
+	{9000,	9139,	1,	6},
+	{9240,	9340,	1,	6},
+	{0	,120,	2,	1},
+	{290,	1500,	2,	2},
+	{2330,	3200,	2,	3},
+	{4925,	5117,	2,	9},
+	{5137,	5920,	2,	1},
+	{6600,	6700,	2,	7},
+	{7021,	7121,	2,	2},
+	{9000,	9139,	2,	0},
+	{9210,	9270,	2,	5},
+	{0,	120,	3,	2},
+	{795,	1060,	3,	4},
+	{1130,	1400,	3,	6},
+	{1857,	2100,	3,	0},
+	{2330,	2480,	3,	8},
+	{2730,	3047,	3,	1},
+	{3554,	4329,	3,	0},
+	{5960,	6400,	3,	1},
+	{6600,	6820,	3,	9},
+	{9150,	9500,	3,	6}
+	};
+	for (int clip_id = 0; clip_id < configs.size(); clip_id++)
+	{
+		int start = configs[clip_id][0]; 
+		int end = configs[clip_id][1]; 
+		int pig_name = configs[clip_id][2]; 
+		int view_id = configs[clip_id][3]; 
+		int true_clip_id = clip_id + 7; 
+		std::cout << "clip : " << true_clip_id << std::endl; 
+		std::string output_folder = "G:/results/seq_noon/render_mono_20220724/clip_" + std::to_string(true_clip_id); 
+		if (!std::filesystem::exists(output_folder))
+			std::filesystem::create_directories(output_folder); 
+		for (int frameid = start; frameid < end; frameid++)
+		{
+			std::cout << "===========processing frame " << frameid << "===============" << std::endl;
+			frame.set_frame_id(frameid);
+			frame.fetchData();
+			frame.load_clusters();
+			frame.read_parametric_data();
+			auto solvers = frame.mp_bodysolverdevice;
+			m_renderer.SetBackgroundColor(Eigen::Vector4f(0.0f, 0.0f, 0.0f, 1.0f));
+			for (int pid = 0; pid < pignum; pid++)
+			{
+				int current_pig_name = frame.m_pig_names[pid];
+				if (current_pig_name != pig_name) continue;
+				m_renderer.clearAllObjs();
+				RenderObjectColor* p_model = new RenderObjectColor();
+				solvers[pid]->UpdateNormalFinal();
+				p_model->SetVertices(solvers[pid]->GetVertices());
+				p_model->SetNormal(solvers[pid]->GetNormals());
+				p_model->SetFaces(solvers[pid]->GetFacesVert());
+				p_model->SetColor(m_CM[1]);
+				p_model->isFill = true;
+				m_renderer.colorObjs.push_back(p_model);
+
+				std::vector<int> render_views = {};
+				render_views.push_back(view_id);
+
+				std::vector<cv::Mat> rawImgs = frame.get_imgs_undist();
+				std::vector<cv::Mat> rawImgsSelect;
+				for (int k = 0; k < render_views.size(); k++) rawImgsSelect.push_back(rawImgs[render_views[k]]);
+
+				std::vector<cv::Mat> all_renders(render_views.size());
+				for (int k = 0; k < render_views.size(); k++)
+				{
+					int camid = render_views[k];
+					m_renderer.s_camViewer.SetExtrinsic(cams[camid].R, cams[camid].T);
+					cv::Mat img = m_renderer.GetImageOffscreen();
+					all_renders[k] = img;
+				}
+				cv::Mat packed_render;
+				packImgBlock(all_renders, packed_render);
+
+				cv::Mat pack_raw;
+				packImgBlock(rawImgsSelect, pack_raw);
+				cv::Mat blend;
+				overlay_render_on_raw_gpu(packed_render, pack_raw, blend);
+				cv::Mat small_img = my_resize(blend, 1);
+				std::stringstream all_render_file;
+				all_render_file << output_folder << "/" << std::setfill('0') << std::setw(6) << frameid - start << ".png";
+				cv::imwrite(all_render_file.str(), small_img);
+			}
+		}
+	}
+
+	return 0;
+}
+
 
 // 2022.03.30: for nm_video5 (behaviors) 
 int nm_monocolor_singlebody()
@@ -76,10 +241,10 @@ int nm_monocolor_singlebody()
 	};
 	//for (int frameid = start; frameid < start + frame.get_frame_num(); frameid++)
 	/// for rendering seq_noon demo picture. 
-	//std::vector<int> frame_to_rend = { 5312, 5103, 3017, 4006, 1202, 9102, 1456 };
-	//std::vector<int> id_to_rend = { 0,0,0,1,1,2,2 };
-	//std::vector<int> view_to_rend = { 6,7,7,7,8,6,7 }; 
-	//std::vector<int> names = { 4,5,9,10,13,35,39 };
+	//std::vector<int> frame_to_rend = { 5312, 5103, 3017, 4006, 1202, 9102, 1456};
+	//std::vector<int> id_to_rend = { 0,0,0,1,1,2,2};
+	//std::vector<int> view_to_rend = { 6,7,7,7,8,6,7}; 
+	//std::vector<int> names = { 4,5,9,10,13,35,39};
 	/// for rendering seq_morning demo picture. 
 	std::vector<int> frame_to_rend = { 1783 };
 	std::vector<int> id_to_rend = { 0 };
@@ -153,7 +318,7 @@ int nm_monocolor_singlebody()
 int nm_video5_freeview()
 {
 	show_gpu_param();
-	std::string conf_projectFolder = "D:/Projects/animal_calib/";
+	std::string conf_projectFolder = "H:/MAMMAL_core/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
@@ -192,17 +357,18 @@ int nm_video5_freeview()
 		2,3,4
 	};
 
-	std::vector<int> to_be_rend = { 5,9,10,13,18,35,39 }; 
+	std::vector<int> to_be_rend = { 4,5,9,10,13,18,35,39 }; 
 	for (int k = 0; k < to_be_rend.size(); k++)
 	{
 		int index = to_be_rend[k]; 
 		std::string obj_path = "D:/Projects/animal_social/tmp6-3/objs/" + std::to_string(index-1) + ".obj";
-		PigSolverDevice solver("D:/Projects/animal_calib/articulation/artist_config_sym.json");
+		PigSolverDevice solver(conf_projectFolder+ "/articulation/artist_config_sym.json");
 
 		Mesh pigmesh(obj_path);
 		solver.fitPoseToVSameTopo(pigmesh.vertices_vec);
 
 		m_renderer.clearAllObjs();
+		m_renderer.SetBackgroundColor(Eigen::Vector4f(1, 1, 1, 1));
 
 		std::vector<Eigen::Vector3f> skels = solver.getRegressedSkel_host();
 		std::vector<Eigen::Vector3f> balls;
@@ -234,7 +400,7 @@ int nm_video5_freeview()
 		p_model->SetVertices(solver.GetVertices());
 		p_model->SetNormal(solver.GetNormals());
 		p_model->SetFaces(solver.GetFacesVert());
-		p_model->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8));
+		p_model->SetColor(Eigen::Vector3f(0.4, 0.4, 0.4));
 		p_model->isFill = false;
 		p_model->isMultiLight = true;
 		m_renderer.colorObjs.push_back(p_model);
@@ -266,7 +432,7 @@ int nm_video5_freeview()
 			cv::Mat img = m_renderer.GetImageOffscreen();
 			std::stringstream ss_out;
 			//ss_out.str("");
-			ss_out << "H:/results/seq_noon/render_free/" << index << "/" << timeindex << ".png";
+			ss_out << "H:/results/seq_noon/render_free2/" << index << "/" << timeindex << ".png";
 			cv::imwrite(ss_out.str(), img);
 		}
 	}
@@ -302,7 +468,7 @@ int nm_video5_freeview()
 int nm_fig_skel_rend_demo()
 {
 	show_gpu_param();
-	std::string conf_projectFolder = "D:/Projects/animal_calib/";
+	std::string conf_projectFolder = "H:/MAMMAL_core/";
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
@@ -655,9 +821,11 @@ int nm_skelrender_for_comparison()
 
 // 2021.10.6: 
 // This function is used to generate 3D trajectory rendering for NM paper. 
+// 2022.07.24
+// Run trajectory to create trajectory images as Fig.1e
 void run_trajectory2()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::string conf_projectFolder = "H:/MAMMAL_core/";
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
 	std::vector<Eigen::Vector3f> CM2 = getColorMapEigenF("anliang_render");
 	// init a camera 
@@ -674,14 +842,16 @@ void run_trajectory2()
 	Eigen::Vector3f pos1(2.26127, -0.940305, 1.67403);
 	Eigen::Vector3f up1(-0.427835, 0.158784, 0.8898);
 	Eigen::Vector3f center1(0.256568, -0.164695, 0.561785);
-
+	Eigen::Vector3f pos4(-0.988364, -2.79656, 1.91186);
+	Eigen::Vector3f up4(0.226098, 0.500471, 0.835709);
+	Eigen::Vector3f center4(0.116397, -0.369781, 0.14214);
 	// init renderer 
 	Renderer::s_Init(false);
 
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos1, up1, center1);
+	m_renderer.s_camViewer.SetExtrinsic(pos4, up4, center4);
 
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
@@ -714,7 +884,7 @@ void run_trajectory2()
 		2,3,4
 	};
 
-	cv::VideoWriter writer("D:/paper_writing_figs/1003_motion2_new_s3248.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 25.0, cv::Size(1920, 1080));
+	cv::VideoWriter writer("G:/pig_result_nm/trajectory0.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 25.0, cv::Size(1920, 1080));
 	if (!writer.isOpened())
 	{
 		std::cout << "not open" << std::endl;
@@ -725,13 +895,13 @@ void run_trajectory2()
 	joints_queues.resize(4);
 
 	FrameSolver frame;
-	std::string configfile = "configs/config_20190703_motion2_new.json";
+	std::string configfile = "configs/config_BamaPig3D_main.json";
 	frame.configByJson(conf_projectFolder + configfile);
 	frame.init_parametric_solver();
 	auto solvers = frame.get_solvers();
-	int start = 3248;
+	int start = 0;
 	int num = 300;
-	frame.is_smth = false;
+	frame.is_smth = true;
 	std::vector<int> ids_draw = { 0,1,2,3 };
 	for (int frameid = start; frameid < start + num; frameid++)
 	{
@@ -889,7 +1059,8 @@ void run_trajectory2()
 			}
 		}
 #endif 
-		m_renderer.createSceneHalf2(conf_projectFolder, 1.1);
+		//m_renderer.createSceneHalf2(conf_projectFolder, 1.1);
+		m_renderer.createPlane(conf_projectFolder); 
 
 		cv::Mat img = m_renderer.GetImageOffscreen();
 		writer.write(img);
@@ -905,5 +1076,240 @@ void run_trajectory2()
 			glfwPollEvents();
 		};
 		exit(-1);*/
+	}
+}
+
+
+// 2022.07.24
+// Run trajectory to create trajectory images as Fig.1e
+void nm_trajectory()
+{
+	std::string conf_projectFolder = "H:/MAMMAL_core/";
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
+	std::vector<Eigen::Vector3f> CM2 = getColorMapEigenF("anliang_paper");
+	// init a camera 
+	Eigen::Matrix3f K;
+	K << 0.698f, 0.f, 0.502f,
+		0.f, 1.243f, 0.483f,
+		0.f, 0.f, 1.f;
+	std::cout << K << std::endl;
+
+	Eigen::Vector3f pos4(-0.988364, -2.79656, 1.91186);
+	Eigen::Vector3f up4(0.226098, 0.500471, 0.835709);
+	Eigen::Vector3f center4(0.116397, -0.369781, 0.14214);
+	// init renderer 
+	Renderer::s_Init(true);
+
+	Renderer m_renderer(conf_projectFolder + "/render/shader/");
+
+	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
+	m_renderer.s_camViewer.SetExtrinsic(pos4, up4, center4);
+
+	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
+	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
+	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
+	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
+	MeshEigen ballMeshEigen(ballMesh);
+	MeshEigen stickMeshEigen(stickMesh);
+
+	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
+	SkelTopology topo = getSkelTopoByType("UNIV");
+
+	int window = 200;
+
+	std::vector<Eigen::Vector2i> bones = {
+		{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
+		 {5,7}, {7,9}, {6,8}, {8,10},
+		{20,18},
+		{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
+		{0,20},{5,20},{6,20}
+	};
+	std::vector<int> kpt_color_ids = {
+		0,0,0,0,0,
+		3,4,3,4,3,4,
+		5,6,5,6,5,6,
+		2,2,2,2,2,2
+	};
+	std::vector<int> bone_color_ids = {
+		0,0,0,0,0,3,3,4,4,
+		2,5,6,5,5,6,6,
+		2,3,4
+	};
+
+	std::vector<std::deque<std::vector<Eigen::Vector3f> > > joints_queues;
+	joints_queues.resize(4);
+
+	FrameSolver frame;
+	std::string configfile = "configs/config_BamaPig3D_main.json";
+	frame.configByJson(conf_projectFolder + configfile);
+	frame.init_parametric_solver();
+	auto solvers = frame.get_solvers();
+	int start = 0;
+	int num = window;
+	frame.is_smth = true;
+
+	for (int frameid = start; frameid < start + num; frameid++)
+	{
+		frame.m_is_read_image = false;
+		frame.set_frame_id(frameid);
+		frame.read_parametric_data();
+		// push to queue 
+		for (int pid = 0; pid < frame.m_pignum; pid++)
+		{
+			std::stringstream ss;
+
+			std::vector<Eigen::Vector3f> points = solvers[pid]->getRegressedSkel_host();
+
+			joints_queues[pid].push_back(points);
+			if (joints_queues[pid].size() > window) joints_queues[pid].pop_front();
+		}
+	}
+
+	for (int pig_to_draw = 0; pig_to_draw < 4; pig_to_draw++)
+	{
+		m_renderer.clearAllObjs();
+
+		for (int index = 0; index < num; index++)
+		{
+			if (index == 0 || index == num - 1)
+			{
+				std::cout << "index: " << index << std::endl;
+				for (int pid = 0; pid < frame.m_pignum; pid++)
+				{
+					int pigname = frame.m_pig_names[pid];
+					if (pigname != pig_to_draw) continue;
+					int ratio_index = window - num + index;
+					float ratio = (2 - (ratio_index / float(window)));
+
+					std::vector<Eigen::Vector3f> skels = joints_queues[pid][index];
+					std::vector<Eigen::Vector3f> balls;
+					std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+					GetBallsAndSticks(skels, bones, balls, sticks);
+					int jointnum = skels.size();
+					std::vector<float> ball_sizes;
+					ball_sizes.resize(jointnum, 0.015);
+					std::vector<float> stick_sizes;
+					stick_sizes.resize(sticks.size(), 0.009);
+					std::vector<Eigen::Vector3f> ball_colors(jointnum);
+					std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+					for (int i = 0; i < jointnum; i++)
+					{
+						ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
+					}
+					for (int i = 0; i < sticks.size(); i++)
+					{
+						stick_colors[i] = CM[bone_color_ids[i]] * ratio;
+					}
+
+					BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+						balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+					p_skel->isMultiLight = false;
+					m_renderer.skels.push_back(p_skel);
+
+					frame.set_frame_id(index + start);
+					frame.read_parametric_data();
+					solvers = frame.get_solvers();
+					RenderObjectColor* p_model = new RenderObjectColor();
+					solvers[pid]->UpdateNormalFinal();
+					p_model->SetVertices(solvers[pid]->GetVertices());
+					p_model->SetNormal(solvers[pid]->GetNormals());
+					p_model->SetFaces(solvers[pid]->GetFacesVert());
+					p_model->SetColor(CM2[pigname]);
+					if (index == 0)
+						p_model->isFill = false;
+					else p_model->isFill = true;
+					p_model->isMultiLight = true; 
+					m_renderer.colorObjs.push_back(p_model);
+				}
+			}
+			else
+			{
+				for (int pid = 0; pid < frame.m_pignum; pid++)
+				{
+					int pigname = frame.m_pig_names[pid];
+					if (pigname != pig_to_draw) continue;
+					float ratio = (2 - 1 * (index / float(window)));
+
+					std::vector<int> joints_to_rend = { 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,18,20};
+
+					std::vector<Eigen::Vector3f> skels;
+					for(int k = 0; k < joints_to_rend.size(); k++)
+						skels.push_back(joints_queues[pid][index][joints_to_rend[k]]);
+					std::vector<Eigen::Vector3f> balls;
+					std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
+					GetBallsAndSticks(skels, bones, balls, sticks);
+					int jointnum = skels.size();
+					std::vector<float> ball_sizes;
+					ball_sizes.resize(jointnum, 0.002);
+
+					// sticks: connect last to current
+					sticks.clear();
+					sticks.resize(jointnum);
+					std::vector<float> stick_sizes;
+					
+					for (int k = 0; k < jointnum; k++)
+					{
+						int joint_id = joints_to_rend[k]; 
+						sticks[k].first = joints_queues[pid][index][joint_id];
+						sticks[k].second = joints_queues[pid][index + 1][joint_id];
+					}
+					stick_sizes.resize(sticks.size(), 0.001);
+					std::vector<Eigen::Vector3f> ball_colors(jointnum);
+					std::vector<Eigen::Vector3f> stick_colors(sticks.size());
+					for (int i = 0; i < jointnum; i++)
+					{
+						ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
+					}
+					for (int i = 0; i < sticks.size(); i++)
+					{
+						stick_colors[i] = CM[kpt_color_ids[i]] * ratio;
+					}
+
+					BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
+						balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
+					m_renderer.skels.push_back(p_skel);
+				}
+			}
+		}
+
+		m_renderer.createSceneHalf(conf_projectFolder, 1.08);
+		//m_renderer.createPlane(conf_projectFolder);
+
+		cv::Mat img = m_renderer.GetImageOffscreen();
+
+		std::stringstream ss;
+		ss << "G:/pig_result_nm/pig_" << pig_to_draw << ".png";
+		cv::imwrite(ss.str(), img);
+	}
+
+	
+	std::vector<int> render_indices;
+	render_indices.push_back(start); 
+	render_indices.push_back(start + num); 
+	for (int k = 0; k < render_indices.size(); k++)
+	{
+		m_renderer.clearAllObjs();
+		int index = render_indices[k];
+		for (int pid = 0; pid < 4; pid++)
+		{
+			int pigname = frame.m_pig_names[pid]; 
+			frame.set_frame_id(index);
+			frame.read_parametric_data();
+			solvers = frame.get_solvers();
+			RenderObjectColor* p_model = new RenderObjectColor();
+			solvers[pid]->UpdateNormalFinal();
+			p_model->SetVertices(solvers[pid]->GetVertices());
+			p_model->SetNormal(solvers[pid]->GetNormals());
+			p_model->SetFaces(solvers[pid]->GetFacesVert());
+			p_model->SetColor(CM2[pigname]);
+			p_model->isMultiLight = true;
+			m_renderer.colorObjs.push_back(p_model);
+		}
+
+		m_renderer.createPlane(conf_projectFolder);
+		cv::Mat img = m_renderer.GetImageOffscreen();
+		std::stringstream ss;
+		ss << "G:/pig_result_nm/pig_all_" << index << ".png";
+		cv::imwrite(ss.str(), img);
 	}
 }

@@ -1036,6 +1036,7 @@ void FrameSolver::init_parametric_solver()
 	{
 		if (mp_bodysolverdevice[i] == nullptr)
 		{
+			std::cout << m_pigConfig << std::endl;
 			mp_bodysolverdevice[i] = std::make_shared<PigSolverDevice>(m_pigConfig, m_use_gpu);
 			mp_bodysolverdevice[i]->m_gtscale = m_given_scales[i];
 			mp_bodysolverdevice[i]->setParams(m_params); 

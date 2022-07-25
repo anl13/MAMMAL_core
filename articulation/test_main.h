@@ -10,3 +10,5 @@ std::vector<Camera> readCameras();
 std::vector<cv::Mat> readImgs(); 
 
 int render_mean_pose(); 
+
+int visualize_artist_design(); 

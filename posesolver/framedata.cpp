@@ -121,9 +121,9 @@ void FrameData::fetchData()
 			undistImgs(); 
 		}
 		else {
-			//readImages(); 
-			//undistImgs(); 
-			readUndistImages();
+			readImages(); 
+			undistImgs(); 
+			//readUndistImages();
 		}
 	}
 

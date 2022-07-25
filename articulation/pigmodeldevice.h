@@ -39,6 +39,8 @@ public:
 	void SetShape(const Eigen::VectorXf& _shapeParam) { m_host_shapeParam = _shapeParam; }
 	void SetTranslation(const Eigen::Vector3f& _translation) { m_host_translation = _translation; }
 	void SetScale(const float &_scale) { m_host_scale = _scale; }
+	void SetGlobalRotType(const std::string &_type) { m_global_rot_type = _type; }
+
 	void ResetPose() { for (int i = 0; i < m_jointNum; i++)m_host_poseParam[i].setZero(); }
 	void ResetShape() { m_host_shapeParam.setZero(); }
 	void ResetTranslation() { m_host_translation.setZero(); }
@@ -78,7 +80,8 @@ protected:
 	int m_shapeNum;
 	int m_faceNum; 
 	int m_texNum;
-	
+
+	std::string m_global_rot_type = "euler"; // "euler" or "axis-angle"
 
 	SkelTopology m_skelTopo; 
 	std::vector<CorrPair> m_skelCorr;

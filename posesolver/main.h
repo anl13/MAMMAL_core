@@ -50,3 +50,5 @@ int nm_skelrender_for_comparison();
 int nm_monocolor_singlebody();
 int nm_video5_freeview(); 
 int nm_fig_skel_rend_demo(); 
+int nm_monocolor_44_clips(); 
+void nm_trajectory(); 

@@ -5,12 +5,13 @@
 
 int main(int argc, char** argv)
 {
-	nm_skelrender_for_comparison(); 
+	//nm_skelrender_for_comparison(); 
 	//nm_monocolor_singlebody();
 	//nm_video5_freeview(); 
 	//nm_fig_skel_rend_demo(); 
-	
-	//run_trajectory2(); 
+	//nm_monocolor_44_clips(); 
+
+	nm_trajectory(); 
 	//run_pose_render();
 	//run_MAMMAL_main();
 	//run_demo_result(); 

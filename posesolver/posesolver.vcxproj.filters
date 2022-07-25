@@ -308,6 +308,9 @@
     <None Include="..\configs\config_BamaPig3D_main.json">
       <Filter>资源文件</Filter>
     </None>
+    <None Include="..\configs\config_BamaPig3D_nosil.json">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\render\cuda_utils_render.cu" />
