@@ -12,8 +12,6 @@ enum BODY_PART
 	L_B_LEG,
 	R_B_LEG,
 	TAIL,
-	JAW,
-	NECK,
 	OTHERS
 };
 

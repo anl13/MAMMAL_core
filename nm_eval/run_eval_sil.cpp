@@ -24,15 +24,20 @@ int run_eval_sil()
 	std::string conf_projectFolder = get_parent_folder();
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
-	std::string config_file = "configs/config_BamaPig3D_nosil.json";
+	//std::string config_file = "configs/config_BamaPig3D_nosil.json";
+	std::string config_file = "configs/config_BamaPig3D_main.json";
+
 	FrameSolver frame;
+	frame.m_project_folder = conf_projectFolder; 
 	frame.configByJson(conf_projectFolder + config_file);
 
-	std::string folder = frame.m_result_folder + "/eval"; 
-	if (!std::filesystem::exists(folder))
-		std::filesystem::create_directories(folder); 
-
-	int m_pid = 0; // pig identity to solve now. 
+	std::vector<std::string> subfolders = { "eval", "sil_vis" }; 
+	for (int k = 0; k < subfolders.size(); k++)
+	{
+		std::string folder = frame.m_result_folder + "/" + subfolders[k];
+		if (!std::filesystem::exists(folder))
+			std::filesystem::create_directories(folder);
+	}
 	frame.set_frame_id(frame.m_startid);
 	frame.fetchData();
 	auto cams = frame.get_cameras();

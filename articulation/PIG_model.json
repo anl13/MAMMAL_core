@@ -1,0 +1,60 @@
+{
+  "folder": "H:/MAMMAL_core/data/PIG_model/",
+  "joint_num": 62,
+  "vertex_num": 11239,
+  "tex_num": 12208,
+  "face_num": 22446,
+  "shape_num": 0,
+  "topo": "UNIV",
+  "sym_num": 0,
+  "mapper": [
+    [ 1, 10895 ], // nose
+    [ 1, 938 ], // left eye
+    [ 1, 6053 ], // right eye
+    [ 1, 1368 ], // left ear
+    [ 1, 6600 ], // right ear
+    [ 0, 15 ], // left shouder
+    [ 0, 7 ], // right shoulder
+    [ 0, 16 ], // left elbow
+    [ 0, 8 ], // right elbow
+    [ 0, 17 ], // left paw
+    [ 0, 9 ], // right paw
+    [ 0, 56 ], // left hip
+    [ 0, 40 ], // right hip
+    [ 0, 57 ], // left knee
+    [ 0, 41 ], // right knee
+    [ 0, 58 ], // left foot
+    [ 0, 42 ], // right foot
+    [ -1, -1 ], // neck
+    [ 0, 46 ], // tail
+    [ -1, -1 ], // wither
+    [ 0, 2 ], // cneter
+    [ -1, -1 ], // tail middle
+    [ -1, -1 ] // tail end
+  ],
+  "pose_to_solve": [ 0, 2, 4, 5, 6, 7, 8, 13, 14, 15, 16, 38, 39, 40, 41, 54, 55, 56, 57, 21, 22, 23 ],
+  "optimize_pair": [
+    // [target joint, type, source index, weight]
+    //[ 0, 1, 10895, 1 ], // nose
+    [ 0, 1, 10904, 1 ], // nose
+    [ 1, 1, 938, 1 ], // left eye
+    [ 2, 1, 6053, 1 ], // right eye
+    [ 3, 1, 1368, 1 ], // left ear
+    [ 4, 1, 6600, 1 ], // right ear
+    [ 5, 0, 15, 1 ], // left shouder
+    [ 6, 0, 7, 1 ], // right shoulder
+    [ 7, 0, 16, 1 ], // left elbow
+    [ 8, 0, 8, 1 ], // right elbow
+    [ 9, 0, 17, 1 ], // left paw
+    [ 10, 0, 9, 1 ], // right paw
+    [ 11, 0, 56, 1 ], // left hip
+    [ 12, 0, 40, 1 ], // right hip
+    [ 13, 0, 57, 1 ], // left knee
+    [ 14, 0, 41, 1 ], // right knee
+    [ 15, 0, 58, 1 ], // left foot
+    [ 16, 0, 42, 1 ], // right foot
+    [ 18, 1, 7903, 1 ],
+    [ 20, 0, 2, 1 ] // cneter
+  ],
+  "anchor_folder": "../data/anchor_pose_library/"
+}

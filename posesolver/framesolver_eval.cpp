@@ -181,7 +181,7 @@ void FrameSolver::compute_silhouette_loss()
 	//	cv::destroyAllWindows();
 	//	if (key == 27) break;
 	//}
-	//
+	
 
 	Eigen::MatrixXf ious(4, m_camNum); 
 	ious.setZero(); 
@@ -258,7 +258,10 @@ void FrameSolver::compute_silhouette_loss()
 				ious(gtid, camid) = -1; 
 		}
 	}
-	std::cout << ious << std::endl; 
+
+	std::cout << ious << std::endl;
+#if 1  // set 1 to write results. 
+	 
 	std::stringstream ss; 
 	ss << m_result_folder << "/eval/iou_" << m_frameid << ".txt"; 
 	std::ofstream os(ss.str()); 
@@ -276,8 +279,9 @@ void FrameSolver::compute_silhouette_loss()
 	std::ofstream os2(ss2.str());
 	os2 << Us;
 	os2.close();
+#endif 
 
-#if 0
+#if 0 // This part shows the IoU loss of masks detected by PointRend. It achieves the best performance compared with reconstructed ones. 
 	std::stringstream ss3;
 	ss3 << m_result_folder << "/eval_det/I_" << m_frameid << ".txt";
 	std::ofstream os3(ss3.str());
