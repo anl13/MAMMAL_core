@@ -7,7 +7,6 @@
 #include "../utils/math_utils.h"
 #include "../utils/image_utils.h"
 #include "../utils/timer_util.h"
-#include "../VAE/decoder.h"
 #include "common.h" 
 #include "../utils/skel.h" 
 

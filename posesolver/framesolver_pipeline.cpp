@@ -1,6 +1,6 @@
 /*
 This file contains the overall pipeline control for 
-our DARKOV system. 
+our MAMMAL system. 
 
 maintainer: AN Liang. (al17@mails.tsinghua.edu.cn) 
 date: 2020/11/08
@@ -11,8 +11,7 @@ date: 2020/11/08
 
 //#define DEBUG_SIL
 
-
-void FrameSolver::DARKOV_Step0_topdownassoc(bool isLoad)
+void FrameSolver::MAMMAL_Step0_topdownassoc(bool isLoad)
 {
 	if (isLoad)
 		load_clusters(); 
@@ -31,7 +30,7 @@ void FrameSolver::DARKOV_Step0_topdownassoc(bool isLoad)
 	save_clusters(); 
 }
 
-void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers 
+void FrameSolver::MAMMAL_Step1_setsource()  // set source data to solvers 
 {
 	m_skels3d.resize(m_pignum); 
 	setConstDataToSolver();
@@ -54,7 +53,7 @@ void FrameSolver::DARKOV_Step1_setsource()  // set source data to solvers
 	}
 }
 
-void FrameSolver::DARKOV_Step2_loadanchor() // only load and set anchor id, without any fitting or align 
+void FrameSolver::MAMMAL_Step2_loadanchor() // only load and set anchor id, without any fitting or align 
 {
 	std::string anchor_folder = m_anchor_folder;
 	std::stringstream ss;
@@ -68,28 +67,28 @@ void FrameSolver::DARKOV_Step2_loadanchor() // only load and set anchor id, with
 	infile.close();
 }
 
-void FrameSolver::DARKOV_Step2_searchanchor(int pid)
+void FrameSolver::MAMMAL_Step2_searchanchor(int pid)
 {
 	mp_bodysolverdevice[pid]->searchAnchorSpace(); 
 }
 
-void FrameSolver::DARKOV_Step2_optimanchor(int pid)
+void FrameSolver::MAMMAL_Step2_optimanchor(int pid)
 {
 	// align given anchor Rotation and Translation 
 	mp_bodysolverdevice[pid]->optimizeAnchor(mp_bodysolverdevice[pid]->m_anchor_id); 
 }
 
-void FrameSolver::DARKOV_Step3_reassoc_type2() // type2 contains three small steps: find tracked, assign untracked, solve mix-up
+void FrameSolver::MAMMAL_Step3_reassoc_type2() // type2 contains three small steps: find tracked, assign untracked, solve mix-up
 {
 	reAssocWithoutTracked();
 }
 
-void FrameSolver::DARKOV_Step3_reassoc_type1()
+void FrameSolver::MAMMAL_Step3_reassoc_type1()
 {
 	reAssocProcessStep1();
 }
 
-void FrameSolver::DARKOV_Step4_fitrawsource(int _maxIters)  // fit model to raw source
+void FrameSolver::MAMMAL_Step4_fitrawsource(int _maxIters)  // fit model to raw source
 {
 #ifdef DEBUG_SIL
 	renderInteractDepth(true); 
@@ -157,7 +156,7 @@ void FrameSolver::DARKOV_Step4_fitrawsource(int _maxIters)  // fit model to raw 
 	//	<< std::endl; 
 }
 
-void FrameSolver::DARKOV_Step4_fitreassoc(int _maxIters)  // fit model to reassociated keypoints and silhouettes
+void FrameSolver::MAMMAL_Step4_fitreassoc(int _maxIters)  // fit model to reassociated keypoints and silhouettes
 {
 	if (!m_use_reassoc) return; 
 	for (int i = 0; i < m_pignum; i++)
@@ -190,7 +189,7 @@ void FrameSolver::DARKOV_Step4_fitreassoc(int _maxIters)  // fit model to reasso
 	//	<< std::endl;
 }
 
-void FrameSolver::DARKOV_Step5_postprocess()  // some postprocessing step 
+void FrameSolver::MAMMAL_Step5_postprocess()  // some postprocessing step 
 {
 	for (int i = 0; i < m_pignum; i++)
 	{

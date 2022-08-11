@@ -55,9 +55,6 @@ public:
 	SimpleShader textureShaderML; 
 	SimpleShader colorShaderML;
 	SimpleShader faceindexShader;
-
-	SimpleShader xrayShader; 
-	//SimpleShader meshShaderML;
 	
 	std::vector<RenderObjectColor*> colorObjs; 
 	std::vector<RenderObjectMesh*> meshObjs; 
@@ -79,11 +76,9 @@ public:
 	// offscreen rendering 
 	float* renderDepthDevice();
 
-	void createScene(std::string proectFolder);
 	void createSceneDetailed(std::string projectFolder, float scale = 1.0, int flip_axis = -1);
 	void createSceneHalf(std::string projectFolder, float scale = 1.0);
 	void createSceneHalf2(std::string projectFolder, float scale = 1.0); 
-	void createHikonCam(std::string projectFolder, const std::vector<Camera>& cams); 
 	void createVirtualCam(std::string projectFolder, const std::vector<Camera>& cams); 
 
 	void createPlane(std::string projectFolder, float scale = 1); 
@@ -124,6 +119,5 @@ private:
 	std::string m_shaderFolder;
 
 	Eigen::Vector4f m_backgroundColor; 
-	//TimerUtil::Timer<std::chrono::milliseconds> tt;
 };
 

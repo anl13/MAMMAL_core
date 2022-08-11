@@ -1,21 +1,11 @@
-#include "renderer.h" 
-#include "render_object.h" 
+
 #include <iostream> 
 #include <fstream> 
 #include <sstream> 
-#ifndef WIN32
-#include <unistd.h> 
-#else 
-#ifndef _UNISTD_H
-#define _UNISTD_H
-#include <io.h>
-#include <process.h>
-#endif /* _UNISTD_H */
-#endif 
+#include <queue>
+#include <deque>
+#include <ctime> 
 
-//#include <opencv2/cudaimgproc.hpp>
-//#include <opencv2/core/cuda_stream_accessor.hpp>
-//#include <opencv2/cudaarithm.hpp>
 #include <opencv2/core/cuda.hpp>
 
 #include "render_utils.h" 
@@ -24,15 +14,33 @@
 #include "../utils/colorterminal.h" 
 #include "../utils/mesh.h"
 #include "../utils/geometry.h"
-
 #include "../utils/timer_util.h"
-
-#include "test_kernel.h"
-
 #include "../utils/skel.h"
-#include <queue>
-#include <deque>
-#include <ctime> 
+#include "../utils/definitions.h" 
+#include "test_kernel.h"
+#include "renderer.h" 
+#include "render_object.h" 
+
+/*
+All these functions are used to test some specific functions of renderer. 
+*/
+std::vector<Camera> readCameras(); 
+void test_shader(); 
+void test_depth(); 
+void test_color_table(); 
+void test_discrete_scene(); 
+void test_mask(); 
+void generateFaceIndexMap(); 
+int color2faceid(const cv::Vec3b& c); 
+void test_indexrender(); 
+
+void main()
+{
+	/*
+	Use which test function you want to run. 
+	*/
+	test_discrete_scene(); 
+}
 
 std::vector<Camera> readCameras()
 {
@@ -41,7 +49,8 @@ std::vector<Camera> readCameras()
 		0,1,2,5,6,7,8,9,10,11
 	};
 	int m_camNum = m_camids.size();
-	std::string m_camDir = "D:/Projects/animal_calib/data/calibdata/extrinsic/";
+	std::string m_camDir = PROJECT_FOLDER; 
+	m_camDir += "/data/calibdata/extrinsic/";
 	for (int camid = 0; camid < m_camNum; camid++)
 	{
 		std::stringstream ss;
@@ -76,7 +85,7 @@ std::vector<Camera> readCameras()
 
 void test_shader()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::string conf_projectFolder = PROJECT_FOLDER;
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 
 	// init a camera 
@@ -105,22 +114,8 @@ void test_shader()
 	MeshEigen ballMeshEigen(ballMesh); 
 	MeshEigen stickMeshEigen(stickMesh); 
 
-	//std::string point_file = conf_projectFolder + "/data/calibdata/adjust_new/points3d.txt";
-	//std::vector<Eigen::Vector3f> points = read_points(point_file);
-	//std::cout << "pointsize:  " << points.size() << std::endl;
-	//std::vector<float> sizes(points.size(), 0.05f);
-	//std::vector<Eigen::Vector3f> balls, colors;
-	//balls = points; 
-	//colors.resize(points.size());
-	//for (int i = 0; i < points.size(); i++)
-	//{
-	//	colors[i] = CM[0];
-	//}
-	//BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
-	//m_renderer.skels.push_back(skelObject);
-
 	Mesh obj;
-	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	obj.Load(conf_projectFolder + "data/PIG_model/PIG.obj");
 	for (int i = 0; i < obj.vertices_vec.size(); i++)
 	{
 		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0.21); 
@@ -147,30 +142,19 @@ void test_shader()
 	//m_renderer.texObjs.push_back(p_model);
 
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f)); 
-
-
-	//m_renderer.createScene(conf_projectFolder); 
-	//m_renderer.createPlane(conf_projectFolder);
-
-
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-
 	while (!glfwWindowShouldClose(windowPtr))
 	{
 		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		m_renderer.Draw();
-
 		glfwSwapBuffers(windowPtr);
 		glfwPollEvents();
 	};
 }
 
-
-
 void test_depth()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/render";
-	std::string smal_config = "D:/Projects/animal_calib/smal/smal2_config.json";
+	std::string conf_projectFolder = PROJECT_FOLDER;
 	auto CM = getColorMapEigen("anliang_rgb");
 	std::vector<Camera> cams = readCameras();
 
@@ -189,7 +173,7 @@ void test_depth()
 
 	// init renderer 
 	Renderer::s_Init(false);
-	Renderer m_renderer(conf_projectFolder + "/shader/");
+	Renderer m_renderer(conf_projectFolder + "render/shader/");
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
 	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
 
@@ -197,7 +181,7 @@ void test_depth()
 	m_renderer.SetBackgroundColor(Eigen::Vector4f(0.f, 0.f, 0.f, 1.0f));
 
 	Mesh obj;
-	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
+	obj.Load(conf_projectFolder + "data/PIG_model/PIG.obj");
 
 	RenderObjectColor* p_model = new RenderObjectColor();
 	p_model->SetVertices(obj.vertices_vec);
@@ -286,7 +270,7 @@ void test_depth()
 
 void test_color_table()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::string conf_projectFolder = PROJECT_FOLDER;
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 
 	// init a camera 
@@ -345,11 +329,10 @@ void test_color_table()
 	};
 }
 
-
 void test_discrete_scene()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_bgr");
+	std::string conf_projectFolder = PROJECT_FOLDER;
+	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
 
 	// init a camera 
 	auto cameras = readCameras();
@@ -364,8 +347,6 @@ void test_discrete_scene()
 	Renderer m_renderer(conf_projectFolder + "/render/shader/");
 
 	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	//m_renderer.s_camViewer.SetExtrinsic(cameras[0].R, cameras[0].T);
-	//m_renderer.s_camViewer.SetExtrinsic(R, T); 
 
 	Eigen::Vector3f pos(0, 0, 5);
 	Eigen::Vector3f up(0, 1, 0); 
@@ -375,12 +356,10 @@ void test_discrete_scene()
 
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
-	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
 	MeshEigen ballMeshEigen(ballMesh);
 	MeshEigen stickMeshEigen(stickMesh);
 
-	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
+	std::string point_file = conf_projectFolder + "/data/calibdata/extrinsic/points3d.txt";
 	std::vector<Eigen::Vector3f> points = read_points(point_file);
 	std::vector<float> sizes(points.size(), 0.05f);
 	std::vector<Eigen::Vector3f> balls, colors;
@@ -395,9 +374,7 @@ void test_discrete_scene()
 	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
 	m_renderer.skels.push_back(skelObject);
 
-	m_renderer.createScene(conf_projectFolder); 
-
-	//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 0.5f, 0.5f, 1.0f));
+	m_renderer.createSceneDetailed(conf_projectFolder); 
 
 	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
 
@@ -412,87 +389,9 @@ void test_discrete_scene()
 	};
 }
 
-void test_artist_labeled_sample()
-{
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
-
-	// init a camera 
-	Eigen::Matrix3f K;
-	K << 0.698f, 0.f, 0.502f,
-		0.f, 1.243f, 0.483f,
-		0.f, 0.f, 1.f;
-	std::cout << K << std::endl;
-
-	Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
-	Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
-	Eigen::Vector3f center = Eigen::Vector3f::Zero();
-
-	// init renderer 
-	Renderer::s_Init();
-
-	Renderer m_renderer(conf_projectFolder + "/render/shader/");
-
-	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-
-
-	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
-	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
-	MeshEigen ballMeshEigen(ballMesh);
-	MeshEigen stickMeshEigen(stickMesh);
-
-	std::string point_file = conf_projectFolder + "/data/calibdata/adjust/points3d.txt";
-	std::vector<Eigen::Vector3f> points = read_points(point_file);
-	std::cout << "pointsize:  " << points.size() << std::endl;
-	std::vector<float> sizes(points.size(), 0.05f);
-	std::vector<Eigen::Vector3f> balls, colors;
-	balls = points;
-	colors.resize(points.size());
-	for (int i = 0; i < points.size(); i++)
-	{
-		colors[i] = CM[0];
-	}
-	BallStickObject* skelObject = new BallStickObject(ballMeshEigen, balls, sizes, colors);
-	m_renderer.skels.push_back(skelObject);
-
-	Mesh obj;
-	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
-	MeshEigen objeigen(obj);
-
-	//RenderObjectMesh* p_model = new RenderObjectMesh();
-	//p_model->SetVertices(obj.vertices_vec);
-	//p_model->SetFaces(obj.faces_v_vec);
-	//p_model->SetColors(obj.normals_vec); 
-	//p_model->SetNormal(obj.normals_vec); 
-
-	RenderObjectColor * p_model = new RenderObjectColor();
-	p_model->SetVertices(obj.vertices_vec);
-	p_model->SetFaces(obj.faces_v_vec);
-	p_model->SetNormal(obj.normals_vec);
-	p_model->SetColor(Eigen::Vector3f(0.2f, 0.8f, 0.5f));
-
-	m_renderer.colorObjs.push_back(p_model);
-	//m_renderer.meshObjs.push_back(p_model); 
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 0.5f, 0.5f, 1.0f));
-
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-
-	while (!glfwWindowShouldClose(windowPtr))
-	{
-		m_renderer.Draw();
-
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
-	};
-}
-
-
 void test_mask()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::string conf_projectFolder = PROJECT_FOLDER;
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_rgb");
 
 	// init a camera 
@@ -516,13 +415,11 @@ void test_mask()
 
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
-	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
 	MeshEigen ballMeshEigen(ballMesh);
 	MeshEigen stickMeshEigen(stickMesh);
 
 	Mesh obj;
-	obj.Load("F:/projects/model_preprocess/designed_pig/extracted/artist_model/model_triangle.obj");
+	obj.Load(conf_projectFolder + "data/PIG_model/PIG.obj");
 	MeshEigen objeigen(obj);
 
 	RenderObjectColor * p_model = new RenderObjectColor();
@@ -573,238 +470,11 @@ void test_mask()
 	cv::waitKey(); 
 }
 
-void test_trajectory()
-{
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_blend");
-	std::vector<Eigen::Vector3f> CM2 = getColorMapEigenF("anliang_render");
-
-	// init a camera 
-	Eigen::Matrix3f K;
-	K << 0.698f, 0.f, 0.502f,
-		0.f, 1.243f, 0.483f,
-		0.f, 0.f, 1.f;
-	std::cout << K << std::endl;
-
-	//Eigen::Vector3f up; up << 0.f, 0.f, 1.f;
-	//Eigen::Vector3f pos; pos << -1.f, 1.5f, 0.8f;
-	//Eigen::Vector3f center = Eigen::Vector3f::Zero();
-	Eigen::Vector3f up; up << 0.260221, 0.36002, 0.895919;
-	Eigen::Vector3f pos; pos << -1.91923, -2.12171, 1.37056;
-	Eigen::Vector3f center = Eigen::Vector3f::Zero(); 
-
-	// init renderer 
-	Renderer::s_Init();
-
-	Renderer m_renderer(conf_projectFolder + "/render/shader/");
-
-	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos, up, center);
-
-	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
-	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
-	MeshEigen ballMeshEigen(ballMesh);
-	MeshEigen stickMeshEigen(stickMesh);
-
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-	SkelTopology topo = getSkelTopoByType("UNIV"); 
-	//std::vector<int> kpt_color_ids = {
-	//		9,2,1,2,1, // face 
-	//		2,1,2,1,2,1, // front legs 
-	//		4,3,4,3,4,3, // back legs 
-	//		5,9,5,6,5,5 // ceneter and tail 
-	//};
-
-	int start = 750; 
-	int num = 2000;
-	int window = 50; 
-
-	cv::VideoWriter writer("G:/pig_middle_data/teaser/video/trajectory1.avi", cv::VideoWriter::fourcc('m', 'p', 'e', 'g'), 25.0, cv::Size(1920, 1080));
-	if (!writer.isOpened())
-	{
-		std::cout << "not open" << std::endl;
-		return; 
-	}
-
-	std::vector<Eigen::Vector2i> bones = {
-	{0,1}, {0,2}, {1,2}, {1,3}, {2,4},
-	 {5,7}, {7,9}, {6,8}, {8,10},
-	{20,18},
-	{18,11}, {18,12}, {11,13}, {13,15}, {12,14}, {14,16},
-	{0,20},{5,20},{6,20}
-	};
-	std::vector<int> kpt_color_ids = {
-		0,1,1,2,2,
-		3,4,3,4,3,4,
-		5,6,5,6,5,6,
-		0,7, 0,7,0,0
-	};
-	std::vector<int> bone_color_ids = {
-		1,2,0,1,2,3,3,4,4,
-		7,5,6,5,5,6,6,
-		7,3,4
-	};
-
-	std::vector<std::deque<std::vector<Eigen::Vector3f> > > joints_queues;
-	joints_queues.resize(4); 
-	for (int frameid = start; frameid < start + num; frameid++)
-	{
-		std::cout << frameid << std::endl; 
-		// push to queue 
-		for (int pid = 0; pid < 4; pid++)
-		{
-			std::stringstream ss;
-			ss << "F:/pig_results_anchor_sil/joints/pig_" << pid << "_frame_" << std::setw(6) << std::setfill('0') << frameid << ".txt";
-			std::string point_file = ss.str();
-			std::vector<Eigen::Vector3f> points = read_points(point_file);
-			joints_queues[pid].push_back(points);
-			if (joints_queues[pid].size() > window) joints_queues[pid].pop_front(); 
-		}
-
-		m_renderer.clearAllObjs(); 
-
-#if 1 // trajectory type1 
-		for (int index = 0; index < joints_queues[0].size(); index++)
-		{
-			for (int pid = 0; pid < 4; pid++)
-			{
-				int ratio_index = window - joints_queues[0].size() + index;
-				float ratio = (2 - (ratio_index / float(window)));
-
-				std::vector<Eigen::Vector3f> skels = joints_queues[pid][index];
-				std::vector<Eigen::Vector3f> balls;
-				std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-				GetBallsAndSticks(skels, bones, balls, sticks);
-				int jointnum = skels.size();
-				std::vector<float> ball_sizes;
-				ball_sizes.resize(jointnum, 0.005/ratio);
-				std::vector<float> stick_sizes;
-				stick_sizes.resize(sticks.size(), 0.002/ratio);
-				std::vector<Eigen::Vector3f> ball_colors(jointnum);
-				std::vector<Eigen::Vector3f> stick_colors(sticks.size());
-				for (int i = 0; i < jointnum; i++)
-				{
-					ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
-				}
-				for (int i = 0; i < sticks.size(); i++)
-				{
-					//stick_colors[i] = CM[bone_color_ids[i]] * ratio;
-					stick_colors[i] = CM2[pid] * ratio;
-				}
-
-				BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
-					balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
-				p_skel->isMultiLight = false; 
-				m_renderer.skels.push_back(p_skel);
-
-			}
-		}
-#else 
-		for (int index = 0; index < joints_queues[0].size(); index++)
-		{
-			if (index == joints_queues[0].size() - 1)
-			{
-				for (int pid = 0; pid < 4; pid++)
-				{
-					int ratio_index = window - joints_queues[0].size() + index; 
-					float ratio = (2 - (ratio_index / float(window)));
-
-					std::vector<Eigen::Vector3f> skels = joints_queues[pid][index];
-					std::vector<Eigen::Vector3f> balls;
-					std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-					GetBallsAndSticks(skels, bones, balls, sticks);
-					int jointnum = skels.size();
-					std::vector<float> ball_sizes;
-					ball_sizes.resize(jointnum, 0.015);
-					std::vector<float> stick_sizes;
-					stick_sizes.resize(sticks.size(), 0.009);
-					std::vector<Eigen::Vector3f> ball_colors(jointnum);
-					std::vector<Eigen::Vector3f> stick_colors(sticks.size());
-					for (int i = 0; i < jointnum; i++)
-					{
-						ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
-					}
-					for (int i = 0; i < sticks.size(); i++)
-					{
-						//stick_colors[i] = CM[bone_color_ids[i]] * ratio;
-						stick_colors[i] = CM2[pid] * ratio;
-					}
-
-					BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
-						balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
-					p_skel->isMultiLight = false; 
-					m_renderer.skels.push_back(p_skel);
-				}
-			}
-			else
-			{
-				for (int pid = 0; pid < 4; pid++)
-				{
-					float ratio = (2 - (index / float(window)));
-
-					std::vector<Eigen::Vector3f> skels = joints_queues[pid][index];
-					std::vector<Eigen::Vector3f> balls;
-					std::vector<std::pair<Eigen::Vector3f, Eigen::Vector3f> > sticks;
-					GetBallsAndSticks(skels, bones, balls, sticks);
-					int jointnum = skels.size();
-					std::vector<float> ball_sizes;
-					ball_sizes.resize(jointnum, 0.002);
-
-					// sticks: connect last to current
-					sticks.clear(); 
-					sticks.resize(jointnum); 
-					std::vector<float> stick_sizes;
-					for (int k = 0; k < jointnum; k++)
-					{
-						sticks[k].first = joints_queues[pid][index][k];
-						sticks[k].second = joints_queues[pid][index + 1][k];
-					}
-					stick_sizes.resize(sticks.size(), 0.001);
-					std::vector<Eigen::Vector3f> ball_colors(jointnum);
-					std::vector<Eigen::Vector3f> stick_colors(sticks.size());
-					for (int i = 0; i < jointnum; i++)
-					{
-						ball_colors[i] = CM[kpt_color_ids[i]] * ratio;
-					}
-					for (int i = 0; i < sticks.size(); i++)
-					{
-						stick_colors[i] = CM[kpt_color_ids[i]] * ratio;
-					}
-
-					BallStickObject* p_skel = new BallStickObject(ballMeshEigen, stickMeshEigen,
-						balls, sticks, ball_sizes, stick_sizes, ball_colors, stick_colors);
-					m_renderer.skels.push_back(p_skel);
-				}
-			}
-		}
-#endif 
-		m_renderer.createScene(conf_projectFolder);
-
-		cv::Mat img = m_renderer.GetImageOffscreen();
-		writer.write(img);
-
-		//std::stringstream output_ss; 
-		//output_ss << "G:/pig_middle_data/teaser/video/trajectory_" << std::setw(6) << std::setfill('0') << frameid << ".png"; 
-		//cv::imwrite(output_ss.str(), img);
-		//GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-		//while (!glfwWindowShouldClose(windowPtr))
-		//{
-		//	//glPolygonMode(GL_FRONT, GL_FILL);
-		//	m_renderer.Draw();
-
-		//	glfwSwapBuffers(windowPtr);
-		//	glfwPollEvents();
-		//};
-	}
-	writer.release(); 
-}
-
 void generateFaceIndexMap()
 {
+	std::string conf_projectFolder = PROJECT_FOLDER;
 	Mesh obj;
-	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	obj.Load(conf_projectFolder + "/data/PIG_model/PIG.obj");
 	obj.ReMapTexture(); 
 	
 	std::cout << "face v: " << obj.faces_v_vec.size() << std::endl; 
@@ -840,17 +510,7 @@ void generateFaceIndexMap()
 		cv::Scalar color(b, g, r);
 		cv::fillPoly(img, contour, color, 1, 0);
 	}
-	cv::imwrite("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png", img); 
-	//for (int x = 0; x < 2048; x++)
-	//{
-	//	for (int y = 0; y < 2048; y++)
-	//	{
-	//		float xf = x / 2048;
-	//		float yf = y / 2048; 
-
-	//	}
-	//}
-	
+	cv::imwrite(conf_projectFolder + "/data/PIG_model/face_index_texture.png", img); 
 }
 
 int color2faceid(const cv::Vec3b& c)
@@ -864,7 +524,7 @@ int color2faceid(const cv::Vec3b& c)
 
 void test_indexrender()
 {
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
+	std::string conf_projectFolder = PROJECT_FOLDER;
 	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_render");
 
 	// init a camera 
@@ -888,13 +548,11 @@ void test_indexrender()
 
 	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
 	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
-	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
 	MeshEigen ballMeshEigen(ballMesh);
 	MeshEigen stickMeshEigen(stickMesh);
 
 	Mesh obj;
-	obj.Load("D:/Projects/animal_calib/data/artist_model_sym3/manual_artist_sym.obj");
+	obj.Load(conf_projectFolder + "/data/PIG_model/PIG.obj");
 	for (int i = 0; i < obj.vertices_vec.size(); i++)
 	{
 		obj.vertices_vec[i] += Eigen::Vector3f(0, 0, 0);
@@ -903,7 +561,7 @@ void test_indexrender()
 	obj.ReMapTexture();
 
 	RenderObjectTexture* p_model = new RenderObjectTexture();
-	cv::Mat texture = cv::imread("D:/Projects/animal_calib/data/artist_model_sym3/face_index_texture.png");
+	cv::Mat texture = cv::imread(conf_projectFolder + "/data/PIG_model/face_index_texture.png");
 	p_model->SetTextureNoMipmap(texture);
 	p_model->SetFaces(obj.faces_t_vec);
 	p_model->SetVertices(obj.vertices_vec_t);
@@ -913,11 +571,6 @@ void test_indexrender()
 	p_model->isMultiLight = false;
 	p_model->isFaceIndex = true; 
 	m_renderer.texObjs.push_back(p_model);
-
-	//m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-
-	//m_renderer.createScene(conf_projectFolder); 
-	//m_renderer.createPlane(conf_projectFolder);
 
 	m_renderer.Draw(); 
 	cv::Mat img = m_renderer.GetImage(); 
@@ -957,98 +610,3 @@ void test_indexrender()
 	};
 }
 
-
-// edit 20211008: render scene with camera. 
-void test_render_texture()
-{
-	std::string conf_projectFolder = "D:/projects/animal_calib/";
-	std::vector<Eigen::Vector3f> CM = getColorMapEigenF("anliang_paper");
-
-	auto cams = readCameras(); 
-	// init a camera 
-	Eigen::Matrix3f K = cams[0].K; 
-	K.row(0) = K.row(0) / 1920; 
-	K.row(1) = K.row(1) / 1080; 
-	std::cout << K << std::endl; 
-
-	Eigen::Vector3f pos3(0.0, 0.0, 4.1);
-	Eigen::Vector3f up3(0.0, 0.1, 0.0);
-	Eigen::Vector3f center3(0.0, 0.0, 0.0);
-
-	Eigen::Vector3f pos4(-2.2866, -1.61577, 2.71787);
-	Eigen::Vector3f up4(0.52083, 0.378857, 0.764986);
-	Eigen::Vector3f center4(0.241644, -0.127209, 0.250072);
-
-	Eigen::Vector3f pos5(-4.06622, -1.4771, 2.92314);
-	Eigen::Vector3f up5(0.369056, 0.151044, 0.917051);
-	Eigen::Vector3f center5(0.368738, -0.0883226, 0.908236);
-
-	// init renderer 
-	Renderer::s_Init(false);
-
-	Renderer m_renderer(conf_projectFolder + "/render/shader/");
-
-	m_renderer.s_camViewer.SetIntrinsic(K, 1, 1);
-	m_renderer.s_camViewer.SetExtrinsic(pos5, up5, center5);
-
-	Mesh ballMesh(conf_projectFolder + "/render/data/obj_model/ball.obj");
-	Mesh stickMesh(conf_projectFolder + "/render/data/obj_model/cylinder.obj");
-	Mesh squareMesh(conf_projectFolder + "/render/data/obj_model/square.obj");
-	Mesh cameraMesh(conf_projectFolder + "/render/data/obj_model/camera.obj");
-	MeshEigen ballMeshEigen(ballMesh);
-	MeshEigen stickMeshEigen(stickMesh);
-
-
-	for (int pid = 0; pid < 4; pid++)
-	{
-		std::stringstream ss; 
-		ss << "D:/results/paper_teaser/0704_demo/annotation/pig_" << pid << "_frame_007888.obj"; 
-		Mesh obj;
-		obj.Load(ss.str());
-		obj.ReMapTexture();
-
-		RenderObjectColor * p_model2 = new RenderObjectColor();
-		p_model2->SetVertices(obj.vertices_vec);
-		p_model2->SetFaces(obj.faces_v_vec);
-		p_model2->SetNormal(obj.normals_vec);
-		//p_model2->SetColor(CM[pid]);
-		p_model2->SetColor(Eigen::Vector3f(0.8, 0.8, 0.8)); 
-		p_model2->isMultiLight = false; 
-		m_renderer.colorObjs.push_back(p_model2);
-		
-	}
-	m_renderer.createSceneDetailed(conf_projectFolder); 
-	//m_renderer.createHikonCam(conf_projectFolder, cams); 
-	m_renderer.createVirtualCam(conf_projectFolder, cams); 
-	
-
-	m_renderer.SetBackgroundColor(Eigen::Vector4f(1.0f, 1.0f, 1.0f, 1.0f));
-
-	GLFWwindow* windowPtr = m_renderer.s_windowPtr;
-
-	//m_renderer.Draw(); 
-	cv::Mat img = m_renderer.GetImageOffscreen();
-	cv::Mat imgsmall;
-	cv::resize(img, imgsmall, cv::Size(1920, 1080), cv::INTER_CUBIC); 
-	//cv::imshow("test", img); 
-	cv::imwrite("D:/results/paper_teaser/0704_demo/render_all/render7888-3.png", img); 
-	cv::imwrite("D:/results/paper_teaser/0704_demo/render_all/render7888_small-3.png", imgsmall); 
-	while (!glfwWindowShouldClose(windowPtr))
-	{
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		m_renderer.Draw();
-
-		glfwSwapBuffers(windowPtr);
-		glfwPollEvents();
-	};
-}
-
-
-void main()
-{
-	//test_trajectory();
-	//test_color_table();
-	test_indexrender(); 
-	//generateFaceIndexMap();
-	//test_render_texture();
-}

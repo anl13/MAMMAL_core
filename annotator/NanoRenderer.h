@@ -248,7 +248,7 @@ public:
 		UpdateViewport();
 	}
 
-	int canvas_state = 0;
+	int canvas_state = 1; // set 1 to show tool panels. set 0 to hide them. Default 1. 
 
 	void SetExtrinsic(const Eigen::Vector3f& _pos, const Eigen::Vector3f& _up, const Eigen::Vector3f& _center);
 	void SetExtrinsic(const Eigen::Matrix3f& R, const Eigen::Vector3f& T);

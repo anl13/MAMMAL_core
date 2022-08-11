@@ -338,9 +338,6 @@ void Renderer::InitShader()
 	colorShaderML = SimpleShader(m_shaderFolder + "/color_v.shader",
 		m_shaderFolder + "/color_f_multilight.shader"); 
 
-	xrayShader = SimpleShader(m_shaderFolder + "/xray_v.shader",
-		m_shaderFolder + "/xray_f.shader"); 
-
 	faceindexShader = SimpleShader(m_shaderFolder + "/faceindex_v.shader",
 		m_shaderFolder + "/faceindex_f.shader"); 
 
@@ -411,12 +408,6 @@ void Renderer::Draw(std::string type)
 				else
 					glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 				colorObjs[i]->DrawWhole(colorShader);
-
-				//xrayShader.Use(); 
-				//s_camViewer.ConfigShader(xrayShader); 
-				//xrayShader.SetVec3("light_pos", lightPos); 
-				//xrayShader.SetFloat("far_plane", RENDER_FAR_PLANE);
-				//colorObjs[i]->DrawWhole(xrayShader); 
 			}
 		}
 		else if (type == "mask")
@@ -679,70 +670,8 @@ void Renderer::clearSkels()
 	skels.clear();
 }
 
-void Renderer::createScene(std::string conf_projectFolder)
-{
-	//Mesh obj;
-	//obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
-	////obj = ballMesh; 
-	//RenderObjectTexture* p_scene = new RenderObjectTexture();
-	//p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_black_large.png");
-	//p_scene->SetFaces(obj.faces_v_vec);
-	//p_scene->SetVertices(obj.vertices_vec);
-	//p_scene->SetNormal(obj.normals_vec, 2);
-	//p_scene->SetTexcoords(obj.textures_vec, 1);
-	//p_scene->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	//p_scene->isMultiLight = false; 
-	//texObjs.push_back(p_scene);
-	
-	createPlane(conf_projectFolder); 
-
-	//Mesh obj2;
-	//obj2.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part1.obj");
-	//RenderObjectTexture* p_scene2 = new RenderObjectTexture();
-	//p_scene2->SetTexcoords(obj2.textures_vec, 1);
-	//p_scene2->SetNormal(obj2.normals_vec, 2);
-	//p_scene2->SetVertices(obj2.vertices_vec);
-	//p_scene2->SetFaces(obj2.faces_v_vec);
-	//p_scene2->SetTexture(conf_projectFolder + "/render/data/chessboard_bk.png");
-	//p_scene2->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	//texObjs.push_back(p_scene2);
-
-	Mesh obj2;
-	obj2.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part1.obj");
-	RenderObjectColor * p_scene2 = new RenderObjectColor();
-	p_scene2->SetVertices(obj2.vertices_vec);
-	p_scene2->SetNormal(obj2.normals_vec);
-	p_scene2->SetFaces(obj2.faces_v_vec);
-	p_scene2->SetColor(Eigen::Vector3f(0.9, 0.9, 0.85));
-	p_scene2->isMultiLight = true; 
-	colorObjs.push_back(p_scene2);
-
-	Mesh obj3;
-	obj3.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part2.obj");
-	RenderObjectColor * p_scene3 = new RenderObjectColor();
-	p_scene3->SetVertices(obj3.vertices_vec);
-	p_scene3->SetNormal(obj3.normals_vec);
-	p_scene3->SetFaces(obj3.faces_v_vec);
-	p_scene3->SetColor(Eigen::Vector3f(0.753, 0.753, 0.753));
-	p_scene3->isMultiLight = true; 
-	colorObjs.push_back(p_scene3);
-}
-
 void Renderer::createPlane(std::string conf_projectFolder, float scale)
 {
-	//Mesh obj;
-	//obj.Load(conf_projectFolder + "/data/calibdata/scene_model/manual_scene_part0.obj");
-	////obj = ballMesh; 
-	//RenderObjectTexture* p_scene = new RenderObjectTexture();
-	//p_scene->SetTexture(conf_projectFolder + "/render/data/chessboard_black_large.png");
-	//p_scene->SetFaces(obj.faces_v_vec);
-	//p_scene->SetVertices(obj.vertices_vec);
-	//p_scene->SetNormal(obj.normals_vec, 2);
-	//p_scene->SetTexcoords(obj.textures_vec, 1);
-	//p_scene->SetTransform({ 0.f, 0.f, 0.0f }, { 0.0f, 0.0f, 0.0f }, 1.0f);
-	//p_scene->isMultiLight = false;
-	//texObjs.push_back(p_scene);
-
 	std::vector<Eigen::Vector3f> vertices, colors;
 	std::vector<Eigen::Vector3u> faces;
 	readObjectWithColor(conf_projectFolder + "/render/data/obj_model/floor_z+_gray.obj", vertices, colors, faces);
@@ -798,7 +727,7 @@ void Renderer::createSceneDetailed(std::string conf_projectFolder, float scale, 
 	createPlane(conf_projectFolder, scale); 
 	for (int k = 2; k < 7; k++)
 	{
-		if (k == 4) continue; 
+		//if (k == 4) continue; 
 		std::stringstream ss;
 		ss << conf_projectFolder << "/render/data/obj_model/zhujuan_new_part" << k << ".obj";
 		Mesh obj(ss.str());
@@ -892,49 +821,6 @@ void Renderer::createSceneHalf2(std::string conf_projectFolder, float scale)
 		p_model->isMultiLight = false;
 		p_model->SetFaces(obj.faces_v_vec);
 		colorObjs.push_back(p_model);
-	}
-}
-
-void Renderer::createHikonCam(std::string projectFolder, const std::vector<Camera>& cams)
-{
-	std::vector<Eigen::Vector3f> colors = {
-		{0.71, 0.71, 0.71}, 
-	{0.465, 0.50, 0.564}, 
-	{0.07, 0.07, 0.07}, 
-	{0.07, 0.07, 0.07}
-	}; 
-	std::vector<Mesh> meshes; 
-	for (int k = 0; k < 4; k++)
-	{
-		std::stringstream ss; 
-		ss << projectFolder << "/render/data/obj_model/camera_big_resize_part" << k + 1 << ".obj"; 
-		Mesh model(ss.str()); 
-		for (int i = 0; i < model.vertex_num; i++) model.vertices_vec[i] *= 0.01; 
-		meshes.push_back(model); 
-	}
-
-	for (int camid = 0; camid < cams.size(); camid++)
-	{
-		Camera cam = cams[camid]; 
-		Eigen::Matrix3f R = cam.inv_R; 
-		Eigen::Vector3f T = -R * cam.T; 
-		Eigen::Vector3f euler = Mat2Euler(R); 
-		euler(0) = 0; euler(2) = 0; 
-		Eigen::Matrix3f R_2 = EulerToRotRad(euler); 
-		for (int part = 0; part < 4; part++)
-		{
-			Mesh local = meshes[part];
-			for (int i = 0; i < local.vertices_vec.size(); i++)
-			{
-				local.vertices_vec[i] = R_2 * local.vertices_vec[i] + T;
-			}
-			RenderObjectColor * p_camera = new RenderObjectColor();
-			p_camera->SetVertices(local.vertices_vec);
-			p_camera->SetFaces(local.faces_v_vec);
-			p_camera->SetNormal(local.normals_vec);
-			p_camera->SetColor(colors[part]);
-			colorObjs.push_back(p_camera);
-		}
 	}
 }
 

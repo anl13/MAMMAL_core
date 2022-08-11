@@ -1,7 +1,6 @@
 {
-  "project_dir":  "H:/",
-  "posesolver_config": "configs/config_20190704_foreval.json",
+  "posesolver_config": "configs/config_BamaPig3D_main.json",
   "pig_config": "articulation/PIG_model.json",
-  "current_frame_id": 750,
+  "current_frame_id": 0,
   "current_pig_id": 0
 }

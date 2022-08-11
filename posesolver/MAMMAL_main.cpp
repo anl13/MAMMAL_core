@@ -1,22 +1,23 @@
-#include <json/json.h> 
 #include <sstream> 
 #include <vector>
 #include <iostream> 
 #include <fstream> 
+#include <filesystem>
+#include <vector_functions.hpp>
 #include <Eigen/Eigen> 
 #include <opencv2/opencv.hpp>
-#include <boost/filesystem.hpp>
-#include <filesystem>
+#include <json/json.h> 
 
 #include "../utils/colorterminal.h" 
 #include "../utils/timer_util.h"
-#include "framesolver.h"
 #include "../utils/mesh.h"
-#include <vector_functions.hpp>
-#include "main.h"
 #include "../utils/image_utils_gpu.h"
 #include "../utils/image_utils.h" 
 #include "../utils/show_gpu_param.h"
+#include "../utils/definitions.h"
+
+#include "framesolver.h"
+#include "main.h"
 
 std::string get_config(std::string name)
 {
@@ -43,7 +44,7 @@ std::string get_config(std::string name)
 int run_MAMMAL_main()
 {
 	show_gpu_param();
-	std::string conf_projectFolder = get_parent_folder();
+	std::string conf_projectFolder = PROJECT_FOLDER;
 	std::cout << "project folder: " << conf_projectFolder << std::endl;
 	SkelTopology topo = getSkelTopoByType("UNIV");
 	std::vector<Eigen::Vector3f> m_CM = getColorMapEigenF("anliang_paper");
@@ -152,7 +153,7 @@ int run_MAMMAL_main()
 
 		if (frame.m_use_triangulation_only)
 		{
-			frame.DARKOV_Step1_setsource();
+			frame.MAMMAL_Step1_setsource();
 			frame.DirectTriangulation();
 			frame.save_skels(); 
 
@@ -174,26 +175,26 @@ int run_MAMMAL_main()
 		if (frame.m_try_load_anno && frame.try_load_anno())
 		{
 			frame.save_parametric_data(); 
-			frame.DARKOV_Step5_postprocess();
+			frame.MAMMAL_Step5_postprocess();
 		}
 		else if (frameid == start && frame.m_use_init_pose)
 		{
 			frame.read_parametric_data(); 
-			frame.DARKOV_Step5_postprocess();
+			frame.MAMMAL_Step5_postprocess();
 		}
 		// pipeline 3 
 		else
 		{
-			frame.DARKOV_Step1_setsource();
+			frame.MAMMAL_Step1_setsource();
 			if (frameid == start && frame.m_use_init_anchor)
 			{
 				for (int i = 0; i < 4; i++)
 				{
-					frame.DARKOV_Step2_searchanchor(i);
+					frame.MAMMAL_Step2_searchanchor(i);
 					frame.saveAnchors(frame.m_result_folder + "/anchor_state/");
-					frame.DARKOV_Step2_optimanchor(i);
+					frame.MAMMAL_Step2_optimanchor(i);
 
-					//frame.DARKOV_Step2_loadanchor();
+					//frame.MAMMAL_Step2_loadanchor();
 				}
 			}
 			else
@@ -207,17 +208,17 @@ int run_MAMMAL_main()
 
 			if (frameid == start)
 			{
-				frame.DARKOV_Step4_fitrawsource(frame.m_initialization_iters);
+				frame.MAMMAL_Step4_fitrawsource(frame.m_initialization_iters);
 			}
 			else 
 			{
-				frame.DARKOV_Step4_fitrawsource(frame.m_solve_sil_iters);
-				frame.DARKOV_Step3_reassoc_type2();
-				frame.DARKOV_Step4_fitreassoc(frame.m_solve_sil_iters_2nd_phase);
+				frame.MAMMAL_Step4_fitrawsource(frame.m_solve_sil_iters);
+				frame.MAMMAL_Step3_reassoc_type2();
+				frame.MAMMAL_Step4_fitreassoc(frame.m_solve_sil_iters_2nd_phase);
 			}
 
 
-			frame.DARKOV_Step5_postprocess();
+			frame.MAMMAL_Step5_postprocess();
 			frame.save_parametric_data();
 		}
 		float time3 = tt.Elapsed() / 1000.0; 

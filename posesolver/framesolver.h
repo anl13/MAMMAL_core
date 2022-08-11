@@ -17,7 +17,6 @@ public:
 	void fetchGtData(); 
 	void compute_silhouette_loss(); 
 	void compute_2dskel_loss(); 
-	void compute_2dskel_loss_proj(); 
 	vector<vector<Eigen::Vector3f>> load_gt_joint23(std::string folder, int frameid);
 	vector<vector<vector<Eigen::Vector3f> > > m_gt_keypoints_undist; // keypoint: [camid, pigid, jointid]
 	vector<vector<vector<vector<Eigen::Vector2f> > > > m_gt_masksUndist;
@@ -132,19 +131,18 @@ public:
 		const std::vector<std::vector<Eigen::Vector3f> >& ref);
 	
 	// pipeline controlling 
-	void DARKOV_Step0_topdownassoc(bool isLoad); // matching by tracking / puretracking 
-	void DARKOV_Step1_setsource();  // set source data to solvers 
-	void DARKOV_Step2_loadanchor(); // only load and set anchor id, without any fitting or align 
-	void DARKOV_Step2_searchanchor(int pid); 
-	void DARKOV_Step2_optimanchor(int pid); 
-	void DARKOV_Step3_reassoc_type2(); // type2 contains three small steps: find tracked, assign untracked, solve mix-up
-	void DARKOV_Step3_reassoc_type1(); 
-	void DARKOV_Step4_fitrawsource(int _maxIters);  // fit model to raw source 
-	void DARKOV_Step4_fitreassoc(int _maxIters);    // fit model to reassociated keypoints and silhouettes 
-	void DARKOV_Step5_postprocess();   // some postprocessing step 
+	void MAMMAL_Step0_topdownassoc(bool isLoad); // matching by tracking / puretracking 
+	void MAMMAL_Step1_setsource();  // set source data to solvers 
+	void MAMMAL_Step2_loadanchor(); // only load and set anchor id, without any fitting or align 
+	void MAMMAL_Step2_searchanchor(int pid); 
+	void MAMMAL_Step2_optimanchor(int pid); 
+	void MAMMAL_Step3_reassoc_type2(); // type2 contains three small steps: find tracked, assign untracked, solve mix-up
+	void MAMMAL_Step3_reassoc_type1(); 
+	void MAMMAL_Step4_fitrawsource(int _maxIters);  // fit model to raw source 
+	void MAMMAL_Step4_fitreassoc(int _maxIters);    // fit model to reassociated keypoints and silhouettes 
+	void MAMMAL_Step5_postprocess();   // some postprocessing step 
 	
 	// 20210418 use triangulation only; 
-	// all steps are here. 
 	void DirectTriangulation(); 
 
 

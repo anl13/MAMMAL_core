@@ -80,9 +80,6 @@
     <ClCompile Include="shader_file.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="test_nano.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\mesh.cpp">
       <Filter>other</Filter>
     </ClCompile>
@@ -90,15 +87,6 @@
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\articulation\pigmodeldevice.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\VAE\decoder.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\VAE\layers.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\node_graph.cpp">
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\image_utils_gpu.cpp">
@@ -137,9 +125,6 @@
     <ClCompile Include="..\render\shader.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\GMM\gmm.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\Hungarian.cpp">
       <Filter>other</Filter>
     </ClCompile>
@@ -170,11 +155,8 @@
     <ClCompile Include="..\posesolver\framesolver_pipeline.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\tracking\sift_matcher.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\utils\fileoperation.cpp">
-      <Filter>other</Filter>
+    <ClCompile Include="test_nano.cpp">
+      <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

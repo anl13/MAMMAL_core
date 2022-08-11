@@ -69,11 +69,11 @@
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
     <Import Project="..\props\eigen.props" />
-    <Import Project="..\props\boost1.65.props" />
     <Import Project="..\props\json.props" />
     <Import Project="..\props\ceres.props" />
     <Import Project="..\props\gl-pcl.props" />
     <Import Project="..\props\opencv450.props" />
+    <Import Project="..\props\boost1.79.0.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup />
@@ -85,6 +85,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -148,18 +149,6 @@
   <ItemGroup>
     <CudaCompile Include="cuda_utils_render.cu" />
     <CudaCompile Include="test_kernel.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="shader\color_f.shader" />
-    <None Include="shader\color_v.shader" />
-    <None Include="shader\mask_f.shader" />
-    <None Include="shader\mask_v.shader" />
-    <None Include="shader\mesh_f.shader" />
-    <None Include="shader\mesh_v.shader" />
-    <None Include="shader\position_f.shader" />
-    <None Include="shader\position_v.shader" />
-    <None Include="shader\texture_f.shader" />
-    <None Include="shader\texture_v.shader" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

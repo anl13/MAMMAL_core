@@ -30,19 +30,7 @@
     <ClCompile Include="matching.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="tracking.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="run_pose.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="run_pose_render.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="visualize_seq.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="mce\AdjacencyListAlgorithm.cpp">
@@ -66,22 +54,13 @@
     <ClCompile Include="framesolver_pipeline.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="global_config.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\camera.cpp">
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\render\camviewer.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\fileoperation.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\geometry.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\GMM\gmm.cpp">
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\Hungarian.cpp">
@@ -123,186 +102,24 @@
     <ClCompile Include="..\utils\skel.cpp">
       <Filter>other</Filter>
     </ClCompile>
-    <ClCompile Include="run_demo.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="run_demo_result.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="run_eval_seq.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="framesolver_eval.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="for_nm.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="MAMMAL_main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="run_eval_sil.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="run_pose_smooth.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="tracking.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\articulation\artist_config.json">
-      <Filter>other</Filter>
-    </None>
-    <None Include="..\configs\config_scratch_D4.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_7.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191004.json">
-      <Filter>资源文件</Filter>
-    </None>
     <None Include="..\configs\main_config.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191005.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_scratch_D9.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_scratch_C4.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_seq1.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_seq2.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191003_stand.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191001_stand.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191002_stand.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191003_cwz1.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191001_standWT.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191003_stand2.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191003_socialdemo.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191003_socialdemo2.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191005_hour13.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_seq1-old.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_jointangle_0823.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190922_feed.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190825_feed.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190824_motion.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190823_feed.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190705_feed.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191007_morning.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20191003_hour9.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20210321_motion.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval_tri.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval_tri_5views.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval_no_reassoc.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval_5views.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval_no_sil.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20210321_motion2.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190703_motion.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval_3views.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval_tri_3views.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_fordemo.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190703_motion2.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_demo1.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_gt.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_newf1_batch4_0928.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_newf1_batch5_2.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190703_motion4.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190703_motion5.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190704_foreval-seq.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190703_motion_new.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190703_motion2_new.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190703_motion3_new.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_20190705_feed10.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_demo6.json">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="..\configs\config_demo2.json">
       <Filter>资源文件</Filter>
     </None>
     <None Include="..\configs\config_BamaPig3D_main.json">
@@ -313,7 +130,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\render\cuda_utils_render.cu" />
     <CudaCompile Include="..\utils\image_utils_gpu.cu">
       <Filter>other</Filter>
     </CudaCompile>
@@ -326,6 +142,9 @@
     <CudaCompile Include="..\utils\gpuutils.cu">
       <Filter>other</Filter>
     </CudaCompile>
+    <CudaCompile Include="..\render\cuda_utils_render.cu">
+      <Filter>other</Filter>
+    </CudaCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="clusterclique.h">
@@ -335,9 +154,6 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="matching.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="tracking.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="main.h">
@@ -361,9 +177,6 @@
     <ClInclude Include="scenedata.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="global_config.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\articulation\pigmodeldevice.h">
       <Filter>other</Filter>
     </ClInclude>
@@ -372,6 +185,12 @@
     </ClInclude>
     <ClInclude Include="..\articulation\vector_operations.hpp">
       <Filter>other</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\definitions.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="tracking.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

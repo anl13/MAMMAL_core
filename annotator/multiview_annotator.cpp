@@ -1,4 +1,3 @@
-#include "main.h"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -8,16 +7,20 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <nanogui/nanogui.h>
+
 #include "../utils/mesh.h"
 #include "../utils/image_utils.h"
 #include "../utils/camera.h"
 #include "../utils/geometry.h"
 #include "../utils/math_utils.h"
-#include "NanoRenderer.h"
+#include "../utils/image_utils_gpu.h"
+#include "../utils/definitions.h"
 #include "../articulation/pigmodeldevice.h"
 #include "../posesolver/framesolver.h"
-#include "../utils/image_utils_gpu.h"
+
+#include "main.h"
 #include "anno_utils.h"
+#include "NanoRenderer.h"
 
 Eigen::Vector2f pack_backward(Eigen::Vector2f p, int& camid, int W = 256, int H = 256)
 {
@@ -96,8 +99,7 @@ void readStateFile(std::string state_file, Eigen::Vector3f& translation, float& 
 int multiview_annotator()
 {
 	AnnoConfig config;
-	std::string projectParentDir = config.project_dir;
-	std::string projectDir = projectParentDir + "/MAMMAL_core/"; 
+	std::string projectDir = PROJECT_FOLDER; 
 	std::vector<float4> colormap = getColorMapFloat4("anliang_render");
 	std::vector<Eigen::Vector3i> colormapeigen = getColorMapEigen("anliang_render");
     /// read frame data 
@@ -117,7 +119,7 @@ int multiview_annotator()
 
 	/// read smal model 
 	Mesh obj;
-	obj.Load(projectDir + "data/artist_model_sym3/manual_artist_sym.obj");
+	obj.Load(projectDir + "data/PIG_model/PIG.obj");
 	MeshFloat4 objfloat4(obj);
 
 	std::vector<Camera> cams = data_loader.get_cameras();
@@ -146,7 +148,7 @@ int multiview_annotator()
 	smal_model->SetBuffer("normals", objfloat4.normals);
 	smal_model->SetBuffer("incolor", colors_float4);
 
-	std::string pig_conf = projectDir + "articulation/artist_config_sym.json";
+	std::string pig_conf = projectDir + "articulation/PIG_model.json";
 	PigModelDevice pigmodel(pig_conf);
 	pigmodel.SetPose(solvers[0]->GetPose());
 	pigmodel.SetScale(solvers[0]->GetScale());
@@ -177,7 +179,7 @@ int multiview_annotator()
 	// scene
 	// -- part1
 	Mesh planeobj;
-	planeobj.Load( projectDir + "data/calibdata/scene_model/manual_scene_part0.obj");
+	planeobj.Load( projectDir + "render/data/obj_model/manual_scene_part0.obj");
 	MeshFloat4 boxfloat4(planeobj);
 	// create a renderObject, you need to specify which shader you want to use, and set corresponding buffers in the shader
 	// by using the straightforward interfaces provided. 
@@ -194,7 +196,7 @@ int multiview_annotator()
 		nanogui::Vector2i(tex0Image.cols, tex0Image.rows), tex0Image.data);
 	// -- part2
 	Mesh obj2;
-	obj2.Load(projectDir + "data/calibdata/scene_model/manual_scene_part1.obj");
+	obj2.Load(projectDir + "render/data/obj_model/manual_scene_part1.obj");
 	MeshFloat4 obj2float4(obj2);
 	auto part1_model = renderer.CreateRenderObject("part1", vs_phong_vertex_color, fs_phong_vertex_color);
 	part1_model->SetIndices(obj2float4.indices);
@@ -205,7 +207,7 @@ int multiview_annotator()
 	part1_model->SetBuffer("incolor", part1_colors);
 	// -- part3
 	Mesh obj3;
-	obj3.Load(projectDir + "data/calibdata/scene_model/manual_scene_part2.obj");
+	obj3.Load(projectDir + "render/data/obj_model/manual_scene_part2.obj");
 	MeshFloat4 obj3float4(obj3);
 	auto part2_model = renderer.CreateRenderObject("part1", vs_phong_vertex_color, fs_phong_vertex_color);
 	part2_model->SetIndices(obj3float4.indices);

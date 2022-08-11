@@ -48,16 +48,7 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\utils\node_graph.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
     <ClCompile Include="..\utils\volume.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\VAE\decoder.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\VAE\layers.cpp">
       <Filter>other</Filter>
     </ClCompile>
     <ClCompile Include="test_render_model.cpp">
@@ -81,20 +72,8 @@
     <ClCompile Include="pigsolverdevice_debug.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="..\GMM\gmm.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="..\posesolver\framedata.cpp">
-      <Filter>other</Filter>
-    </ClCompile>
-    <ClCompile Include="test_visdesigned.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\utils\nanoflann.hpp">
-      <Filter>other</Filter>
-    </ClInclude>
     <ClInclude Include="pigmodeldevice.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -121,13 +100,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="pigmodel_config.json" />
-    <None Include="smal_config.json" />
-    <None Include="smal2_config.json" />
-    <None Include="artist_config.json" />
-    <None Include="artist_config_sym.json" />
-  </ItemGroup>
-  <ItemGroup>
     <CudaCompile Include="pigmodeldevice.cu">
       <Filter>源文件</Filter>
     </CudaCompile>
@@ -143,5 +115,8 @@
     <CudaCompile Include="..\utils\gpuutils.cu">
       <Filter>other</Filter>
     </CudaCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="PIG_model.json" />
   </ItemGroup>
 </Project>

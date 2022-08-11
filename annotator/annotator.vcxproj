@@ -137,7 +137,6 @@
     <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp" />
-    <ClCompile Include="..\GMM\gmm.cpp" />
     <ClCompile Include="..\posesolver\clusterclique.cpp" />
     <ClCompile Include="..\posesolver\framedata.cpp" />
     <ClCompile Include="..\posesolver\framesolver.cpp" />
@@ -154,19 +153,14 @@
     <ClCompile Include="..\render\render_object.cpp" />
     <ClCompile Include="..\render\render_utils.cpp" />
     <ClCompile Include="..\render\shader.cpp" />
-    <ClCompile Include="..\tracking\sift_matcher.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
-    <ClCompile Include="..\utils\fileoperation.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
     <ClCompile Include="..\utils\image_utils_gpu.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
     <ClCompile Include="..\utils\mesh.cpp" />
-    <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\skel.cpp" />
-    <ClCompile Include="..\VAE\decoder.cpp" />
-    <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="annotator.cpp" />
     <ClCompile Include="anno_utils.cpp" />
     <ClCompile Include="ArcballCanvas.cpp" />

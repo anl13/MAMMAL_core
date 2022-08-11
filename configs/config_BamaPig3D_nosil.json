@@ -21,7 +21,7 @@
   "box_expand_ratio": 0.01,
   "skel_type": "UNIV",
   "match_alg": "match", // "match" or "track", default "match"
-  "pig_config": "H:/MAMMAL_core/articulation/artist_config_sym.json",
+  "pig_config": "H:/MAMMAL_core/articulation/PIG_model.json",
   "annotation_folder": "I:/results/BamaPig3D_nosil/annotation/",
   "result_folder": "I:/results/BamaPig3D_nosil/",
   "use_gpu": true,

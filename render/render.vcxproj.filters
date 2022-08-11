@@ -89,36 +89,4 @@
       <Filter>源文件</Filter>
     </CudaCompile>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="shader\color_f.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\color_v.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\mesh_f.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\mesh_v.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\position_f.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\position_v.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\texture_f.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\texture_v.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\mask_f.shader">
-      <Filter>other</Filter>
-    </None>
-    <None Include="shader\mask_v.shader">
-      <Filter>other</Filter>
-    </None>
-  </ItemGroup>
 </Project>

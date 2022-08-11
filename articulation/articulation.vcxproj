@@ -123,8 +123,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\GMM\gmm.cpp" />
-    <ClCompile Include="..\posesolver\framedata.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\renderer.cpp" />
     <ClCompile Include="..\render\render_object.cpp" />
@@ -136,21 +134,16 @@
     <ClCompile Include="..\utils\image_utils_gpu.cpp" />
     <ClCompile Include="..\utils\math_utils.cpp" />
     <ClCompile Include="..\utils\mesh.cpp" />
-    <ClCompile Include="..\utils\node_graph.cpp" />
     <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="..\utils\volume.cpp" />
-    <ClCompile Include="..\VAE\decoder.cpp" />
-    <ClCompile Include="..\VAE\layers.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="pigmodeldevice.cpp" />
     <ClCompile Include="pigsolverdevice.cpp" />
     <ClCompile Include="pigsolverdevice_debug.cpp" />
     <ClCompile Include="test_render_model.cpp" />
-    <ClCompile Include="test_visdesigned.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\utils\gpuutils.h" />
-    <ClInclude Include="..\utils\nanoflann.hpp" />
     <ClInclude Include="..\utils\safe_call.hpp" />
     <ClInclude Include="..\utils\timer_util.h" />
     <ClInclude Include="common.h" />
@@ -160,11 +153,7 @@
     <ClInclude Include="vector_operations.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="artist_config.json" />
-    <None Include="artist_config_sym.json" />
-    <None Include="pigmodel_config.json" />
-    <None Include="smal2_config.json" />
-    <None Include="smal_config.json" />
+    <None Include="PIG_model.json" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\render\cuda_utils_render.cu" />

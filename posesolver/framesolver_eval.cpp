@@ -1,12 +1,10 @@
+#include "../utils/definitions.h"
 #include "framesolver.h" 
 
 
 // 2021.10.1
 void FrameSolver::fetchGtData()
 {
-	// E:\evaluation_dataset\part1\dataset_process\output_label\0
-	// read m_det_undist 
-
 	// keypoint: [camid, pigid, jointid]
 	m_gt_keypoints_undist.clear();
 	m_gt_keypoints_undist.resize(m_camNum);
@@ -27,7 +25,7 @@ void FrameSolver::fetchGtData()
 	{
 		int camid = m_camids[i];
 		std::stringstream ss;
-		ss << m_sequence << "/label_images/cam" << camid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
+		ss << BamaPig3D_PATH << "/label_images/cam" << camid << "/" << std::setw(6) << std::setfill('0') << m_frameid << ".json";
 		std::string labelpath = ss.str();
 		Json::Value root;
 		Json::CharReaderBuilder rbuilder;
@@ -307,93 +305,6 @@ void FrameSolver::compute_silhouette_loss()
 
 }
 
-void FrameSolver::compute_2dskel_loss()
-{
-	Eigen::MatrixXf raw_e(40, 23);
-	Eigen::MatrixXf re_e(40, 23); 
-	raw_e.setZero(); 
-	re_e.setZero(); 
-	Eigen::MatrixXf raw_conf(40, 23); 
-	Eigen::MatrixXf re_conf(40, 23); 
-	raw_conf.setZero(); 
-	re_conf.setZero(); 
-	for (int pid = 0; pid < 4; pid++)
-	{
-		int rightid = m_pig_names[pid]; 
-		for (int camid = 0; camid < 10; camid++)
-		{
-			DetInstance det; 
-			for (int k = 0; k < m_matched[pid].view_ids.size(); k++)
-			{
-				if (camid == m_matched[pid].view_ids[k])
-				{
-					det = m_matched[pid].dets[k]; 
-					break; 
-				}
-			}
-			int index = rightid * 10 + camid; 
-			for (int jid = 0; jid < 23; jid++)
-			{
-				Eigen::Vector3f label = m_gt_keypoints_undist[camid][rightid][jid]; 
-				Eigen::Vector3f raw = Eigen::Vector3f::Zero(); 
-				if (det.keypoints.size() > 0)
-					raw = det.keypoints[jid]; 
-				Eigen::Vector3f reassoc = m_keypoints_associated[pid][camid][jid];
-				raw_conf(index, jid) = raw(2); 
-				re_conf(index, jid) = reassoc(2); 
-				if (label.norm() == 0)
-				{
-					if (raw.norm() == 0)
-						raw_e(index, jid) = -1;
-					else
-						raw_e(index, jid) = -3; 
-					if (reassoc.norm() == 0)
-						re_e(index, jid) = -1;
-					else
-						re_e(index, jid) = -3;
-				}
-				else
-				{
-					if (raw.norm() == 0) 
-						raw_e(index, jid) = -2; 
-					else
-					{
-						raw_e(index, jid) = (raw - label).segment<2>(0).norm(); 
-					}
-					if (reassoc.norm() == 0) 
-						re_e(index, jid) = -2;
-					else
-						re_e(index, jid) =
-						(reassoc - label).segment<2>(0).norm(); 
-				}
-			}
-		}
-	}
-	std::stringstream ss;
-	ss << m_result_folder << "/eval_skel/raw_" << m_frameid << ".txt"; 
-	std::ofstream os(ss.str()); 
-	os << raw_e;
-	os.close(); 
-
-	std::stringstream ss1;
-	ss1 << m_result_folder << "/eval_skel/reassoc_" << m_frameid << ".txt";
-	std::ofstream os1(ss1.str());
-	os1 << re_e;
-	os1.close();
-
-	std::stringstream ss2;
-	ss2 << m_result_folder << "/eval_skel/raw_conf_" << m_frameid << ".txt";
-	std::ofstream os2(ss2.str());
-	os2 << raw_conf;
-	os2.close();
-
-	std::stringstream ss3;
-	ss3 << m_result_folder << "/eval_skel/reassoc_conf_" << m_frameid << ".txt";
-	std::ofstream os3(ss3.str());
-	os3 << re_conf;
-	os3.close();
-}
-
 vector<vector<Eigen::Vector3f>> FrameSolver::load_gt_joint23(std::string folder, int frameid)
 {
 	vector<vector<Eigen::Vector3f> > skels;
@@ -420,112 +331,4 @@ vector<vector<Eigen::Vector3f>> FrameSolver::load_gt_joint23(std::string folder,
 		is.close();
 	}
 	return skels;
-}
-
-void FrameSolver::compute_2dskel_loss_proj()
-{
-	// project gt 3d skel to 2d 
-	std::string gt_folder = "E:/evaluation_dataset/part1/dataset_process/label3d/";
-	m_gt_keypoints_3d = load_gt_joint23(gt_folder, m_frameid);
-	std::vector<std::vector<std::vector<Eigen::Vector3f> > > gt_projs; 
-	gt_projs.resize(4); 
-	for (int pid = 0; pid < 4; pid++)
-	{
-		gt_projs[pid].resize(10); 
-		for (int camid = 0; camid < 10; camid++)
-		{
-			gt_projs[pid][camid].resize(23, Eigen::Vector3f::Zero()); 
-			for (int kpi = 0; kpi < 23; kpi++)
-			{
-				if (m_gt_keypoints_3d[pid][kpi].norm() == 0) continue; 
-				Eigen::Vector3f p = m_gt_keypoints_3d[pid][kpi];
-				gt_projs[pid][camid][kpi] = project(m_camsUndist[camid], p); 
-			}
-		}
-	}
-
-	// compute 
-	Eigen::MatrixXf raw_e(40, 23);
-	Eigen::MatrixXf re_e(40, 23);
-	raw_e.setZero();
-	re_e.setZero();
-	Eigen::MatrixXf raw_conf(40, 23);
-	Eigen::MatrixXf re_conf(40, 23);
-	raw_conf.setZero();
-	re_conf.setZero();
-	for (int pid = 0; pid < 4; pid++)
-	{
-		int rightid = m_pig_names[pid];
-		for (int camid = 0; camid < 10; camid++)
-		{
-			DetInstance det;
-			for (int k = 0; k < m_matched[pid].view_ids.size(); k++)
-			{
-				if (camid == m_matched[pid].view_ids[k])
-				{
-					det = m_matched[pid].dets[k];
-					break;
-				}
-			}
-			int index = rightid * 10 + camid;
-			for (int jid = 0; jid < 23; jid++)
-			{
-				Eigen::Vector3f label = gt_projs[rightid][camid][jid];
-				Eigen::Vector3f raw = Eigen::Vector3f::Zero();
-				if (det.keypoints.size() > 0)
-					raw = det.keypoints[jid];
-				Eigen::Vector3f reassoc = m_keypoints_associated[pid][camid][jid];
-				raw_conf(index, jid) = raw(2);
-				re_conf(index, jid) = reassoc(2);
-				if (label.norm() == 0)
-				{
-					if (raw.norm() == 0)
-						raw_e(index, jid) = -1;
-					else
-						raw_e(index, jid) = -3;
-					if (reassoc.norm() == 0)
-						re_e(index, jid) = -1;
-					else
-						re_e(index, jid) = -3;
-				}
-				else
-				{
-					if (raw.norm() == 0)
-						raw_e(index, jid) = -2;
-					else
-					{
-						raw_e(index, jid) = (raw - label).segment<2>(0).norm();
-					}
-					if (reassoc.norm() == 0)
-						re_e(index, jid) = -2;
-					else
-						re_e(index, jid) =
-						(reassoc - label).segment<2>(0).norm();
-				}
-			}
-		}
-	}
-	std::stringstream ss;
-	ss << m_result_folder << "/eval_skel_proj_tri/raw_" << m_frameid << ".txt";
-	std::ofstream os(ss.str());
-	os << raw_e;
-	os.close();
-
-	std::stringstream ss1;
-	ss1 << m_result_folder << "/eval_skel_proj_tri/reassoc_" << m_frameid << ".txt";
-	std::ofstream os1(ss1.str());
-	os1 << re_e;
-	os1.close();
-
-	std::stringstream ss2;
-	ss2 << m_result_folder << "/eval_skel_proj_tri/raw_conf_" << m_frameid << ".txt";
-	std::ofstream os2(ss2.str());
-	os2 << raw_conf;
-	os2.close();
-
-	std::stringstream ss3;
-	ss3 << m_result_folder << "/eval_skel_proj_tri/reassoc_conf_" << m_frameid << ".txt";
-	std::ofstream os3(ss3.str());
-	os3 << re_conf;
-	os3.close();
 }

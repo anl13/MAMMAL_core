@@ -1,11 +1,11 @@
-#include "framesolver.h"
-
-#include "matching.h"
-#include "tracking.h"
-#include "../utils/timer_util.h" 
-
 #include <filesystem>
 #include <json/writer.h> 
+
+#include "../utils/timer_util.h" 
+
+#include "framesolver.h"
+#include "matching.h"
+#include "tracking.h"
 
 //#define VIS_ASSOC_STEP 
 //#define DEBUG_TRACK
@@ -1236,16 +1236,16 @@ void FrameSolver::saveAnchors(std::string folder)
 
 void FrameSolver::loadAnchors(std::string folder, bool andsolve)
 {
-	DARKOV_Step1_setsource(); 
-	DARKOV_Step2_loadanchor(); 
+	MAMMAL_Step1_setsource(); 
+	MAMMAL_Step2_loadanchor(); 
 
 	if (andsolve)
 	{
-		//DARKOV_Step2_optimanchor(); 
-		DARKOV_Step4_fitrawsource(m_initialization_iters); 
-		//DARKOV_Step3_reassoc_type2(); 
-		//DARKOV_Step4_fitreassoc(); 
-		DARKOV_Step5_postprocess(); 
+		//MAMMAL_Step2_optimanchor(); 
+		MAMMAL_Step4_fitrawsource(m_initialization_iters); 
+		//MAMMAL_Step3_reassoc_type2(); 
+		//MAMMAL_Step4_fitreassoc(); 
+		MAMMAL_Step5_postprocess(); 
 	}
 }
 

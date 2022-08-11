@@ -8,6 +8,10 @@
 
 #include "../utils/skel.h"
 
+/*
+class SceneData: 
+Read scene mask of each camera view, which is useful for accelerating optimizing with better silhouette checking. 
+*/
 class SceneData {
 public: 
 	SceneData(std::string camfolder, 

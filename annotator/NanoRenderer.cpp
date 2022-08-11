@@ -447,7 +447,7 @@ void NanoRenderer::Init(const int& window_width, const int& window_height,
 
 	gui->add_group("Actions");
 	gui->add_button("Read Original", [this]() { m_state_read = true; })
-		->set_tooltip("Load fitted result from H:/pig_result_debug.");
+		->set_tooltip("Load fitted result from YOUR_RESULT_FOLDER/state/.");
 	
 	gui->add_button("Save State", [this]() {
 		m_state_save_state = true; 

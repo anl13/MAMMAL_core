@@ -27,12 +27,6 @@
     <ClCompile Include="math_utils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="volume.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="test_main.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="mesh.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -59,25 +53,13 @@
     <ClInclude Include="image_utils.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="kdtree.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="math_utils.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="nanoflann.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="safe_call.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="timer_util.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="volume.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="test_main.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="mesh.h">

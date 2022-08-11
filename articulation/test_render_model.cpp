@@ -1,6 +1,7 @@
 #include <iostream> 
 #include <fstream> 
 #include <sstream> 
+#include <filesystem>
 #include <io.h> 
 #include <process.h> 
 
@@ -10,20 +11,16 @@
 #include "../utils/camera.h"
 #include "../utils/math_utils.h" 
 #include "../utils/image_utils.h" 
+#include "../utils/definitions.h" 
+#include "../utils/mesh.h"
+#include "../utils/timer_util.h"
 
 #include "pigmodeldevice.h" 
 #include "pigsolverdevice.h" 
-#include "../utils/mesh.h"
 
 #include "test_main.h"
-#include "../utils/timer_util.h"
-#include <filesystem>
 
-/// ATTENTION! 
-// Change this pre-defined folder to your own project folder. 
-#define PROJECT_FOLDER "H:/MAMMAL_core"
-
-// This function is used for generating demonstration of the PIG model (Paper Fig. 1c) 
+// This function is used for generating demonstration of the PIG model (Paper Fig. 1b) 
 // Also, you can get some basic usage of the PIG model, e.g., how to load it, how to render it, how to access vertices and joints, 
 //     how to regress keypoints. 
 // Rendered images are saved in "PROJECT_FOLDER/articulation/tmp/" folder. Here, "PROJECT_FOLDER" is where you put your project in.
@@ -70,7 +67,7 @@ int render_mean_pose()
 	MeshEigen stickMeshEigen(stickMesh);
 
 	// load the PIG model data 
-	std::string pig_config = conf_projectFolder + "/articulation/artist_config_sym.json";
+	std::string pig_config = conf_projectFolder + "/articulation/PIG_model.json";
 	PigModelDevice pig(pig_config);
 	pig.UpdateVertices();
 	pig.UpdateNormalFinal();

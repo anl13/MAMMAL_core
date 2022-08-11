@@ -9,7 +9,5 @@ This file is used for testing the forward skinning pipeline.
 
 void main()
 {
-	//render_mean_pose(); 
-
-	visualize_artist_design(); 
+	render_mean_pose(); 
 }

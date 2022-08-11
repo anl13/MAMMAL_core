@@ -139,14 +139,12 @@
     <ClCompile Include="..\articulation\pigmodeldevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice.cpp" />
     <ClCompile Include="..\articulation\pigsolverdevice_debug.cpp" />
-    <ClCompile Include="..\GMM\gmm.cpp" />
     <ClCompile Include="..\render\camviewer.cpp" />
     <ClCompile Include="..\render\renderer.cpp" />
     <ClCompile Include="..\render\render_object.cpp" />
     <ClCompile Include="..\render\render_utils.cpp" />
     <ClCompile Include="..\render\shader.cpp" />
     <ClCompile Include="..\utils\camera.cpp" />
-    <ClCompile Include="..\utils\fileoperation.cpp" />
     <ClCompile Include="..\utils\geometry.cpp" />
     <ClCompile Include="..\utils\Hungarian.cpp" />
     <ClCompile Include="..\utils\image_utils.cpp" />
@@ -155,34 +153,26 @@
     <ClCompile Include="..\utils\mesh.cpp" />
     <ClCompile Include="..\utils\skel.cpp" />
     <ClCompile Include="clusterclique.cpp" />
-    <ClCompile Include="for_nm.cpp" />
     <ClCompile Include="framedata.cpp" />
     <ClCompile Include="framesolver.cpp" />
     <ClCompile Include="framesolver_eval.cpp" />
     <ClCompile Include="framesolver_pipeline.cpp" />
-    <ClCompile Include="global_config.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="matching.cpp" />
     <ClCompile Include="mce\AdjacencyListAlgorithm.cpp" />
     <ClCompile Include="mce\Algorithm.cpp" />
     <ClCompile Include="mce\MemoryManager.cpp" />
     <ClCompile Include="mce\Tools.cpp" />
-    <ClCompile Include="run_demo_result.cpp" />
-    <ClCompile Include="run_eval_seq.cpp" />
     <ClCompile Include="MAMMAL_main.cpp" />
-    <ClCompile Include="run_pose.cpp" />
-    <ClCompile Include="run_pose_render.cpp" />
+    <ClCompile Include="run_eval_sil.cpp" />
+    <ClCompile Include="run_pose_smooth.cpp" />
     <ClCompile Include="scenedata.cpp" />
     <ClCompile Include="tracking.cpp" />
-    <ClCompile Include="visualize_seq.cpp" />
-    <ClCompile Include="run_demo.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="..\articulation\pigmodeldevice.cu" />
     <CudaCompile Include="..\articulation\pigsolverdevice.cu" />
-    <CudaCompile Include="..\render\cuda_utils_render.cu">
-      <FileType>Document</FileType>
-    </CudaCompile>
+    <CudaCompile Include="..\render\cuda_utils_render.cu" />
     <CudaCompile Include="..\utils\gpuutils.cu" />
     <CudaCompile Include="..\utils\image_utils_gpu.cu" />
   </ItemGroup>
@@ -190,10 +180,10 @@
     <ClInclude Include="..\articulation\pigmodeldevice.h" />
     <ClInclude Include="..\articulation\pigsolverdevice.h" />
     <ClInclude Include="..\articulation\vector_operations.hpp" />
+    <ClInclude Include="..\utils\definitions.h" />
     <ClInclude Include="clusterclique.h" />
     <ClInclude Include="framedata.h" />
     <ClInclude Include="framesolver.h" />
-    <ClInclude Include="global_config.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="matching.h" />
     <ClInclude Include="mce\AdjacencyListAlgorithm.h" />
@@ -204,61 +194,8 @@
     <ClInclude Include="tracking.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\articulation\artist_config.json" />
-    <None Include="..\configs\config_20190703_motion.json" />
-    <None Include="..\configs\config_20190703_motion2.json" />
-    <None Include="..\configs\config_20190703_motion2_new.json" />
-    <None Include="..\configs\config_20190703_motion3_new.json" />
-    <None Include="..\configs\config_20190703_motion4.json" />
-    <None Include="..\configs\config_20190703_motion5.json" />
-    <None Include="..\configs\config_20190703_motion_new.json" />
-    <None Include="..\configs\config_20190704_fordemo.json" />
-    <None Include="..\configs\config_20190704_foreval-seq.json" />
-    <None Include="..\configs\config_20190704_foreval.json" />
-    <None Include="..\configs\config_20190704_foreval_3views.json" />
-    <None Include="..\configs\config_20190704_foreval_5views.json" />
-    <None Include="..\configs\config_20190704_foreval_no_reassoc.json" />
-    <None Include="..\configs\config_20190704_foreval_no_sil.json" />
-    <None Include="..\configs\config_20190704_foreval_tri.json" />
-    <None Include="..\configs\config_20190704_foreval_tri_3views.json" />
-    <None Include="..\configs\config_20190704_foreval_tri_5views.json" />
-    <None Include="..\configs\config_20190704_gt.json" />
-    <None Include="..\configs\config_20190705_feed.json" />
-    <None Include="..\configs\config_20190705_feed10.json" />
-    <None Include="..\configs\config_20190823_feed.json" />
-    <None Include="..\configs\config_20190824_motion.json" />
-    <None Include="..\configs\config_20190825_feed.json" />
-    <None Include="..\configs\config_20190922_feed.json" />
-    <None Include="..\configs\config_20191001_stand.json" />
-    <None Include="..\configs\config_20191001_standWT.json" />
-    <None Include="..\configs\config_20191002_stand.json" />
-    <None Include="..\configs\config_20191003_cwz1.json" />
-    <None Include="..\configs\config_20191003_hour9.json" />
-    <None Include="..\configs\config_20191003_socialdemo.json" />
-    <None Include="..\configs\config_20191003_socialdemo2.json" />
-    <None Include="..\configs\config_20191003_stand.json" />
-    <None Include="..\configs\config_20191003_stand2.json" />
-    <None Include="..\configs\config_20191004.json" />
-    <None Include="..\configs\config_20191005.json" />
-    <None Include="..\configs\config_20191005_hour13.json" />
-    <None Include="..\configs\config_20191007_morning.json" />
-    <None Include="..\configs\config_20210321_motion.json" />
-    <None Include="..\configs\config_20210321_motion2.json" />
-    <None Include="..\configs\config_7.json" />
     <None Include="..\configs\config_BamaPig3D_main.json" />
     <None Include="..\configs\config_BamaPig3D_nosil.json" />
-    <None Include="..\configs\config_demo1.json" />
-    <None Include="..\configs\config_demo2.json" />
-    <None Include="..\configs\config_demo6.json" />
-    <None Include="..\configs\config_jointangle_0823.json" />
-    <None Include="..\configs\config_newf1_batch4_0928.json" />
-    <None Include="..\configs\config_newf1_batch5_2.json" />
-    <None Include="..\configs\config_scratch_C4.json" />
-    <None Include="..\configs\config_scratch_D4.json" />
-    <None Include="..\configs\config_scratch_D9.json" />
-    <None Include="..\configs\config_seq1-old.json" />
-    <None Include="..\configs\config_seq1.json" />
-    <None Include="..\configs\config_seq2.json" />
     <None Include="..\configs\main_config.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -4,6 +4,7 @@
 #include "math_utils.h"
 #include <opencv2/video/background_segm.hpp>
 #include <filesystem>
+#include "definitions.h"
 
 
 void my_undistort(const cv::Mat &input, cv::Mat &output, const Camera &camera, const Camera &newcam)
@@ -192,11 +193,8 @@ void packImgBlock(const std::vector<cv::Mat> &imgs, cv::Mat &output)
 
 void getColorMap(std::string cm_type, std::vector<Eigen::Vector3i> &colormap)
 {
-#ifdef _WIN32
-	std::string cm_folder = "D:/Projects/animal_calib/data/colormaps/"; 
-#else 
-	std::string cm_folder = "/home/al17/animal/animal_calib/data/colormaps/";
-#endif 
+	std::string cm_folder = PROJECT_FOLDER;
+	cm_folder += "/data/colormaps/";
     std::stringstream ss; 
     ss << cm_folder << cm_type << ".txt";
 
