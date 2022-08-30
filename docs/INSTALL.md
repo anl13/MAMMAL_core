@@ -75,7 +75,7 @@ Note that, on the left of the green triangle buttom "Local Windows Debugger", ch
 The whole MAMMAL\_core solution contains five projects named `annotator`, `articulation`, `posesolver`, `render`, `utils`. Their functions are 
 * annotator 
 
-It is a GUI (graphical user interface) for pig pose tunning. See `Annotator.md` for more details. 
+It is a GUI (graphical user interface) for pig pose tunning. See `Demo.md` for more details. 
 * articulation 
 
 It contain the core code for how to pose the PIG model and how to optimize the poses according to observations. 
