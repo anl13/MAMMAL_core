@@ -71,6 +71,20 @@ Click on the `MAMMAL_core.sln` (Visual Studio solution file), it will be opened 
 
 Note that, on the left of the green triangle buttom "Local Windows Debugger", choose "Release" and "x64" setting. 
 
+## Change path variable (important)
+Go to `utils/definitions.h`. There are three variables defined as 
+```C++
+// Change this pre-defined folder to your own project folder.
+#define PROJECT_FOLDER "H:/MAMMAL_core/"
+
+// Change this folder path to save your results. 
+#define RESULT_FOLDER "I:/results/"
+
+// Change this folder path to your own BamaPig3D dataset path 
+#define BamaPig3D_PATH "H:/examples/BamaPig3D/"
+```
+Please change the `PROJECT_FOLDER` to your own path of `MAMMAL_core` folder. Change `RESULT_FOLDER` to the place where you want to save the output. (optional) If you want to run surface evaluation, please change `BamaPig3D_PATH` to your own path of BamaPig3D dataset. 
+
 ## Run render demo 
 The whole MAMMAL\_core solution contains five projects named `annotator`, `articulation`, `posesolver`, `render`, `utils`. Their functions are 
 * annotator 
@@ -100,3 +114,18 @@ As a initial test, we recommend to run `render` project.
 3. You have succeeded to run the first demo of MAMMAL\_core now! 
 
 Please refer to `Demo.md` for how to run on the sequence of BamaPig3D. 
+
+## Q&A 
+1. My Visual Studio do not compile successfully, how to check what's wrong? 
+Right click on the project name (e.g. `render`), click on the last option in the option list which reads `Properties`. All the options within the `Configuration Properties` affect your compilation process. Here are some important ones to check. 
+
+(1) `Configuration Properties -> General -> Windows SDK Version`. Make sure your SDK version is a valid one. You may click on it to see a list of all the SDKs on your machine. 
+![](../pics/property1.PNG)
+
+(2) `Configuration Properties -> General -> Platform Toolset`. Make sure it is `Visual Studio 2017 (v141) because all the third party libraries were compiled using this toolset. If you change it, you may need to rebuild the third party libraries for yourself. 
+
+(3) `Configuration Properties -> C/C++ -> Language -> C++ Language Standard`. Make sure it is `ISO C++ 17 Standard (/std:c++17)` because the project use some features of C++ 17. Lower version (e.g. C++ 14 or C++ 11) can not make through the compilation. 
+![](../pics/property2.PNG)
+
+(4) `Configuration Properties -> CUDA C/C++ -> Device -> Code Generation`. Make sure it is compatible with your own GPU device. For example, I use NVIDIA Titan X, so I set it `compute_52,sm_52`. However, it may not cause problem if you set another version. You can refer to the link  https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/ to see the match between GPU cards and gencode. 
+![](../pics/property3.PNG)

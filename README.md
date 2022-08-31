@@ -29,6 +29,9 @@ Please refer to code https://github.com/anl13/MAMMAL_behavior for behavior analy
 ## Rendering 
 To effectively render the model in python environment, we developed a `pig_renderer` as in https://github.com/anl13/pig_renderer. 
 
+## Q&A 
+If you come up with any problem during testing MAMMAL, do not hesitate to propose an issue on github. I will reply when I see them. 
+
 ## Citation
 If you use these datasets in your research, please cite the paper
 
