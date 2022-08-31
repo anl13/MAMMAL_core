@@ -1,6 +1,6 @@
-# MAMMAL
+# MAMMAL (Multi-Animal Mesh Model ALignment)
 ![](pics/teaser.png)
-This repository contains the core code of **MAMMAL** system proposed in paper _Three-dimensional surface motion capture of multiple freely moving pigs using MAMMAL_. 
+This repository contains the core code of **MAMMAL** system proposed in paper _Three-dimensional surface motion capture of multiple freely moving pigs using MAMMAL_ (not publicly available yet). 
 This is the **first** system demonstrating pose and shape reconstruction of socially interacting animals. Moreover, it is the **first** system to analyse pig behavior in three-dimensional space. 
 
 ## Installation 
