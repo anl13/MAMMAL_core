@@ -1,10 +1,14 @@
 # MAMMAL (Multi-Animal Mesh Model ALignment)
+## News 
+[2023. 06. 28] This is still an old version. New version with pig tail tracking and beagle dog tracking will be updated soon. Substantial changes will be merged. 
+
+## Introduction
 ![](pics/teaser.png)
 This repository contains the core code of **MAMMAL** system proposed in paper _Three-dimensional surface motion capture of multiple freely moving pigs using MAMMAL_ (not publicly available yet). 
 This is the **first** system demonstrating pose and shape reconstruction of socially interacting animals. Moreover, it is the **first** system to analyse pig behavior in three-dimensional space. 
 
 ## Installation 
-The code is written using C++ Std 17 on Visual Studio Community 2017. Please refer to `docs/INSTALL.md` for installation guide. 
+The code is written using C++ Std 17 on Visual Studio Community 2017. Please refer to `docs/INSTALL.md` for installation guide. If you have any problems, raise an issue and I will comment as soon as possible. 
 
 ## Quick demo 
 Please refer to `docs/Demo.md`. 
@@ -39,8 +43,7 @@ If you use these datasets in your research, please cite the paper
 @article{MAMMAL, 
     author = {An, Liang and Ren, Jilong and Yu, Tao and Hai, Tang and Jia, Yichang and Liu, Yebin},
     title = {Three-dimensional surface motion capture of multiple freely moving pigs using MAMMAL},
-    booktitle = {},
-    month = {July},
-    year = {2022}
+    journal = {unpublished},
+    year = {2023}
 }
 ```
